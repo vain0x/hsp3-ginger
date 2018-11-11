@@ -10,29 +10,32 @@
 #define EXPORT extern "C" __declspec (dllexport)
 #define BOOL int
 
-typedef BOOL (WINAPI* DebugInitFn)(HSP3DEBUG* p1, int p2, int p3, int p4);
-typedef BOOL (WINAPI* DebugNoticeFn)(HSP3DEBUG* p1, int p2, int p3, int p4);
+typedef BOOL(WINAPI* DebugInitFn)(HSP3DEBUG* p1, int p2, int p3, int p4);
+typedef BOOL(WINAPI* DebugNoticeFn)(HSP3DEBUG* p1, int p2, int p3, int p4);
 
-auto trim_end(std::string& s) {
+// 文字列の末尾の空白を除去する。
+static auto trim_end(std::string& s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](char ch) {
         return !std::isspace(ch);
     }).base(), s.end());
 }
 
-auto ends_with(std::wstring const& str, std::wstring const& suffix) {
+// 文字列の末尾が suffix に一致するか判定する。
+static auto ends_with(std::wstring const& str, std::wstring const& suffix) {
     if (str.length() < suffix.length()) {
         return false;
     }
     return std::equal(str.end() - suffix.length(), str.end(), suffix.begin(), suffix.end());
 }
 
-auto strip_suffix(std::wstring const& str, std::wstring const& suffix) {
+// 文字列の末尾から指定された文字列を除去する。
+static auto strip_suffix(std::wstring const& str, std::wstring const& suffix) {
     assert(ends_with(str, suffix));
     return std::wstring{ str.begin(), str.end() - suffix.length() };
 }
 
-auto utf8_to_wide_string(std::string const& str) {
-    // バッファサイズを計算する。終端文字を含まれないので注意。
+static auto utf8_to_wide_string(std::string const& str) {
+    // バッファサイズを計算する。終端文字を含まないので注意。
     auto size = 1 + MultiByteToWideChar(CP_UTF8, 0, str.c_str(), str.length(), nullptr, 0);
     assert(size > 1);
 
@@ -44,23 +47,22 @@ auto utf8_to_wide_string(std::string const& str) {
     return std::wstring{ buf.data() };
 }
 
+// エラーメッセージを出力して異常終了する。
 [[noreturn]]
-auto fail_with(std::wstring const& str) -> void {
+static auto fail_with(std::wstring const& str) -> void {
     MessageBox(nullptr, str.c_str(), L"hsp3debug", MB_OK);
     std::abort();
 }
 
-struct ModuleCloseFn
-{
-    void operator()(HMODULE h) const
-    {
+struct ModuleCloseFn {
+    void operator()(HMODULE h) const {
         FreeLibrary(h);
     }
 };
 
 using ModuleHandle = std::unique_ptr<std::remove_pointer<HMODULE>::type, ModuleCloseFn>;
 
-auto load_library(std::wstring const& full_path) {
+static auto load_library(std::wstring const& full_path) {
     auto handle = LoadLibrary(full_path.c_str());
     if (handle == nullptr) {
         fail_with(L"Couldn't load library " + full_path);
@@ -80,7 +82,7 @@ public:
     }
 };
 
-auto load_debug_library(std::wstring const& full_path) {
+static auto load_debug_library(std::wstring const& full_path) {
     auto handle = load_library(full_path);
     auto debugini = (DebugInitFn)GetProcAddress(handle.get(), "_debugini@16");
     auto debug_notice = (DebugInitFn)GetProcAddress(handle.get(), "_debug_notice@16");
@@ -92,7 +94,7 @@ auto load_debug_library(std::wstring const& full_path) {
 }
 
 // このモジュール(DLL)のフルパスからディレクトリ名の部分だけ取得する。(e.g. C:/hsp/)
-auto current_module_directory_name(HMODULE h_module) {
+static auto current_module_directory_name(HMODULE h_module) {
     // フルパスを取得する。
     auto buf = std::array<wchar_t, MAX_PATH>();
     GetModuleFileName(h_module, buf.data(), buf.size());
@@ -102,6 +104,7 @@ auto current_module_directory_name(HMODULE h_module) {
 }
 
 static auto attach_debugger(std::wstring const& dir_name) -> DebugLibrary {
+    // ファイルからロードすべきデバッガーの名前を取得する。
     auto f = std::ifstream{ dir_name + L"hsp3debug.txt" };
     if (!f.is_open()) {
         fail_with(L"Make hsp3debug.txt and write debugger file name to load.");
