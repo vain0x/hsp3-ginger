@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2046
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hsp3-debug-ginger", "hsp3-debug-ginger\hsp3-debug-ginger.vcxproj", "{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Debug|x64.ActiveCfg = Debug|x64
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Debug|x64.Build.0 = Debug|x64
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Debug|x86.ActiveCfg = Debug|Win32
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Debug|x86.Build.0 = Debug|Win32
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Release|x64.ActiveCfg = Release|x64
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Release|x64.Build.0 = Release|x64
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Release|x86.ActiveCfg = Release|Win32
+		{ED73B5EB-4424-44F5-ACC6-AEB87E040B36}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4906E021-6F27-42B9-951E-B3BFE3D8E99C}
+	EndGlobalSection
+EndGlobal
