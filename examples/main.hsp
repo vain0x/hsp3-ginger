@@ -1,0 +1,12 @@
+#include "hsp3_64.as"
+
+	dialog "start"
+
+	repeat
+		cls
+		mes "breaking..."
+		assert
+		mes "resumed"
+		mes refstr
+		await 100
+	loop

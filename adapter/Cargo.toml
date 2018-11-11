@@ -1,0 +1,16 @@
+[package]
+name = "hsp3-debug-adapter"
+version = "0.1.0"
+authors = ["vain0x <vainzerox@gmail.com>"]
+build = "src/build.rs"
+
+[build-dependencies]
+bindgen = "0.26.3"
+
+[dependencies]
+libc = "0.2"
+winapi = { version = "0.3", features = ["winuser"] }
+ws = "0.7"
+
+[lib]
+crate-type = ["cdylib"]
