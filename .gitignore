@@ -1,3 +1,5 @@
+adapter/target
+adapter/Cargo.lock
 hsp3debug/.vs
 hsp3debug/Debug
 hsp3debug/Release
