@@ -6,6 +6,10 @@
 
 *GINGER* は、VSCode で HSP3 のスクリプトのデバッグ実行を可能にするプロジェクト。
 
+## 使いかた
+
+まだ使えません。
+
 ## 構造
 
 - `hsp3debug` (hsp3-debug-ginger)
