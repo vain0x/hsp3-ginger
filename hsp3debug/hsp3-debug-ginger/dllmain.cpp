@@ -91,6 +91,16 @@ auto load_debug_library(std::wstring const& full_path) {
     };
 }
 
+// このモジュール(DLL)のフルパスからディレクトリ名の部分だけ取得する。(e.g. C:/hsp/)
+auto current_module_directory_name(HMODULE h_module) {
+    // フルパスを取得する。
+    auto buf = std::array<wchar_t, MAX_PATH>();
+    GetModuleFileName(h_module, buf.data(), buf.size());
+    auto full_path = std::wstring{ buf.data() };
+
+    return strip_suffix(full_path, std::wstring{ L"hsp3debug.dll" });
+}
+
 static auto attach_debugger(std::wstring const& dir_name) -> DebugLibrary {
     auto f = std::ifstream{ dir_name + L"hsp3debug.txt" };
     if (!f.is_open()) {
@@ -120,13 +130,7 @@ BOOL APIENTRY DllMain(
     {
         case DLL_PROCESS_ATTACH: {
             MessageBox(nullptr, L"attach!", L"hsp3debug", MB_OK);
-            OutputDebugString(TEXT("attach!"));
-
-            auto buf = std::array<wchar_t, MAX_PATH>();
-            GetModuleFileName(h_module, buf.data(), buf.size());
-            auto file_name = std::wstring{ buf.data() };
-            auto dir_name = strip_suffix(file_name, std::wstring{ L"hsp3debug.dll" });
-
+            auto dir_name = current_module_directory_name(h_module);
             auto lib = attach_debugger(dir_name);
             std::swap(s_lib, lib);
             break;
