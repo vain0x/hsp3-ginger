@@ -10,6 +10,7 @@ VSCode に HSP ランタイムの実行状況を送ったり、VSCode 側での�
 - Rust をインストールする。
 
 ```
+rustup toolchain install stable-i686-pc-windows-msvc
 rustup toolchain install stable-x86_64-pc-windows-msvc
 
 cargo build

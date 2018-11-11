@@ -84,8 +84,8 @@ public:
 
 static auto load_debug_library(std::wstring const& full_path) {
     auto handle = load_library(full_path);
-    auto debugini = (DebugInitFn)GetProcAddress(handle.get(), "_debugini@16");
-    auto debug_notice = (DebugInitFn)GetProcAddress(handle.get(), "_debug_notice@16");
+    auto debugini = (DebugInitFn)GetProcAddress(handle.get(), "debugini");
+    auto debug_notice = (DebugInitFn)GetProcAddress(handle.get(), "debug_notice");
     return DebugLibrary{
         std::move(handle),
         debugini,
@@ -104,20 +104,7 @@ static auto current_module_directory_name(HMODULE h_module) {
 }
 
 static auto attach_debugger(std::wstring const& dir_name) -> DebugLibrary {
-    // ファイルからロードすべきデバッガーの名前を取得する。
-    auto f = std::ifstream{ dir_name + L"hsp3debug.txt" };
-    if (!f.is_open()) {
-        fail_with(L"Make hsp3debug.txt and write debugger file name to load.");
-    }
-
-    auto path = std::string{
-        std::istreambuf_iterator<char>{f},
-        std::istreambuf_iterator<char>{},
-    };
-    trim_end(path);
-    auto wpath = utf8_to_wide_string(path);
-    auto full_path = dir_name + wpath;
-
+    auto full_path = dir_name + L"hsp3debug-ginger-adapter.dll";
     return load_debug_library(full_path);
 }
 
@@ -142,7 +129,6 @@ BOOL APIENTRY DllMain(
         case DLL_THREAD_DETACH:
             break;
         case DLL_PROCESS_DETACH: {
-            OutputDebugString(TEXT("detach!"));
             auto lib = DebugLibrary{};
             std::swap(s_lib, lib);
             break;
