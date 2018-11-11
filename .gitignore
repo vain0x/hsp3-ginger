@@ -1,10 +1,5 @@
 adapter/target
 adapter/Cargo.lock
-hsp3debug/.vs
-hsp3debug/Debug
-hsp3debug/Release
-hsp3debug/hsp3-debug-ginger/Debug/
-hsp3debug/hsp3-debug-ginger/Release/
 hsp3debug/hsp3-debug-ginger/hsp3-debug-ginger.vcxproj.user
 vscode-ext/out
 vscode-ext/package-lock.json
