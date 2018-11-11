@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="app.css">
+  <title>HSP3 仮想デバッガー</title>
+</head>
+
+<body>
+  <article>
+    <h2>状態 [自動更新]</h2>
+
+    <pre id="status"></pre>
+
+    <pre id="error"></pre>
+  </article>
+
+  <article>
+    <h2>HSPプログラム側</h2>
+    <p>
+      HSPのスクリプトから実行できる操作をシミュレートします。
+    </p>
+
+    <form method="POST">
+      <button formaction="/program/start">|> 開始</button>
+
+      <button formaction="/program/assert">▲ 中断(assert)</button>
+
+      <button formaction="/program/end">■ 終了</button>
+    </form>
+  </article>
+
+  <script src="./app.js"></script>
+</body>
+
+</html>
