@@ -1,4 +1,4 @@
-//! VSCode 側のデバッガーと接続する。
+//! VSCode 側のデバッガーアダプターと通信する。
 
 #![allow(unused_imports)]
 
@@ -60,7 +60,7 @@ impl Connection {
 
         unsafe {
             let mutex: &mut _ = CONNECTION.as_mut().unwrap();
-            let mut lock = mutex.lock();
+            let lock = mutex.lock();
             *(lock.unwrap()) = Some(connection);
         }
     }

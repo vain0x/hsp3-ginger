@@ -9,6 +9,21 @@ mod logger;
 
 use winapi::shared::minwindef::*;
 
+/// debug_notice 通知の原因を表す。 (p2 の値。)
+const DEBUG_NOTICE_STOP: isize = 0;
+const DEBUG_NOTICE_LOGMES: isize = 1;
+
+/// マルチバイト文字列を指すポインタを、ゼロ終端を探すことでスライスにする。
+fn multibyte_str_from_pointer(s: *mut u8) -> &'static mut [u8] {
+    // NOTE: 適当な長さで探索を打ち切る。この範囲にゼロがなければ、バッファオーバーフローを起こす可能性がある。
+    for i in 0..4096 {
+        if unsafe { *s.add(i) } == 0 {
+            return unsafe { std::slice::from_raw_parts_mut(s, i) };
+        }
+    }
+    panic!()
+}
+
 /// クレートの static 変数を初期化などを行なう。
 /// ここでエラーが起こるとめんどうなので、Mutex や RefCell などを初期化するにとどめて、複雑なオブジェクトの生成は遅延しておく。
 fn init_crate() {
@@ -41,7 +56,7 @@ pub extern "system" fn debugini(
 ) -> i32 {
     init_crate();
 
-    helpers::message_box("init");
+    logger::log("debugini");
     connection::Connection::spawn();
     return p2 * 10000 + p3 * 100 + p4;
 }
@@ -50,10 +65,28 @@ pub extern "system" fn debugini(
 #[allow(non_snake_case, unused_variables)]
 pub extern "system" fn debug_notice(
     hsp_debug: *mut hspsdk::HSP3DEBUG,
-    p2: i32,
+    cause: i32,
     p3: i32,
     p4: i32,
 ) -> i32 {
+    let hspctx: &mut hspsdk::HSPCTX = unsafe { &mut *(*hsp_debug).hspctx };
+
+    match cause as isize {
+        DEBUG_NOTICE_LOGMES => {
+            // NOTE: utf8 版ではないので cp932
+            let given = hspctx.stmp as *mut u8;
+            let bytes = multibyte_str_from_pointer(given);
+            let message = String::from_utf8_lossy(bytes);
+            logger::log(&message);
+            return 0;
+        }
+        DEBUG_NOTICE_STOP => {}
+        _ => {
+            logger::log("debug_notice with unknown cause");
+            return 0;
+        }
+    }
+
     static mut COUNTER: i32 = 0;
 
     unsafe {
