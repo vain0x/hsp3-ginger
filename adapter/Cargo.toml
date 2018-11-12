@@ -5,12 +5,12 @@ authors = ["vain0x <vainzerox@gmail.com>"]
 build = "src/build.rs"
 
 [build-dependencies]
-bindgen = "0.26.3"
+bindgen = "0"
 
 [dependencies]
-libc = "0.2"
-winapi = { version = "0.3", features = ["winuser"] }
-ws = "0.7"
+libc = "0"
+winapi = { version = "0", features = ["winuser"] }
+ws = "0"
 
 [lib]
 crate-type = ["cdylib"]
