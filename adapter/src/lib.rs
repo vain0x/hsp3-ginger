@@ -41,7 +41,7 @@ pub extern "system" fn debugini(
 ) -> i32 {
     init_crate();
 
-    // message_box("init".to_owned());
+    helpers::message_box("init");
     connection::Connection::spawn();
     return p2 * 10000 + p3 * 100 + p4;
 }
@@ -63,9 +63,13 @@ pub extern "system" fn debug_notice(
         let set_run_mode = (*hsp_debug).dbg_set.unwrap();
         set_run_mode(hspsdk::RUNMODE_RUN as i32);
 
-        let s = std::ffi::CString::new(c.to_string()).unwrap();
-        let refstr = (*(*hsp_debug).hspctx).refstr;
-        std::ptr::copy_nonoverlapping(s.as_ptr(), refstr, hspsdk::HSPCTX_REFSTR_MAX as usize);
+        let hspctx: &mut hspsdk::HSPCTX = &mut *(*hsp_debug).hspctx;
+        let stat = &mut hspctx.stat;
+        *stat = c;
+
+        // let s = std::ffi::CString::new(c.to_string()).unwrap();
+        // let refstr = (*(*hsp_debug).hspctx).refstr;
+        // std::ptr::copy_nonoverlapping(s.as_ptr(), refstr, hspsdk::HSPCTX_REFSTR_MAX as usize);
     }
 
     return 0;

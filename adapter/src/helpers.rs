@@ -1,13 +1,20 @@
 use logger;
 use std;
+use std::ffi;
+use std::str;
 use winapi;
 
-fn message_box(message: String) {
-    let message = std::ffi::CString::new(message).unwrap();
-    let caption = std::ffi::CString::new("rust").unwrap();
+/// ゼロ終端の utf-16 文字列に変換する。(Win32 API に渡すのに使う。)
+pub(crate) fn to_u16s(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+pub(crate) fn message_box(message: &str) {
+    let message = to_u16s(&message);
+    let caption = to_u16s("rust");
 
     unsafe {
-        winapi::um::winuser::MessageBoxA(
+        winapi::um::winuser::MessageBoxW(
             std::ptr::null_mut(),
             message.as_ptr(),
             caption.as_ptr(),
@@ -16,10 +23,10 @@ fn message_box(message: String) {
     }
 }
 
-/// Aborts with error message (for debug)
-pub fn failwith<T: std::fmt::Debug>(error: T) -> ! {
+/// エラーメッセージを出力して異常終了する。(デバッグ用)
+pub(crate) fn failwith<T: std::fmt::Debug>(error: T) -> ! {
     let message = format!("Error in hsp3debug: {:?}", error);
     logger::log(&message);
-    message_box(message);
+    message_box(&message);
     panic!("Error")
 }

@@ -13,5 +13,8 @@ VSCode に HSP ランタイムの実行状況を送ったり、VSCode 側での�
 rustup toolchain install stable-i686-pc-windows-msvc
 rustup toolchain install stable-x86_64-pc-windows-msvc
 
-cargo build
+rustup target add i686-pc-windows-msvc
+rustup target add x86_64-pc-windows-msvc
+
+cargo build --all-targets
 ```
