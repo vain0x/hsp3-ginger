@@ -26,3 +26,7 @@
     - TypeScript
     - VSCode のデバッガー拡張機能から呼び出される。
     - WebSocket サーバーを実行して、 `adapter` とやりとりする。
+
+## 開発
+
+GINGER の開発者のためのメモ: [dev.md](./dev.md)
