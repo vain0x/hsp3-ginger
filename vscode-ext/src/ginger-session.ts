@@ -43,6 +43,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   private configDone = new Subject()
   private server: GingerConnectionServer | undefined
   private currentLint: number = 2
+  private cwd: string = path.resolve(".")
 
   public constructor() {
     super(path.resolve("ginger-session.txt"))
@@ -76,6 +77,7 @@ export class GingerDebugSession extends LoggingDebugSession {
     response: DebugProtocol.LaunchResponse,
     args: LaunchRequestArguments
   ) {
+    this.cwd = args.cwd;
     logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false)
 
     await this.configDone.wait(1000)
@@ -212,13 +214,9 @@ export class GingerDebugSession extends LoggingDebugSession {
   }
 
   private createSource(filePath: string): Source {
-    return new Source(
-      basename(filePath),
-      this.convertDebuggerPathToClient(filePath),
-      undefined,
-      undefined,
-      {}
-    )
+    const fullPath = path.resolve(this.cwd, filePath)
+    const clientPath = this.convertDebuggerPathToClient(fullPath)
+    return new Source(basename(filePath), clientPath, undefined, undefined, {})
   }
 
   private startServer(cwd: string) {
