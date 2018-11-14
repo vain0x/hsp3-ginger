@@ -37,7 +37,7 @@ pub(crate) fn failwith<T: std::fmt::Debug>(error: T) -> ! {
         message_box(&message);
         panic!()
     }
-    #[cfg(not(feature = "winuser"))]
+    #[cfg(not(target_os = "windows"))]
     {
         panic!("ERROR: {:?}", error)
     }

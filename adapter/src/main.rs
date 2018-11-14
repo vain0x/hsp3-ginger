@@ -16,9 +16,6 @@ mod helpers;
 mod hspsdk;
 mod logger;
 
-#[cfg(target_os = "windows")]
-mod win;
-
 fn initialize() {
     // INFO 以上の重要度を持つメッセージが標準出力されるようにする。
     std::env::set_var("RUST_LOG", "info");
