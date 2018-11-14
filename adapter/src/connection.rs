@@ -3,6 +3,8 @@
 #![allow(unused_imports)]
 
 use helpers::failwith;
+use hsprt;
+use hspsdk;
 use logger;
 use std;
 use std::sync::mpsc::{channel, Receiver as ChannelReceiver, Sender as ChannelSender};
@@ -11,29 +13,29 @@ use std::thread::{self, sleep};
 use std::time::Duration;
 use ws;
 
-pub enum Response {
+pub(crate) enum Response {
     StopOnBreakpoint,
 }
 
-pub struct WsClient {
-    out: Arc<Mutex<ws::Sender>>,
-    join_handle: std::thread::JoinHandle<()>,
+pub(crate) enum Request {
+    FromEditor(String),
+    FromSelf,
 }
 
-pub struct Connection {
+pub(crate) struct Connection {
     sender: ws::Sender,
     pub join_handle: std::thread::JoinHandle<()>,
 }
 
 static mut CONNECTION: Option<std::sync::Mutex<Option<Connection>>> = None;
 
-pub fn init_mod() {
+pub(crate) fn init_mod() {
     unsafe {
         CONNECTION = Some(std::sync::Mutex::new(None));
     }
 }
 
-pub fn with_connection<R, F>(f: F) -> R
+pub(crate) fn with_connection<R, F>(f: F) -> R
 where
     F: Fn(&mut Connection) -> R,
 {
@@ -45,8 +47,11 @@ where
 }
 
 impl Connection {
-    pub fn spawn() {
-        let (sender, receiver) = channel::<ws::Message>();
+    pub fn spawn<D>(mut d: D)
+    where
+        D: hsprt::HspDebug + Send + 'static,
+    {
+        let (sender, receiver) = channel::<Request>();
         let (out_sender, out_receiver) = channel();
 
         let join_handle = std::thread::spawn(move || {
@@ -57,14 +62,53 @@ impl Connection {
 
                 // メッセージを受信したときは、単にメッセージを外部に転送する。
                 |message: ws::Message| {
-                    sender.send(message).unwrap();
+                    match message {
+                        ws::Message::Binary(_) => {
+                            logger::log("受信 失敗 バイナリ");
+                        }
+                        ws::Message::Text(json) => {
+                            sender.send(Request::FromEditor(json)).unwrap();
+                        }
+                    }
                     Ok(())
                 }
-            })
-            .unwrap_or_else(|e| failwith(e))
+            }).unwrap_or_else(|e| failwith(e))
         });
 
         let out = out_receiver.recv().unwrap();
+
+        let j = std::thread::spawn(move || {
+            while let Ok(message) = receiver.recv() {
+                match message {
+                    Request::FromEditor(message) => {
+                        logger::log(&format!("受信 FromEditor({})", &message));
+                        if message.contains("continue") {
+                            d.set_run_mode(hspsdk::RUNMODE_RUN);
+                            with_connection(|c| {
+                                c.sender.send(r#"{"type":"continue"}"#).unwrap();
+                            });
+                        } else if message.contains("pause") {
+                            d.set_run_mode(hspsdk::RUNMODE_STOP);
+                            with_connection(|c| {
+                                c.sender
+                                    .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
+                                    .unwrap();
+                            });
+                        } else {
+                            logger::log("  不明なメッセージ");
+                        }
+                    }
+                    Request::FromSelf => {
+                        logger::log("送信 break");
+                        with_connection(|c| {
+                            c.sender
+                                .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
+                                .unwrap();
+                        })
+                    }
+                }
+            }
+        });
 
         let connection = Connection {
             sender: out,
@@ -79,9 +123,7 @@ impl Connection {
 
         std::thread::sleep(std::time::Duration::from_secs(3));
         with_connection(|c| {
-            c.sender
-                .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
-                .unwrap();
+            c.sender.send(r#"{"type":"continue"}"#).unwrap();
         });
     }
 }

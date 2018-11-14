@@ -13,8 +13,20 @@ extern crate winapi;
 
 mod connection;
 mod helpers;
+mod hsprt;
 mod hspsdk;
 mod logger;
+
+#[derive(Clone, Copy, Debug)]
+struct HspDebugImpl {
+    run_mode: i32,
+}
+
+impl hsprt::HspDebug for HspDebugImpl {
+    fn set_run_mode(&mut self, run_mode: i32) {
+        self.run_mode = run_mode;
+    }
+}
 
 fn initialize() {
     // INFO 以上の重要度を持つメッセージが標準出力されるようにする。
@@ -31,7 +43,11 @@ fn main() {
     initialize();
     info!("initialized");
 
-    connection::Connection::spawn();
+    let d = HspDebugImpl {
+        run_mode: hspsdk::RUNMODE_RUN,
+    };
+
+    connection::Connection::spawn(d);
 
     // FIXME: スレッドに join する。
     std::thread::sleep(std::time::Duration::from_secs(10));

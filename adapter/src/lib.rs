@@ -10,8 +10,12 @@ extern crate log;
 
 mod connection;
 mod helpers;
+mod hsprt;
 mod hspsdk;
 mod logger;
+
+use std::cell::UnsafeCell;
+use std::sync::Mutex;
 
 #[cfg(target_os = "windows")]
 use winapi::shared::minwindef::*;
@@ -20,15 +24,22 @@ use winapi::shared::minwindef::*;
 const DEBUG_NOTICE_STOP: isize = 0;
 const DEBUG_NOTICE_LOGMES: isize = 1;
 
-/// マルチバイト文字列を指すポインタを、ゼロ終端を探すことでスライスにする。
-fn multibyte_str_from_pointer(s: *mut u8) -> &'static mut [u8] {
-    // NOTE: 適当な長さで探索を打ち切る。この範囲にゼロがなければ、バッファオーバーフローを起こす可能性がある。
-    for i in 0..4096 {
-        if unsafe { *s.add(i) } == 0 {
-            return unsafe { std::slice::from_raw_parts_mut(s, i) };
-        }
+static mut HSP_DEBUG: Option<UnsafeCell<Option<*mut hspsdk::HSP3DEBUG>>> = None;
+
+#[derive(Clone, Copy, Debug)]
+struct HspDebugImpl;
+
+impl hsprt::HspDebug for HspDebugImpl {
+    fn set_run_mode(&mut self, run_mode: i32) {
+        with_hsp_debug(|d| {
+            let set_run_mode = d.dbg_set.unwrap();
+            unsafe { set_run_mode(run_mode) };
+        });
     }
-    panic!()
+}
+
+fn init_mod() {
+    unsafe { HSP_DEBUG = Some(UnsafeCell::new(None)) };
 }
 
 /// クレートの static 変数を初期化などを行なう。
@@ -36,6 +47,23 @@ fn multibyte_str_from_pointer(s: *mut u8) -> &'static mut [u8] {
 fn init_crate() {
     logger::init_mod();
     connection::init_mod();
+    init_mod();
+}
+
+unsafe fn set_hsp_debug(hsp_debug: *mut hspsdk::HSP3DEBUG) {
+    HSP_DEBUG = Some(UnsafeCell::new(Some(hsp_debug)));
+}
+
+fn with_hsp_debug<R, F>(f: F) -> R
+where
+    F: FnOnce(&mut hspsdk::HSP3DEBUG) -> R,
+{
+    unsafe {
+        let cell: &mut UnsafeCell<_> = HSP_DEBUG.as_mut().unwrap();
+        let dp: *mut hspsdk::HSP3DEBUG = (*cell.get()).unwrap();
+        let d = &mut *dp;
+        f(d)
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -66,7 +94,10 @@ pub extern "system" fn debugini(
     init_crate();
 
     logger::log("debugini");
-    connection::Connection::spawn();
+
+    unsafe { set_hsp_debug(hsp_debug) };
+
+    connection::Connection::spawn(HspDebugImpl);
     return p2 * 10000 + p3 * 100 + p4;
 }
 
@@ -85,7 +116,7 @@ pub extern "system" fn debug_notice(
         DEBUG_NOTICE_LOGMES => {
             // NOTE: utf8 版ではないので cp932
             let given = hspctx.stmp as *mut u8;
-            let bytes = multibyte_str_from_pointer(given);
+            let bytes = helpers::multibyte_str_from_pointer(given);
             let message = String::from_utf8_lossy(bytes);
             logger::log(&message);
             return 0;
@@ -102,9 +133,6 @@ pub extern "system" fn debug_notice(
     unsafe {
         let c = COUNTER;
         COUNTER += 1;
-
-        let set_run_mode = (*hsp_debug).dbg_set.unwrap();
-        set_run_mode(hspsdk::RUNMODE_RUN as i32);
 
         let hspctx: &mut hspsdk::HSPCTX = &mut *(*hsp_debug).hspctx;
         let stat = &mut hspctx.stat;

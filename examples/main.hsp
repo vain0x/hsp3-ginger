@@ -1,12 +1,13 @@
-#include "hsp3_64.as"
-
 	dialog "start"
 
-	repeat
-		cls
-		mes "breaking..."
-		assert
-		mes "resumed"
-		mes refstr
+	repeat 1000000
+		redraw 2
+		color 255, 255, 255
+		boxf
+		color
+		pos 0, 0
+		mes "cnt = " + cnt
+		redraw
+
 		await 100
 	loop
