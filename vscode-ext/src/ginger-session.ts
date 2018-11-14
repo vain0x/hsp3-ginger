@@ -12,6 +12,7 @@ import {
   StackFrame,
   Source,
   Breakpoint,
+  ContinuedEvent,
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
@@ -30,6 +31,7 @@ interface HspDebugResponseBreak {
  */
 type HspDebugResponse =
   | HspDebugResponseBreak
+  | { type: "continue" }
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   cwd: string
@@ -170,13 +172,16 @@ export class GingerDebugSession extends LoggingDebugSession {
    */
   private handleRequest(message: string) {
     const event = JSON.parse(message) as HspDebugResponse;
-    switch (event && event.type) {
+    switch (event.type) {
       case "stopOnBreakpoint":
-        this.sendStop("breakpoint");
+        this.sendStop("breakpoint")
         this.currentLint = event.line
         break;
+      case "continue":
+        this.sendContinue()
+        break;
       default: {
-        logger.warn(`デバッグクライアント 不明なメッセージ ${message} ${event.type}`)
+        logger.warn(`デバッグクライアント 不明なメッセージ ${message}`)
         return
       }
     }
@@ -207,6 +212,10 @@ export class GingerDebugSession extends LoggingDebugSession {
 
   private sendStop(reason: "entry" | "pause" | "step" | "breakpoint" | "stopOnException") {
     this.sendEvent(new StoppedEvent(reason, THREAD_ID))
+  }
+
+  private sendContinue() {
+    this.sendEvent(new ContinuedEvent(THREAD_ID))
   }
 
   private sendTerminated() {
