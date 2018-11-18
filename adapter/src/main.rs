@@ -19,12 +19,12 @@ mod logger;
 
 #[derive(Clone, Copy, Debug)]
 struct HspDebugImpl {
-    run_mode: i32,
+    mode: hspsdk::DebugMode,
 }
 
 impl hsprt::HspDebug for HspDebugImpl {
-    fn set_run_mode(&mut self, run_mode: i32) {
-        self.run_mode = run_mode;
+    fn set_mode(&mut self, mode: hspsdk::DebugMode) {
+        self.mode = mode;
     }
 }
 
@@ -44,7 +44,7 @@ fn main() {
     info!("initialized");
 
     let d = HspDebugImpl {
-        run_mode: hspsdk::RUNMODE_RUN,
+        mode: hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode,
     };
 
     connection::Connection::spawn(d);

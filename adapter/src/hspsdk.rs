@@ -11,4 +11,6 @@
 #![allow(non_snake_case)]
 #![allow(warnings)]
 
+pub(crate) type DebugMode = i32;
+
 include!(concat!(env!("OUT_DIR"), "/hspsdk.rs"));

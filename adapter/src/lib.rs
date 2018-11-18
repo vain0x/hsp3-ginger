@@ -15,6 +15,7 @@ mod hspsdk;
 mod logger;
 
 use std::cell::UnsafeCell;
+use std::sync::mpsc;
 use std::sync::Mutex;
 
 #[cfg(target_os = "windows")]
@@ -28,20 +29,33 @@ static mut HSP_DEBUG: Option<UnsafeCell<Option<*mut hspsdk::HSP3DEBUG>>> = None;
 
 static mut HSP_MSGFUNC: Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)> = None;
 
+static mut HSP_SENDER: Option<mpsc::Sender<HspAction>> = None;
+
+static mut HSP_RECEIVER: Option<mpsc::Receiver<HspAction>> = None;
+
+#[derive(Clone, Debug)]
+enum HspAction {
+    SetMode(hspsdk::DebugMode),
+}
+
 #[derive(Clone, Copy, Debug)]
 struct HspDebugImpl;
 
 impl hsprt::HspDebug for HspDebugImpl {
-    fn set_run_mode(&mut self, run_mode: i32) {
-        with_hsp_debug(|d| {
-            let set_run_mode = d.dbg_set.unwrap();
-            unsafe { set_run_mode(run_mode) };
-        });
+    fn set_mode(&mut self, mode: hspsdk::DebugMode) {
+        if mode == hspsdk::HSPDEBUG_RUN {
+            do_set_mode(mode);
+        } else {
+            // HSP が wait/await で中断しているときでなければ無視されるので、次に停止したときにモードの変更を行うように予約する。
+            send_action(HspAction::SetMode(mode));
+        }
     }
 }
 
-fn init_mod() {
-    unsafe { HSP_DEBUG = Some(UnsafeCell::new(None)) };
+unsafe fn init_mod() {
+    let (sender, receiver) = mpsc::channel();
+    HSP_SENDER = Some(sender);
+    HSP_RECEIVER = Some(receiver);
 }
 
 /// クレートの static 変数を初期化などを行なう。
@@ -49,7 +63,7 @@ fn init_mod() {
 fn init_crate() {
     logger::init_mod();
     connection::init_mod();
-    init_mod();
+    unsafe { init_mod() };
 }
 
 unsafe fn set_hsp_debug(hsp_debug: *mut hspsdk::HSP3DEBUG) {
@@ -75,10 +89,37 @@ where
     }
 }
 
+fn send_action(action: HspAction) {
+    unsafe {
+        let sender = HSP_SENDER.as_ref().unwrap();
+        sender.send(action);
+    }
+}
+
+fn do_action(hspctx: &mut hspsdk::HSPCTX, action: HspAction) {
+    match action {
+        HspAction::SetMode(mode) => {
+            do_set_mode(mode);
+        }
+    }
+}
+
+fn do_set_mode(mode: hspsdk::DebugMode) {
+    with_hsp_debug(|d| {
+        let set = d.dbg_set.unwrap();
+        unsafe { set(mode) };
+    });
+}
+
 /// wait/await などで停止するたびに呼ばれる。
 unsafe extern "C" fn msgfunc(hspctx: *mut hspsdk::HSPCTX) {
     {
         let hspctx = &mut *hspctx;
+        let receiver = HSP_RECEIVER.as_mut().unwrap();
+        while let Ok(action) = receiver.try_recv() {
+            do_action(hspctx, action);
+        }
+
         let stat = &mut hspctx.stat;
         *stat = hspctx.runmode as i32;
     }

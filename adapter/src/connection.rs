@@ -83,12 +83,12 @@ impl Connection {
                     Request::FromEditor(message) => {
                         logger::log(&format!("受信 FromEditor({})", &message));
                         if message.contains("continue") {
-                            d.set_run_mode(hspsdk::RUNMODE_RUN);
+                            d.set_mode(hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode);
                             with_connection(|c| {
                                 c.sender.send(r#"{"type":"continue"}"#).unwrap();
                             });
                         } else if message.contains("pause") {
-                            d.set_run_mode(hspsdk::RUNMODE_STOP);
+                            d.set_mode(hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode);
                             with_connection(|c| {
                                 c.sender
                                     .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
