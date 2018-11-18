@@ -11,6 +11,7 @@ extern crate env_logger;
 #[cfg(target_os = "windows")]
 extern crate winapi;
 
+mod app;
 mod connection;
 mod helpers;
 mod hsprt;
@@ -36,7 +37,6 @@ fn initialize() {
     env_logger::init();
 
     logger::init_mod();
-    connection::init_mod();
 }
 
 fn main() {
@@ -46,8 +46,6 @@ fn main() {
     let d = HspDebugImpl {
         mode: hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode,
     };
-
-    connection::Connection::spawn(d);
 
     // FIXME: スレッドに join する。
     std::thread::sleep(std::time::Duration::from_secs(10));

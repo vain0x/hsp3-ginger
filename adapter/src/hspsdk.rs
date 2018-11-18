@@ -13,4 +13,8 @@
 
 pub(crate) type DebugMode = i32;
 
+/// debug_notice 通知の原因を表す。 (p2 の値。)
+pub(crate) const DEBUG_NOTICE_STOP: isize = 0;
+pub(crate) const DEBUG_NOTICE_LOGMES: isize = 1;
+
 include!(concat!(env!("OUT_DIR"), "/hspsdk.rs"));

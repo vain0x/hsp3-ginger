@@ -8,31 +8,52 @@ extern crate winapi;
 #[macro_use]
 extern crate log;
 
+mod app;
 mod connection;
 mod helpers;
 mod hsprt;
 mod hspsdk;
 mod logger;
 
-use std::cell::UnsafeCell;
 use std::sync::mpsc;
-use std::sync::Mutex;
+use std::{cell, thread};
 
 #[cfg(target_os = "windows")]
 use winapi::shared::minwindef::*;
 
-/// debug_notice 通知の原因を表す。 (p2 の値。)
-const DEBUG_NOTICE_STOP: isize = 0;
-const DEBUG_NOTICE_LOGMES: isize = 1;
+type HspMsgFunc = Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)>;
 
-static mut HSP_DEBUG: Option<UnsafeCell<Option<*mut hspsdk::HSP3DEBUG>>> = None;
+struct Globals {
+    hsp_debug: *mut hspsdk::HSP3DEBUG,
+    default_msgfunc: HspMsgFunc,
+    hsp_sender: mpsc::Sender<HspAction>,
+    hsp_receiver: mpsc::Receiver<HspAction>,
+    app_sender: app::Sender,
+    join_handle: thread::JoinHandle<()>,
+}
 
-static mut HSP_MSGFUNC: Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)> = None;
+static mut GLOBALS: Option<cell::UnsafeCell<Globals>> = None;
 
-static mut HSP_SENDER: Option<mpsc::Sender<HspAction>> = None;
+fn with_globals<R, F>(f: F) -> R
+where
+    F: FnOnce(&mut Globals) -> R,
+{
+    let cell = unsafe { GLOBALS.as_ref().unwrap() };
+    let globals = unsafe { &mut *cell.get() };
+    f(globals)
+}
 
-static mut HSP_RECEIVER: Option<mpsc::Receiver<HspAction>> = None;
+fn with_hsp_debug<R, F>(f: F) -> R
+where
+    F: FnOnce(&mut hspsdk::HSP3DEBUG) -> R,
+{
+    with_globals(|g| {
+        let hsp_debug = unsafe { &mut *g.hsp_debug };
+        f(hsp_debug)
+    })
+}
 
+/// HSP のメインスレッドで実行すべき操作を表す。
 #[derive(Clone, Debug)]
 enum HspAction {
     SetMode(hspsdk::DebugMode),
@@ -46,54 +67,21 @@ impl hsprt::HspDebug for HspDebugImpl {
         if mode != hspsdk::HSPDEBUG_STOP {
             do_set_mode(mode);
         } else {
-            // HSP が wait/await で中断しているときでなければ無視されるので、次に停止したときにモードの変更を行うように予約する。
+            // 中断モードへの変更は、HSP 側が wait/await で中断しているときに行わなければ無視されるので、
+            // 次に停止したときに中断モードに変更するよう予約する。
             send_action(HspAction::SetMode(mode));
         }
     }
 }
 
-unsafe fn init_mod() {
-    let (sender, receiver) = mpsc::channel();
-    HSP_SENDER = Some(sender);
-    HSP_RECEIVER = Some(receiver);
-}
-
-/// クレートの static 変数を初期化などを行なう。
-/// ここでエラーが起こるとめんどうなので、Mutex や RefCell などを初期化するにとどめて、複雑なオブジェクトの生成は遅延しておく。
-fn init_crate() {
-    logger::init_mod();
-    connection::init_mod();
-    unsafe { init_mod() };
-}
-
-unsafe fn set_hsp_debug(hsp_debug: *mut hspsdk::HSP3DEBUG) {
-    HSP_DEBUG = Some(UnsafeCell::new(Some(hsp_debug)));
-}
-
-unsafe fn hook_msgfunc(hspctx: *mut hspsdk::HSP3DEBUG) {
-    let hspctx: &mut hspsdk::HSPCTX = &mut *(*hspctx).hspctx;
-    HSP_MSGFUNC = hspctx.msgfunc;
-
-    hspctx.msgfunc = Some(msgfunc);
-}
-
-fn with_hsp_debug<R, F>(f: F) -> R
-where
-    F: FnOnce(&mut hspsdk::HSP3DEBUG) -> R,
-{
-    unsafe {
-        let cell: &mut UnsafeCell<_> = HSP_DEBUG.as_mut().unwrap();
-        let dp: *mut hspsdk::HSP3DEBUG = (*cell.get()).unwrap();
-        let d = &mut *dp;
-        f(d)
-    }
-}
-
+/// HSP ランタイムが次に wait/await を行ったときに処理が実行されるようにする。
 fn send_action(action: HspAction) {
-    unsafe {
-        let sender = HSP_SENDER.as_ref().unwrap();
-        sender.send(action);
-    }
+    with_globals(|g| {
+        g.hsp_sender
+            .send(action)
+            .map_err(|e| logger::log_error(&e))
+            .ok();
+    })
 }
 
 fn do_action(hspctx: &mut hspsdk::HSPCTX, action: HspAction) {
@@ -111,21 +99,37 @@ fn do_set_mode(mode: hspsdk::DebugMode) {
     });
 }
 
+/// HSP のメッセージ関数をフックする。
+/// つまり、 wait/await などの際に `msgfunc` が呼ばれるようにする。
+/// 結果として返されるもとのメッセージ関数を `msgfunc` の中で呼び出す必要がある。
+unsafe fn hook_msgfunc(hspctx: *mut hspsdk::HSP3DEBUG) -> HspMsgFunc {
+    let hspctx: &mut hspsdk::HSPCTX = &mut *(*hspctx).hspctx;
+    let default_msgfunc = hspctx.msgfunc;
+
+    hspctx.msgfunc = Some(msgfunc);
+
+    default_msgfunc
+}
+
+/// クレートの static 変数の初期化などを行なう。
+/// ここでエラーが起こるとめんどうなので、Mutex や RefCell などを初期化するにとどめて、複雑なオブジェクトの生成は遅延しておく。
+fn init_crate() {
+    logger::init_mod();
+}
+
 /// wait/await などで停止するたびに呼ばれる。
 unsafe extern "C" fn msgfunc(hspctx: *mut hspsdk::HSPCTX) {
-    {
-        let hspctx = &mut *hspctx;
-        let receiver = HSP_RECEIVER.as_mut().unwrap();
-        while let Ok(action) = receiver.try_recv() {
+    let hspctx = &mut *hspctx;
+
+    with_globals(|g| {
+        // メインスレッド上で実行すべき操作があれば、すべて実行する。なければ何もしない。
+        while let Ok(action) = g.hsp_receiver.try_recv() {
             do_action(hspctx, action);
         }
 
-        let stat = &mut hspctx.stat;
-        *stat = hspctx.runmode as i32;
-    }
-
-    let msgfunc = HSP_MSGFUNC.unwrap();
-    msgfunc(hspctx);
+        let default_msgfunc = g.default_msgfunc.unwrap();
+        default_msgfunc(hspctx);
+    });
 }
 
 #[cfg(target_os = "windows")]
@@ -144,6 +148,7 @@ pub extern "system" fn DllMain(
     TRUE
 }
 
+/// 初期化。HSP ランタイムから最初に呼ばれる。
 #[cfg(target_os = "windows")]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
@@ -157,14 +162,31 @@ pub extern "system" fn debugini(
 
     logger::log("debugini");
 
-    unsafe { set_hsp_debug(hsp_debug) };
+    // msgfunc に操作を送信するチャネル。
+    let (hsp_sender, hsp_receiver) = mpsc::channel();
 
-    unsafe { hook_msgfunc(hsp_debug) };
+    // ワーカースレッドを起動する。
+    let app_worker = app::Worker::build(HspDebugImpl);
+    let app_sender = app_worker.sender();
+    let join_handle = thread::spawn(move || app_worker.run());
 
-    connection::Connection::spawn(HspDebugImpl);
+    let default_msgfunc = unsafe { hook_msgfunc(hsp_debug) };
+
+    let globals = Globals {
+        hsp_debug,
+        default_msgfunc,
+        hsp_sender,
+        hsp_receiver,
+        app_sender,
+        join_handle,
+    };
+
+    unsafe { GLOBALS = Some(cell::UnsafeCell::new(globals)) };
+
     return p2 * 10000 + p3 * 100 + p4;
 }
 
+/// assert/logmes 命令の実行時に呼ばれる。
 #[cfg(target_os = "windows")]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
@@ -174,11 +196,13 @@ pub extern "system" fn debug_notice(
     p3: i32,
     p4: i32,
 ) -> i32 {
+    logger::log("debug notice");
+
     let d: &mut hspsdk::HSP3DEBUG = unsafe { &mut *hsp_debug };
     let hspctx: &mut hspsdk::HSPCTX = unsafe { &mut *d.hspctx };
 
     match cause as isize {
-        DEBUG_NOTICE_LOGMES => {
+        hspsdk::DEBUG_NOTICE_LOGMES => {
             // NOTE: utf8 版ではないので cp932
             let given = hspctx.stmp as *mut u8;
             let bytes = helpers::multibyte_str_from_pointer(given);
@@ -186,7 +210,7 @@ pub extern "system" fn debug_notice(
             logger::log(&message);
             return 0;
         }
-        DEBUG_NOTICE_STOP => {}
+        hspsdk::DEBUG_NOTICE_STOP => {}
         _ => {
             logger::log("debug_notice with unknown cause");
             return 0;
@@ -194,14 +218,16 @@ pub extern "system" fn debug_notice(
     }
 
     let line = {
-        // 実行位置 (ファイル名と行番号) を更新する。
+        // 実行位置 (ファイル名と行番号) の情報を更新する。
         let curinf = d.dbg_curinf.unwrap();
         unsafe { curinf() };
 
         d.line
     };
-    connection::with_connection(|c| {
-        c.send_request(connection::Request::FromSelf(line));
+
+    // 停止イベントを VSCode 側に通知する。
+    with_globals(|g| {
+        g.app_sender.send(app::Action::EventStop(line));
     });
 
     return 0;

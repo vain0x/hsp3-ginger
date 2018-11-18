@@ -2,138 +2,137 @@
 
 #![allow(unused_imports)]
 
+use app;
 use helpers::failwith;
 use hsprt;
 use hspsdk;
 use logger;
 use std;
-use std::sync::mpsc::{self, channel, Receiver as ChannelReceiver, Sender as ChannelSender};
-use std::sync::{Arc, Mutex};
-use std::thread::{self, sleep};
-use std::time::Duration;
+use std::sync::mpsc;
+use std::{mem, sync, thread, time};
 use ws;
 
-pub(crate) enum Response {
-    StopOnBreakpoint,
+/// デバッガーから VSCode に送るメッセージ。
+pub(crate) enum DebugEvent {
+    Stop,
 }
 
+/// コネクションワーカーが扱える操作。
 #[derive(Clone, Debug)]
-pub(crate) enum Request {
-    FromEditor(String),
-    FromSelf(i32),
+pub(crate) enum Action {
+    Connect,
+    AfterConnectionFailed,
 }
 
-pub(crate) struct Connection {
-    sender: ws::Sender,
-    pub req_sender: mpsc::Sender<Request>,
-    pub join_handle: std::thread::JoinHandle<()>,
+/// コネクションワーカーに処理を依頼するもの。
+#[derive(Clone, Debug)]
+pub(crate) struct Sender {
+    sender: mpsc::Sender<Action>,
 }
 
-static mut CONNECTION: Option<std::sync::Mutex<Option<Connection>>> = None;
-
-pub(crate) fn init_mod() {
-    unsafe {
-        CONNECTION = Some(std::sync::Mutex::new(None));
+impl Sender {
+    pub fn send(&self, action: Action) {
+        self.sender
+            .send(action)
+            .map_err(|err| logger::log_error(&err))
+            .ok();
     }
 }
 
-pub(crate) fn with_connection<R, F>(f: F) -> R
-where
-    F: Fn(&mut Connection) -> R,
-{
-    unsafe {
-        let mutex: &mut _ = CONNECTION.as_mut().unwrap();
-        let mut lock = mutex.lock().unwrap();
-        f((*lock).as_mut().unwrap())
-    }
+/// コネクションワーカー。
+/// VSCode 側のデバッガーアダプターが立てている WebSocket サーバーに接続して双方向通信を行う。
+pub(crate) struct Worker {
+    app_sender: app::Sender,
+    connection_sender: Sender,
+    receiver: mpsc::Receiver<Action>,
 }
 
-impl Connection {
-    pub fn spawn<D>(mut d: D)
-    where
-        D: hsprt::HspDebug + Send + 'static,
-    {
-        let (sender, receiver) = channel::<Request>();
-        let (out_sender, out_receiver) = channel();
-        let req_sender = sender.clone();
-
-        let join_handle = std::thread::spawn(move || {
-            // VSCode のデバッグセッションが開始したときに実行されるデバッグアダプターが WebSocket サーバーを立てているはずなので、それに接続する。
-            ws::connect("ws://localhost:8089/", |out: ws::Sender| {
-                // メッセージを送信するためのオブジェクトをスレッドの外部に送る。
-                out_sender.send(out).unwrap();
-
-                // メッセージを受信したときは、単にメッセージを外部に転送する。
-                |message: ws::Message| {
-                    match message {
-                        ws::Message::Binary(_) => {
-                            logger::log("受信 失敗 バイナリ");
-                        }
-                        ws::Message::Text(json) => {
-                            sender.send(Request::FromEditor(json)).unwrap();
-                        }
-                    }
-                    Ok(())
-                }
-            }).unwrap_or_else(|e| failwith(e))
-        });
-
-        let out = out_receiver.recv().unwrap();
-
-        let j = std::thread::spawn(move || {
-            while let Ok(message) = receiver.recv() {
-                match message {
-                    Request::FromEditor(message) => {
-                        logger::log(&format!("受信 FromEditor({})", &message));
-                        if message.contains("continue") {
-                            d.set_mode(hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode);
-                            with_connection(|c| {
-                                c.sender.send(r#"{"type":"continue"}"#).unwrap();
-                            });
-                        } else if message.contains("pause") {
-                            d.set_mode(hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode);
-                            with_connection(|c| {
-                                c.sender
-                                    .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
-                                    .unwrap();
-                            });
-                        } else if message.contains("next") {
-                            d.set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
-                        } else {
-                            logger::log("  不明なメッセージ");
-                        }
-                    }
-                    Request::FromSelf(line) => {
-                        logger::log("送信 break");
-                        with_connection(|c| {
-                            c.sender
-                                .send(format!(r#"{{"type":"stopOnBreakpoint","line":{} }}"#, line))
-                                .unwrap();
-                        })
-                    }
-                }
-            }
-        });
-
-        let connection = Connection {
-            sender: out,
-            req_sender: req_sender,
-            join_handle,
-        };
-
-        unsafe {
-            let mutex: &mut _ = CONNECTION.as_mut().unwrap();
-            let lock = mutex.lock();
-            *(lock.unwrap()) = Some(connection);
+impl Worker {
+    pub fn build(app_sender: app::Sender) -> Self {
+        let (sender, receiver) = mpsc::channel::<Action>();
+        Worker {
+            app_sender,
+            connection_sender: Sender { sender },
+            receiver,
         }
     }
 
-    /// VSCode 側にリクエストを送る。
-    pub fn send_request(&self, request: Request) -> Option<()> {
-        logger::log(&format!("Request {:?}", request));
-        self.req_sender
-            .send(request)
-            .map_err(|e| logger::log_error(&e))
-            .ok()
+    pub fn sender(&self) -> Sender {
+        self.connection_sender.clone()
+    }
+
+    pub fn run(mut self) {
+        loop {
+            match self.receiver.recv() {
+                Ok(Action::Connect) => {
+                    // 接続要求が来たとき: 接続を試みる。
+                    WebSocketHandler::build(self.sender(), self.app_sender.clone()).try_connect();
+                }
+                Ok(Action::AfterConnectionFailed) => {
+                    // 接続に失敗したとき: 3秒待って再試行する。
+                    thread::sleep(time::Duration::from_secs(3));
+                    self.connection_sender.send(Action::Connect);
+                }
+                Err(err) => {
+                    logger::log_error(&err);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/// WebSocket 経由で VSCode から送られてくるメッセージを処理するもの。
+#[derive(Clone)]
+struct WebSocketHandler {
+    app_sender: app::Sender,
+    connection_sender: Sender,
+}
+
+impl WebSocketHandler {
+    fn build(connection_sender: Sender, app_sender: app::Sender) -> Self {
+        WebSocketHandler {
+            connection_sender,
+            app_sender,
+        }
+    }
+
+    fn try_connect(&self) {
+        // NOTE: 接続に成功したら、接続が切れるまで connect 関数は終了しない。
+        let result = ws::connect("ws://localhost:8089/", |out: ws::Sender| {
+            logger::log("[WS] 接続");
+
+            // 接続の確立を通知する。メッセージを送信するためのオブジェクトを外部に送る。
+            self.app_sender
+                .send(app::Action::AfterWebSocketConnected(out));
+
+            // `ws::Handler` を返す。
+            self.clone()
+        });
+
+        match result {
+            Ok(()) => {}
+            Err(_) => {
+                logger::log("[WS] 接続 失敗");
+                self.connection_sender.send(Action::AfterConnectionFailed);
+            }
+        }
+    }
+}
+
+impl ws::Handler for WebSocketHandler {
+    fn on_message(&mut self, message: ws::Message) -> ws::Result<()> {
+        match message {
+            ws::Message::Binary(_) => {
+                logger::log("[WS] 受信 失敗 バイナリ");
+                Ok(())
+            }
+            ws::Message::Text(json) => {
+                logger::log(&format!("[WS] 受信 {}", json));
+                self.app_sender
+                    .send(app::Action::AfterDebugRequestReceived(json));
+                Ok(())
+            }
+        }
     }
 }
