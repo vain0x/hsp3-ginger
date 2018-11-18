@@ -96,6 +96,7 @@ fn do_set_mode(mode: hspsdk::DebugMode) {
     with_hsp_debug(|d| {
         let set = d.dbg_set.unwrap();
         unsafe { set(mode) };
+        unsafe { tap_all_windows() };
     });
 }
 
@@ -130,6 +131,19 @@ unsafe extern "C" fn msgfunc(hspctx: *mut hspsdk::HSPCTX) {
         let default_msgfunc = g.default_msgfunc.unwrap();
         default_msgfunc(hspctx);
     });
+}
+
+/// すべてのウィンドウにメッセージを送る。
+/// NOTE: GUI 版の HSP ランタイムは、何らかのウィンドウメッセージを受け取るまでデバッグモードを「実行」に戻しても実行を再開しない。
+unsafe fn tap_all_windows() {
+    #[cfg(target_os = "windows")]
+    {
+        winapi::um::winuser::PostMessageW(
+            winapi::um::winuser::HWND_BROADCAST,
+            winapi::um::winuser::WM_NULL,
+            0, 0,
+        );
+    }
 }
 
 #[cfg(target_os = "windows")]
