@@ -43,7 +43,7 @@ struct HspDebugImpl;
 
 impl hsprt::HspDebug for HspDebugImpl {
     fn set_mode(&mut self, mode: hspsdk::DebugMode) {
-        if mode == hspsdk::HSPDEBUG_RUN {
+        if mode != hspsdk::HSPDEBUG_STOP {
             do_set_mode(mode);
         } else {
             // HSP が wait/await で中断しているときでなければ無視されるので、次に停止したときにモードの変更を行うように予約する。

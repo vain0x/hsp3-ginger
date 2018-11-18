@@ -94,6 +94,13 @@ impl Connection {
                                     .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
                                     .unwrap();
                             });
+                        } else if message.contains("next") {
+                            d.set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                            with_connection(|c| {
+                                c.sender
+                                    .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
+                                    .unwrap();
+                            });
                         } else {
                             logger::log("  不明なメッセージ");
                         }

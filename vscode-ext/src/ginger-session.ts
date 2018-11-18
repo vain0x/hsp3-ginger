@@ -127,7 +127,7 @@ export class GingerDebugSession extends LoggingDebugSession {
 
   protected nextRequest(response: DebugProtocol.NextResponse, _args: DebugProtocol.NextArguments): void {
     logger.log("操作 次へ")
-    this.request({ event: "step" })
+    this.request({ event: "next" })
     this.sendResponse(response)
   }
 
@@ -157,7 +157,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   /**
    * デバッガーにリクエストを送信する。
    */
-  private request(event: { event: "pause" | "continue" | "step" }): void {
+  private request(event: { event: "pause" | "continue" | "next" }): void {
     const server = this.server;
     if (server === undefined) {
       logger.warn(`操作 失敗 サーバーが起動していません ${JSON.stringify(event)}`)
