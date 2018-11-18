@@ -26,6 +26,8 @@ const DEBUG_NOTICE_LOGMES: isize = 1;
 
 static mut HSP_DEBUG: Option<UnsafeCell<Option<*mut hspsdk::HSP3DEBUG>>> = None;
 
+static mut HSP_MSGFUNC: Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)> = None;
+
 #[derive(Clone, Copy, Debug)]
 struct HspDebugImpl;
 
@@ -54,6 +56,13 @@ unsafe fn set_hsp_debug(hsp_debug: *mut hspsdk::HSP3DEBUG) {
     HSP_DEBUG = Some(UnsafeCell::new(Some(hsp_debug)));
 }
 
+unsafe fn hook_msgfunc(hspctx: *mut hspsdk::HSP3DEBUG) {
+    let hspctx: &mut hspsdk::HSPCTX = &mut *(*hspctx).hspctx;
+    HSP_MSGFUNC = hspctx.msgfunc;
+
+    hspctx.msgfunc = Some(msgfunc);
+}
+
 fn with_hsp_debug<R, F>(f: F) -> R
 where
     F: FnOnce(&mut hspsdk::HSP3DEBUG) -> R,
@@ -64,6 +73,18 @@ where
         let d = &mut *dp;
         f(d)
     }
+}
+
+/// wait/await などで停止するたびに呼ばれる。
+unsafe extern "C" fn msgfunc(hspctx: *mut hspsdk::HSPCTX) {
+    {
+        let hspctx = &mut *hspctx;
+        let stat = &mut hspctx.stat;
+        *stat = hspctx.runmode as i32;
+    }
+
+    let msgfunc = HSP_MSGFUNC.unwrap();
+    msgfunc(hspctx);
 }
 
 #[cfg(target_os = "windows")]
@@ -96,6 +117,8 @@ pub extern "system" fn debugini(
     logger::log("debugini");
 
     unsafe { set_hsp_debug(hsp_debug) };
+
+    unsafe { hook_msgfunc(hsp_debug) };
 
     connection::Connection::spawn(HspDebugImpl);
     return p2 * 10000 + p3 * 100 + p4;
@@ -136,7 +159,7 @@ pub extern "system" fn debug_notice(
 
         let hspctx: &mut hspsdk::HSPCTX = &mut *(*hsp_debug).hspctx;
         let stat = &mut hspctx.stat;
-        *stat = c;
+        // *stat = c;
     }
 
     return 0;
