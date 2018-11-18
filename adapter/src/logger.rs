@@ -58,3 +58,8 @@ pub fn log(message: &str) {
         std::fs::write(&logger.file_path, &logger.content).unwrap();
     })
 }
+
+pub fn log_error<E: std::fmt::Debug>(err: &E) {
+    let message = format!("[ERROR] {:?}", err);
+    log(&message)
+}

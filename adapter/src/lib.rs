@@ -174,7 +174,8 @@ pub extern "system" fn debug_notice(
     p3: i32,
     p4: i32,
 ) -> i32 {
-    let hspctx: &mut hspsdk::HSPCTX = unsafe { &mut *(*hsp_debug).hspctx };
+    let d: &mut hspsdk::HSP3DEBUG = unsafe { &mut *hsp_debug };
+    let hspctx: &mut hspsdk::HSPCTX = unsafe { &mut *d.hspctx };
 
     match cause as isize {
         DEBUG_NOTICE_LOGMES => {
@@ -192,16 +193,16 @@ pub extern "system" fn debug_notice(
         }
     }
 
-    static mut COUNTER: i32 = 0;
+    let line = {
+        // 実行位置 (ファイル名と行番号) を更新する。
+        let curinf = d.dbg_curinf.unwrap();
+        unsafe { curinf() };
 
-    unsafe {
-        let c = COUNTER;
-        COUNTER += 1;
-
-        let hspctx: &mut hspsdk::HSPCTX = &mut *(*hsp_debug).hspctx;
-        let stat = &mut hspctx.stat;
-        // *stat = c;
-    }
+        d.line
+    };
+    connection::with_connection(|c| {
+        c.send_request(connection::Request::FromSelf(line));
+    });
 
     return 0;
 }

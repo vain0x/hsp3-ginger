@@ -7,7 +7,7 @@ use hsprt;
 use hspsdk;
 use logger;
 use std;
-use std::sync::mpsc::{channel, Receiver as ChannelReceiver, Sender as ChannelSender};
+use std::sync::mpsc::{self, channel, Receiver as ChannelReceiver, Sender as ChannelSender};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, sleep};
 use std::time::Duration;
@@ -17,13 +17,15 @@ pub(crate) enum Response {
     StopOnBreakpoint,
 }
 
+#[derive(Clone, Debug)]
 pub(crate) enum Request {
     FromEditor(String),
-    FromSelf,
+    FromSelf(i32),
 }
 
 pub(crate) struct Connection {
     sender: ws::Sender,
+    pub req_sender: mpsc::Sender<Request>,
     pub join_handle: std::thread::JoinHandle<()>,
 }
 
@@ -53,6 +55,7 @@ impl Connection {
     {
         let (sender, receiver) = channel::<Request>();
         let (out_sender, out_receiver) = channel();
+        let req_sender = sender.clone();
 
         let join_handle = std::thread::spawn(move || {
             // VSCode のデバッグセッションが開始したときに実行されるデバッグアダプターが WebSocket サーバーを立てているはずなので、それに接続する。
@@ -96,20 +99,15 @@ impl Connection {
                             });
                         } else if message.contains("next") {
                             d.set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
-                            with_connection(|c| {
-                                c.sender
-                                    .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
-                                    .unwrap();
-                            });
                         } else {
                             logger::log("  不明なメッセージ");
                         }
                     }
-                    Request::FromSelf => {
+                    Request::FromSelf(line) => {
                         logger::log("送信 break");
                         with_connection(|c| {
                             c.sender
-                                .send(r#"{"type":"stopOnBreakpoint","line":6}"#)
+                                .send(format!(r#"{{"type":"stopOnBreakpoint","line":{} }}"#, line))
                                 .unwrap();
                         })
                     }
@@ -119,6 +117,7 @@ impl Connection {
 
         let connection = Connection {
             sender: out,
+            req_sender: req_sender,
             join_handle,
         };
 
@@ -127,10 +126,14 @@ impl Connection {
             let lock = mutex.lock();
             *(lock.unwrap()) = Some(connection);
         }
+    }
 
-        std::thread::sleep(std::time::Duration::from_secs(3));
-        with_connection(|c| {
-            c.sender.send(r#"{"type":"continue"}"#).unwrap();
-        });
+    /// VSCode 側にリクエストを送る。
+    pub fn send_request(&self, request: Request) -> Option<()> {
+        logger::log(&format!("Request {:?}", request));
+        self.req_sender
+            .send(request)
+            .map_err(|e| logger::log_error(&e))
+            .ok()
     }
 }
