@@ -141,7 +141,8 @@ unsafe fn tap_all_windows() {
         winapi::um::winuser::PostMessageW(
             winapi::um::winuser::HWND_BROADCAST,
             winapi::um::winuser::WM_NULL,
-            0, 0,
+            0,
+            0,
         );
     }
 }
@@ -180,7 +181,7 @@ pub extern "system" fn debugini(
     let (hsp_sender, hsp_receiver) = mpsc::channel();
 
     // ワーカースレッドを起動する。
-    let app_worker = app::Worker::build(HspDebugImpl);
+    let app_worker = app::Worker::new(HspDebugImpl);
     let app_sender = app_worker.sender();
     let join_handle = thread::spawn(move || app_worker.run());
 

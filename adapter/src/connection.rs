@@ -48,7 +48,7 @@ pub(crate) struct Worker {
 }
 
 impl Worker {
-    pub fn build(app_sender: app::Sender) -> Self {
+    pub fn new(app_sender: app::Sender) -> Self {
         let (sender, receiver) = mpsc::channel::<Action>();
         Worker {
             app_sender,
@@ -66,7 +66,7 @@ impl Worker {
             match self.receiver.recv() {
                 Ok(Action::Connect) => {
                     // 接続要求が来たとき: 接続を試みる。
-                    WebSocketHandler::build(self.sender(), self.app_sender.clone()).try_connect();
+                    WebSocketHandler::new(self.sender(), self.app_sender.clone()).try_connect();
                 }
                 Ok(Action::AfterConnectionFailed) => {
                     // 接続に失敗したとき: 3秒待って再試行する。
@@ -90,7 +90,7 @@ struct WebSocketHandler {
 }
 
 impl WebSocketHandler {
-    fn build(connection_sender: Sender, app_sender: app::Sender) -> Self {
+    fn new(connection_sender: Sender, app_sender: app::Sender) -> Self {
         WebSocketHandler {
             connection_sender,
             app_sender,

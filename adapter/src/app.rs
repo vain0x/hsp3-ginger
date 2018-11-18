@@ -3,8 +3,8 @@ use hsprt;
 use hspsdk;
 use logger;
 use std;
-use std::thread;
 use std::sync::mpsc;
+use std::thread;
 use ws;
 
 /// `Worker` が扱える操作。
@@ -45,14 +45,14 @@ pub(crate) struct Worker<D> {
 }
 
 impl<D: hsprt::HspDebug> Worker<D> {
-    pub fn build(d: D) -> Self
+    pub fn new(d: D) -> Self
     where
         D: Send + 'static,
     {
         let (sender, request_receiver) = mpsc::channel::<Action>();
         let app_sender = Sender { sender };
 
-        let mut connection_worker = connection::Worker::build(app_sender.clone());
+        let mut connection_worker = connection::Worker::new(app_sender.clone());
         let connection_sender = connection_worker.sender();
         thread::spawn(move || connection_worker.run());
 
