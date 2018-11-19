@@ -27,6 +27,8 @@ impl hsprt::HspDebug for HspDebugImpl {
     fn set_mode(&mut self, mode: hspsdk::DebugMode) {
         self.mode = mode;
     }
+
+    fn get_globals(&self) {}
 }
 
 fn initialize() {

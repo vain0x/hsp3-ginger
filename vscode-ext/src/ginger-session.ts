@@ -13,6 +13,8 @@ import {
   Source,
   Breakpoint,
   ContinuedEvent,
+  Scope,
+  Variable,
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
@@ -33,6 +35,7 @@ interface HspDebugResponseBreak {
 type HspDebugResponse =
   | HspDebugResponseBreak
   | { type: "continue" }
+  | { type: "globals", vars: Array<{ name: string, value: string }> }
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   cwd: string
@@ -41,6 +44,13 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 
 const THREAD_ID = 1
 const THREADS = [new Thread(THREAD_ID, "Main thread")]
+
+const GLOBAL_SCOPE_REF = 1
+const GLOBAL_SCOPE: Scope = {
+  name: "グローバル",
+  variablesReference: GLOBAL_SCOPE_REF,
+  expensive: true,
+}
 
 export class GingerDebugSession extends LoggingDebugSession {
   private configDone = new Subject()
@@ -140,18 +150,26 @@ export class GingerDebugSession extends LoggingDebugSession {
     this.sendResponse(response)
   }
 
-  // protected scopesRequest(
-  //   response: DebugProtocol.ScopesResponse,
-  //   args: DebugProtocol.ScopesArguments
-  // ): void {
-  // }
+  protected scopesRequest(
+    response: DebugProtocol.ScopesResponse,
+    _args: DebugProtocol.ScopesArguments
+  ): void {
+    response.success = true
+    response.body = {
+      scopes: [GLOBAL_SCOPE]
+    }
+    this.sendResponse(response)
+  }
 
-  // protected variablesRequest(
-  //   response: DebugProtocol.VariablesResponse,
-  //   args: DebugProtocol.VariablesArguments
-  // ): void {
-  //   this.sendResponse(response);
-  // }
+  protected variablesRequest(
+    response: DebugProtocol.VariablesResponse,
+    _args: DebugProtocol.VariablesArguments
+  ): void {
+    this.variablesResponses.push(response)
+    this.request({ event: "globals" })
+  }
+
+  private variablesResponses: DebugProtocol.VariablesResponse[] = []
 
   // protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
   // }
@@ -159,7 +177,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   /**
    * デバッガーにリクエストを送信する。
    */
-  private request(event: { event: "pause" | "continue" | "next" }): void {
+  private request(event: { event: "pause" | "continue" | "next" | "globals" }): void {
     const server = this.server;
     if (server === undefined) {
       logger.warn(`操作 失敗 サーバーが起動していません ${JSON.stringify(event)}`)
@@ -183,6 +201,20 @@ export class GingerDebugSession extends LoggingDebugSession {
       case "continue":
         this.sendContinue()
         break;
+      case "globals":
+        {
+          const response = this.variablesResponses.pop()
+          if (!response) {
+            logger.warn("variablesResponse への応答を受信しましたが、送信すべきレスポンスがありません。")
+            return
+          }
+
+          response.body = {
+            variables: event.vars.map(v => ({ ...v, variablesReference: 0 } as Variable))
+          }
+          this.sendResponse(response)
+          break
+        }
       default: {
         logger.warn(`デバッグクライアント 不明なメッセージ ${message}`)
         return

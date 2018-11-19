@@ -16,7 +16,7 @@ mod hspsdk;
 mod logger;
 
 use std::sync::mpsc;
-use std::{cell, thread};
+use std::{cell, ptr, thread};
 
 #[cfg(target_os = "windows")]
 use winapi::shared::minwindef::*;
@@ -70,6 +70,37 @@ impl hsprt::HspDebug for HspDebugImpl {
             // 中断モードへの変更は、HSP 側が wait/await で中断しているときに行わなければ無視されるので、
             // 次に停止したときに中断モードに変更するよう予約する。
             send_action(HspAction::SetMode(mode));
+        }
+    }
+
+    fn get_globals(&self) {
+        let var_names = with_hsp_debug(|d| {
+            let get_varinf = d.get_varinf.unwrap();
+            let dbg_close = d.dbg_close.unwrap();
+
+            let p = unsafe { get_varinf(ptr::null_mut(), 0xFF) };
+            let s = helpers::string_from_hsp_str(p);
+
+            unsafe { dbg_close(p) };
+
+            s
+        });
+
+        {
+            let vars = var_names
+                .trim_right()
+                .split("\n")
+                .map(|name| {
+                    format!(
+                        r#"{{"name":"{}","value":"?"}}"#,
+                        name.trim_right().to_owned()
+                    )
+                }).collect::<Vec<_>>()
+                .join(",");
+            let event = format!(r#"{{"type":"globals","vars":[{}]}}"#, vars);
+            with_globals(|g| {
+                g.app_sender.send(app::Action::DebugEvent(event));
+            });
         }
     }
 }

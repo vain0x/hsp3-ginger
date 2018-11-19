@@ -105,6 +105,8 @@ impl<D: hsprt::HspDebug> Worker<D> {
                 } else if message.contains("next") {
                     self.d
                         .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                } else if message.contains("globals") {
+                    self.d.get_globals();
                 } else {
                     logger::log("  不明なメッセージ");
                 }
