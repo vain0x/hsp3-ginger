@@ -16,7 +16,6 @@
     - C++。Windows 用の DLL を生成する。
     - HSPランタイムからアタッチされる。
     - `adapter` にアタッチして、イベントの仲介を行う。
-    - NOTE: HSPランタイムが `adapter` に直接アタッチするようにしたほうがいいが、できなさそう。
 - `adapter` (hsp3-debug-adapter)
     - Rust。Windows 用の DLL を生成する。
     - hsp3debug からアタッチされる。
@@ -30,3 +29,8 @@
 ## 開発
 
 GINGER の開発者のためのメモ: [dev.md](./dev.md)
+
+## 参考
+
+- [OpenHSP](http://dev.onionsoft.net/trac)
+- [knowbug](https://github.com/vain0x/knowbug)
