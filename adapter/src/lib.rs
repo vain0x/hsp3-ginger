@@ -218,10 +218,7 @@ pub extern "system" fn debug_notice(
 
     match cause as isize {
         hspsdk::DEBUG_NOTICE_LOGMES => {
-            // NOTE: utf8 版ではないので cp932
-            let given = hspctx.stmp as *mut u8;
-            let bytes = helpers::multibyte_str_from_pointer(given);
-            let message = String::from_utf8_lossy(bytes);
+            let message = helpers::string_from_hsp_str(hspctx.stmp);
             logger::log(&message);
             return 0;
         }
@@ -232,17 +229,20 @@ pub extern "system" fn debug_notice(
         }
     }
 
-    let line = {
+    let (file_name, line) = {
         // 実行位置 (ファイル名と行番号) の情報を更新する。
         let curinf = d.dbg_curinf.unwrap();
         unsafe { curinf() };
 
-        d.line
+        let file_name = helpers::string_from_hsp_str(d.fname);
+        logger::log(&format!("file_name = {:?}", file_name));
+
+        (file_name, d.line)
     };
 
     // 停止イベントを VSCode 側に通知する。
     with_globals(|g| {
-        g.app_sender.send(app::Action::EventStop(line));
+        g.app_sender.send(app::Action::EventStop(file_name, line));
     });
 
     return 0;

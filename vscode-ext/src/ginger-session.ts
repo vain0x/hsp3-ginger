@@ -21,6 +21,7 @@ const { Subject } = require('await-notify');
 
 interface HspDebugResponseBreak {
   type: "stopOnBreakpoint",
+  file: string | undefined,
   line: number,
   column: number,
   message: string,
@@ -44,7 +45,8 @@ const THREADS = [new Thread(THREAD_ID, "Main thread")]
 export class GingerDebugSession extends LoggingDebugSession {
   private configDone = new Subject()
   private server: GingerConnectionServer | undefined
-  private currentLint: number = 2
+  private currentFile: string = "main.hsp"
+  private currentLine: number = 1
   private cwd: string = path.resolve(".")
 
   public constructor() {
@@ -175,7 +177,8 @@ export class GingerDebugSession extends LoggingDebugSession {
     switch (event.type) {
       case "stopOnBreakpoint":
         this.sendStop("breakpoint")
-        this.currentLint = event.line
+        this.currentFile = event.file || this.currentFile
+        this.currentLine = event.line
         break;
       case "continue":
         this.sendContinue()
@@ -223,6 +226,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   }
 
   private createSource(filePath: string): Source {
+    // FIXME: common からの相対パスも許容する
     const fullPath = path.resolve(this.cwd, filePath)
     const clientPath = this.convertDebuggerPathToClient(fullPath)
     return new Source(basename(filePath), clientPath, undefined, undefined, {})
@@ -240,8 +244,8 @@ export class GingerDebugSession extends LoggingDebugSession {
     const frame = new StackFrame(
       startFrame,
       "main",
-      this.createSource("main.hsp"),
-      this.convertDebuggerLineToClient(this.currentLint),
+      this.createSource(this.currentFile),
+      this.convertDebuggerLineToClient(this.currentLine),
     )
     return [frame]
   }

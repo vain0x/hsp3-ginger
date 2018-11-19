@@ -1,3 +1,5 @@
+#include "sub.hsp"
+
 	repeat 1000000
 		redraw 2
 		color 255, 255, 255
@@ -7,6 +9,8 @@
 		mes "cnt = " + cnt
 		mes "stat = " + stat
 		redraw
+
+		sub_run
 
 		await 100
 	loop

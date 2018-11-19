@@ -15,7 +15,7 @@ pub(crate) enum Action {
     /// VSCode 側にメッセージを送信する。(assert で停止したときなど。)
     DebugEvent(String),
     /// assert で停止したとき。
-    EventStop(i32),
+    EventStop(String, i32),
     /// VSCode との接続が確立したとき。
     AfterWebSocketConnected(ws::Sender),
 }
@@ -109,9 +109,12 @@ impl<D: hsprt::HspDebug> Worker<D> {
                     logger::log("  不明なメッセージ");
                 }
             }
-            Action::EventStop(line) => {
+            Action::EventStop(file_name, line) => {
                 logger::log("送信 break");
-                let message = format!(r#"{{"type":"stopOnBreakpoint","line":{} }}"#, line);
+                let message = format!(
+                    r#"{{"type":"stopOnBreakpoint","file":"{}", "line":{} }}"#,
+                    file_name, line
+                );
                 self.send(Action::DebugEvent(message));
             }
             Action::DebugEvent(message) => {
