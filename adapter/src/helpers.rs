@@ -42,6 +42,38 @@ fn ansi_to_wide_string(s: &[u8]) -> Vec<u16> {
     buf
 }
 
+#[cfg(windows)]
+fn ansi_from_wide_string(s: &[u16]) -> Vec<u8> {
+    let size = unsafe {
+        winapi::um::stringapiset::WideCharToMultiByte(
+            winapi::um::winnls::CP_ACP,
+            0,
+            s.as_ptr() as *mut u16,
+            s.len() as i32,
+            ptr::null_mut(),
+            0,
+            ptr::null(),
+            ptr::null_mut(),
+        )
+    } as usize;
+
+    let buf = vec![0; size + 1];
+    unsafe {
+        winapi::um::stringapiset::WideCharToMultiByte(
+            winapi::um::winnls::CP_ACP,
+            0,
+            s.as_ptr() as *mut u16,
+            s.len() as i32,
+            buf.as_ptr() as *mut i8,
+            buf.len() as i32,
+            ptr::null(),
+            ptr::null_mut(),
+        )
+    };
+
+    buf
+}
+
 /// HSP ランタイムが扱う文字列を utf-8 に変換する。
 pub(crate) fn string_from_hsp_str(p: *mut i8) -> String {
     let s = p as *mut u8;
@@ -69,8 +101,14 @@ pub(crate) fn string_from_hsp_str(p: *mut i8) -> String {
 }
 
 pub(crate) fn hsp_str_from_string(s: &str) -> Vec<u8> {
-    // FIXME: 文字コード変換
-    s.bytes().chain(iter::once(0)).collect()
+    #[cfg(windows)]
+    {
+        ansi_from_wide_string(&to_u16s(s))
+    }
+    #[cfg(not(windows))]
+    {
+        s.bytes().chain(iter::once(0)).collect()
+    }
 }
 
 /// メッセージボックスを表示する。

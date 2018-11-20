@@ -1,7 +1,7 @@
 #include "sub.hsp"
 
 	a = 1
-	b = "これは日本語デス"
+	メッセージ = "これは日本語デス"
 
 	repeat 1000000
 		redraw 2
