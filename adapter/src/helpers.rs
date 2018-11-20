@@ -1,6 +1,6 @@
 use logger;
 use std;
-use std::str;
+use std::{iter, str};
 
 #[cfg(target_os = "windows")]
 use winapi;
@@ -12,7 +12,7 @@ pub(crate) fn to_u16s(s: &str) -> Vec<u16> {
 
 /// HSP ランタイムが扱う文字列を utf-8 に変換する。
 /// NOTE: utf-8 版ではないので cp932 が来る。いまのところ ascii でない文字は捨てている。
-pub(crate) fn string_from_hsp_str<'a>(p: *mut i8) -> String {
+pub(crate) fn string_from_hsp_str(p: *mut i8) -> String {
     let s = p as *mut u8;
 
     // ゼロ終端を探して、文字列の長さを調べる。
@@ -25,6 +25,11 @@ pub(crate) fn string_from_hsp_str<'a>(p: *mut i8) -> String {
     }
 
     "[COULD NOT READ]".to_owned()
+}
+
+pub(crate) fn hsp_str_from_string(s: &str) -> Vec<u8> {
+    // FIXME: 文字コード変換
+    s.bytes().chain(iter::once(0)).collect()
 }
 
 /// メッセージボックスを表示する。

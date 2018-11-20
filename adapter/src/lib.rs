@@ -20,7 +20,7 @@ mod hspsdk;
 mod logger;
 
 use std::sync::mpsc;
-use std::{cell, ptr, thread};
+use std::{cell, iter, ptr, thread};
 
 #[cfg(target_os = "windows")]
 use winapi::shared::minwindef::*;
@@ -78,28 +78,39 @@ impl hsprt::HspDebug for HspDebugImpl {
     }
 
     fn get_globals(&self) {
-        let var_names = with_hsp_debug(|d| {
+        let vars = with_hsp_debug(|d| {
             let get_varinf = d.get_varinf.unwrap();
             let dbg_close = d.dbg_close.unwrap();
 
             let p = unsafe { get_varinf(ptr::null_mut(), 0xFF) };
-            let s = helpers::string_from_hsp_str(p);
-
+            let var_names = helpers::string_from_hsp_str(p);
             unsafe { dbg_close(p) };
 
-            s
+            let var_names = var_names.trim_right().split("\n").map(|s| s.trim_right());
+            let vars = var_names
+                .map(|name| {
+                    let n = helpers::hsp_str_from_string(name);
+                    let p = unsafe { get_varinf(n.as_ptr() as *mut i8, 0) };
+                    // 最初の7行はヘッダーなので無視する。文字列などは複数行になることもあるが、最初の1行だけ取る。
+                    let value = helpers::string_from_hsp_str(p)
+                        .lines()
+                        .skip(7)
+                        .next()
+                        .unwrap_or("???")
+                        .to_owned();
+                    unsafe { dbg_close(p) };
+
+                    app::Var {
+                        name: name.to_owned(),
+                        value,
+                        variablesReference: 0,
+                    }
+                })
+                .collect::<Vec<_>>();
+            vars
         });
 
         {
-            let vars = var_names
-                .trim_right()
-                .split("\n")
-                .map(|name| app::Var {
-                    name: name.to_owned(),
-                    value: "?".to_owned(),
-                    variablesReference: 0,
-                })
-                .collect::<Vec<_>>();
             let event = app::DebugResponse::Globals { vars };
             with_globals(|g| {
                 g.app_sender.send(app::Action::DebugEvent(event));
