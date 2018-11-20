@@ -22,11 +22,9 @@ import { GingerConnectionServer } from './ginger-connection';
 const { Subject } = require('await-notify');
 
 interface HspDebugResponseBreak {
-  type: "stopOnBreakpoint",
+  type: "stop",
   file: string | undefined,
   line: number,
-  column: number,
-  message: string,
 }
 
 /**
@@ -133,19 +131,19 @@ export class GingerDebugSession extends LoggingDebugSession {
 
   protected continueRequest(response: DebugProtocol.ContinueResponse, _args: DebugProtocol.ContinueArguments): void {
     logger.log("操作 再開")
-    this.request({ event: "continue" })
+    this.request({ type: "continue" })
     this.sendResponse(response)
   }
 
   protected nextRequest(response: DebugProtocol.NextResponse, _args: DebugProtocol.NextArguments): void {
     logger.log("操作 次へ")
-    this.request({ event: "next" })
+    this.request({ type: "next" })
     this.sendResponse(response)
   }
 
   protected pauseRequest(response: DebugProtocol.PauseResponse, _args: DebugProtocol.PauseArguments): void {
     logger.log("操作 中断")
-    this.request({ event: "pause" })
+    this.request({ type: "pause" })
     this.sendStop("pause")
     this.sendResponse(response)
   }
@@ -166,7 +164,7 @@ export class GingerDebugSession extends LoggingDebugSession {
     _args: DebugProtocol.VariablesArguments
   ): void {
     this.variablesResponses.push(response)
-    this.request({ event: "globals" })
+    this.request({ type: "globals" })
   }
 
   private variablesResponses: DebugProtocol.VariablesResponse[] = []
@@ -177,7 +175,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   /**
    * デバッガーにリクエストを送信する。
    */
-  private request(event: { event: "pause" | "continue" | "next" | "globals" }): void {
+  private request(event: { type: "pause" | "continue" | "next" | "globals" }): void {
     const server = this.server;
     if (server === undefined) {
       logger.warn(`操作 失敗 サーバーが起動していません ${JSON.stringify(event)}`)
@@ -193,7 +191,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   private handleRequest(message: string) {
     const event = JSON.parse(message) as HspDebugResponse;
     switch (event.type) {
-      case "stopOnBreakpoint":
+      case "stop":
         this.sendStop("breakpoint")
         this.currentFile = event.file || this.currentFile
         this.currentLine = event.line

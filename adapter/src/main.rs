@@ -2,6 +2,10 @@
 
 extern crate libc;
 extern crate ws;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
 
 #[macro_use]
 extern crate log;
@@ -17,6 +21,11 @@ mod helpers;
 mod hsprt;
 mod hspsdk;
 mod logger;
+
+enum Event {
+    Stop { line: i32 },
+    Scope { frame_id: i32 },
+}
 
 #[derive(Clone, Copy, Debug)]
 struct HspDebugImpl {

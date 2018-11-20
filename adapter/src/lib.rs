@@ -1,10 +1,14 @@
 extern crate env_logger;
 extern crate libc;
+extern crate serde;
+extern crate serde_json;
 extern crate ws;
 
 #[cfg(target_os = "windows")]
 extern crate winapi;
 
+#[macro_use]
+extern crate serde_derive;
 #[macro_use]
 extern crate log;
 
@@ -64,7 +68,7 @@ struct HspDebugImpl;
 
 impl hsprt::HspDebug for HspDebugImpl {
     fn set_mode(&mut self, mode: hspsdk::DebugMode) {
-        if mode != hspsdk::HSPDEBUG_STOP {
+        if mode != hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode {
             do_set_mode(mode);
         } else {
             // 中断モードへの変更は、HSP 側が wait/await で中断しているときに行わなければ無視されるので、
@@ -90,14 +94,13 @@ impl hsprt::HspDebug for HspDebugImpl {
             let vars = var_names
                 .trim_right()
                 .split("\n")
-                .map(|name| {
-                    format!(
-                        r#"{{"name":"{}","value":"?"}}"#,
-                        name.trim_right().to_owned()
-                    )
-                }).collect::<Vec<_>>()
-                .join(",");
-            let event = format!(r#"{{"type":"globals","vars":[{}]}}"#, vars);
+                .map(|name| app::Var {
+                    name: name.to_owned(),
+                    value: "?".to_owned(),
+                    variablesReference: 0,
+                })
+                .collect::<Vec<_>>();
+            let event = app::DebugResponse::Globals { vars };
             with_globals(|g| {
                 g.app_sender.send(app::Action::DebugEvent(event));
             });
