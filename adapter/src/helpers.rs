@@ -2,7 +2,7 @@ use logger;
 use std;
 use std::{iter, ptr, str};
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 use winapi;
 
 #[cfg(windows)]
@@ -113,7 +113,7 @@ pub(crate) fn hsp_str_from_string(s: &str) -> Vec<u8> {
 
 /// メッセージボックスを表示する。
 pub(crate) fn message_box(message: &str) {
-    #[cfg(target_os = "windows")]
+    #[cfg(windows)]
     {
         let message = to_u16s(&message);
         let caption = to_u16s("hsp3-debug-ginger-adapter");
@@ -131,14 +131,14 @@ pub(crate) fn message_box(message: &str) {
 
 /// エラーメッセージを出力して異常終了する。(デバッグ用)
 pub(crate) fn failwith<T: std::fmt::Debug>(error: T) -> ! {
-    #[cfg(target_os = "windows")]
+    #[cfg(windows)]
     {
         let message = format!("ERROR: {:?}", error);
         logger::log(&message);
         message_box(&message);
         panic!()
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(windows))]
     {
         panic!("ERROR: {:?}", error)
     }

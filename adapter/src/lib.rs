@@ -4,7 +4,7 @@ extern crate serde;
 extern crate serde_json;
 extern crate ws;
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 extern crate winapi;
 
 #[macro_use]
@@ -22,7 +22,7 @@ mod logger;
 use std::sync::mpsc;
 use std::{cell, iter, ptr, thread};
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 use winapi::shared::minwindef::*;
 
 type HspMsgFunc = Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)>;
@@ -181,7 +181,7 @@ unsafe extern "C" fn msgfunc(hspctx: *mut hspsdk::HSPCTX) {
 /// すべてのウィンドウにメッセージを送る。
 /// NOTE: GUI 版の HSP ランタイムは、何らかのウィンドウメッセージを受け取るまでデバッグモードを「実行」に戻しても実行を再開しない。
 unsafe fn tap_all_windows() {
-    #[cfg(target_os = "windows")]
+    #[cfg(windows)]
     {
         winapi::um::winuser::PostMessageW(
             winapi::um::winuser::HWND_BROADCAST,
@@ -192,7 +192,7 @@ unsafe fn tap_all_windows() {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "system" fn DllMain(
@@ -209,7 +209,7 @@ pub extern "system" fn DllMain(
 }
 
 /// 初期化。HSP ランタイムから最初に呼ばれる。
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "system" fn debugini(
@@ -247,7 +247,7 @@ pub extern "system" fn debugini(
 }
 
 /// assert/logmes 命令の実行時に呼ばれる。
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "system" fn debug_notice(

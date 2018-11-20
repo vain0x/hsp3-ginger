@@ -12,7 +12,7 @@ extern crate log;
 #[cfg(test)]
 extern crate env_logger;
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 extern crate winapi;
 
 mod app;
