@@ -76,6 +76,16 @@
         "language": "hsp3"
       }
     ],
+    "configuration": {
+      "type": "object",
+      "title": "HSP3 Debug Ginger Config",
+      "properties": {
+        "hsp3DebugGinger.path": {
+          "type": "string",
+          "description": "HSPのインストールディレクトリへの絶対パス"
+        }
+      }
+    },
     "debuggers": [
       {
         "type": "hsp3",
@@ -85,10 +95,15 @@
         "configurationAttributes": {
           "launch": {
             "properties": {
+              "program": {
+                "type": "string",
+                "description": "デバッグ実行時に実行されるファイル",
+                "default": "main.hsp"
+              },
               "trace": {
                 "type": "boolean",
                 "description": "Enables log.verbose",
-                "default": true
+                "default": false
               }
             }
           }
@@ -98,7 +113,7 @@
             "type": "hsp3",
             "request": "launch",
             "name": "Run",
-            "program": "${workspaceFolder}/main.hsp"
+            "program": "${file}"
           }
         ],
         "configurationSnippets": [

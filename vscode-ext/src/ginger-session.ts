@@ -20,6 +20,7 @@ import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
 import { GingerConnectionServer } from './ginger-connection';
 const { Subject } = require('await-notify');
+import { spawn } from "child_process"
 
 interface HspDebugResponseBreak {
   type: "stop",
@@ -36,7 +37,13 @@ type HspDebugResponse =
   | { type: "globals", vars: Array<{ name: string, value: string }> }
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
+  /** カレントディレクトリ (現在はワークスペースのルートディレクトリが入る) */
   cwd: string
+  /** HSP のインストールディレクトリ */
+  hspPath: string
+  /** 最初に実行するスクリプトのファイルパス。(例: main.hsp) */
+  program: string
+  /** 詳細なログを出力するなら true (デバッグ用) */
   trace: boolean
 }
 
@@ -55,7 +62,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   private server: GingerConnectionServer | undefined
   private currentFile: string = "main.hsp"
   private currentLine: number = 1
-  private cwd: string = path.resolve(".")
+  private options: LaunchRequestArguments | undefined
 
   public constructor() {
     super(path.resolve("ginger-session.txt"))
@@ -89,13 +96,19 @@ export class GingerDebugSession extends LoggingDebugSession {
     response: DebugProtocol.LaunchResponse,
     args: LaunchRequestArguments
   ) {
-    this.cwd = args.cwd;
-    logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false)
+    this.options = args
 
+    logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false)
     await this.configDone.wait(1000)
+
+    logger.verbose(JSON.stringify(args))
 
     this.startServer(args.cwd)
     this.sendResponse(response)
+
+    // FIXME: サーバーが起動したときに resolve する。
+    await new Promise<void>(resolve => setTimeout(resolve, 500));
+    this.startProgram(args)
   }
 
   protected disconnectRequest(
@@ -257,7 +270,7 @@ export class GingerDebugSession extends LoggingDebugSession {
 
   private createSource(filePath: string): Source {
     // FIXME: common からの相対パスも許容する
-    const fullPath = path.resolve(this.cwd, filePath)
+    const fullPath = path.resolve(this.options!.cwd, filePath)
     const clientPath = this.convertDebuggerPathToClient(fullPath)
     return new Source(basename(filePath), clientPath, undefined, undefined, {})
   }
@@ -268,6 +281,13 @@ export class GingerDebugSession extends LoggingDebugSession {
     const server = new GingerConnectionServer(m => this.handleRequest(m));
     this.server = server;
     server.start();
+  }
+
+  /// HSP のデバッグ実行を開始する。
+  private startProgram(args: LaunchRequestArguments) {
+    const entryPath = path.resolve(args.cwd, args.program)
+    const runtimePath = path.resolve(args.cwd, args.hspPath, "chspcomp.exe")
+    spawn(runtimePath, ["/diw", entryPath], { cwd: args.cwd })
   }
 
   private currentStack(startFrame: number) {

@@ -5,6 +5,7 @@
             "type": "hsp3",
             "request": "launch",
             "name": "Run",
+            "program": "${file}",
             "trace": true
         }
     ]

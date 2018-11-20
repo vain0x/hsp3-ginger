@@ -14,6 +14,10 @@
     - [Node.js](https://nodejs.org)
     - インストールすると node と npm 入る。
     - VSCode 向けの拡張機能の開発に使う。
+- HSP コマンドラインコンパイラをインストールする。
+    - [cHspComp](http://lldev.jp/others/freeware.html#chspcomp)
+    - exe を HSP のインストールディレクトリにコピーする。
+    - HSP スクリプトのデバッグ実行を開始するのに使う。
 
 その他:
 
