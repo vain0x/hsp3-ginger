@@ -137,10 +137,6 @@ impl<D: hsprt::HspDebug> Worker<D> {
                 }
                 Ok(DebugRequest::Pause) => {
                     self.d.set_mode(hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode);
-                    self.send(Action::DebugEvent(DebugResponse::Stop {
-                        file: "main.hsp".to_owned(),
-                        line: 6,
-                    }));
                 }
                 Ok(DebugRequest::Next) => {
                     self.d
