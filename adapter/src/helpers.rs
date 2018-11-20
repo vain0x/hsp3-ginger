@@ -1,17 +1,48 @@
 use logger;
 use std;
-use std::{iter, str};
+use std::{iter, ptr, str};
 
 #[cfg(target_os = "windows")]
 use winapi;
+
+#[cfg(windows)]
+use std::{ffi, os::windows::ffi::OsStrExt};
 
 /// ゼロ終端の utf-16 文字列に変換する。(Win32 API に渡すのに使う。)
 pub(crate) fn to_u16s(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
+/// ANSI 文字列 (日本語版 Windows では cp932) を utf-16 に変換する。
+#[cfg(windows)]
+fn ansi_to_wide_string(s: &[u8]) -> Vec<u16> {
+    let size = unsafe {
+        winapi::um::stringapiset::MultiByteToWideChar(
+            winapi::um::winnls::CP_ACP,
+            0,
+            s.as_ptr() as *mut i8,
+            s.len() as i32,
+            ptr::null_mut(),
+            0,
+        )
+    } as usize;
+
+    let buf = vec![0; size];
+    unsafe {
+        winapi::um::stringapiset::MultiByteToWideChar(
+            winapi::um::winnls::CP_ACP,
+            0,
+            s.as_ptr() as *mut i8,
+            s.len() as i32,
+            buf.as_ptr() as *mut u16,
+            buf.len() as i32,
+        )
+    };
+
+    buf
+}
+
 /// HSP ランタイムが扱う文字列を utf-8 に変換する。
-/// NOTE: utf-8 版ではないので cp932 が来る。いまのところ ascii でない文字は捨てている。
 pub(crate) fn string_from_hsp_str(p: *mut i8) -> String {
     let s = p as *mut u8;
 
@@ -20,7 +51,17 @@ pub(crate) fn string_from_hsp_str(p: *mut i8) -> String {
     for i in 0..4096 {
         if unsafe { *s.add(i) } == 0 {
             let bytes = unsafe { std::slice::from_raw_parts_mut(s, i) };
-            return String::from_utf8_lossy(bytes).into_owned();
+
+            #[cfg(windows)]
+            {
+                let wide = ansi_to_wide_string(bytes);
+                return String::from_utf16_lossy(&wide);
+            }
+
+            #[cfg(not(windows))]
+            {
+                return String::from_utf8_lossy(bytes).into_owned();
+            }
         }
     }
 
