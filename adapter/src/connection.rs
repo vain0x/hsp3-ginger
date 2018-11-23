@@ -48,24 +48,22 @@ impl Sender {
 /// VSCode 側のデバッガーアダプターが立てている WebSocket サーバーに接続して双方向通信を行う。
 pub(crate) struct Worker {
     app_sender: app::Sender,
-    connection_sender: Sender,
     receiver: mpsc::Receiver<Action>,
-    connection: Option<(net::TcpStream, mpsc::Sender<dap::Msg>)>,
+    connection: Option<(net::TcpStream, thread::JoinHandle<()>)>,
 }
 
 impl Worker {
-    pub fn new(app_sender: app::Sender) -> Self {
+    pub fn new(app_sender: app::Sender) -> (Self, Sender) {
         let (sender, receiver) = mpsc::channel::<Action>();
-        Worker {
+        let sender = Sender { sender };
+
+        let worker = Worker {
             app_sender,
-            connection_sender: Sender { sender },
             receiver,
             connection: None,
-        }
-    }
+        };
 
-    pub fn sender(&self) -> Sender {
-        self.connection_sender.clone()
+        (worker, sender)
     }
 
     pub fn run(mut self) {
@@ -85,12 +83,11 @@ impl Worker {
                             continue;
                         }
                     };
-                    let in_stream = stream.try_clone().unwrap();
+                    let mut in_stream = stream.try_clone().unwrap();
 
                     // 受信したメッセージを処理するためのワーカースレッドを建てる。
-                    let (tx, _) = mpsc::channel();
                     let app_sender = self.app_sender.clone();
-                    thread::spawn(move || {
+                    let join_handle = thread::spawn(move || {
                         let mut r =
                             dac::DebugAdapterReader::new(io::BufReader::new(in_stream), MyLogger);
                         let mut buf = Vec::new();
@@ -109,9 +106,11 @@ impl Worker {
 
                             app_sender.send(app::Action::AfterRequestReceived(msg));
                         }
+
+                        logger::log("[connection] DAR 終了");
                     });
 
-                    self.connection = Some((stream, tx));
+                    self.connection = Some((stream, join_handle));
                     self.app_sender.send(app::Action::AfterConnected);
                 }
                 Ok(Action::Send(msg)) => {
@@ -132,5 +131,14 @@ impl Worker {
                 }
             }
         }
+
+        if let Some((stream, _)) = self.connection.take() {
+            stream.shutdown(net::Shutdown::Both).unwrap();
+
+            // NOTE: なぜか停止しないので join しない。
+            // join_handle.join().unwrap();
+        }
+
+        logger::log("[connection] 終了");
     }
 }

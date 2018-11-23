@@ -65,6 +65,8 @@ pub(crate) enum Action {
     DebugEvent(DebugResponse),
     /// assert で停止したとき。
     AfterStopped(String, i32),
+    /// HSP ランタイムが終了する直前。
+    BeforeTerminating,
 }
 
 /// `Worker` に処理を依頼するもの。
@@ -84,46 +86,54 @@ impl Sender {
 
 /// HSP ランタイムと VSCode の仲介を行う。
 pub(crate) struct Worker {
-    app_sender: Sender,
     request_receiver: mpsc::Receiver<Action>,
-    connection_sender: connection::Sender,
-    hsprt_sender: hsprt::Sender,
+    connection_sender: Option<connection::Sender>,
+    hsprt_sender: Option<hsprt::Sender>,
     args: Option<dap::LaunchRequestArgs>,
     state: RuntimeState,
+    #[allow(unused)]
+    join_handle: Option<thread::JoinHandle<()>>,
 }
 
 impl Worker {
-    pub fn new(hsprt_sender: hsprt::Sender) -> Self {
+    pub fn new(hsprt_sender: hsprt::Sender) -> (Self, Sender) {
         let (sender, request_receiver) = mpsc::channel::<Action>();
         let app_sender = Sender { sender };
 
-        let connection_worker = connection::Worker::new(app_sender.clone());
-        let connection_sender = connection_worker.sender();
-        thread::spawn(move || connection_worker.run());
+        let (connection_worker, connection_sender) = connection::Worker::new(app_sender.clone());
+        let join_handle = thread::Builder::new()
+            .name("connection_worker".into())
+            .spawn(move || connection_worker.run())
+            .unwrap();
 
-        Worker {
-            app_sender,
+        let worker = Worker {
             request_receiver,
-            connection_sender,
-            hsprt_sender,
+            connection_sender: Some(connection_sender),
+            hsprt_sender: Some(hsprt_sender),
             args: None,
             state: RuntimeState {
                 file: None,
                 line: 1,
                 stopped: false,
             },
-        }
-    }
+            join_handle: Some(join_handle),
+        };
 
-    pub fn sender(&self) -> Sender {
-        self.app_sender.clone()
+        (worker, app_sender)
     }
 
     pub fn run(mut self) {
-        self.connection_sender.send(connection::Action::Connect);
+        self.connection_sender
+            .as_ref()
+            .unwrap()
+            .send(connection::Action::Connect);
 
         loop {
             match self.request_receiver.recv() {
+                Ok(action @ Action::BeforeTerminating) => {
+                    self.handle(action);
+                    break;
+                }
                 Ok(action) => {
                     self.handle(action);
                     continue;
@@ -134,26 +144,32 @@ impl Worker {
                 }
             }
         }
+
+        logger::log("[app] 終了");
     }
 
     /// HSP ランタイムが次に中断しているときにアクションが実行されるように予約する。
     /// すでに停止しているときは即座に実行されるように、メッセージを送る。
     fn send_to_hsprt(&self, action: hsprt::Action) {
-        self.hsprt_sender.send(action, self.state.stopped);
+        if let Some(sender) = self.hsprt_sender.as_ref() {
+            sender.send(action, self.state.stopped);
+        }
     }
 
     fn send_response(&mut self, request_seq: i64, response: dap::Response) {
-        self.connection_sender
-            .send(connection::Action::Send(dap::Msg::Response {
+        if let Some(sender) = self.connection_sender.as_ref() {
+            sender.send(connection::Action::Send(dap::Msg::Response {
                 request_seq,
                 success: true,
                 e: response,
             }));
+        }
     }
 
     fn send_event(&mut self, event: dap::Event) {
-        self.connection_sender
-            .send(connection::Action::Send(dap::Msg::Event { e: event }));
+        if let Some(sender) = self.connection_sender.as_ref() {
+            sender.send(connection::Action::Send(dap::Msg::Event { e: event }));
+        }
     }
 
     fn on_request(&mut self, seq: i64, request: dap::Request) {
@@ -294,6 +310,18 @@ impl Worker {
             },
             Action::AfterConnected => {
                 self.send_event(dap::Event::Initialized);
+            }
+            Action::BeforeTerminating => {
+                self.send_event(dap::Event::Terminated { restart: false });
+
+                // サブワーカーを捨てる。
+                self.hsprt_sender.take();
+                self.connection_sender.take();
+
+                if let Some(_) = self.join_handle.take() {
+                    // NOTE: なぜか終了しないので join しない。
+                    // join_handle.join().unwrap();
+                }
             }
         }
     }

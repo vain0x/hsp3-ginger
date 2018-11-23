@@ -28,7 +28,7 @@ mod logger;
 use debug_adapter_protocol as dap;
 use hsprt::*;
 use std::sync::mpsc;
-use std::{cell, ptr, thread};
+use std::{cell, ptr, thread, time};
 
 #[cfg(windows)]
 use winapi::shared::minwindef::*;
@@ -44,6 +44,8 @@ pub(crate) struct Globals {
     hsprt_receiver: mpsc::Receiver<Action>,
     hsp_debug: *mut hspsdk::HSP3DEBUG,
     default_msgfunc: HspMsgFunc,
+    #[allow(unused)]
+    join_handles: Vec<thread::JoinHandle<()>>,
 }
 
 impl Globals {
@@ -57,27 +59,28 @@ impl Globals {
 
         let hsprt_sender = Sender::new(sender, notice_sender);
 
-        thread::spawn(move || {
+        let j1 = thread::spawn(move || {
             // HSP ランタイムが停止している状態で処理依頼が来るたびに notice_receiver が通知を受け取り、
-            // そのたびにループが進行する。msgfunc に変わって処理を行う。
+            // そのたびにループが進行する。msgfunc に代わって処理を行う。
             // FIXME: ワーカースレッドで globals に触るのはとても危険なので同期化機構を使うべき。
             for _ in notice_receiver {
                 with_globals(|g| {
                     g.receive_actions();
                 });
             }
+            logger::log("[notice] 終了");
         });
 
         // ワーカースレッドを起動する。
-        let app_worker = app::Worker::new(hsprt_sender);
-        let app_sender = app_worker.sender();
-        let _join_handle = thread::spawn(move || app_worker.run());
+        let (app_worker, app_sender) = app::Worker::new(hsprt_sender);
+        let j2 = thread::spawn(move || app_worker.run());
 
         let mut globals = Globals {
             app_sender,
             hsprt_receiver,
             hsp_debug,
             default_msgfunc: None,
+            join_handles: vec![j1, j2],
         };
 
         unsafe { globals.hook_msgfunc() };
@@ -200,6 +203,20 @@ impl Globals {
         self.app_sender
             .send(app::Action::AfterStopped(file_name, line));
     }
+
+    fn terminate(self) {
+        let join_handles = {
+            let (app_sender, join_handles) = (self.app_sender, self.join_handles);
+            app_sender.send(app::Action::BeforeTerminating);
+            join_handles
+        };
+
+        // NOTE: なぜかスレッドが停止しない。
+        // for j in join_handles {
+        //     j.join().unwrap();
+        // }
+        thread::sleep(time::Duration::from_secs(3));
+    }
 }
 
 /// グローバル変数を使って処理を行う。
@@ -222,8 +239,10 @@ fn initialize_crate() {
 fn deinitialize_crate() {
     logger::log("デバッガーがデタッチされました");
 
-    // グローバル変数をすべてドロップする。
-    unsafe { GLOBALS.take() };
+    // 処理を停止させて、グローバル変数をすべてドロップする。
+    if let Some(globals_cell) = unsafe { GLOBALS.take() } {
+        globals_cell.into_inner().terminate();
+    }
 }
 
 /// すべてのウィンドウにメッセージを送る。
