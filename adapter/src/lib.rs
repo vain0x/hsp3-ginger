@@ -14,16 +14,19 @@ extern crate log;
 
 mod app;
 mod connection;
+mod debug_adapter_connection;
+mod debug_adapter_protocol;
 mod helpers;
 mod hsprt;
 mod hspsdk;
 mod logger;
 
+use debug_adapter_protocol as dap;
 use std::sync::mpsc;
 use std::{cell, iter, ptr, thread};
 
 #[cfg(windows)]
-use winapi::shared::minwindef::*;
+use winapi::shared::{minwindef::*, windef::*};
 
 type HspMsgFunc = Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)>;
 
@@ -67,6 +70,23 @@ enum HspAction {
 struct HspDebugImpl;
 
 impl hsprt::HspDebug for HspDebugImpl {
+    fn terminate(&self) {
+        #[cfg(windows)]
+        with_hsp_debug(|d| {
+            let ctx = unsafe { &*d.hspctx };
+            if ctx.wnd_parent != ptr::null_mut() {
+                unsafe {
+                    winapi::um::winuser::SendMessageW(
+                        ctx.wnd_parent as HWND,
+                        winapi::um::winuser::WM_QUIT,
+                        0,
+                        0,
+                    );
+                }
+            }
+        });
+    }
+
     fn set_mode(&mut self, mode: hspsdk::DebugMode) {
         if mode != hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode {
             do_set_mode(mode);
@@ -77,8 +97,8 @@ impl hsprt::HspDebug for HspDebugImpl {
         }
     }
 
-    fn get_globals(&self) {
-        let vars = with_hsp_debug(|d| {
+    fn get_globals(&self, seq: i64) {
+        let variables = with_hsp_debug(|d| {
             let get_varinf = d.get_varinf.unwrap();
             let dbg_close = d.dbg_close.unwrap();
 
@@ -87,7 +107,7 @@ impl hsprt::HspDebug for HspDebugImpl {
             unsafe { dbg_close(p) };
 
             let var_names = var_names.trim_right().split("\n").map(|s| s.trim_right());
-            let vars = var_names
+            let variables = var_names
                 .map(|name| {
                     let n = helpers::hsp_str_from_string(name);
                     let p = unsafe { get_varinf(n.as_ptr() as *mut i8, 0) };
@@ -100,18 +120,18 @@ impl hsprt::HspDebug for HspDebugImpl {
                         .to_owned();
                     unsafe { dbg_close(p) };
 
-                    app::Var {
+                    dap::Variable {
                         name: name.to_owned(),
                         value,
-                        variablesReference: 0,
+                        ty: None,
+                        variables_reference: 0,
                     }
-                })
-                .collect::<Vec<_>>();
-            vars
+                }).collect::<Vec<_>>();
+            variables
         });
 
         {
-            let event = app::DebugResponse::Globals { vars };
+            let event = app::DebugResponse::Globals { seq, variables };
             with_globals(|g| {
                 g.app_sender.send(app::Action::DebugEvent(event));
             });
@@ -287,7 +307,8 @@ pub extern "system" fn debug_notice(
 
     // 停止イベントを VSCode 側に通知する。
     with_globals(|g| {
-        g.app_sender.send(app::Action::EventStop(file_name, line));
+        g.app_sender
+            .send(app::Action::AfterStopped(file_name, line));
     });
 
     return 0;

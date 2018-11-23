@@ -17,6 +17,8 @@ extern crate winapi;
 
 mod app;
 mod connection;
+mod debug_adapter_connection;
+mod debug_adapter_protocol;
 mod helpers;
 mod hsprt;
 mod hspsdk;
@@ -33,11 +35,13 @@ struct HspDebugImpl {
 }
 
 impl hsprt::HspDebug for HspDebugImpl {
+    fn terminate(&self) {}
+
     fn set_mode(&mut self, mode: hspsdk::DebugMode) {
         self.mode = mode;
     }
 
-    fn get_globals(&self) {}
+    fn get_globals(&self, seq: i64) {}
 }
 
 fn initialize() {

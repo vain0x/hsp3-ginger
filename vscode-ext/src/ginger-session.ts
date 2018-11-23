@@ -40,7 +40,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
   /** カレントディレクトリ (現在はワークスペースのルートディレクトリが入る) */
   cwd: string
   /** HSP のインストールディレクトリ */
-  hspPath: string
+  root: string
   /** 最初に実行するスクリプトのファイルパス。(例: main.hsp) */
   program: string
   /** 詳細なログを出力するなら true (デバッグ用) */
@@ -286,7 +286,7 @@ export class GingerDebugSession extends LoggingDebugSession {
   /// HSP のデバッグ実行を開始する。
   private startProgram(args: LaunchRequestArguments) {
     const entryPath = path.resolve(args.cwd, args.program)
-    const runtimePath = path.resolve(args.cwd, args.hspPath, "chspcomp.exe")
+    const runtimePath = path.resolve(args.cwd, args.root, "chspcomp.exe")
     spawn(runtimePath, ["/diw", entryPath], { cwd: args.cwd })
   }
 

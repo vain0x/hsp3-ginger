@@ -1,4 +1,5 @@
 use connection;
+use debug_adapter_protocol as dap;
 use hsprt;
 use hspsdk;
 use logger;
@@ -6,6 +7,19 @@ use std;
 use std::sync::mpsc;
 use std::thread;
 use ws;
+
+const MAIN_THREAD_ID: i64 = 1;
+const MAIN_THREAD_NAME: &'static str = "main";
+
+// グローバル変数からなるスコープの変数参照Id
+const GLOBAL_SCOPE_REF: i64 = 1;
+
+fn threads() -> Vec<dap::Thread> {
+    vec![dap::Thread {
+        id: MAIN_THREAD_ID,
+        name: MAIN_THREAD_NAME.to_owned(),
+    }]
+}
 
 /// VSCode 側のデバッグアダプターから送られてくるメッセージ。
 /// E.g `{"type": "pause"}`
@@ -28,30 +42,29 @@ pub(crate) enum DebugRequest {
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum DebugResponse {
-    Continue,
-    Stop { file: String, line: i32 },
-    Globals { vars: Vec<Var> },
+    Globals {
+        seq: i64,
+        variables: Vec<dap::Variable>,
+    },
 }
 
-#[derive(Serialize, Clone, Debug)]
-#[allow(non_snake_case)]
-pub(crate) struct Var {
-    pub name: String,
-    pub value: String,
-    pub variablesReference: i32,
+#[derive(Clone, Debug)]
+pub(crate) struct RuntimeState {
+    file: Option<String>,
+    line: i32,
 }
 
 /// `Worker` が扱える操作。
 #[derive(Clone, Debug)]
 pub(crate) enum Action {
-    /// VSCode からメッセージが来たとき。(中断ボタンが押されたときなど。)
-    AfterDebugRequestReceived(String),
+    /// VSCode との接続が確立したとき。
+    AfterConnected,
+    /// VSCode からリクエストが来たとき。
+    AfterRequestReceived(dap::Msg),
     /// VSCode 側にメッセージを送信する。(assert で停止したときなど。)
     DebugEvent(DebugResponse),
     /// assert で停止したとき。
-    EventStop(String, i32),
-    /// VSCode との接続が確立したとき。
-    AfterWebSocketConnected(ws::Sender),
+    AfterStopped(String, i32),
 }
 
 /// `Worker` に処理を依頼するもの。
@@ -75,6 +88,8 @@ pub(crate) struct Worker<D> {
     request_receiver: mpsc::Receiver<Action>,
     connection_sender: connection::Sender,
     ws_sender: Option<ws::Sender>,
+    state: RuntimeState,
+    args: Option<dap::LaunchRequestArgs>,
     d: D,
 }
 
@@ -95,6 +110,11 @@ impl<D: hsprt::HspDebug> Worker<D> {
             request_receiver,
             connection_sender,
             ws_sender: None,
+            state: RuntimeState {
+                file: None,
+                line: 1,
+            },
+            args: None,
             d,
         }
     }
@@ -124,57 +144,149 @@ impl<D: hsprt::HspDebug> Worker<D> {
         }
     }
 
+    fn send_response(&mut self, request_seq: i64, response: dap::Response) {
+        self.connection_sender
+            .send(connection::Action::Send(dap::Msg::Response {
+                request_seq,
+                success: true,
+                e: response,
+            }));
+    }
+
+    fn send_event(&mut self, event: dap::Event) {
+        self.connection_sender
+            .send(connection::Action::Send(dap::Msg::Event { e: event }));
+    }
+
+    fn on_request(&mut self, seq: i64, request: dap::Request) {
+        match request {
+            dap::Request::Options { args } => {
+                self.args = Some(args);
+                // NOTE: VSCode からのリクエストではないのでレスポンス不要。
+            }
+            dap::Request::SetExceptionBreakpoints { .. } => {
+                self.send_response(seq, dap::Response::SetExceptionBreakpoints);
+            }
+            dap::Request::ConfigurationDone => {
+                self.send_response(seq, dap::Response::ConfigurationDone);
+            }
+            dap::Request::Threads => {
+                self.send_response(seq, dap::Response::Threads { threads: threads() })
+            }
+            dap::Request::StackTrace { .. } => {
+                let stack_frames = vec![dap::StackFrame {
+                    id: 1,
+                    name: "main".to_owned(),
+                    line: std::cmp::max(1, self.state.line) as usize,
+                    source: dap::Source {
+                        name: "main.hsp".to_owned(),
+                        path: self.state.file.to_owned(),
+                    },
+                }];
+                self.send_response(seq, dap::Response::StackTrace { stack_frames });
+            }
+            dap::Request::Scopes { .. } => {
+                let scopes = vec![dap::Scope {
+                    name: "グローバル".to_owned(),
+                    variables_reference: GLOBAL_SCOPE_REF,
+                    expensive: true,
+                }];
+                self.send_response(seq, dap::Response::Scopes { scopes });
+            }
+            dap::Request::Variables {
+                variables_reference,
+            } => {
+                if variables_reference == GLOBAL_SCOPE_REF {
+                    self.d.get_globals(seq);
+                }
+            }
+            dap::Request::Pause { .. } => {
+                self.d.set_mode(hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode);
+                self.send_response(
+                    seq,
+                    dap::Response::Pause {
+                        thread_id: MAIN_THREAD_ID,
+                    },
+                )
+            }
+            dap::Request::Continue { .. } => {
+                self.d.set_mode(hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode);
+                self.send_response(seq, dap::Response::Continue);
+                self.send_event(dap::Event::Continued {
+                    all_threads_continued: true,
+                });
+            }
+            dap::Request::Next { .. } => {
+                self.d
+                    .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                self.send_response(seq, dap::Response::Next);
+            }
+            dap::Request::StepIn { .. } => {
+                self.d
+                    .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                self.send_response(seq, dap::Response::StepIn);
+            }
+            dap::Request::StepOut { .. } => {
+                self.d
+                    .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                self.send_response(seq, dap::Response::StepOut);
+            }
+            dap::Request::Disconnect { .. } => {
+                // self.d.terminate();
+            }
+            _ => {
+                // unimpl
+            }
+        }
+    }
+
+    /// ファイル名を絶対パスにする。
+    /// FIXME: common 以下や 無修飾 include パスに対応する。
+    fn resolve_file_path(&self, file_name: String) -> Option<String> {
+        if file_name == "???" {
+            return None;
+        }
+
+        let args = self.args.as_ref()?;
+        let mut file_path = std::path::PathBuf::from(args.cwd.to_owned())
+            .join(&file_name)
+            .canonicalize()
+            .ok()?;
+
+        if !std::fs::metadata(&file_path).is_ok() {
+            return None;
+        }
+
+        Some(file_path.to_str()?.to_owned())
+    }
+
     fn handle(&mut self, action: Action) {
         logger::log(&format!("[App] {:?}", action));
         match action {
-            Action::AfterDebugRequestReceived(json) => match serde_json::from_str(&json) {
-                Err(err) => {
-                    logger::log("  不明なメッセージ");
-                }
-                Ok(DebugRequest::Continue) => {
-                    self.d.set_mode(hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode);
-                    self.send(Action::DebugEvent(DebugResponse::Continue));
-                }
-                Ok(DebugRequest::Pause) => {
-                    self.d.set_mode(hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode);
-                }
-                Ok(DebugRequest::Next) => {
-                    self.d
-                        .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
-                }
-                Ok(DebugRequest::Globals) => {
-                    self.d.get_globals();
-                }
-            },
-            Action::EventStop(file, line) => {
+            Action::AfterRequestReceived(dap::Msg::Request { seq, e }) => {
+                self.on_request(seq, e);
+            }
+            Action::AfterRequestReceived(msg) => {
+                logger::log("受信 リクエストではない DAP メッセージを無視");
+            }
+            Action::AfterStopped(file, line) => {
                 logger::log("送信 break");
 
-                self.send(Action::DebugEvent(DebugResponse::Stop { file: file, line }));
-            }
-            Action::DebugEvent(response) => {
-                let ws_sender = match self.ws_sender.as_ref() {
-                    None => {
-                        logger::log("WebSocket が接続を確立していないのでイベントを送信できませんでした。");
-                        return;
-                    }
-                    Some(ws_sender) => ws_sender,
-                };
-                let message = match serde_json::to_string(&response) {
-                    Err(e) => {
-                        logger::log_error(&e);
-                        return;
-                    }
-                    Ok(message) => message,
-                };
-                logger::log(&format!("送信 {:?}", message));
+                let file = self.resolve_file_path(file);
 
-                ws_sender
-                    .send(ws::Message::Text(message))
-                    .map_err(|e| logger::log_error(&e))
-                    .ok();
+                self.state = RuntimeState { file, line };
+                self.send_event(dap::Event::Stopped {
+                    reason: "pause".to_owned(),
+                    thread_id: MAIN_THREAD_ID,
+                });
             }
-            Action::AfterWebSocketConnected(ws_sender) => {
-                self.ws_sender = Some(ws_sender);
+            Action::DebugEvent(response) => match response {
+                DebugResponse::Globals { seq, variables } => {
+                    self.send_response(seq, dap::Response::Variables { variables });
+                }
+            },
+            Action::AfterConnected => {
+                self.send_event(dap::Event::Initialized);
             }
         }
     }

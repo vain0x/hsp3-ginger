@@ -3,14 +3,25 @@
 #![allow(unused_imports)]
 
 use app;
+use debug_adapter_connection as dac;
+use debug_adapter_protocol as dap;
 use helpers::failwith;
 use hsprt;
 use hspsdk;
 use logger;
 use std;
 use std::sync::mpsc;
-use std::{mem, sync, thread, time};
+use std::{fmt, io, mem, net, sync, thread, time};
 use ws;
+
+#[derive(Clone, Debug)]
+pub(crate) struct MyLogger;
+
+impl dac::Logger for MyLogger {
+    fn log(&self, args: fmt::Arguments) {
+        logger::log(&fmt::format(args));
+    }
+}
 
 /// デバッガーから VSCode に送るメッセージ。
 pub(crate) enum DebugEvent {
@@ -22,6 +33,7 @@ pub(crate) enum DebugEvent {
 pub(crate) enum Action {
     Connect,
     AfterConnectionFailed,
+    Send(dap::Msg),
 }
 
 /// コネクションワーカーに処理を依頼するもの。
@@ -45,6 +57,7 @@ pub(crate) struct Worker {
     app_sender: app::Sender,
     connection_sender: Sender,
     receiver: mpsc::Receiver<Action>,
+    connection: Option<(net::TcpStream, mpsc::Sender<dap::Msg>)>,
 }
 
 impl Worker {
@@ -54,6 +67,7 @@ impl Worker {
             app_sender,
             connection_sender: Sender { sender },
             receiver,
+            connection: None,
         }
     }
 
@@ -66,72 +80,70 @@ impl Worker {
             match self.receiver.recv() {
                 Ok(Action::Connect) => {
                     // 接続要求が来たとき: 接続を試みる。
-                    WebSocketHandler::new(self.sender(), self.app_sender.clone()).try_connect();
+                    if self.connection.is_some() {
+                        continue;
+                    }
+
+                    let port = 57676;
+                    let stream = match net::TcpStream::connect(("127.0.0.1", port)) {
+                        Ok(stream) => stream,
+                        Err(err) => {
+                            logger::log_error(&err);
+                            continue;
+                        }
+                    };
+                    let in_stream = stream.try_clone().unwrap();
+
+                    // 受信したメッセージを処理するためのワーカースレッドを建てる。
+                    let (tx, rx) = mpsc::channel();
+                    let app_sender = self.app_sender.clone();
+                    let w = thread::spawn(move || {
+                        let mut r =
+                            dac::DebugAdapterReader::new(io::BufReader::new(in_stream), MyLogger);
+                        let mut buf = Vec::new();
+                        loop {
+                            if !r.recv(&mut buf) {
+                                break;
+                            }
+
+                            logger::log(&format!("TCP受信 {}バイト", buf.len()));
+
+                            let msg = match serde_json::from_slice::<dap::Msg>(&buf) {
+                                Err(err) => {
+                                    logger::log_error(&err);
+                                    continue;
+                                }
+                                Ok(msg) => msg,
+                            };
+
+                            app_sender.send(app::Action::AfterRequestReceived(msg));
+                        }
+                    });
+
+                    self.connection = Some((stream, tx));
+                    self.app_sender.send(app::Action::AfterConnected);
                 }
                 Ok(Action::AfterConnectionFailed) => {
                     // 接続に失敗したとき: 3秒待って再試行する。
                     thread::sleep(time::Duration::from_secs(3));
                     self.connection_sender.send(Action::Connect);
                 }
+                Ok(Action::Send(msg)) => {
+                    // 送信要求が来たとき: 接続が確立していたら送信する。
+                    let stream = match self.connection {
+                        None => {
+                            logger::log("接続が確立していないので送信できませんでした");
+                            continue;
+                        }
+                        Some((ref stream, _)) => stream,
+                    };
+
+                    dac::DebugAdapterWriter::new(stream, MyLogger).write(&msg);
+                }
                 Err(err) => {
                     logger::log_error(&err);
                     break;
                 }
-            }
-        }
-    }
-}
-
-/// WebSocket 経由で VSCode から送られてくるメッセージを処理するもの。
-#[derive(Clone)]
-struct WebSocketHandler {
-    app_sender: app::Sender,
-    connection_sender: Sender,
-}
-
-impl WebSocketHandler {
-    fn new(connection_sender: Sender, app_sender: app::Sender) -> Self {
-        WebSocketHandler {
-            connection_sender,
-            app_sender,
-        }
-    }
-
-    fn try_connect(&self) {
-        // NOTE: 接続に成功したら、接続が切れるまで connect 関数は終了しない。
-        let result = ws::connect("ws://localhost:8089/", |out: ws::Sender| {
-            logger::log("[WS] 接続");
-
-            // 接続の確立を通知する。メッセージを送信するためのオブジェクトを外部に送る。
-            self.app_sender
-                .send(app::Action::AfterWebSocketConnected(out));
-
-            // `ws::Handler` を返す。
-            self.clone()
-        });
-
-        match result {
-            Ok(()) => {}
-            Err(_) => {
-                logger::log("[WS] 接続 失敗");
-                self.connection_sender.send(Action::AfterConnectionFailed);
-            }
-        }
-    }
-}
-
-impl ws::Handler for WebSocketHandler {
-    fn on_message(&mut self, message: ws::Message) -> ws::Result<()> {
-        match message {
-            ws::Message::Binary(_) => {
-                logger::log("[WS] 受信 失敗 バイナリ");
-                Ok(())
-            }
-            ws::Message::Text(json) => {
-                logger::log(&format!("[WS] 受信 {}", json));
-                self.app_sender
-                    .send(app::Action::AfterDebugRequestReceived(json));
-                Ok(())
             }
         }
     }

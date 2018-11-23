@@ -6,10 +6,15 @@ import {
   CancellationToken,
 } from "vscode";
 import { Hsp3DebugType } from "./constants";
+import * as path from "path";
+
+const configs = vscode.workspace.getConfiguration("hsp3-debug-ginger")
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new GingerConfigProvider()
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(Hsp3DebugType, provider))
+  context.subscriptions.push(vscode.commands.registerCommand("hsp3-debug-ginger.selectRoot", selectRoot))
+  context.subscriptions.push(vscode.commands.registerCommand("hsp3-debug-ginger.adapterExecutableCommand", adapterExecutableCommand))
   context.subscriptions.push(provider)
 }
 
@@ -24,44 +29,56 @@ class GingerConfigProvider implements vscode.DebugConfigurationProvider {
     _token?: CancellationToken
   ): ProviderResult<DebugConfiguration> {
     return (async () => {
-
-      const { workspaceFolders } = vscode.workspace;
-      if (workspaceFolders && workspaceFolders.length > 0) {
-        config.cwd = workspaceFolders[0].uri.fsPath
-      }
-
-      config.hspPath = await this.askHSPPath()
-
+      config.cwd = calcCwd()
+      config.root = await selectRoot()
       return config
     })()
-  }
-
-  private async askHSPPath() {
-    const config = vscode.workspace.getConfiguration("hsp3DebugGinger")
-    const PATH_KEY = "path"
-
-    const hspPath = config.get(PATH_KEY)
-    if (typeof hspPath === "string" && hspPath !== "") {
-      return hspPath
-    }
-
-    const paths = await vscode.window.showOpenDialog({
-      canSelectFolders: true,
-      defaultUri: vscode.Uri.parse("file://C:/Program Files"),
-      openLabel: "HSPのインストールディレクトリ",
-    })
-
-    const selectedPath = paths && paths[0] && paths[0].fsPath
-    if (!selectedPath) {
-      vscode.window.showErrorMessage("HSPのインストールディレクトリが指定されていません。")
-      throw new Error("Configuration failed.")
-    }
-
-    await config.update(PATH_KEY, selectedPath, vscode.ConfigurationTarget.Global)
-    return selectedPath
   }
 
   dispose() {
     // pass
   }
+}
+
+const adapterExecutableCommand = async () => {
+  const cwd = calcCwd()
+  const rootPath = await selectRoot()
+  const command = path.resolve(__dirname, "../../middle-adapter/target/debug/middle-adapter.exe")
+
+  return {
+    command,
+    args: [cwd, rootPath],
+  }
+}
+
+const calcCwd = () => {
+  const { workspaceFolders } = vscode.workspace;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    return workspaceFolders[0].uri.fsPath
+  }
+  throw new Error("could not calculate cwd")
+}
+
+const selectRoot = async () => {
+  const ROOT_KEY = "root"
+
+  const root = configs.get(ROOT_KEY)
+  if (typeof root === "string" && root !== "") {
+    return root
+  }
+
+  const paths = await vscode.window.showOpenDialog({
+    canSelectFolders: true,
+    defaultUri: vscode.Uri.parse("file://C:/Program Files"),
+    openLabel: "HSPのインストールディレクトリ",
+  })
+
+  const selectedPath = paths && paths[0] && paths[0].fsPath
+  if (!selectedPath) {
+    vscode.window.showErrorMessage("HSPのインストールディレクトリが指定されていません。")
+    throw new Error("Configuration failed.")
+  }
+
+  await configs.update(ROOT_KEY, selectedPath, vscode.ConfigurationTarget.Global)
+  return selectedPath
 }

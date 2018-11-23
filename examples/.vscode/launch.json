@@ -5,7 +5,7 @@
             "type": "hsp3",
             "request": "launch",
             "name": "Run",
-            "program": "${file}",
+            "program": "${workspaceFolder}/main.hsp",
             "trace": true
         }
     ]

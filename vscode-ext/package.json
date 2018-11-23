@@ -80,7 +80,7 @@
       "type": "object",
       "title": "HSP3 Debug Ginger Config",
       "properties": {
-        "hsp3DebugGinger.path": {
+        "hsp3-debug-ginger.root": {
           "type": "string",
           "description": "HSPのインストールディレクトリへの絶対パス"
         }
@@ -90,8 +90,7 @@
       {
         "type": "hsp3",
         "label": "HSP3 Debug Ginger",
-        "program": "./out/ginger-session-run.js",
-        "runtime": "node",
+        "adapterExecutableCommand": "hsp3-debug-ginger.adapterExecutableCommand",
         "configurationAttributes": {
           "launch": {
             "properties": {
