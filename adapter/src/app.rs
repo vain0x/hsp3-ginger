@@ -51,6 +51,7 @@ pub(crate) enum DebugResponse {
 pub(crate) struct RuntimeState {
     file: Option<String>,
     line: i32,
+    stopped: bool,
 }
 
 /// `Worker` が扱える操作。
@@ -82,17 +83,17 @@ impl Sender {
 }
 
 /// HSP ランタイムと VSCode の仲介を行う。
-pub(crate) struct Worker<D> {
+pub(crate) struct Worker {
     app_sender: Sender,
     request_receiver: mpsc::Receiver<Action>,
     connection_sender: connection::Sender,
-    state: RuntimeState,
+    hsprt_sender: hsprt::Sender,
     args: Option<dap::LaunchRequestArgs>,
-    d: D,
+    state: RuntimeState,
 }
 
-impl<D: hsprt::HspDebug> Worker<D> {
-    pub fn new(d: D) -> Self {
+impl Worker {
+    pub fn new(hsprt_sender: hsprt::Sender) -> Self {
         let (sender, request_receiver) = mpsc::channel::<Action>();
         let app_sender = Sender { sender };
 
@@ -104,12 +105,13 @@ impl<D: hsprt::HspDebug> Worker<D> {
             app_sender,
             request_receiver,
             connection_sender,
+            hsprt_sender,
+            args: None,
             state: RuntimeState {
                 file: None,
                 line: 1,
+                stopped: false,
             },
-            args: None,
-            d,
         }
     }
 
@@ -132,6 +134,12 @@ impl<D: hsprt::HspDebug> Worker<D> {
                 }
             }
         }
+    }
+
+    /// HSP ランタイムが次に中断しているときにアクションが実行されるように予約する。
+    /// すでに停止しているときは即座に実行されるように、メッセージを送る。
+    fn send_to_hsprt(&self, action: hsprt::Action) {
+        self.hsprt_sender.send(action, self.state.stopped);
     }
 
     fn send_response(&mut self, request_seq: i64, response: dap::Response) {
@@ -187,38 +195,46 @@ impl<D: hsprt::HspDebug> Worker<D> {
                 variables_reference,
             } => {
                 if variables_reference == GLOBAL_SCOPE_REF {
-                    self.d.get_globals(seq);
+                    self.send_to_hsprt(hsprt::Action::GetGlobals { seq });
                 }
             }
             dap::Request::Pause { .. } => {
-                self.d.set_mode(hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode);
+                self.send_to_hsprt(hsprt::Action::SetMode(
+                    hspsdk::HSPDEBUG_STOP as hspsdk::DebugMode,
+                ));
                 self.send_response(
                     seq,
                     dap::Response::Pause {
                         thread_id: MAIN_THREAD_ID,
                     },
-                )
+                );
             }
             dap::Request::Continue { .. } => {
-                self.d.set_mode(hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode);
+                self.send_to_hsprt(hsprt::Action::SetMode(
+                    hspsdk::HSPDEBUG_RUN as hspsdk::DebugMode,
+                ));
                 self.send_response(seq, dap::Response::Continue);
                 self.send_event(dap::Event::Continued {
                     all_threads_continued: true,
                 });
+                self.state.stopped = false;
             }
             dap::Request::Next { .. } => {
-                self.d
-                    .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                self.send_to_hsprt(hsprt::Action::SetMode(
+                    hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode,
+                ));
                 self.send_response(seq, dap::Response::Next);
             }
             dap::Request::StepIn { .. } => {
-                self.d
-                    .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                self.send_to_hsprt(hsprt::Action::SetMode(
+                    hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode,
+                ));
                 self.send_response(seq, dap::Response::StepIn);
             }
             dap::Request::StepOut { .. } => {
-                self.d
-                    .set_mode(hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode);
+                self.send_to_hsprt(hsprt::Action::SetMode(
+                    hspsdk::HSPDEBUG_STEPIN as hspsdk::DebugMode,
+                ));
                 self.send_response(seq, dap::Response::StepOut);
             }
             dap::Request::Disconnect { .. } => {
@@ -261,7 +277,11 @@ impl<D: hsprt::HspDebug> Worker<D> {
 
                 let file = self.resolve_file_path(file);
 
-                self.state = RuntimeState { file, line };
+                self.state = RuntimeState {
+                    file,
+                    line,
+                    stopped: true,
+                };
                 self.send_event(dap::Event::Stopped {
                     reason: "pause".to_owned(),
                     thread_id: MAIN_THREAD_ID,
