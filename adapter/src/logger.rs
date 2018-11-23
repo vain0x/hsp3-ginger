@@ -9,7 +9,8 @@ struct FileLogger {
 
 static mut LOGGER: Option<Mutex<Option<FileLogger>>> = None;
 
-pub fn init_mod() {
+/// モジュールの初期化処理を行う。
+pub fn initialize_mod() {
     unsafe {
         LOGGER = Some(Mutex::new(None));
     }

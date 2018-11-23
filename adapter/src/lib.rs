@@ -37,6 +37,8 @@ static mut GLOBALS: Option<cell::UnsafeCell<Globals>> = None;
 
 type HspMsgFunc = Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)>;
 
+/// グローバル変数をまとめたもの。
+/// `debug_notice` などの関数に状態をもたせるために使う。
 pub(crate) struct Globals {
     app_sender: app::Sender,
     hsprt_receiver: mpsc::Receiver<Action>,
@@ -45,19 +47,21 @@ pub(crate) struct Globals {
 }
 
 impl Globals {
+    /// 初期化処理を行い、各グローバル変数の初期値を設定して `Globals` を構築する。
     fn create(hsp_debug: *mut hspsdk::HSP3DEBUG) -> Self {
         logger::log("debugini");
 
-        // msgfunc に操作を送信するチャネル。
+        // msgfunc に操作を送信するチャネルを生成する。
         let (sender, hsprt_receiver) = mpsc::channel();
         let (notice_sender, notice_receiver) = mpsc::channel();
 
         let hsprt_sender = Sender::new(sender, notice_sender);
 
         thread::spawn(move || {
+            // HSP ランタイムが停止している状態で処理依頼が来るたびに notice_receiver が通知を受け取り、
+            // そのたびにループが進行する。msgfunc に変わって処理を行う。
+            // FIXME: ワーカースレッドで globals に触るのはとても危険なので同期化機構を使うべき。
             for _ in notice_receiver {
-                // NOTE: ここには停止しているときにしか来ない。
-                // FIXME: ワーカースレッドで globals に触るのはとても危険なので同期化機構を使うべき。
                 with_globals(|g| {
                     g.receive_actions();
                 });
@@ -77,6 +81,7 @@ impl Globals {
         };
 
         unsafe { globals.hook_msgfunc() };
+
         globals
     }
 
@@ -116,6 +121,7 @@ impl Globals {
         }
     }
 
+    /// `Action` で指定された操作を実行する。
     fn do_action(&self, action: Action) {
         match action {
             Action::SetMode(mode) => {
@@ -208,9 +214,16 @@ where
 }
 
 /// クレートの static 変数の初期化などを行なう。
-/// ここでエラーが起こるとめんどうなので、Mutex や RefCell などを初期化するにとどめて、複雑なオブジェクトの生成は遅延しておく。
-fn init_crate() {
-    logger::init_mod();
+/// ここでエラーが起こるとめんどうなので、Mutex などのオブジェクトの生成にとどめる。
+fn initialize_crate() {
+    logger::initialize_mod();
+}
+
+fn deinitialize_crate() {
+    logger::log("デバッガーがデタッチされました");
+
+    // グローバル変数をすべてドロップする。
+    unsafe { GLOBALS.take() };
 }
 
 /// すべてのウィンドウにメッセージを送る。
@@ -241,8 +254,12 @@ pub extern "system" fn DllMain(
     _reserved: LPVOID,
 ) -> BOOL {
     match call_reason {
-        winapi::um::winnt::DLL_PROCESS_ATTACH => {}
-        winapi::um::winnt::DLL_PROCESS_DETACH => {}
+        winapi::um::winnt::DLL_PROCESS_ATTACH => {
+            initialize_crate();
+        }
+        winapi::um::winnt::DLL_PROCESS_DETACH => {
+            deinitialize_crate();
+        }
         _ => {}
     }
     TRUE
@@ -258,8 +275,6 @@ pub extern "system" fn debugini(
     _p3: i32,
     _p4: i32,
 ) -> i32 {
-    init_crate();
-
     let globals = Globals::create(hsp_debug);
     unsafe { GLOBALS = Some(cell::UnsafeCell::new(globals)) };
     return 0;
