@@ -40,6 +40,7 @@ where
     }
 }
 
+#[allow(deprecated)]
 fn log_file_path() -> PathBuf {
     std::env::home_dir()
         .map(|d| d.join("hsp3debug-rust.log"))

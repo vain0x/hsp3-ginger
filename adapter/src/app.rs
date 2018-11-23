@@ -6,7 +6,6 @@ use logger;
 use std;
 use std::sync::mpsc;
 use std::thread;
-use ws;
 
 const MAIN_THREAD_ID: i64 = 1;
 const MAIN_THREAD_NAME: &'static str = "main";
@@ -87,21 +86,17 @@ pub(crate) struct Worker<D> {
     app_sender: Sender,
     request_receiver: mpsc::Receiver<Action>,
     connection_sender: connection::Sender,
-    ws_sender: Option<ws::Sender>,
     state: RuntimeState,
     args: Option<dap::LaunchRequestArgs>,
     d: D,
 }
 
 impl<D: hsprt::HspDebug> Worker<D> {
-    pub fn new(d: D) -> Self
-    where
-        D: Send + 'static,
-    {
+    pub fn new(d: D) -> Self {
         let (sender, request_receiver) = mpsc::channel::<Action>();
         let app_sender = Sender { sender };
 
-        let mut connection_worker = connection::Worker::new(app_sender.clone());
+        let connection_worker = connection::Worker::new(app_sender.clone());
         let connection_sender = connection_worker.sender();
         thread::spawn(move || connection_worker.run());
 
@@ -109,7 +104,6 @@ impl<D: hsprt::HspDebug> Worker<D> {
             app_sender,
             request_receiver,
             connection_sender,
-            ws_sender: None,
             state: RuntimeState {
                 file: None,
                 line: 1,
@@ -121,10 +115,6 @@ impl<D: hsprt::HspDebug> Worker<D> {
 
     pub fn sender(&self) -> Sender {
         self.app_sender.clone()
-    }
-
-    fn send(&mut self, action: Action) {
-        self.app_sender.send(action);
     }
 
     pub fn run(mut self) {
@@ -234,9 +224,6 @@ impl<D: hsprt::HspDebug> Worker<D> {
             dap::Request::Disconnect { .. } => {
                 // self.d.terminate();
             }
-            _ => {
-                // unimpl
-            }
         }
     }
 
@@ -248,7 +235,7 @@ impl<D: hsprt::HspDebug> Worker<D> {
         }
 
         let args = self.args.as_ref()?;
-        let mut file_path = std::path::PathBuf::from(args.cwd.to_owned())
+        let file_path = std::path::PathBuf::from(args.cwd.to_owned())
             .join(&file_name)
             .canonicalize()
             .ok()?;
@@ -266,11 +253,11 @@ impl<D: hsprt::HspDebug> Worker<D> {
             Action::AfterRequestReceived(dap::Msg::Request { seq, e }) => {
                 self.on_request(seq, e);
             }
-            Action::AfterRequestReceived(msg) => {
+            Action::AfterRequestReceived(_) => {
                 logger::log("受信 リクエストではない DAP メッセージを無視");
             }
             Action::AfterStopped(file, line) => {
-                logger::log("送信 break");
+                logger::log("送信 中断");
 
                 let file = self.resolve_file_path(file);
 

@@ -5,7 +5,6 @@
 use app;
 use debug_adapter_connection as dac;
 use debug_adapter_protocol as dap;
-use helpers::failwith;
 use hsprt;
 use hspsdk;
 use logger;
@@ -23,16 +22,10 @@ impl dac::Logger for MyLogger {
     }
 }
 
-/// デバッガーから VSCode に送るメッセージ。
-pub(crate) enum DebugEvent {
-    Stop,
-}
-
 /// コネクションワーカーが扱える操作。
 #[derive(Clone, Debug)]
 pub(crate) enum Action {
     Connect,
-    AfterConnectionFailed,
     Send(dap::Msg),
 }
 
@@ -95,9 +88,9 @@ impl Worker {
                     let in_stream = stream.try_clone().unwrap();
 
                     // 受信したメッセージを処理するためのワーカースレッドを建てる。
-                    let (tx, rx) = mpsc::channel();
+                    let (tx, _) = mpsc::channel();
                     let app_sender = self.app_sender.clone();
-                    let w = thread::spawn(move || {
+                    thread::spawn(move || {
                         let mut r =
                             dac::DebugAdapterReader::new(io::BufReader::new(in_stream), MyLogger);
                         let mut buf = Vec::new();
@@ -105,8 +98,6 @@ impl Worker {
                             if !r.recv(&mut buf) {
                                 break;
                             }
-
-                            logger::log(&format!("TCP受信 {}バイト", buf.len()));
 
                             let msg = match serde_json::from_slice::<dap::Msg>(&buf) {
                                 Err(err) => {
@@ -123,16 +114,11 @@ impl Worker {
                     self.connection = Some((stream, tx));
                     self.app_sender.send(app::Action::AfterConnected);
                 }
-                Ok(Action::AfterConnectionFailed) => {
-                    // 接続に失敗したとき: 3秒待って再試行する。
-                    thread::sleep(time::Duration::from_secs(3));
-                    self.connection_sender.send(Action::Connect);
-                }
                 Ok(Action::Send(msg)) => {
                     // 送信要求が来たとき: 接続が確立していたら送信する。
                     let stream = match self.connection {
                         None => {
-                            logger::log("接続が確立していないので送信できませんでした");
+                            logger::log("送信 失敗 接続が確立していません");
                             continue;
                         }
                         Some((ref stream, _)) => stream,

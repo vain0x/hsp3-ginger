@@ -9,6 +9,8 @@ extern crate winapi;
 
 #[macro_use]
 extern crate serde_derive;
+
+#[allow(unused_imports)]
 #[macro_use]
 extern crate log;
 
@@ -23,7 +25,7 @@ mod logger;
 
 use debug_adapter_protocol as dap;
 use std::sync::mpsc;
-use std::{cell, iter, ptr, thread};
+use std::{cell, ptr, thread};
 
 #[cfg(windows)]
 use winapi::shared::{minwindef::*, windef::*};
@@ -36,7 +38,6 @@ struct Globals {
     hsp_sender: mpsc::Sender<HspAction>,
     hsp_receiver: mpsc::Receiver<HspAction>,
     app_sender: app::Sender,
-    join_handle: thread::JoinHandle<()>,
 }
 
 static mut GLOBALS: Option<cell::UnsafeCell<Globals>> = None;
@@ -149,7 +150,7 @@ fn send_action(action: HspAction) {
     })
 }
 
-fn do_action(hspctx: &mut hspsdk::HSPCTX, action: HspAction) {
+fn do_action(_hspctx: &mut hspsdk::HSPCTX, action: HspAction) {
     match action {
         HspAction::SetMode(mode) => {
             do_set_mode(mode);
@@ -248,7 +249,7 @@ pub extern "system" fn debugini(
     // ワーカースレッドを起動する。
     let app_worker = app::Worker::new(HspDebugImpl);
     let app_sender = app_worker.sender();
-    let join_handle = thread::spawn(move || app_worker.run());
+    let _join_handle = thread::spawn(move || app_worker.run());
 
     let default_msgfunc = unsafe { hook_msgfunc(hsp_debug) };
 
@@ -258,7 +259,6 @@ pub extern "system" fn debugini(
         hsp_sender,
         hsp_receiver,
         app_sender,
-        join_handle,
     };
 
     unsafe { GLOBALS = Some(cell::UnsafeCell::new(globals)) };

@@ -1,5 +1,5 @@
 use std::io::{BufRead, Write};
-use std::{fmt, fs, io, path, rc, sync};
+use std::{fmt, fs, path, sync};
 
 pub(crate) trait Logger: Clone {
     fn log(&self, args: fmt::Arguments);
@@ -18,6 +18,7 @@ pub(crate) struct FileLogger {
 }
 
 impl FileLogger {
+    #[allow(unused)]
     pub fn create(path: &path::Path) -> Self {
         FileLogger {
             log_file: fs::File::create(path)

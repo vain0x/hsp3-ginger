@@ -1,12 +1,8 @@
-use logger;
 use std;
-use std::{iter, ptr, str};
+use std::{ptr, str};
 
 #[cfg(windows)]
 use winapi;
-
-#[cfg(windows)]
-use std::{ffi, os::windows::ffi::OsStrExt};
 
 /// ゼロ終端の utf-16 文字列に変換する。(Win32 API に渡すのに使う。)
 pub(crate) fn to_u16s(s: &str) -> Vec<u16> {
@@ -112,6 +108,7 @@ pub(crate) fn hsp_str_from_string(s: &str) -> Vec<u8> {
 }
 
 /// メッセージボックスを表示する。
+#[allow(unused)]
 pub(crate) fn message_box(message: &str) {
     #[cfg(windows)]
     {
@@ -126,20 +123,5 @@ pub(crate) fn message_box(message: &str) {
                 winapi::um::winuser::MB_OK,
             );
         }
-    }
-}
-
-/// エラーメッセージを出力して異常終了する。(デバッグ用)
-pub(crate) fn failwith<T: std::fmt::Debug>(error: T) -> ! {
-    #[cfg(windows)]
-    {
-        let message = format!("ERROR: {:?}", error);
-        logger::log(&message);
-        message_box(&message);
-        panic!()
-    }
-    #[cfg(not(windows))]
-    {
-        panic!("ERROR: {:?}", error)
     }
 }
