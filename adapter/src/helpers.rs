@@ -103,7 +103,7 @@ pub(crate) fn hsp_str_from_string(s: &str) -> Vec<u8> {
     }
     #[cfg(not(windows))]
     {
-        s.bytes().chain(iter::once(0)).collect()
+        s.bytes().chain(std::iter::once(0)).collect()
     }
 }
 
