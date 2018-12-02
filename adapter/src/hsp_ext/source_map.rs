@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 /// `#include` に指定されたファイル名に絶対パスを関連づけるもの。
 /// NOTE: 同名のファイルが複数のディレクトリーにある場合、誤った絶対パスに対応させてしまう。
+#[derive(Clone, Debug)]
 pub(crate) struct SourceMap {
     /// 検索パスの集合。
     /// これらのパスは `#include` に指定した相対パスの基準になりうる。
@@ -17,6 +18,17 @@ impl SourceMap {
         SourceMap {
             search_paths: vec![hsp_dir.join("common")],
             resolutions: BTreeMap::new(),
+        }
+    }
+
+    pub fn add_search_path(&mut self, path: Option<&Path>) {
+        let path = match path {
+            None => return,
+            Some(path) => path.to_path_buf(),
+        };
+
+        if !self.search_paths.contains(&path) {
+            self.search_paths.push(path);
         }
     }
 
@@ -36,12 +48,7 @@ impl SourceMap {
     /// ファイル名と絶対パスのペアを記録する。
     fn add_file_name(&mut self, file_name: &str, full_path: PathBuf) {
         // 見つかったファイルがあるディレクトリーを検索パスに追加する。
-        if let Some(parent) = full_path.parent() {
-            let parent = parent.to_path_buf();
-            if !self.search_paths.contains(&parent) {
-                self.search_paths.push(parent);
-            }
-        }
+        self.add_search_path(full_path.parent());
 
         self.resolutions.insert(file_name.to_owned(), full_path);
     }

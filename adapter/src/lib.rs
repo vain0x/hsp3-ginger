@@ -86,6 +86,8 @@ impl Globals {
 
         unsafe { globals.hook_msgfunc() };
 
+        globals.load_debug_info();
+
         globals
     }
 
@@ -217,6 +219,12 @@ impl Globals {
         //     j.join().unwrap();
         // }
         thread::sleep(time::Duration::from_secs(3));
+    }
+
+    fn load_debug_info(&self) {
+        let debug_info = hsp_ext::debug_info::DebugInfo::parse_hspctx(self.hspctx());
+        self.app_sender
+            .send(app::Action::AfterDebugInfoLoaded(debug_info));
     }
 }
 

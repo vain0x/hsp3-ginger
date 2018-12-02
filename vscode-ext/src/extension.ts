@@ -31,6 +31,13 @@ class GingerConfigProvider implements vscode.DebugConfigurationProvider {
     return (async () => {
       config.cwd = calcCwd()
       config.root = await selectRoot()
+
+      if (config.trace === undefined) {
+        config.trace = false
+      }
+      if (config.program === undefined) {
+        config.program = path.join(config.cwd, "main.hsp")
+      }
       return config
     })()
   }

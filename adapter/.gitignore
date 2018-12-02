@@ -1,3 +1,8 @@
+hsptmp
+obj
+packfile
+
+
 
 # Created by https://www.gitignore.io/api/windows,macos,linux,visualstudio,c++,rust
 # Edit at https://www.gitignore.io/?templates=windows,macos,linux,visualstudio,c++,rust

@@ -1,9 +1,11 @@
 use connection;
 use debug_adapter_protocol as dap;
+use hsp_ext;
 use hsprt;
 use hspsdk;
 use logger;
 use std;
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 
@@ -67,6 +69,7 @@ pub(crate) enum Action {
     AfterStopped(String, i32),
     /// HSP ランタイムが終了する直前。
     BeforeTerminating,
+    AfterDebugInfoLoaded(hsp_ext::debug_info::DebugInfo<hsp_ext::debug_info::HspConstantMap>),
 }
 
 /// `Worker` に処理を依頼するもの。
@@ -91,6 +94,8 @@ pub(crate) struct Worker {
     hsprt_sender: Option<hsprt::Sender>,
     args: Option<dap::LaunchRequestArgs>,
     state: RuntimeState,
+    debug_info: Option<hsp_ext::debug_info::DebugInfo<hsp_ext::debug_info::HspConstantMap>>,
+    source_map: Option<hsp_ext::source_map::SourceMap>,
     #[allow(unused)]
     join_handle: Option<thread::JoinHandle<()>>,
 }
@@ -116,6 +121,8 @@ impl Worker {
                 line: 1,
                 stopped: false,
             },
+            debug_info: None,
+            source_map: None,
             join_handle: Some(join_handle),
         };
 
@@ -176,6 +183,7 @@ impl Worker {
         match request {
             dap::Request::Options { args } => {
                 self.args = Some(args);
+                self.load_source_map();
                 // NOTE: VSCode からのリクエストではないのでレスポンス不要。
             }
             dap::Request::SetExceptionBreakpoints { .. } => {
@@ -259,6 +267,37 @@ impl Worker {
         }
     }
 
+    fn load_source_map(&mut self) {
+        if self.source_map.is_some() {
+            return;
+        }
+
+        let debug_info = match self.debug_info {
+            None => return,
+            Some(ref debug_info) => debug_info,
+        };
+
+        let args = match self.args {
+            None => return,
+            Some(ref args) => args,
+        };
+        let root = PathBuf::from(&args.root);
+
+        let mut source_map = hsp_ext::source_map::SourceMap::new(&root);
+        let file_names = debug_info.file_names();
+
+        source_map.add_search_path(PathBuf::from(&args.program).parent());
+        source_map.add_file_names(
+            &file_names
+                .iter()
+                .map(|name| name.as_str())
+                .collect::<Vec<&str>>(),
+        );
+        logger::log(&format!("{:?}", source_map));
+
+        self.source_map = Some(source_map);
+    }
+
     /// ファイル名を絶対パスにする。
     /// FIXME: common 以下や 無修飾 include パスに対応する。
     fn resolve_file_path(&self, file_name: String) -> Option<String> {
@@ -266,17 +305,9 @@ impl Worker {
             return None;
         }
 
-        let args = self.args.as_ref()?;
-        let file_path = std::path::PathBuf::from(args.cwd.to_owned())
-            .join(&file_name)
-            .canonicalize()
-            .ok()?;
-
-        if !std::fs::metadata(&file_path).is_ok() {
-            return None;
-        }
-
-        Some(file_path.to_str()?.to_owned())
+        let source_map = self.source_map.as_ref()?;
+        let full_path = source_map.resolve_file_name(&file_name)?;
+        Some(full_path.to_str()?.to_owned())
     }
 
     fn handle(&mut self, action: Action) {
@@ -322,6 +353,10 @@ impl Worker {
                     // NOTE: なぜか終了しないので join しない。
                     // join_handle.join().unwrap();
                 }
+            }
+            Action::AfterDebugInfoLoaded(debug_info) => {
+                self.debug_info = Some(debug_info);
+                self.load_source_map();
             }
         }
     }

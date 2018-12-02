@@ -1,3 +1,4 @@
 #include "inner/inner.hsp"
 
+	assert
 	inner_sub

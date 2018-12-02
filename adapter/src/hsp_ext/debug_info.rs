@@ -4,8 +4,8 @@
 use helpers;
 use hspsdk;
 use std::collections::BTreeMap;
-use std::rc::Rc;
-use std::{cmp, rc, slice};
+use std::sync::Arc;
+use std::{cmp, slice};
 
 /// 埋め込まれているデータ (文字列や浮動小数点数) の識別子。
 /// Data Segment のオフセット (DSオフセット値) に等しい。
@@ -17,13 +17,14 @@ pub(crate) type LabelId = usize;
 /// 構造体やパラメーターの識別子。STオフセット値。
 pub(crate) type StructId = usize;
 
-pub(crate) trait ConstantMap {
+pub(crate) trait ConstantMap: Clone {
     fn get_string(&self, id: DataId) -> String;
     fn get_float(&self, id: DataId) -> f64;
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct HspConstantMap {
-    pub data_segment: Rc<Vec<u8>>,
+    pub data_segment: Arc<Vec<u8>>,
 }
 
 impl ConstantMap for HspConstantMap {
@@ -58,7 +59,7 @@ impl Mode {
     }
 }
 
-struct DebugSegmentParser<'a> {
+struct DebugSegmentParser<'a, C: ConstantMap> {
     debug_segment: &'a [u8],
     /// `debug_segment` のいま見ている位置
     di: usize,
@@ -71,10 +72,10 @@ struct DebugSegmentParser<'a> {
     file_names: Vec<DataId>,
     label_names: BTreeMap<LabelId, DataId>,
     param_names: BTreeMap<StructId, DataId>,
-    constant_map: Rc<ConstantMap>,
+    constant_map: Arc<C>,
 }
 
-impl<'a> DebugSegmentParser<'a> {
+impl<'a> DebugSegmentParser<'a, HspConstantMap> {
     pub fn from_hspctx(hspctx: &hspsdk::HSPCTX) -> Self {
         let debug_segment_size = unsafe { *hspctx.hsphed }.max_dinfo;
         let debug_segment = from_segment(hspctx.mem_di as *const u8, debug_segment_size);
@@ -84,17 +85,15 @@ impl<'a> DebugSegmentParser<'a> {
 
         let data_segment_size = unsafe { *hspctx.hsphed }.max_ds;
         let data_segment = from_segment(hspctx.mem_mds as *const u8, data_segment_size);
-        let data_segment = Rc::new(data_segment.to_owned());
-        let constant_map = Rc::new(HspConstantMap { data_segment });
+        let data_segment = Arc::new(data_segment.to_owned());
+        let constant_map = Arc::new(HspConstantMap { data_segment });
 
         DebugSegmentParser::new(debug_segment, code_segment, constant_map)
     }
+}
 
-    fn new(
-        debug_segment: &'a [u8],
-        code_segment: &'a [u8],
-        constant_map: rc::Rc<ConstantMap>,
-    ) -> Self {
+impl<'a, C: ConstantMap> DebugSegmentParser<'a, C> {
+    fn new(debug_segment: &'a [u8], code_segment: &'a [u8], constant_map: Arc<C>) -> Self {
         DebugSegmentParser {
             debug_segment,
             di: 0,
@@ -144,7 +143,7 @@ impl<'a> DebugSegmentParser<'a> {
         value
     }
 
-    pub fn parse(mut self) -> DebugInfo {
+    pub fn parse(mut self) -> DebugInfo<C> {
         while self.di < self.debug_segment.len() {
             match self.read_1byte() {
                 0xFF => self.on_mode_switch(),
@@ -220,19 +219,22 @@ impl<'a> DebugSegmentParser<'a> {
     }
 }
 
-pub(crate) struct DebugInfo {
+#[derive(Clone, Debug)]
+pub(crate) struct DebugInfo<C: ConstantMap> {
     file_names: Vec<DataId>,
     label_names: BTreeMap<LabelId, DataId>,
     param_names: BTreeMap<StructId, DataId>,
-    constant_map: rc::Rc<ConstantMap>,
+    constant_map: Arc<C>,
 }
 
-impl DebugInfo {
+impl DebugInfo<HspConstantMap> {
     pub fn parse_hspctx(hspctx: &hspsdk::HSPCTX) -> Self {
         DebugSegmentParser::from_hspctx(hspctx).parse()
     }
+}
 
-    pub fn parse(debug_segment: &[u8], code_segment: &[u8], constant_map: Rc<ConstantMap>) -> Self {
+impl<C: ConstantMap> DebugInfo<C> {
+    pub fn parse(debug_segment: &[u8], code_segment: &[u8], constant_map: Arc<C>) -> Self {
         DebugSegmentParser::new(debug_segment, code_segment, constant_map).parse()
     }
 
@@ -303,9 +305,9 @@ mod tests {
 
         let data_segment_begin = hsphed.pt_ds as usize;
         let data_segment_end = data_segment_begin + hsphed.max_ds as usize;
-        let data_segment = Rc::new(ax[data_segment_begin..data_segment_end].to_owned());
+        let data_segment = Arc::new(ax[data_segment_begin..data_segment_end].to_owned());
 
-        let constant_map = Rc::new(HspConstantMap { data_segment });
+        let constant_map = Arc::new(HspConstantMap { data_segment });
 
         let debug_info = DebugInfo::parse(debug_segment, code_segment, constant_map);
         assert_eq!(
