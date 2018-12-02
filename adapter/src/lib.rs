@@ -21,6 +21,7 @@ mod connection;
 mod debug_adapter_connection;
 mod debug_adapter_protocol;
 mod helpers;
+mod hsp_ext;
 mod hsprt;
 mod hspsdk;
 mod logger;
