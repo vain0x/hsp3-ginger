@@ -150,7 +150,7 @@ impl Globals {
         let dbg_close = d.dbg_close.unwrap();
 
         let p = unsafe { get_varinf(ptr::null_mut(), 0xFF) };
-        let var_names = helpers::string_from_hsp_str(p);
+        let var_names = helpers::string_from_hsp_str(p as *const u8);
         unsafe { dbg_close(p) };
 
         let var_names = var_names.trim_right().split("\n").map(|s| s.trim_right());
@@ -159,7 +159,7 @@ impl Globals {
                 let n = helpers::hsp_str_from_string(name);
                 let p = unsafe { get_varinf(n.as_ptr() as *mut i8, 0) };
                 // 最初の7行はヘッダーなので無視する。文字列などは複数行になることもあるが、最初の1行だけ取る。
-                let value = helpers::string_from_hsp_str(p)
+                let value = helpers::string_from_hsp_str(p as *const u8)
                     .lines()
                     .skip(7)
                     .next()
@@ -180,7 +180,7 @@ impl Globals {
     }
 
     fn on_logmes_called(&mut self) {
-        let message = helpers::string_from_hsp_str(self.hspctx().stmp);
+        let message = helpers::string_from_hsp_str(self.hspctx().stmp as *const u8);
         logger::log(&message);
     }
 
@@ -193,7 +193,7 @@ impl Globals {
             let curinf = d.dbg_curinf.unwrap();
             unsafe { curinf() };
 
-            let file_name = helpers::string_from_hsp_str(d.fname);
+            let file_name = helpers::string_from_hsp_str(d.fname as *const u8);
             logger::log(&format!("file_name = {:?}", file_name));
 
             (file_name, d.line)

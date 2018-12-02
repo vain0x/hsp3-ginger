@@ -71,29 +71,30 @@ fn ansi_from_wide_string(s: &[u16]) -> Vec<u8> {
 }
 
 /// HSP ランタイムが扱う文字列を utf-8 に変換する。
-pub(crate) fn string_from_hsp_str(p: *mut i8) -> String {
-    let s = p as *mut u8;
-
+pub(crate) fn string_from_hsp_str(s: *const u8) -> String {
     // ゼロ終端を探して、文字列の長さを調べる。
     // NOTE: バッファオーバーフローを避けるため、適当な長さで探索を打ち切る。
     for i in 0..4096 {
         if unsafe { *s.add(i) } == 0 {
-            let bytes = unsafe { std::slice::from_raw_parts_mut(s, i) };
-
-            #[cfg(windows)]
-            {
-                let wide = ansi_to_wide_string(bytes);
-                return String::from_utf16_lossy(&wide);
-            }
-
-            #[cfg(not(windows))]
-            {
-                return String::from_utf8_lossy(bytes).into_owned();
-            }
+            let bytes = unsafe { std::slice::from_raw_parts(s, i) };
+            return string_from_hsp_str_slice(bytes);
         }
     }
 
     "[COULD NOT READ]".to_owned()
+}
+
+fn string_from_hsp_str_slice(bytes: &[u8]) -> String {
+    #[cfg(windows)]
+    {
+        let wide = ansi_to_wide_string(bytes);
+        return String::from_utf16_lossy(&wide);
+    }
+
+    #[cfg(not(windows))]
+    {
+        return String::from_utf8_lossy(bytes).into_owned();
+    }
 }
 
 pub(crate) fn hsp_str_from_string(s: &str) -> Vec<u8> {
