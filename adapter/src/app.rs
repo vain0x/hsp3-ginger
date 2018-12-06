@@ -12,9 +12,6 @@ use std::thread;
 const MAIN_THREAD_ID: i64 = 1;
 const MAIN_THREAD_NAME: &'static str = "main";
 
-// グローバル変数からなるスコープの変数参照Id
-const GLOBAL_SCOPE_REF: i64 = 1;
-
 fn threads() -> Vec<dap::Thread> {
     vec![dap::Thread {
         id: MAIN_THREAD_ID,
@@ -22,31 +19,31 @@ fn threads() -> Vec<dap::Thread> {
     }]
 }
 
-/// VSCode 側のデバッグアダプターから送られてくるメッセージ。
-/// E.g `{"type": "pause"}`
-#[derive(Deserialize, Clone, Debug)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum DebugRequest {
-    /// 再開
-    Continue,
-    /// ステップオーバー (次行の実行)
-    Next,
-    /// 中断
-    Pause,
-    /// グローバル変数の一覧の要求
+/// グローバル変数からなるスコープの変数参照Id
+const GLOBAL_SCOPE_REF: i64 = 1;
+
+/// HSP の変数や変数の要素、あるいは変数をまとめるもの (モジュールなど) を指し示すもの。
+#[derive(Clone, Debug)]
+pub(crate) enum VarPath {
     Globals,
 }
 
-/// VSCode 側のデバッグアダプターに送るメッセージ。
-#[derive(Serialize, Clone, Debug)]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum DebugResponse {
-    Globals {
-        seq: i64,
-        variables: Vec<dap::Variable>,
-    },
+/// Variables reference. VSCode が変数や変数要素を指し示すために使う整数値。
+pub(crate) type VarRef = i64;
+
+impl VarPath {
+    fn to_var_ref(&self) -> VarRef {
+        match self {
+            VarPath::Globals => 1,
+        }
+    }
+
+    fn from_var_ref(r: VarRef) -> Option<Self> {
+        match r {
+            1 => Some(VarPath::Globals),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -63,13 +60,15 @@ pub(crate) enum Action {
     AfterConnected,
     /// VSCode からリクエストが来たとき。
     AfterRequestReceived(dap::Msg),
-    /// VSCode 側にメッセージを送信する。(assert で停止したときなど。)
-    DebugEvent(DebugResponse),
     /// assert で停止したとき。
     AfterStopped(String, i32),
     /// HSP ランタイムが終了する直前。
     BeforeTerminating,
     AfterDebugInfoLoaded(hsp_ext::debug_info::DebugInfo<hsp_ext::debug_info::HspConstantMap>),
+    AfterGetVar {
+        seq: i64,
+        variables: Vec<dap::Variable>,
+    },
 }
 
 /// `Worker` に処理を依頼するもの。
@@ -218,8 +217,8 @@ impl Worker {
             dap::Request::Variables {
                 variables_reference,
             } => {
-                if variables_reference == GLOBAL_SCOPE_REF {
-                    self.send_to_hsprt(hsprt::Action::GetGlobals { seq });
+                if let Some(var_path) = VarPath::from_var_ref(variables_reference) {
+                    self.send_to_hsprt(hsprt::Action::GetVar { seq, var_path });
                 }
             }
             dap::Request::Pause { .. } => {
@@ -334,11 +333,6 @@ impl Worker {
                     thread_id: MAIN_THREAD_ID,
                 });
             }
-            Action::DebugEvent(response) => match response {
-                DebugResponse::Globals { seq, variables } => {
-                    self.send_response(seq, dap::Response::Variables { variables });
-                }
-            },
             Action::AfterConnected => {
                 self.send_event(dap::Event::Initialized);
             }
@@ -357,6 +351,9 @@ impl Worker {
             Action::AfterDebugInfoLoaded(debug_info) => {
                 self.debug_info = Some(debug_info);
                 self.load_source_map();
+            }
+            Action::AfterGetVar { seq, variables } => {
+                self.send_response(seq, dap::Response::Variables { variables });
             }
         }
     }

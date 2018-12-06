@@ -1,3 +1,4 @@
+use app;
 use hspsdk;
 use logger;
 use std::sync::mpsc;
@@ -7,8 +8,8 @@ use std::sync::mpsc;
 pub(crate) enum Action {
     /// デバッグモードを変更する。
     SetMode(hspsdk::DebugMode),
-    /// グローバル変数を列挙する。
-    GetGlobals { seq: i64 },
+    /// 変数の中身を取得する。
+    GetVar { seq: i64, var_path: app::VarPath },
 }
 
 /// HSP ランタイム に処理を依頼するもの。

@@ -133,8 +133,8 @@ impl Globals {
             Action::SetMode(mode) => {
                 self.do_set_mode(mode);
             }
-            Action::GetGlobals { seq } => {
-                self.do_get_globals(seq);
+            Action::GetVar { seq, var_path } => {
+                self.do_get_var(seq, var_path);
             }
         }
     }
@@ -144,6 +144,12 @@ impl Globals {
         let set = self.hsp_debug().dbg_set.unwrap();
         unsafe { set(mode) };
         unsafe { tap_all_windows() };
+    }
+
+    fn do_get_var(&self, seq: i64, var_path: app::VarPath) {
+        match var_path {
+            app::VarPath::Globals => self.do_get_globals(seq),
+        }
     }
 
     fn do_get_globals(&self, seq: i64) {
@@ -176,10 +182,11 @@ impl Globals {
                     ty: None,
                     variables_reference: 0,
                 }
-            }).collect::<Vec<_>>();
+            })
+            .collect::<Vec<_>>();
 
-        let event = app::DebugResponse::Globals { seq, variables };
-        self.app_sender.send(app::Action::DebugEvent(event));
+        self.app_sender
+            .send(app::Action::AfterGetVar { seq, variables });
     }
 
     fn on_logmes_called(&mut self) {
