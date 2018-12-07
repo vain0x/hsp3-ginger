@@ -28,6 +28,7 @@ mod logger;
 
 use debug_adapter_protocol as dap;
 use hsprt::*;
+use std::ops::*;
 use std::sync::mpsc;
 use std::{cell, ptr, thread, time};
 
@@ -111,7 +112,7 @@ impl Globals {
         unsafe { &mut *hspctx }
     }
 
-    fn on_msgfunc_called(&self) {
+    fn on_msgfunc_called(&mut self) {
         self.receive_actions();
 
         if let Some(default_msgfunc) = self.default_msgfunc {
@@ -121,14 +122,14 @@ impl Globals {
     }
 
     /// メインスレッド上で実行すべき操作があれば、すべて実行する。なければ何もしない。
-    fn receive_actions(&self) {
+    fn receive_actions(&mut self) {
         while let Ok(action) = self.hsprt_receiver.try_recv() {
             self.do_action(action);
         }
     }
 
     /// `Action` で指定された操作を実行する。
-    fn do_action(&self, action: Action) {
+    fn do_action(&mut self, action: Action) {
         match action {
             Action::SetMode(mode) => {
                 self.do_set_mode(mode);
@@ -146,44 +147,141 @@ impl Globals {
         unsafe { tap_all_windows() };
     }
 
-    fn do_get_var(&self, seq: i64, var_path: app::VarPath) {
+    fn do_get_var(&mut self, seq: i64, var_path: app::VarPath) {
         match var_path {
             app::VarPath::Globals => self.do_get_globals(seq),
+            app::VarPath::Static(i) => self.do_get_static(seq, i),
         }
     }
 
-    fn do_get_globals(&self, seq: i64) {
-        let d = self.hsp_debug();
+    fn static_var_pval(&mut self, vi: usize) -> Option<&mut hspsdk::PVal> {
+        let hspctx = self.hspctx();
+        let var_count = unsafe { *hspctx.hsphed }.max_val as usize;
+        if vi >= var_count {
+            return None;
+        }
+        Some(unsafe { &mut *hspctx.mem_var.add(vi) })
+    }
 
-        let get_varinf = d.get_varinf.unwrap();
-        let dbg_close = d.dbg_close.unwrap();
+    fn static_var_metadata(&mut self, vi: usize) -> Option<(&'static str, bool, usize)> {
+        let pval = self.static_var_pval(vi)?;
+        let len = pval.len[1] as usize;
+        let is_array = len > 1; // FIXME: 2次元配列は未対応
+        let ty = match pval.flag as u32 {
+            hspsdk::HSPVAR_FLAG_STR => "str",
+            hspsdk::HSPVAR_FLAG_DOUBLE => "double",
+            hspsdk::HSPVAR_FLAG_INT => "int",
+            _ => "unknown", // FIXME: 他の型は未対応
+        };
+        Some((ty, is_array, len))
+    }
 
-        let p = unsafe { get_varinf(ptr::null_mut(), 0xFF) };
-        let var_names = helpers::string_from_hsp_str(p as *const u8);
-        unsafe { dbg_close(p) };
+    fn static_var_value(&mut self, vi: usize, i: usize) -> Option<String> {
+        let get_proc = {
+            let hspctx = self.hspctx();
+            let exinfo = &mut hspctx.exinfo;
+            exinfo.HspFunc_getproc.unwrap()
+        };
 
+        let pval = self.static_var_pval(vi)?;
+        pval.offset = i as i32;
+        let value_ptr = unsafe {
+            let var_proc = &mut *get_proc(pval.flag as i32);
+            let get_ptr = var_proc.GetPtr.unwrap();
+            get_ptr(pval as *mut hspsdk::PVal)
+        };
+
+        let value = match pval.flag as u32 {
+            hspsdk::HSPVAR_FLAG_STR => helpers::string_from_hsp_str(value_ptr as *const u8),
+            hspsdk::HSPVAR_FLAG_DOUBLE => unsafe { *(value_ptr as *const f64) }.to_string(),
+            hspsdk::HSPVAR_FLAG_INT => unsafe { *(value_ptr as *const i32) }.to_string(),
+            _ => "unknown".to_owned(),
+        };
+        Some(value)
+    }
+
+    fn static_var_elements(&mut self, vi: usize) -> Option<Vec<dap::Variable>> {
+        let (ty, _, len) = self.static_var_metadata(vi)?;
+
+        let mut elements = vec![];
+        for i in 0..len {
+            let value = self
+                .static_var_value(vi, i)
+                .unwrap_or_else(|| "unknown".to_owned());
+            elements.push(dap::Variable {
+                name: i.to_string(),
+                value,
+                ty: Some(ty.to_string()),
+                variables_reference: 0,
+                indexed_variables: None,
+            })
+        }
+        Some(elements)
+    }
+
+    fn do_get_static(&mut self, seq: i64, vi: usize) {
+        let variables = self.static_var_elements(vi).unwrap_or(vec![]);
+        self.app_sender
+            .send(app::Action::AfterGetVar { seq, variables });
+    }
+
+    fn do_get_globals(&mut self, seq: i64) {
+        let var_names;
+        {
+            let d = self.hsp_debug();
+            let get_varinf = d.get_varinf.unwrap();
+            let dbg_close = d.dbg_close.unwrap();
+
+            let p = unsafe { get_varinf(ptr::null_mut(), 0xFF) };
+            var_names = helpers::string_from_hsp_str(p as *const u8);
+            unsafe { dbg_close(p) };
+        }
         let var_names = var_names.trim_right().split("\n").map(|s| s.trim_right());
-        let variables = var_names
-            .map(|name| {
-                let n = helpers::hsp_str_from_string(name);
-                let p = unsafe { get_varinf(n.as_ptr() as *mut i8, 0) };
-                // 最初の7行はヘッダーなので無視する。文字列などは複数行になることもあるが、最初の1行だけ取る。
-                let value = helpers::string_from_hsp_str(p as *const u8)
-                    .lines()
-                    .skip(7)
-                    .next()
-                    .unwrap_or("???")
-                    .to_owned();
-                unsafe { dbg_close(p) };
 
-                dap::Variable {
+        let mut variables = vec![];
+        for (i, name) in var_names.enumerate() {
+            // let n = helpers::hsp_str_from_string(name);
+            // let p = unsafe { get_varinf(n.as_ptr() as *mut i8, 0) };
+            // // 最初の7行はヘッダーなので無視する。文字列などは複数行になることもあるが、最初の1行だけ取る。
+            // let value = helpers::string_from_hsp_str(p as *const u8)
+            //     .lines()
+            //     .skip(7)
+            //     .next()
+            //     .unwrap_or("???")
+            //     .to_owned();
+            // unsafe { dbg_close(p) };
+
+            let v = match self.static_var_metadata(i) {
+                Some((ty, is_array, len)) if is_array => {
+                    let variables_reference = app::VarPath::Static(i).to_var_ref();
+
+                    dap::Variable {
+                        name: name.to_owned(),
+                        value: format!("count={}", len),
+                        ty: Some(ty.to_owned()),
+                        variables_reference,
+                        indexed_variables: Some(len),
+                    }
+                }
+                Some((ty, _, _)) => dap::Variable {
                     name: name.to_owned(),
-                    value,
+                    value: self
+                        .static_var_value(i, 0)
+                        .unwrap_or_else(|| "unknown".to_owned()),
+                    ty: Some(ty.to_owned()),
+                    variables_reference: 0,
+                    indexed_variables: None,
+                },
+                None => dap::Variable {
+                    name: name.to_owned(),
+                    value: "unknown".to_owned(),
                     ty: None,
                     variables_reference: 0,
-                }
-            })
-            .collect::<Vec<_>>();
+                    indexed_variables: None,
+                },
+            };
+            variables.push(v);
+        }
 
         self.app_sender
             .send(app::Action::AfterGetVar { seq, variables });

@@ -47,14 +47,11 @@ pub(crate) struct Variable {
     #[serde(rename = "type")]
     pub ty: Option<String>,
     pub variables_reference: i64,
+    pub indexed_variables: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(
-    tag = "command",
-    content = "arguments",
-    rename_all = "camelCase"
-)]
+#[serde(tag = "command", content = "arguments", rename_all = "camelCase")]
 pub(crate) enum Request {
     Options {
         args: LaunchRequestArgs,

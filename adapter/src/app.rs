@@ -26,21 +26,24 @@ const GLOBAL_SCOPE_REF: i64 = 1;
 #[derive(Clone, Debug)]
 pub(crate) enum VarPath {
     Globals,
+    Static(usize),
 }
 
 /// Variables reference. VSCode が変数や変数要素を指し示すために使う整数値。
 pub(crate) type VarRef = i64;
 
 impl VarPath {
-    fn to_var_ref(&self) -> VarRef {
-        match self {
+    pub fn to_var_ref(&self) -> VarRef {
+        match *self {
             VarPath::Globals => 1,
+            VarPath::Static(i) => 2 + i as i64,
         }
     }
 
-    fn from_var_ref(r: VarRef) -> Option<Self> {
+    pub fn from_var_ref(r: VarRef) -> Option<Self> {
         match r {
             1 => Some(VarPath::Globals),
+            i if i >= 2 => Some(VarPath::Static((i - 2) as usize)),
             _ => None,
         }
     }

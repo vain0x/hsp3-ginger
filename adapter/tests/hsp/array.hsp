@@ -1,0 +1,10 @@
+
+	dim x, 1000
+
+	repeat 100
+		assert
+		i = cnt
+		ia(i \ 3) = (i \ 3) * 10 + (1 + i / 3)
+		sa(i \ 3) = "#" + ia(i \ 3)
+		da(i \ 3) = 0.1 + ia(i \ 3)
+	loop
