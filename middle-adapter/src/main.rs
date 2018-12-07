@@ -39,7 +39,10 @@ struct BeforeLaunchHandler<L: Logger> {
 }
 
 enum Status {
-    Launch { args: dap::LaunchRequestArgs },
+    Launch {
+        seq: i64,
+        args: dap::LaunchRequestArgs,
+    },
     Disconnect,
 }
 
@@ -70,7 +73,10 @@ impl<L: Logger> BeforeLaunchHandler<L> {
                     e: dap::Response::Launch,
                 });
                 let args = serde_json::from_value(request.get("arguments")?.clone()).ok()?;
-                return Some(Status::Launch { args });
+                return Some(Status::Launch {
+                    seq: request_seq,
+                    args,
+                });
             }
             _ => {
                 self.log(format_args!(
@@ -102,6 +108,7 @@ impl<L: Logger> BeforeLaunchHandler<L> {
 struct AfterLaunchHandler<L> {
     #[allow(unused)]
     l: L,
+    launch_seq: i64,
     args: dap::LaunchRequestArgs,
     stream: Option<net::TcpStream>,
 }
@@ -116,8 +123,8 @@ impl<L: Logger> AfterLaunchHandler<L> {
         {
             let mut w = dac::DebugAdapterWriter::new(&mut out_stream, self.l.clone());
             w.write(&dap::Msg::Request {
-                seq: 2,
-                e: dap::Request::Options {
+                seq: self.launch_seq,
+                e: dap::Request::Launch {
                     args: self.args.clone(),
                 },
             });
@@ -188,16 +195,17 @@ impl<L: Logger> Program<L> {
             w: dac::DebugAdapterWriter::new(io::stdout(), self.l.clone()),
             l: self.l.clone(),
             body: Vec::new(),
-        }.run();
+        }
+        .run();
 
-        let args = match result {
+        let (launch_seq, args) = match result {
             Status::Disconnect => {
                 self.log(format_args!(
                     "プログラムの起動前に切断されました"
                 ));
                 return;
             }
-            Status::Launch { args } => args,
+            Status::Launch { seq, args } => (seq, args),
         };
 
         self.log(format_args!("引数: {:?}", args));
@@ -252,10 +260,12 @@ impl<L: Logger> Program<L> {
         };
 
         AfterLaunchHandler {
+            launch_seq,
             args,
             stream: Some(stream),
             l: self.l.clone(),
-        }.run();
+        }
+        .run();
 
         // eprintln!("10秒後にデバッグ実行を停止します");
         // thread::sleep(std::time::Duration::from_secs(10));

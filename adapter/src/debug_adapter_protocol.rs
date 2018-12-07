@@ -53,14 +53,17 @@ pub(crate) struct Variable {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "command", content = "arguments", rename_all = "camelCase")]
 pub(crate) enum Request {
-    Options {
-        args: LaunchRequestArgs,
-    },
     SetExceptionBreakpoints {
         filters: Vec<String>,
     },
     ConfigurationDone,
+    Launch {
+        args: LaunchRequestArgs,
+    },
     Threads,
+    Source {
+        source: Option<Source>,
+    },
     #[serde(rename_all = "camelCase")]
     StackTrace {
         thread_id: i64,
@@ -107,6 +110,9 @@ pub(crate) enum Response {
     Launch,
     Threads {
         threads: Vec<Thread>,
+    },
+    Source {
+        content: String,
     },
     #[serde(rename_all = "camelCase")]
     StackTrace {

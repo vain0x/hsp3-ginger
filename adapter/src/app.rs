@@ -51,7 +51,8 @@ impl VarPath {
 
 #[derive(Clone, Debug)]
 pub(crate) struct RuntimeState {
-    file: Option<String>,
+    file_name: Option<String>,
+    file_path: Option<String>,
     line: i32,
     stopped: bool,
 }
@@ -94,6 +95,7 @@ pub(crate) struct Worker {
     request_receiver: mpsc::Receiver<Action>,
     connection_sender: Option<connection::Sender>,
     hsprt_sender: Option<hsprt::Sender>,
+    is_connected: bool,
     args: Option<dap::LaunchRequestArgs>,
     state: RuntimeState,
     debug_info: Option<hsp_ext::debug_info::DebugInfo<hsp_ext::debug_info::HspConstantMap>>,
@@ -117,9 +119,11 @@ impl Worker {
             request_receiver,
             connection_sender: Some(connection_sender),
             hsprt_sender: Some(hsprt_sender),
+            is_connected: false,
             args: None,
             state: RuntimeState {
-                file: None,
+                file_path: None,
+                file_name: None,
                 line: 1,
                 stopped: false,
             },
@@ -129,6 +133,10 @@ impl Worker {
         };
 
         (worker, app_sender)
+    }
+
+    fn is_launch_response_sent(&self) -> bool {
+        self.args.is_some()
     }
 
     pub fn run(mut self) {
@@ -175,21 +183,48 @@ impl Worker {
         }
     }
 
-    fn send_event(&mut self, event: dap::Event) {
+    fn send_response_failure(&mut self, request_seq: i64, response: dap::Response) {
+        if let Some(sender) = self.connection_sender.as_ref() {
+            sender.send(connection::Action::Send(dap::Msg::Response {
+                request_seq,
+                success: false,
+                e: response,
+            }));
+        }
+    }
+
+    fn send_event(&self, event: dap::Event) {
         if let Some(sender) = self.connection_sender.as_ref() {
             sender.send(connection::Action::Send(dap::Msg::Event { e: event }));
         }
     }
 
+    fn send_initialized_event(&self) {
+        if self.is_connected && self.is_launch_response_sent() {
+            self.send_event(dap::Event::Initialized);
+        }
+    }
+
+    fn send_pause_event(&self) {
+        if self.state.stopped && self.is_launch_response_sent() {
+            self.send_event(dap::Event::Stopped {
+                reason: "pause".to_owned(),
+                thread_id: MAIN_THREAD_ID,
+            });
+        }
+    }
+
     fn on_request(&mut self, seq: i64, request: dap::Request) {
         match request {
-            dap::Request::Options { args } => {
+            dap::Request::Launch { args } => {
                 self.args = Some(args);
                 self.load_source_map();
-                // NOTE: VSCode からのリクエストではないのでレスポンス不要。
+                self.send_response(seq, dap::Response::Launch);
+                self.send_initialized_event();
             }
             dap::Request::SetExceptionBreakpoints { .. } => {
                 self.send_response(seq, dap::Response::SetExceptionBreakpoints);
+                self.send_pause_event();
             }
             dap::Request::ConfigurationDone => {
                 self.send_response(seq, dap::Response::ConfigurationDone);
@@ -197,14 +232,34 @@ impl Worker {
             dap::Request::Threads => {
                 self.send_response(seq, dap::Response::Threads { threads: threads() })
             }
+            dap::Request::Source { source } => {
+                match source.and_then(|source| Some(std::fs::read_to_string(source.path?).ok()?)) {
+                    Some(content) => self.send_response(seq, dap::Response::Source { content }),
+                    None => self.send_response_failure(
+                        seq,
+                        dap::Response::Source {
+                            content: "".to_owned(),
+                        },
+                    ),
+                }
+            }
             dap::Request::StackTrace { .. } => {
+                if self.state.file_path.is_none() {
+                    let file_path = self
+                        .state
+                        .file_name
+                        .as_ref()
+                        .and_then(|file_name| self.resolve_file_path(file_name));
+                    self.state.file_path = file_path;
+                }
+
                 let stack_frames = vec![dap::StackFrame {
                     id: 1,
                     name: "main".to_owned(),
                     line: std::cmp::max(1, self.state.line) as usize,
                     source: dap::Source {
-                        name: "main.hsp".to_owned(),
-                        path: self.state.file.to_owned(),
+                        name: "main".to_owned(),
+                        path: self.state.file_path.to_owned(),
                     },
                 }];
                 self.send_response(seq, dap::Response::StackTrace { stack_frames });
@@ -302,13 +357,13 @@ impl Worker {
 
     /// ファイル名を絶対パスにする。
     /// FIXME: common 以下や 無修飾 include パスに対応する。
-    fn resolve_file_path(&self, file_name: String) -> Option<String> {
+    fn resolve_file_path(&self, file_name: &String) -> Option<String> {
         if file_name == "???" {
             return None;
         }
 
         let source_map = self.source_map.as_ref()?;
-        let full_path = source_map.resolve_file_name(&file_name)?;
+        let full_path = source_map.resolve_file_name(file_name)?;
         Some(full_path.to_str()?.to_owned())
     }
 
@@ -321,23 +376,22 @@ impl Worker {
             Action::AfterRequestReceived(_) => {
                 logger::log("受信 リクエストではない DAP メッセージを無視");
             }
-            Action::AfterStopped(file, line) => {
+            Action::AfterStopped(file_name, line) => {
                 logger::log("送信 中断");
 
-                let file = self.resolve_file_path(file);
+                let file_path = self.resolve_file_path(&file_name);
 
                 self.state = RuntimeState {
-                    file,
+                    file_path,
+                    file_name: Some(file_name),
                     line,
                     stopped: true,
                 };
-                self.send_event(dap::Event::Stopped {
-                    reason: "pause".to_owned(),
-                    thread_id: MAIN_THREAD_ID,
-                });
+                self.send_pause_event();
             }
             Action::AfterConnected => {
-                self.send_event(dap::Event::Initialized);
+                self.is_connected = true;
+                self.send_initialized_event();
             }
             Action::BeforeTerminating => {
                 self.send_event(dap::Event::Terminated { restart: false });
