@@ -21,11 +21,13 @@ rustup target add x86_64-pc-windows-msvc
 デバッグビルドは次のコマンドを使う:
 
 ```sh
-cargo build --all-targets
+cargo build --target i686-pc-windows-msvc
+cargo build --target x86_64-pc-windows-msvc
 ```
 
 リリースビルドは `--release` フラグをつける:
 
 ```sh
-cargo build --release --all-targets
+cargo build --release --target i686-pc-windows-msvc
+cargo build --release --target x86_64-pc-windows-msvc
 ```
