@@ -154,73 +154,43 @@ impl Globals {
         }
     }
 
-    fn static_var_pval(&mut self, vi: usize) -> Option<&mut hspsdk::PVal> {
-        let hspctx = self.hspctx();
-        let var_count = unsafe { *hspctx.hsphed }.max_val as usize;
-        if vi >= var_count {
-            return None;
-        }
-        Some(unsafe { &mut *hspctx.mem_var.add(vi) })
-    }
-
     fn static_var_metadata(&mut self, vi: usize) -> Option<(&'static str, bool, usize)> {
-        let pval = self.static_var_pval(vi)?;
+        let mut hspctx = hsp_ext::var::HspContext::from(self.hspctx());
+        let pval = hspctx.static_vars().get_mut(vi)?;
+        let ty = hsp_ext::var::Ty::from_flag(pval.flag as i32).name();
         let len = pval.len[1] as usize;
         let is_array = len > 1; // FIXME: 2次元配列は未対応
-        let ty = match pval.flag as u32 {
-            hspsdk::HSPVAR_FLAG_STR => "str",
-            hspsdk::HSPVAR_FLAG_DOUBLE => "double",
-            hspsdk::HSPVAR_FLAG_INT => "int",
-            _ => "unknown", // FIXME: 他の型は未対応
-        };
         Some((ty, is_array, len))
     }
 
-    fn static_var_value(&mut self, vi: usize, i: usize) -> Option<String> {
-        let get_proc = {
-            let hspctx = self.hspctx();
-            let exinfo = &mut hspctx.exinfo;
-            exinfo.HspFunc_getproc.unwrap()
-        };
-
-        let pval = self.static_var_pval(vi)?;
-        pval.offset = i as i32;
-        let value_ptr = unsafe {
-            let var_proc = &mut *get_proc(pval.flag as i32);
-            let get_ptr = var_proc.GetPtr.unwrap();
-            get_ptr(pval as *mut hspsdk::PVal)
-        };
-
-        let value = match pval.flag as u32 {
-            hspsdk::HSPVAR_FLAG_STR => helpers::string_from_hsp_str(value_ptr as *const u8),
-            hspsdk::HSPVAR_FLAG_DOUBLE => unsafe { *(value_ptr as *const f64) }.to_string(),
-            hspsdk::HSPVAR_FLAG_INT => unsafe { *(value_ptr as *const i32) }.to_string(),
-            _ => "unknown".to_owned(),
-        };
-        Some(value)
-    }
-
-    fn static_var_elements(&mut self, vi: usize) -> Option<Vec<dap::Variable>> {
-        let (ty, _, len) = self.static_var_metadata(vi)?;
-
-        let mut elements = vec![];
-        for i in 0..len {
-            let value = self
-                .static_var_value(vi, i)
-                .unwrap_or_else(|| "unknown".to_owned());
-            elements.push(dap::Variable {
-                name: i.to_string(),
-                value,
-                ty: Some(ty.to_string()),
-                variables_reference: 0,
-                indexed_variables: None,
-            })
-        }
-        Some(elements)
+    fn static_var_value(&mut self, vi: usize, i: usize) -> String {
+        (|| {
+            let mut hspctx = hsp_ext::var::HspContext::from(self.hspctx());
+            let pval = hspctx.static_vars().get_mut(vi)?;
+            let element = hspctx.var_element_ref(pval, i as hsp_ext::var::Aptr);
+            Some(element.to_copy().into_string())
+        })()
+        .unwrap_or_else(|| "unknown".to_owned())
     }
 
     fn do_get_static(&mut self, seq: i64, vi: usize) {
-        let variables = self.static_var_elements(vi).unwrap_or(vec![]);
+        let variables = (|| {
+            let (ty, _, len) = self.static_var_metadata(vi)?;
+
+            let mut elements = vec![];
+            for i in 0..len {
+                let value = self.static_var_value(vi, i);
+                elements.push(dap::Variable {
+                    name: i.to_string(),
+                    value,
+                    ty: Some(ty.to_string()),
+                    variables_reference: 0,
+                    indexed_variables: None,
+                })
+            }
+            Some(elements)
+        })()
+        .unwrap_or(vec![]);
         self.app_sender
             .send(app::Action::AfterGetVar { seq, variables });
     }
@@ -240,17 +210,6 @@ impl Globals {
 
         let mut variables = vec![];
         for (i, name) in var_names.enumerate() {
-            // let n = helpers::hsp_str_from_string(name);
-            // let p = unsafe { get_varinf(n.as_ptr() as *mut i8, 0) };
-            // // 最初の7行はヘッダーなので無視する。文字列などは複数行になることもあるが、最初の1行だけ取る。
-            // let value = helpers::string_from_hsp_str(p as *const u8)
-            //     .lines()
-            //     .skip(7)
-            //     .next()
-            //     .unwrap_or("???")
-            //     .to_owned();
-            // unsafe { dbg_close(p) };
-
             let v = match self.static_var_metadata(i) {
                 Some((ty, is_array, len)) if is_array => {
                     let variables_reference = app::VarPath::Static(i).to_var_ref();
@@ -265,9 +224,7 @@ impl Globals {
                 }
                 Some((ty, _, _)) => dap::Variable {
                     name: name.to_owned(),
-                    value: self
-                        .static_var_value(i, 0)
-                        .unwrap_or_else(|| "unknown".to_owned()),
+                    value: self.static_var_value(i, 0),
                     ty: Some(ty.to_owned()),
                     variables_reference: 0,
                     indexed_variables: None,
