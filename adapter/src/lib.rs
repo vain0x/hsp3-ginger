@@ -351,12 +351,12 @@ fn initialize_crate() {
 }
 
 fn deinitialize_crate() {
-    logger::log("デバッガーがデタッチされました");
-
     // 処理を停止させて、グローバル変数をすべてドロップする。
     if let Some(globals_cell) = unsafe { GLOBALS.take() } {
         globals_cell.into_inner().terminate();
     }
+
+    logger::deinitialize_mod();
 }
 
 /// すべてのウィンドウにメッセージを送る。
