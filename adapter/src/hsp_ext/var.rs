@@ -1,5 +1,5 @@
-use helpers;
-use hspsdk;
+use crate::helpers;
+use crate::hspsdk;
 use std::slice;
 
 pub(crate) type TyFlag = i32;

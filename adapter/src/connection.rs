@@ -2,12 +2,12 @@
 
 #![allow(unused_imports)]
 
-use app;
-use debug_adapter_connection as dac;
-use debug_adapter_protocol as dap;
-use hsprt;
-use hspsdk;
-use logger;
+use crate::app;
+use crate::debug_adapter_connection as dac;
+use crate::debug_adapter_protocol as dap;
+use crate::hsprt;
+use crate::hspsdk;
+use crate::logger;
 use std;
 use std::sync::mpsc;
 use std::{fmt, io, mem, net, sync, thread, time};

@@ -1,8 +1,8 @@
 //! HSP から提供されるデバッグ情報 (DINFO) を解析する。
 //! hspsdk/hsp3code.txt を参照。
 
-use helpers;
-use hspsdk;
+use crate::helpers;
+use crate::hspsdk;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::{cmp, slice};

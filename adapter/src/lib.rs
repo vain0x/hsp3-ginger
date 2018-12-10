@@ -26,8 +26,8 @@ mod hsprt;
 mod hspsdk;
 mod logger;
 
-use debug_adapter_protocol as dap;
-use hsprt::*;
+use crate::debug_adapter_protocol as dap;
+use crate::hsprt::*;
 use std::ops::*;
 use std::sync::mpsc;
 use std::{cell, ptr, thread, time};
@@ -270,7 +270,7 @@ impl Globals {
     }
 
     fn terminate(self) {
-        let join_handles = {
+        let _join_handles = {
             let (app_sender, join_handles) = (self.app_sender, self.join_handles);
             app_sender.send(app::Action::BeforeTerminating);
             join_handles

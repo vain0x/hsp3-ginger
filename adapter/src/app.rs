@@ -1,9 +1,9 @@
-use connection;
-use debug_adapter_protocol as dap;
-use hsp_ext;
-use hsprt;
-use hspsdk;
-use logger;
+use crate::connection;
+use crate::debug_adapter_protocol as dap;
+use crate::hsp_ext;
+use crate::hsprt;
+use crate::hspsdk;
+use crate::logger;
 use std;
 use std::path::PathBuf;
 use std::sync::mpsc;
