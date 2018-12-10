@@ -9,15 +9,11 @@
 //! 3. LaunchRequest の引数として渡される情報を adapter に引き渡す。
 //! 4. TCP での通信を標準入出力に転送して、adapter と VSCode が通信できるようにする。
 
-extern crate env_logger;
-extern crate serde;
-extern crate serde_json;
-
 #[macro_use]
 extern crate serde_derive;
 
-use debug_adapter_connection::{self as dac, Logger};
-use debug_adapter_protocol as dap;
+use crate::debug_adapter_connection::{self as dac, Logger};
+use crate::debug_adapter_protocol as dap;
 use std::io::{Read, Write};
 use std::{fmt, io, net, path, process, thread};
 
