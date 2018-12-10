@@ -12,15 +12,6 @@ use std;
 use std::sync::mpsc;
 use std::{fmt, io, mem, net, sync, thread, time};
 
-#[derive(Clone, Debug)]
-pub(crate) struct MyLogger;
-
-impl dac::Logger for MyLogger {
-    fn log(&self, args: fmt::Arguments) {
-        logger::log(&fmt::format(args));
-    }
-}
-
 /// コネクションワーカーが扱える操作。
 #[derive(Clone, Debug)]
 pub(crate) enum Action {
@@ -38,7 +29,7 @@ impl Sender {
     pub fn send(&self, action: Action) {
         self.sender
             .send(action)
-            .map_err(|err| logger::log_error(&err))
+            .map_err(|err| error!("{:?}", err))
             .ok();
     }
 }
@@ -78,7 +69,7 @@ impl Worker {
                     let stream = match net::TcpStream::connect(("127.0.0.1", port)) {
                         Ok(stream) => stream,
                         Err(err) => {
-                            logger::log_error(&err);
+                            error!("{:?}", err);
                             continue;
                         }
                     };
@@ -87,8 +78,7 @@ impl Worker {
                     // 受信したメッセージを処理するためのワーカースレッドを建てる。
                     let app_sender = self.app_sender.clone();
                     let join_handle = thread::spawn(move || {
-                        let mut r =
-                            dac::DebugAdapterReader::new(io::BufReader::new(in_stream), MyLogger);
+                        let mut r = dac::DebugAdapterReader::new(io::BufReader::new(in_stream));
                         let mut buf = Vec::new();
                         loop {
                             if !r.recv(&mut buf) {
@@ -97,7 +87,7 @@ impl Worker {
 
                             let msg = match serde_json::from_slice::<dap::Msg>(&buf) {
                                 Err(err) => {
-                                    logger::log_error(&err);
+                                    error!("{:?}", err);
                                     continue;
                                 }
                                 Ok(msg) => msg,
@@ -106,7 +96,7 @@ impl Worker {
                             app_sender.send(app::Action::AfterRequestReceived(msg));
                         }
 
-                        logger::log("[connection] DAR 終了");
+                        info!("[connection] DAR 終了");
                     });
 
                     self.connection = Some((stream, join_handle));
@@ -116,16 +106,16 @@ impl Worker {
                     // 送信要求が来たとき: 接続が確立していたら送信する。
                     let stream = match self.connection {
                         None => {
-                            logger::log("送信 失敗 接続が確立していません");
+                            warn!("送信 失敗 接続が確立していません");
                             continue;
                         }
                         Some((ref stream, _)) => stream,
                     };
 
-                    dac::DebugAdapterWriter::new(stream, MyLogger).write(&msg);
+                    dac::DebugAdapterWriter::new(stream).write(&msg);
                 }
                 Err(err) => {
-                    logger::log_error(&err);
+                    error!("{:?}", &err);
                     break;
                 }
             }
@@ -138,6 +128,6 @@ impl Worker {
             // join_handle.join().unwrap();
         }
 
-        logger::log("[connection] 終了");
+        info!("[connection] 終了");
     }
 }

@@ -1,7 +1,38 @@
+use crate::log;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync;
+
+#[derive(Clone, Copy, Debug)]
+struct MyLogger;
+
+impl MyLogger {
+    fn init() {
+        log::set_logger(&MyLogger).unwrap();
+        log::set_max_level(log::LevelFilter::Debug);
+    }
+}
+
+impl log::Log for MyLogger {
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= log::Level::Debug
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            with_logger(|logger| {
+                writeln!(logger.file, "{} {}", record.level(), record.args()).unwrap();
+            });
+        }
+    }
+
+    fn flush(&self) {
+        with_logger(|logger| {
+            logger.flush();
+        });
+    }
+}
 
 struct FileLogger {
     file: io::BufWriter<fs::File>,
@@ -33,12 +64,14 @@ static mut LOGGER: Option<sync::Mutex<LazyInit<FileLogger>>> = None;
 /// モジュールの初期化処理を行う。
 pub(crate) fn initialize_mod() {
     unsafe { LOGGER = Some(sync::Mutex::new(LazyInit::Uninit)) };
+
+    MyLogger::init();
 }
 
 /// モジュールの終了時の処理を行う。
 pub(crate) fn deinitialize_mod() {
     (|| {
-        log("デバッガーがデタッチされました");
+        info!("[logger] 終了");
 
         let mutex = unsafe { LOGGER.as_ref() }?;
         let mut lock = mutex.lock().ok()?;
@@ -86,15 +119,4 @@ fn log_file_path() -> PathBuf {
     std::env::home_dir()
         .map(|d| d.join("hsp3debug-rust.log"))
         .unwrap()
-}
-
-pub(crate) fn log(message: &str) {
-    with_logger(|logger| {
-        writeln!(logger.file, "{}", message).unwrap();
-    })
-}
-
-pub(crate) fn log_error<E: std::fmt::Debug>(err: &E) {
-    let message = format!("[ERROR] {:?}", err);
-    log(&message)
 }

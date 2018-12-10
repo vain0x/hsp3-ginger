@@ -3,6 +3,7 @@ use crate::debug_adapter_protocol as dap;
 use crate::hsp_ext;
 use crate::hsprt;
 use crate::hspsdk;
+use crate::log;
 use crate::logger;
 use std;
 use std::path::PathBuf;
@@ -83,10 +84,7 @@ pub(crate) struct Sender {
 
 impl Sender {
     pub(crate) fn send(&self, action: Action) {
-        self.sender
-            .send(action)
-            .map_err(|e| logger::log_error(&e))
-            .ok();
+        self.sender.send(action).map_err(|e| error!("{:?}", e)).ok();
     }
 }
 
@@ -156,13 +154,13 @@ impl Worker {
                     continue;
                 }
                 Err(err) => {
-                    logger::log_error(&err);
+                    error!("[app] {:?}", err);
                     break;
                 }
             }
         }
 
-        logger::log("[app] 終了");
+        info!("[app] 終了");
     }
 
     /// HSP ランタイムが次に中断しているときにアクションが実行されるように予約する。
@@ -350,7 +348,6 @@ impl Worker {
                 .map(|name| name.as_str())
                 .collect::<Vec<&str>>(),
         );
-        logger::log(&format!("{:?}", source_map));
 
         self.source_map = Some(source_map);
     }
@@ -368,17 +365,16 @@ impl Worker {
     }
 
     fn handle(&mut self, action: Action) {
-        logger::log(&format!("[App] {:?}", action));
+        debug!("[app] {:?}", action);
+
         match action {
             Action::AfterRequestReceived(dap::Msg::Request { seq, e }) => {
                 self.on_request(seq, e);
             }
             Action::AfterRequestReceived(_) => {
-                logger::log("受信 リクエストではない DAP メッセージを無視");
+                warn!("[app] リクエストではない DAP メッセージを無視");
             }
             Action::AfterStopped(file_name, line) => {
-                logger::log("送信 中断");
-
                 let file_path = self.resolve_file_path(&file_name);
 
                 self.state = RuntimeState {

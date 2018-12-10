@@ -1,6 +1,5 @@
 //! デバッガーのエントリーポイント。
 
-extern crate env_logger;
 extern crate libc;
 extern crate serde;
 extern crate serde_json;
@@ -52,7 +51,7 @@ pub(crate) struct Globals {
 impl Globals {
     /// 初期化処理を行い、各グローバル変数の初期値を設定して `Globals` を構築する。
     fn create(hsp_debug: *mut hspsdk::HSP3DEBUG) -> Self {
-        logger::log("debugini");
+        debug!("debugini");
 
         // msgfunc に操作を送信するチャネルを生成する。
         let (sender, hsprt_receiver) = mpsc::channel();
@@ -69,7 +68,7 @@ impl Globals {
                     g.receive_actions();
                 });
             }
-            logger::log("[notice] 終了");
+            debug!("[notice] 終了");
         });
 
         // ワーカースレッドを起動する。
@@ -245,7 +244,7 @@ impl Globals {
 
     fn on_logmes_called(&mut self) {
         let message = helpers::string_from_hsp_str(self.hspctx().stmp as *const u8);
-        logger::log(&message);
+        info!("[logmes] {}", message);
     }
 
     /// assert などで停止したときに呼ばれる。
@@ -258,7 +257,6 @@ impl Globals {
             unsafe { curinf() };
 
             let file_name = helpers::string_from_hsp_str(d.fname as *const u8);
-            logger::log(&format!("file_name = {:?}", file_name));
 
             (file_name, d.line)
         };
@@ -389,7 +387,7 @@ pub extern "system" fn debug_notice(
             return 0;
         }
         _ => {
-            logger::log("debug_notice with unknown cause");
+            warn!("debug_notice with unknown cause");
             return 0;
         }
     }

@@ -9,13 +9,16 @@
 //! 3. LaunchRequest の引数として渡される情報を adapter に引き渡す。
 //! 4. TCP での通信を標準入出力に転送して、adapter と VSCode が通信できるようにする。
 
+extern crate log;
+
 #[macro_use]
 extern crate serde_derive;
 
-use crate::debug_adapter_connection::{self as dac, Logger};
+use crate::debug_adapter_connection as dac;
 use crate::debug_adapter_protocol as dap;
+use crate::log::{debug, error, info, warn};
 use std::io::{Read, Write};
-use std::{fmt, io, net, path, process, thread};
+use std::{io, net, path, process, thread};
 
 #[allow(unused)]
 mod debug_adapter_protocol {
@@ -27,10 +30,9 @@ mod debug_adapter_connection {
     include!("../../adapter/src/debug_adapter_connection.rs");
 }
 
-struct BeforeLaunchHandler<L: Logger> {
-    r: dac::DebugAdapterReader<io::BufReader<io::Stdin>, L>,
-    w: dac::DebugAdapterWriter<io::Stdout, L>,
-    l: L,
+struct BeforeLaunchHandler {
+    r: dac::DebugAdapterReader<io::BufReader<io::Stdin>>,
+    w: dac::DebugAdapterWriter<io::Stdout>,
     body: Vec<u8>,
 }
 
@@ -42,11 +44,7 @@ enum Status {
     Disconnect,
 }
 
-impl<L: Logger> BeforeLaunchHandler<L> {
-    fn log(&self, args: fmt::Arguments) {
-        self.l.log(args);
-    }
-
+impl BeforeLaunchHandler {
     fn send<T: serde::Serialize>(&mut self, obj: &T) {
         self.w.write(obj);
     }
@@ -75,10 +73,10 @@ impl<L: Logger> BeforeLaunchHandler<L> {
                 });
             }
             _ => {
-                self.log(format_args!(
-                    "コマンドを認識できませんでした {}",
+                warn!(
+                    "コマンドを認識できませんでした {:?}",
                     command
-                ));
+                );
                 return None;
             }
         }
@@ -101,23 +99,21 @@ impl<L: Logger> BeforeLaunchHandler<L> {
     }
 }
 
-struct AfterLaunchHandler<L> {
-    #[allow(unused)]
-    l: L,
+struct AfterLaunchHandler {
     launch_seq: i64,
     args: dap::LaunchRequestArgs,
     stream: Option<net::TcpStream>,
 }
 
-impl<L: Logger> AfterLaunchHandler<L> {
+impl AfterLaunchHandler {
     fn run(&mut self) {
         let mut in_stream = self.stream.take().unwrap();
         let mut out_stream = in_stream.try_clone().unwrap();
 
-        eprintln!("オプションを送信します");
+        info!("オプションを送信します");
 
         {
-            let mut w = dac::DebugAdapterWriter::new(&mut out_stream, self.l.clone());
+            let mut w = dac::DebugAdapterWriter::new(&mut out_stream);
             w.write(&dap::Msg::Request {
                 seq: self.launch_seq,
                 e: dap::Request::Launch {
@@ -126,7 +122,7 @@ impl<L: Logger> AfterLaunchHandler<L> {
             });
         }
 
-        eprintln!("通信の中継を開始します");
+        info!("通信の中継を開始します");
 
         let j1 = thread::spawn(move || {
             let mut stdin = io::stdin();
@@ -139,7 +135,7 @@ impl<L: Logger> AfterLaunchHandler<L> {
                 out_stream.write_all(&buf[0..n])?;
                 out_stream.flush()?;
             };
-            go().map_err(|e: io::Error| eprintln!("ERROR stdin → TCP {:?}", e))
+            go().map_err(|e: io::Error| error!("ERROR stdin → TCP {:?}", e))
                 .ok();
         });
 
@@ -154,19 +150,19 @@ impl<L: Logger> AfterLaunchHandler<L> {
                 stdout.write_all(&buf[0..n])?;
                 stdout.flush()?;
             };
-            go().map_err(|e: io::Error| eprintln!("ERROR (TCP→stdout) {:?}", e))
+            go().map_err(|e: io::Error| error!("ERROR (TCP→stdout) {:?}", e))
                 .ok();
         });
 
-        eprintln!("TCPの中継の終了を待機します");
+        info!("TCPの中継の終了を待機します");
 
         j1.join().ok();
         j2.join().ok();
 
-        eprintln!("終了を通知します");
+        info!("終了を通知します");
 
         {
-            let mut w = dac::DebugAdapterWriter::new(io::stdout(), self.l.clone());
+            let mut w = dac::DebugAdapterWriter::new(io::stdout());
             w.write(&dap::Msg::Event {
                 e: dap::Event::Terminated { restart: false },
             });
@@ -174,39 +170,30 @@ impl<L: Logger> AfterLaunchHandler<L> {
     }
 }
 
-struct Program<L> {
-    l: L,
-}
+struct Program;
 
-impl<L: Logger> Program<L> {
-    fn log(&self, args: fmt::Arguments) {
-        self.l.log(args);
-    }
-
+impl Program {
     fn run(&self) {
-        self.log(format_args!("init"));
+        debug!("init");
 
         let result = BeforeLaunchHandler {
-            r: dac::DebugAdapterReader::new(io::BufReader::new(io::stdin()), self.l.clone()),
-            w: dac::DebugAdapterWriter::new(io::stdout(), self.l.clone()),
-            l: self.l.clone(),
+            r: dac::DebugAdapterReader::new(io::BufReader::new(io::stdin())),
+            w: dac::DebugAdapterWriter::new(io::stdout()),
             body: Vec::new(),
         }
         .run();
 
         let (launch_seq, args) = match result {
             Status::Disconnect => {
-                self.log(format_args!(
-                    "プログラムの起動前に切断されました"
-                ));
+                info!("プログラムの起動前に切断されました");
                 return;
             }
             Status::Launch { seq, args } => (seq, args),
         };
 
-        self.log(format_args!("引数: {:?}", args));
+        debug!("引数: {:?}", args);
 
-        self.log(format_args!("TCP接続を開始します"));
+        info!("TCP接続を開始します");
 
         let port = 57676;
         let listener =
@@ -227,7 +214,7 @@ impl<L: Logger> Program<L> {
         //     }
         // });
 
-        self.log(format_args!("デバッグ実行を開始します"));
+        info!("デバッグ実行を開始します");
 
         let comp_path = path::PathBuf::from(args.root.clone()).join("cHspComp.exe");
         let mut child = match process::Command::new(comp_path)
@@ -239,18 +226,18 @@ impl<L: Logger> Program<L> {
             .spawn()
         {
             Err(err) => {
-                eprintln!("デバッグ実行を開始できません {:?}", err);
+                error!("デバッグ実行を開始できません {:?}", err);
                 return;
             }
             Ok(child) => child,
         };
 
-        self.log(format_args!("TCPへの接続を待機します"));
+        info!("TCPへの接続を待機します");
 
         let stream = match listener.accept() {
             Ok((stream, _)) => stream,
             Err(e) => {
-                self.log(format_args!("TCP接続が来ませんでした {:?}", e));
+                error!("TCP接続が来ませんでした {:?}", e);
                 return;
             }
         };
@@ -259,7 +246,6 @@ impl<L: Logger> Program<L> {
             launch_seq,
             args,
             stream: Some(stream),
-            l: self.l.clone(),
         }
         .run();
 
@@ -267,28 +253,20 @@ impl<L: Logger> Program<L> {
         // thread::sleep(std::time::Duration::from_secs(10));
         child.kill().ok();
 
-        self.log(format_args!("exit"));
-    }
-
-    fn new(l: L) -> Self {
-        Program { l }
+        info!("終了");
     }
 }
 
-fn main() {
-    #[cfg(debug_assertions)]
-    {
-        let logger = {
-            let log_path = std::env::temp_dir().join("hsp3-debug-ginger-middle-adapter-log.txt");
-            eprintln!("{:?}", log_path);
-            dac::FileLogger::create(&log_path)
-        };
-        Program::new(logger).run();
-    }
+fn init_logger() {
+    let log_level = if cfg!(debug_assertions) {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Warn
+    };
+    env_logger::Builder::new().filter(None, log_level).init();
+}
 
-    #[cfg(not(debug_assertions))]
-    {
-        let logger = dac::NullLogger;
-        Program::new(logger).run();
-    }
+fn main() {
+    init_logger();
+    Program {}.run();
 }
