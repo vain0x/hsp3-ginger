@@ -4,7 +4,6 @@ extern crate env_logger;
 extern crate libc;
 extern crate serde;
 extern crate serde_json;
-extern crate ws;
 
 #[cfg(windows)]
 extern crate winapi;

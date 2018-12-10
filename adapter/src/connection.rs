@@ -11,7 +11,6 @@ use crate::logger;
 use std;
 use std::sync::mpsc;
 use std::{fmt, io, mem, net, sync, thread, time};
-use ws;
 
 #[derive(Clone, Debug)]
 pub(crate) struct MyLogger;

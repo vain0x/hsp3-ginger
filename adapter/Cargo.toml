@@ -13,7 +13,6 @@ env_logger = { version = "0", default-features = false }
 log = "0"
 libc = "0"
 winapi = { version = "0", features = ["stringapiset", "winuser"] }
-ws = "0"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
