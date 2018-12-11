@@ -10,6 +10,8 @@ pub(crate) enum Action {
     SetMode(hspsdk::DebugMode),
     /// 変数の中身を取得する。
     GetVar { seq: i64, var_path: app::VarPath },
+    /// プログラムを終了する。
+    Disconnect,
 }
 
 /// HSP ランタイム に処理を依頼するもの。

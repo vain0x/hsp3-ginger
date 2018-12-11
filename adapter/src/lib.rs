@@ -135,6 +135,9 @@ impl Globals {
             Action::GetVar { seq, var_path } => {
                 self.do_get_var(seq, var_path);
             }
+            Action::Disconnect => {
+                self.do_disconnect();
+            }
         }
     }
 
@@ -240,6 +243,12 @@ impl Globals {
 
         self.app_sender
             .send(app::Action::AfterGetVar { seq, variables });
+    }
+
+    fn do_disconnect(&mut self) {
+        let hspctx = self.hspctx();
+        let put_error = hspctx.exinfo.HspFunc_puterror.unwrap();
+        unsafe { put_error(hspsdk::HSPERROR_HSPERR_NONE) };
     }
 
     fn on_logmes_called(&mut self) {

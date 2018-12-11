@@ -317,7 +317,7 @@ impl Worker {
                 self.send_response(seq, dap::Response::StepOut);
             }
             dap::Request::Disconnect { .. } => {
-                // self.d.terminate();
+                self.send_to_hsprt(hsprt::Action::Disconnect);
             }
         }
     }
