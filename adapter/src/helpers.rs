@@ -1,10 +1,11 @@
 use std;
-use std::{ptr, str};
+use std::str;
 
 #[cfg(windows)]
-use winapi;
+use {std::ptr, winapi};
 
 /// ゼロ終端の utf-16 文字列に変換する。(Win32 API に渡すのに使う。)
+#[allow(unused)]
 pub(crate) fn to_u16s(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
 }
@@ -97,6 +98,7 @@ fn string_from_hsp_str_slice(bytes: &[u8]) -> String {
     }
 }
 
+#[allow(unused)]
 pub(crate) fn hsp_str_from_string(s: &str) -> Vec<u8> {
     #[cfg(windows)]
     {

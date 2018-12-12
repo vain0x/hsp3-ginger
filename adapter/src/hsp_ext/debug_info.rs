@@ -63,6 +63,7 @@ struct DebugSegmentParser<'a, C: ConstantMap> {
     debug_segment: &'a [u8],
     /// `debug_segment` のいま見ている位置
     di: usize,
+    #[allow(unused)]
     code_segment: &'a [u8],
     /// `code_segment` のいま見ている位置
     ci: usize,
@@ -234,6 +235,7 @@ impl DebugInfo<HspConstantMap> {
 }
 
 impl<C: ConstantMap> DebugInfo<C> {
+    #[allow(unused)]
     pub fn parse(debug_segment: &[u8], code_segment: &[u8], constant_map: Arc<C>) -> Self {
         DebugSegmentParser::new(debug_segment, code_segment, constant_map).parse()
     }
@@ -249,12 +251,14 @@ impl<C: ConstantMap> DebugInfo<C> {
         file_names
     }
 
+    #[allow(unused)]
     pub fn find_label_name(&self, label_id: LabelId) -> Option<String> {
         self.label_names
             .get(&label_id)
             .map(|&data_id| self.constant_map.get_string(data_id))
     }
 
+    #[allow(unused)]
     pub fn find_param_name(&self, struct_id: StructId) -> Option<String> {
         self.param_names
             .get(&struct_id)

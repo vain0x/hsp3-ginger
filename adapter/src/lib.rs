@@ -361,8 +361,13 @@ pub extern "system" fn DllMain(
     TRUE
 }
 
+#[cfg(not(windows))]
+pub extern "system" fn dummy_main() {
+    initialize_crate();
+    deinitialize_crate();
+}
+
 /// 初期化。HSP ランタイムから最初に呼ばれる。
-#[cfg(windows)]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "system" fn debugini(
@@ -377,7 +382,6 @@ pub extern "system" fn debugini(
 }
 
 /// assert/logmes 命令の実行時に呼ばれる。
-#[cfg(windows)]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "system" fn debug_notice(

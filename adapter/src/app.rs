@@ -3,8 +3,6 @@ use crate::debug_adapter_protocol as dap;
 use crate::hsp_ext;
 use crate::hsprt;
 use crate::hspsdk;
-use crate::log;
-use crate::logger;
 use std;
 use std::path::PathBuf;
 use std::sync::mpsc;

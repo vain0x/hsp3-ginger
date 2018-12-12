@@ -73,7 +73,7 @@ impl Worker {
                             continue;
                         }
                     };
-                    let mut in_stream = stream.try_clone().unwrap();
+                    let in_stream = stream.try_clone().unwrap();
 
                     // 受信したメッセージを処理するためのワーカースレッドを建てる。
                     let app_sender = self.app_sender.clone();

@@ -24,6 +24,7 @@ impl Ty {
         }
     }
 
+    #[allow(unused)]
     pub fn to_flag(self) -> TyFlag {
         match self {
             Ty::Str => hspsdk::HSPVAR_FLAG_STR as TyFlag,
@@ -133,7 +134,7 @@ where
 
     pub fn static_vars(&mut self) -> &'s mut [hspsdk::PVal] {
         let var_count = self.header().max_val as usize;
-        let pvals = unsafe { slice::from_raw_parts_mut(self.inner().mem_var, var_count) };
+        let pvals = unsafe { slice::from_raw_parts_mut(self.inner_mut().mem_var, var_count) };
         pvals
     }
 }
