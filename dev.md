@@ -23,9 +23,6 @@
 
 - \[省略可\] VSCode
     - テキストエディタ。Rust や Typescript での開発に使う。
-    - 入れておくとよい拡張機能:
-        - Rust (rls)
-        - EditorConfig
 
 ## Appendix A. ターミナル (PowerShell)
 
