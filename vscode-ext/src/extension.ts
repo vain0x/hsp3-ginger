@@ -50,7 +50,7 @@ class GingerConfigProvider implements vscode.DebugConfigurationProvider {
 const adapterExecutableCommand = async () => {
   const cwd = calcCwd()
   const rootPath = await selectRoot()
-  const command = path.resolve(__dirname, "../../middle-adapter/target/debug/middle-adapter.exe")
+  const command = path.resolve(__dirname, "../out/middle-adapter.exe")
 
   return {
     command,

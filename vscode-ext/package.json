@@ -7,7 +7,7 @@
     "name": "vain0x",
     "email": "vainzerox@gmail.com"
   },
-  "publisher": "vain0x <vainzerox@gmail.com>",
+  "publisher": "vain0x",
   "license": "MIT",
   "keywords": [],
   "engines": {
@@ -93,6 +93,10 @@
         "adapterExecutableCommand": "hsp3-debug-ginger.adapterExecutableCommand",
         "configurationAttributes": {
           "launch": {
+            "required": [
+              "program",
+              "trace"
+            ],
             "properties": {
               "program": {
                 "type": "string",
@@ -112,7 +116,8 @@
             "type": "hsp3",
             "request": "launch",
             "name": "Run",
-            "program": "${file}"
+            "program": "^\"\\${file}\"",
+            "trace": false
           }
         ],
         "configurationSnippets": [
@@ -123,7 +128,8 @@
               "type": "hsp3",
               "request": "launch",
               "name": "Run",
-              "program": "^\"\\${file}\""
+              "program": "${file}",
+              "trace": false
             }
           }
         ]
