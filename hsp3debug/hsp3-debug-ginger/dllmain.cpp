@@ -119,7 +119,9 @@ BOOL APIENTRY DllMain(
     switch (ul_reason_for_call)
     {
         case DLL_PROCESS_ATTACH: {
+#ifndef NDEBUG
             MessageBox(nullptr, L"attach!", L"hsp3debug", MB_OK);
+#endif
             auto dir_name = current_module_directory_name(h_module);
             auto lib = attach_debugger(dir_name);
             std::swap(s_lib, lib);
