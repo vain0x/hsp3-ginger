@@ -88,8 +88,7 @@ pub(crate) fn string_from_hsp_str(s: *const u8) -> String {
 fn string_from_hsp_str_slice(bytes: &[u8]) -> String {
     #[cfg(windows)]
     {
-        let wide = ansi_to_wide_string(bytes);
-        return String::from_utf16_lossy(&wide);
+        return cp932_to_utf8(bytes);
     }
 
     #[cfg(not(windows))]
@@ -126,5 +125,39 @@ pub(crate) fn message_box(message: &str) {
                 winapi::um::winuser::MB_OK,
             );
         }
+    }
+}
+
+/// utf-8 版ではない HSP の文字列 (cp932 エンコード) を utf-8 の文字列に変換する。
+/// 変換できない部分は `?` になる。
+#[allow(unused)]
+fn cp932_to_utf8(mut s: &[u8]) -> String {
+    let cp932 = encoding::label::encoding_from_windows_code_page(932).unwrap();
+
+    while let Some(0) = s.last() {
+        s = &s[0..s.len() - 1];
+    }
+    cp932.decode(s, encoding::DecoderTrap::Replace).unwrap()
+}
+
+/// utf-8 の文字列を utf-8 版ではない HSP の文字列 (cp932 エンコード) に変換する。
+#[allow(unused)]
+fn utf8_to_cp932(s: &str) -> Vec<u8> {
+    let cp932 = encoding::label::encoding_from_windows_code_page(932).unwrap();
+    let mut buf = cp932.encode(s, encoding::EncoderTrap::Replace).unwrap();
+    buf.push(0);
+    buf
+}
+
+mod tests {
+    #[test]
+    fn test_encoding_cp932() {
+        let hello = vec![
+            130, 177, 130, 241, 130, 201, 130, 191, 130, 205, 144, 162, 138, 69, 0,
+        ];
+        assert_eq!(super::utf8_to_cp932("こんにちは世界"), hello);
+        assert_eq!(super::cp932_to_utf8(&hello), "こんにちは世界");
+
+        assert_eq!(super::cp932_to_utf8(&super::utf8_to_cp932("✔")), "?");
     }
 }
