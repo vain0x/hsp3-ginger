@@ -1045,7 +1045,7 @@
       "patterns": [
         {
           "comment": "COMオブジェクト系",
-          "match": "(?i)^(comevarg|comevent|delcom|newcom|querycom|sarrayconv|comevdisp)(@\\S*)?$",
+          "match": "(?i)\\b(comevarg|comevent|delcom|newcom|querycom|sarrayconv|comevdisp)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1057,7 +1057,7 @@
         },
         {
           "comment": "HSPシステム制御",
-          "match": "(?i)^(assert|logmes)(@\\S*)?$",
+          "match": "(?i)\\b(assert|logmes)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1069,7 +1069,7 @@
         },
         {
           "comment": "オブジェクト系",
-          "match": "(?i)^(button|chkbox|clrobj|combox|input|listbox|mesbox|objnable|objimage|objmode|objprm|objsel|objsize|objskip|objenable)(@\\S*)?$",
+          "match": "(?i)\\b(button|chkbox|clrobj|combox|input|listbox|mesbox|objnable|objimage|objmode|objprm|objsel|objsize|objskip|objenable)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1081,7 +1081,7 @@
         },
         {
           "comment": "システム変数",
-          "match": "(?i)^(cnt|dir_cmdline|dir_cur|dir_desktop|dir_exe|dir_mydoc|dir_sys|dir_tv|dir_win|err|ginfo_accx|ginfo_accy|ginfo_accz|ginfo_act|ginfo_b|ginfo_cx|ginfo_cy|ginfo_dispx|ginfo_dispy|ginfo_g|ginfo_intid|ginfo_mesx|ginfo_mesy|ginfo_mx|ginfo_my|ginfo_newid|ginfo_paluse|ginfo_r|ginfo_sel|ginfo_sizex|ginfo_sizey|ginfo_sx|ginfo_sy|ginfo_vx|ginfo_vy|ginfo_winx|ginfo_winy|ginfo_wx1|ginfo_wx2|ginfo_wy1|ginfo_wy2|hdc|hinstance|hspstat|hspver|hwnd|iparam|looplev|lparam|mousew|mousex|mousey|msgothic|msmincho|notemax|notesize|refdval|refstr|stat|strsize|sublev|thismod|wparam)(@\\S*)?$",
+          "match": "(?i)\\b(cnt|dir_cmdline|dir_cur|dir_desktop|dir_exe|dir_mydoc|dir_sys|dir_tv|dir_win|err|ginfo_accx|ginfo_accy|ginfo_accz|ginfo_act|ginfo_b|ginfo_cx|ginfo_cy|ginfo_dispx|ginfo_dispy|ginfo_g|ginfo_intid|ginfo_mesx|ginfo_mesy|ginfo_mx|ginfo_my|ginfo_newid|ginfo_paluse|ginfo_r|ginfo_sel|ginfo_sizex|ginfo_sizey|ginfo_sx|ginfo_sy|ginfo_vx|ginfo_vy|ginfo_winx|ginfo_winy|ginfo_wx1|ginfo_wx2|ginfo_wy1|ginfo_wy2|hdc|hinstance|hspstat|hspver|hwnd|iparam|looplev|lparam|mousew|mousex|mousey|msgothic|msmincho|notemax|notesize|refdval|refstr|stat|strsize|sublev|thismod|wparam)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "variable.language.hsp3"
@@ -1093,7 +1093,7 @@
         },
         {
           "comment": "ファイル制御",
-          "match": "(?i)^(bcopy|bload|bsave|chdir|chdpm|delete|dirlist|exist|memfile|mkdir)(@\\S*)?$",
+          "match": "(?i)\\b(bcopy|bload|bsave|chdir|chdpm|delete|dirlist|exist|memfile|mkdir)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1105,7 +1105,7 @@
         },
         {
           "comment": "プログラム制御",
-          "match": "(?i)^(exec)(@\\S*)?$",
+          "match": "(?i)\\b(exec)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1117,7 +1117,7 @@
         },
         {
           "comment": "control",
-          "match": "(?i)^(if|else|repeat|loop|break|continue|foreach|while|wend|for|next|do|until|_break|_continue|switch|case|default|swbreak|swend|wait|await|stop|return|end|run|exgoto|on|goto|gosub)(@\\S*)?$",
+          "match": "(?i)\\b(if|else|repeat|loop|break|continue|foreach|while|wend|for|next|do|until|_break|_continue|switch|case|default|swbreak|swend|wait|await|stop|return|end|run|exgoto|on|goto|gosub)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.control.hsp3"
@@ -1153,7 +1153,7 @@
         },
         {
           "comment": "マルチメディア制御",
-          "match": "(?i)^(mci|mmload|mmplay|mmstop)(@\\S*)?$",
+          "match": "(?i)\\b(mci|mmload|mmplay|mmstop)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1165,7 +1165,7 @@
         },
         {
           "comment": "メモリ管理",
-          "match": "(?i)^(comres|ddim|delmod|dim|dimtype|ldim|lpoke|memcpy|memexpand|memset|newlab|newmod|poke|sdim|wpoke|lpeek|peek|wpeek)(@\\S*)?$",
+          "match": "(?i)\\b(comres|ddim|delmod|dim|dimtype|ldim|lpoke|memcpy|memexpand|memset|newlab|newmod|poke|sdim|wpoke|lpeek|peek|wpeek)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1177,7 +1177,7 @@
         },
         {
           "comment": "alloc",
-          "match": "(?i)^(alloc)(@\\S*)?$",
+          "match": "(?i)\\b(alloc)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "invalid.deprecated.hsp3"
@@ -1189,7 +1189,7 @@
         },
         {
           "comment": "基本入出力制御命令",
-          "match": "(?i)^(getkey|mcall|mouse|randomize|setease|sortget|sortstr|sortval|stick)(@\\S*)?$",
+          "match": "(?i)\\b(getkey|mcall|mouse|randomize|setease|sortget|sortstr|sortval|stick)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1201,7 +1201,7 @@
         },
         {
           "comment": "基本入出力関数",
-          "match": "(?i)^(abs|absf|atan|stan|callfunc|cos|dirinfo|double|expf|getease|geteasef|gettime|ginfo|int|length|length2|length3|length4|libptr|limit|limitf|logf|objinfo|powf|rnd|sin|sqrt|str|strlen|sysinfo|tan|vartype|varuse|varptr|varsize)(@\\S*)?$",
+          "match": "(?i)\\b(abs|absf|atan|stan|callfunc|cos|dirinfo|double|expf|getease|geteasef|gettime|ginfo|int|length|length2|length3|length4|libptr|limit|limitf|logf|objinfo|powf|rnd|sin|sqrt|str|strlen|sysinfo|tan|vartype|varuse|varptr|varsize)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1213,7 +1213,7 @@
         },
         {
           "comment": "数学定数",
-          "match": "(?i)^(M_PI)(@\\S*)?$",
+          "match": "(?i)\\b(M_PI)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "constant.language.hsp3"
@@ -1225,7 +1225,7 @@
         },
         {
           "comment": "文字列操作",
-          "match": "(?i)^(cnvstoa|cnvstow|getstr|noteadd|notedel|noteget|noteload|notesave|notesel|noteunsel|sortnote|split|strrep|cnvatos|cnvwtos|getpath|instr|notefind|noteinfo|strf|strmid|strtrim)(@\\S*)?$",
+          "match": "(?i)\\b(cnvstoa|cnvstow|getstr|noteadd|notedel|noteget|noteload|notesave|notesel|noteunsel|sortnote|split|strrep|cnvatos|cnvwtos|getpath|instr|notefind|noteinfo|strf|strmid|strtrim)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1237,7 +1237,7 @@
         },
         {
           "comment": "標準定義マクロ",
-          "match": "(?i)^(__date__|__file__|__hsp30__|__hspver__|__line__|__time__|_debug|__hspdef__|and|deg2rad|font_antialias|font_bold|font_italic|font_normal|font_strikeout|font_underline|gmode_add|gmode_alpha|gmode_gdi|gmode_mem|gmode_pixela|gmode_rgb0|gmode_rgb0alpha|gmode_sub|not|objinfo_bmscr|objinfo_hwnd|objinfo_mode|objmode_guifont|objmode_normal|objmode_usefont|or|rad2deg|screen_fixedsize|screen_frame|screen_hide|screen_normal|screen_palette|screen_tool|xor|gsquare_grad|ease_linear|ease_quad_in|ease_quad_out|ease_quad_inout|ease_cubic_in|ease_cubic_out|ease_cubic_inout|ease_quartic_in|ease_quartic_out|ease_quartic_inout|ease_bounce_in|ease_bounce_out|ease_bounce_inout|ease_shake_in|ease_shake_out|ease_shake_inout|ease_loop|notefind_match|notefind_first|notefind_instr)(@\\S*)?$",
+          "match": "(?i)\\b(__date__|__file__|__hsp30__|__hspver__|__line__|__time__|_debug|__hspdef__|and|deg2rad|font_antialias|font_bold|font_italic|font_normal|font_strikeout|font_underline|gmode_add|gmode_alpha|gmode_gdi|gmode_mem|gmode_pixela|gmode_rgb0|gmode_rgb0alpha|gmode_sub|not|objinfo_bmscr|objinfo_hwnd|objinfo_mode|objmode_guifont|objmode_normal|objmode_usefont|or|rad2deg|screen_fixedsize|screen_frame|screen_hide|screen_normal|screen_palette|screen_tool|xor|gsquare_grad|ease_linear|ease_quad_in|ease_quad_out|ease_quad_inout|ease_cubic_in|ease_cubic_out|ease_cubic_inout|ease_quartic_in|ease_quartic_out|ease_quartic_inout|ease_bounce_in|ease_bounce_out|ease_bounce_inout|ease_shake_in|ease_shake_out|ease_shake_inout|ease_loop|notefind_match|notefind_first|notefind_instr)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "constant.language.hsp3"
@@ -1249,7 +1249,7 @@
         },
         {
           "comment": "特殊代入命令",
-          "match": "(?i)^(dup|dupptr|mref)(@\\S*)?$",
+          "match": "(?i)\\b(dup|dupptr|mref)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
@@ -1261,7 +1261,7 @@
         },
         {
           "comment": "画面制御命令",
-          "match": "(?i)^(axobj|bgscr|bmpsave|boxf|buffer|celdiv|celload|celput|chgdisp|circle|cls|color|dialog|font|gcopy|gmode|grect|gradf|groll|grotate|gsel|gsquare|gzoom|hsvcolor|line|mes|palcolor|palette|pget|picload|pos|print|pset|redraw|screen|sendmsg|syscolor|sysfont|title|width|winobj)(@\\S*)?$",
+          "match": "(?i)\\b(axobj|bgscr|bmpsave|boxf|buffer|celdiv|celload|celput|chgdisp|circle|cls|color|dialog|font|gcopy|gmode|grect|gradf|groll|grotate|gsel|gsquare|gzoom|hsvcolor|line|mes|palcolor|palette|pget|picload|pos|print|pset|redraw|screen|sendmsg|syscolor|sysfont|title|width|winobj)(@\\S*)?\\b",
           "captures": {
             "1": {
               "name": "keyword.hsp3"
