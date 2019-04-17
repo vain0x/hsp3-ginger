@@ -1,0 +1,66 @@
+scopeName: "lib.commons.hsp3"
+patterns: [
+  {
+    include: "#a2d"
+  }
+]
+repository:
+  a2d:
+    patterns: [
+      { # func local
+        match: "^(GdiplusStartup|GdiplusShutdown|GdipCreateBitmapFromScan0|GdipCreateBitmapFromGdiDib|GdipLoadImageFromFile|GdipDisposeImage|GdipBitmapLockBits|GdipBitmapUnlockBits|GdipGetImageWidth|GdipGetImageHeight|GdipBitmapGetPixel|GdipBitmapSetPixel|GdipSaveImageToFile|GdipGetImageGraphicsContext|GdipCreateFromHDC|GdipDeleteGraphics|GdipSetSmoothingMode|GdipSetPixelOffsetMode|GdipSetCompositingQuality|GdipSetTextRenderingHint|GdipSetCompositingMode|GdipSetWorldTransform|GdipResetWorldTransform|GdipSetClipRectI|GdipResetClip|GdipCreateSolidFill|GdipCreateLineBrushI|GdipCreateTexture|GdipDeleteBrush|GdipCreatePen1|GdipCreatePen2|GdipDeletePen|GdipGetPenWidth|GdipSetPenWidth|GdipGetPenDashStyle|GdipSetPenDashStyle|GdipSetPenMode|GdipCreateFontFromDC|GdipDeleteFont|GdipDrawImageI|GdipDrawImagePointRectI|GdipDrawImageRectRectI|GdipDrawImagePointsI|GdipCreateImageAttributes|GdipDisposeImageAttributes|GdipSetImageAttributesColorMatrix|GdipSetImageAttributesColorKeys|GdipSetImageAttributesGamma|GdipGetImageEncodersSize|GdipGetImageEncoders|GdipCreateStringFormat|GdipDeleteStringFormat|GdipSetStringFormatAlign|GdipSetStringFormatLineAlign|GdipDrawLineI|GdipDrawEllipseI|GdipFillEllipseI|GdipDrawRectangleI|GdipFillRectangleI|GdipDrawLinesI|GdipDrawPolygonI|GdipFillPolygonI|GdipDrawCurve2I|GdipDrawClosedCurve2I|GdipFillClosedCurve2I|GdipDrawArcI|GdipDrawPieI|GdipFillPieI|GdipDrawString|GdipCreateMatrix|GdipCreateMatrix2|GdipDeleteMatrix|GdipTranslateMatrix|GdipRotateMatrix|GdipScaleMatrix)(@a2d)$"
+        captures: {
+          1: {
+            name: "support.function.gdiplus.a2d.hsp3"
+          },
+          2: {
+            name: "support.class.a2d.hsp3"
+          }
+        }
+      }
+      { # define local
+        match: "(?i)^(PixelFormatGDI|PixelFormatAlpha|PixelFormatCanonical|PixelFormat24bppRGB|PixelFormat32bppARGB|UnitWorld|UnitDisplay|UnitPixel|gf_sel|gf_r|gf_g|gf_b|gf_intid)(@a2d)$"
+        captures: {
+          1: {
+            name: "support.constant.a2d.hsp3"
+          }
+          2: {
+            name: "support.class.a2d.hsp3"
+          }
+        }
+      }
+      { # const global
+        match: "(?i)^(MAT_R|MAT_G|MAT_B|MAT_A)(@)?$"
+        captures: {
+          1: {
+            name: "support.constant.a2d.hsp3"
+          }
+          2: {
+            name: "entity.name.class.hsp3"
+          }
+        }
+      }
+      { # const global
+        match: "(?i)^(DashStyleSolid|DashStyleDash|DashStyleDot|DashStyleDashDot|DashStyleDashDotDot|DashStyleCustom|WrapModeTile|WrapModeTileFlipX|WrapModeTileFlipY|WrapModeTileFlipXY|WrapModeClamp)(@)?$"
+        captures: {
+          1: {
+            name: "support.constant.a2d.hsp3"
+          },
+          2: {
+            name: "entity.name.class.hsp3"
+          }
+        }
+      }
+      { # deffunc global
+        match: "(?i)^(RGBA|ARGB|ARGB_A|ARGB_R|ARGB_G|ARGB_B|alCreateImage|alCopyImageToImage|alCopyImageToScreen|alCopyScreenToImage|alSaveFile|alColor|alHsvColor|alSysColor|alGradientColor|alTextureImage|alFont|alDrawText|alDrawRect|alFillRect|alDrawEllip|alFillEllip|alDrawCurve|alDrawClosedCurve|alFillClosedCurve|alDrawArc|alDrawPie|alFillPie|alTransModeOffsetRotateZoom|alFloat|alInitModule|alSelectImage|alDeleteImage|alCreateImage_|alDeleteAll|alGetID|alGetWidth|alGetHeight|alClipModeRect|alResetClipMode|alResetCopyMode|alCopyModeColorMatrix|alCopyModeAlpha|alCopyModeGamma|alCopyModeColorKey|alStretchImageToImage|alStretchImageToScreen|alStretchScreenToImage|al3PointsImageToImage|alGetPixel|alSetPixel|alGetBitmapVData|alErase|alLoadFile|alSaveFile_|alGetFileWidth|alCreateImageByFile|alPenWidth|alPenStyle|alRenewPen|alColorAlpha_|alGradientColor_|alTextureImage_|alEraserBrush|alFont_|alDrawText_|alDrawLine|alDrawRect_|alFillRect_|alDrawEllip_|alFillEllip_|alDrawLines|alDrawPoly|alFillPoly|alDrawCurve_|alDrawClosedCurve_|alFillClosedCurve_|alDrawArc_|alDrawPie_|alFillPie_|alResetTransMode|alTransModeMatrix|alTransModeOffsetRotateZoom_|alTransModeRotateAt)(@)?$"
+        captures: {
+          1: {
+            name: "support.function.a2d.hsp3"
+          }
+          2: {
+            name: "entity.name.class.hsp3"
+          }
+        }
+      }
+    ]
+  # end of a2d

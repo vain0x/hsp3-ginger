@@ -1,0 +1,4 @@
+'.source.hs':
+  'HTML documentation':
+    'prefix': 'html'
+    'body': 'html\\{\n${1:html}\n\\}html'
