@@ -53,7 +53,7 @@
             {
                 "language": "hsp3",
                 "scopeName": "source.hsp3",
-                "path": "./lib/language-hsp3/grammars/hsp3.json"
+                "path": "./syntaxes/hsp3.json"
             }
         ],
         "configuration":{
