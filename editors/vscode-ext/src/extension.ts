@@ -2,6 +2,24 @@ import * as ChildProcess from "child_process"
 import * as path from "path"
 import * as vscode from "vscode"
 
+class NoCompilerPathError extends Error {}
+
+class CouldNotExecuteError extends Error {}
+
+const handleError = (err: Error) => {
+  if (err instanceof NoCompilerPathError) {
+    vscode.window.showErrorMessage("コンパイラのファイルパスを設定してください。")
+    return
+  }
+
+  if (err instanceof CouldNotExecuteError) {
+    vscode.window.showErrorMessage(`外部プログラムの起動に失敗しました: ${err.message}`)
+    return
+  }
+
+  vscode.window.showErrorMessage("何らかのエラーが発生しました。")
+}
+
 const pathQuote = (filePath: string) => {
   if (filePath.includes("\"") || !filePath.includes(" ")) {
     return filePath
@@ -18,7 +36,7 @@ const configGetCompilerPath = (context: vscode.ExtensionContext) => {
 const configGetHdlPath = (context: vscode.ExtensionContext) => {
   const compilerPath = configGetCompilerPath(context)
   if (!compilerPath) {
-    return
+    throw new NoCompilerPathError()
   }
 
   const compilerDir = path.dirname(compilerPath)
@@ -31,16 +49,23 @@ const editorGetWord = (textEditor: vscode.TextEditor) => {
   return textEditor.document.getText(wordRange)
 }
 
-const commandHelp = (context: vscode.ExtensionContext) => (textEditor: vscode.TextEditor, edit: vscode.TextEditorEdit) => {
-  const hdlPath = configGetHdlPath(context)
-  if (!hdlPath) {
-    vscode.window.showErrorMessage("Missing hdl.exe: " + hdlPath)
-    return
+const commandHelp = (context: vscode.ExtensionContext) => async (textEditor: vscode.TextEditor) => {
+  try {
+    const hdlPath = configGetHdlPath(context)
+    const word = editorGetWord(textEditor)
+
+    await new Promise((resolve, reject) => {
+      const command = `${hdlPath} ${word}`
+      ChildProcess.exec(command, err => {
+        if (err) {
+          return reject(new CouldNotExecuteError(command))
+        }
+        resolve()
+      })
+    })
+  } catch (err) {
+    handleError(err)
   }
-
-  const word = editorGetWord(textEditor)
-
-  ChildProcess.exec(`${hdlPath} "${word}"`)
 }
 
 export const activate = (context: vscode.ExtensionContext) => {
