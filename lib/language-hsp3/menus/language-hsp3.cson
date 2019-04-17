@@ -1,0 +1,16 @@
+'menu': [
+  'label': 'Packages'
+  'submenu': [
+    'label': 'language-hsp3'
+    'submenu': [
+      {
+        'label': 'Compile & Run'
+        'command': 'language-hsp3:run'
+      }
+      {
+        'label': 'Auto make'
+        'command': 'language-hsp3:make'
+      }
+    ]
+  ]
+]

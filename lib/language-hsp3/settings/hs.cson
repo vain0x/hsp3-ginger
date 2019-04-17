@@ -1,0 +1,9 @@
+'.source.hs':
+  'autocomplete':
+    'symbols':
+      'tag':
+        'typePriority': -1
+        'suggestions': [
+          'index','prm','inst','sample','href','dll','ver','date','author',
+          'url','note','type','group','prot','portinfo'
+        ]

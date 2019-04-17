@@ -1,0 +1,46 @@
+# If you want some examples of settings, check out:
+# https://github.com/atom/language-gfm/blob/master/settings/gfm.cson
+'.source.hsp3':
+  editor:
+    commentStart: '/* '
+    commentEnd  : ' */'
+###
+  autocomplete:
+    symbols:
+      module:
+        selector: '.name.module'
+      property:
+        selector: 'variable.other.module'
+      import:
+        selector: 'name.comfunc, name.cmd, name.func'
+      keyword:
+        selector: '.name.define'
+      constant:
+        selector: '.name.const, .name.enum'
+      function:
+        selector: '.name.deffunc, name.modfunc'
+      '': # the catch-all
+        selector: '.rule.symbol'
+        typePriority: 0
+      type:
+        suggestions: [
+          # AHT
+          'class','name','author','ver','exp','icon','iconid',
+          # bootopt
+          'notime','utf8','hsp64',
+          # packopt
+          'runtime','type','xsize','ysize','hide','orgpath',
+          # cmpopt
+          'ppout','optcode','optinfo','varname','varinit','optprm','skipjpspc',
+          'utf8',
+          # ユーザ定義
+          'const','enum','define','deffunc','defcfunc','module','modinit',
+          'modterm','modfunc','modcfunc',
+          # COM,DLL
+          'comfunc','cmd',
+          # 引数型
+          'local','global','ctype',
+          'int','double','str','label','var','array'
+        ]
+        typePriority: -1
+###
