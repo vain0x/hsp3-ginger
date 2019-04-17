@@ -1,1 +1,5 @@
 * text=auto
+
+*.hsp linguist-language=hsp3
+*.as linguist-language=hsp3
+*.hs linguist-language=hdl
