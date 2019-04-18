@@ -1,16 +1,8 @@
 import * as ChildProcess from "child_process"
-import * as path from "path"
 import * as vscode from "vscode"
 import { configGetRoot, configGetHdlPath } from "./config"
-import { CouldNotFindCompilerError, CouldNotExecuteError, errorGetMessage } from "./error"
-
-const pathQuote = (filePath: string) => {
-  if (filePath.includes("\"") || !filePath.includes(" ")) {
-    return filePath
-  }
-
-  return `"${filePath}"`
-}
+import { CouldNotExecuteError } from "./error"
+import { pathQuote } from "./domain";
 
 const editorGetWord = (textEditor: vscode.TextEditor) => {
   const position = textEditor.selection.start

@@ -1,19 +1,19 @@
 import * as path from "path"
 import * as vscode from "vscode"
-import { CouldNotFindCompilerError } from "./error"
 
 export const configGetRoot = (): vscode.WorkspaceConfiguration =>
   vscode.workspace.getConfiguration("hsp3-ginger")
 
-const configGetCompilerPath = (config: vscode.WorkspaceConfiguration) =>
-  config.get<string>("compilerPath")
+export const configGetCompilerPath = (config: vscode.WorkspaceConfiguration) =>
+  config.get<string>("compilerPath")!
+
+const configGetHspDir = (config: vscode.WorkspaceConfiguration) => {
+  return path.dirname(configGetCompilerPath(config))
+}
 
 export const configGetHdlPath = (config: vscode.WorkspaceConfiguration) => {
-  const compilerPath = configGetCompilerPath(config)
-  if (!compilerPath) {
-    throw new CouldNotFindCompilerError()
-  }
-
-  const compilerDir = path.dirname(compilerPath)
-  return path.join(compilerDir, "hdl.exe")
+  return path.join(configGetHspDir(config), "hdl.exe")
 }
+
+export const configGetDebugCompilerOptions = (config: vscode.WorkspaceConfiguration) =>
+  config.get<string[]>("debugCompilerOptions")!
