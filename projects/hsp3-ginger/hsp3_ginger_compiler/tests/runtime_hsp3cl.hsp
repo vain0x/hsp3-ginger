@@ -1,0 +1,3 @@
+#runtime "hsp3cl"
+
+mes "Hello, world!"
