@@ -4,6 +4,10 @@
 
 #define EXPORT extern "C" __declspec (dllexport)
 
+// spider-server プロジェクトが生成する静的ライブラリで定義される。
+extern "C" void spider_server_initialize();
+extern "C" void spider_server_terminate();
+
 // assert, stop やステップ実行の完了により、HSP スクリプトの実行が一時停止したとき。
 static auto const HSP3DEBUG_NOTICE_STOP = 0;
 
@@ -31,6 +35,7 @@ BOOL APIENTRY DllMain(HMODULE instance, DWORD reason, LPVOID _reserved) {
 		break;
 	case DLL_PROCESS_DETACH:
 		OutputDebugString(TEXT("hsp3debug detach\n"));
+		spider_server_terminate();
 		break;
 	}
 	return TRUE;
@@ -39,6 +44,7 @@ BOOL APIENTRY DllMain(HMODULE instance, DWORD reason, LPVOID _reserved) {
 // デバッガーがアタッチされたときに HSP ランタイムから呼ばれます。
 EXPORT BOOL APIENTRY debugini(HSP3DEBUG* debug, int _nouse1, int _nouse2, int _nouse3) {
 	OutputDebugString(TEXT("debugini\n"));
+	spider_server_initialize();
 	return 0;
 }
 

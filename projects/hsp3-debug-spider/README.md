@@ -4,6 +4,16 @@
 
 - Windows 10
 - Visual Studio 2019 Community
+- Rust tools
+
+### 開発: Rust tools のインストール
+
+<https://rustlang.org>
+
+```rust
+rustup toolchain install stable-i686-pc-windows-msvc
+rustup target add i686-pc-windows-msvc
+```
 
 ### 開発: ビルドターゲット
 
@@ -18,28 +28,13 @@
     - x86 (Win32): 32ビット版
     - x64: 64ビット版 (hsp3debug_64.dll)
 
-### 開発: プロジェクト設定
-
-プロジェクト設定の既定値との差異は以下を参照してください。
-
-- <https://github.com/vain0x/hsp3-ginger/commit/02cd818>
-    chore: 出力ディレクトリ・中間ディレクトリを target に変更
-- <https://github.com/vain0x/hsp3-ginger/commit/6c77cc7>
-    chore: ターゲット名 (DLLファイル名) を設定
-- <https://github.com/vain0x/hsp3-ginger/commit/a1814fe>
-    chore: UTF-8 版で HSP3_UTF8 マクロを定義
-- <https://github.com/vain0x/hsp3-ginger/commit/693541c>
-    chore: ビルド構成 DebugUtf8/ReleaseUtf8 を追加
-- <https://github.com/vain0x/hsp3-ginger/commit/383b8ff>
-    chore: 言語標準を C++17 に変更
-- <https://github.com/vain0x/hsp3-ginger/commit/1a971ae>
-    chore: コンパイラオプション /utf-8 を有効化
-- <https://github.com/vain0x/hsp3-ginger/commit/ce27db2>
-    chore: _WINDOWS マクロを定義
-
 ### 開発: ビルドスクリプト
 
 scripts/README.md を参照。
+
+```rust
+cargo build --target=i686-pc-windows-msvc
+```
 
 ## ライセンス
 
