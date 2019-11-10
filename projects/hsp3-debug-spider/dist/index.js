@@ -1,5 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const continueButtonElement =document.getElementById("continue-button")
   const logmesElement = document.getElementById("logmes")
+
+  continueButtonElement.addEventListener("click", () => {
+    fetch("/continue", { method: "POST" })
+      .catch(err => console.error(err))
+  })
 
   const pollLogmes = () => {
     setTimeout(() => {

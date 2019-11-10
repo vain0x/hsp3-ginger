@@ -11,6 +11,8 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::thread::{self, JoinHandle};
 
+type SetModeFn = extern "C" fn(i32);
+
 type LogFn = extern "C" fn(*const u16, usize);
 
 struct DebugLogger;
@@ -56,6 +58,8 @@ impl log::Log for DebugLogger {
 
 struct Global {
     logmes: String,
+
+    set_mode: SetModeFn,
 
     #[allow(unused)]
     join_handle: JoinHandle<()>,
@@ -107,13 +111,20 @@ fn start_server() {
                 });
                 res.unwrap()
             },
+            (POST) (/continue) => {
+                with_global(|global| {
+                    trace!("continue");
+                    (global.set_mode)(1); // HSPDEBUG_RUN
+                });
+                rouille::Response::text("")
+            },
             _ => rouille::Response::html("404").with_status_code(404)
         )
     });
 }
 
 #[no_mangle]
-extern "C" fn spider_server_initialize(log_fn: LogFn) {
+extern "C" fn spider_server_initialize(set_mode: SetModeFn, log_fn: LogFn) {
     // info! などのログ出力が log_fn 関数を使うように設定する。
     DebugLogger::init(log_fn);
 
@@ -128,6 +139,7 @@ extern "C" fn spider_server_initialize(log_fn: LogFn) {
 
     *lock = Some(Global {
         logmes: String::new(),
+        set_mode,
         join_handle,
     });
 }
@@ -145,6 +157,7 @@ extern "C" fn spider_server_logmes(data: *const u8, size: usize) {
     with_global(|global| {
         // FIXME: 文字コード
         let text = unsafe { std::slice::from_raw_parts(data, size) };
+        trace!("logmes '{}'", String::from_utf8_lossy(text).as_ref());
 
         global.logmes += String::from_utf8_lossy(text).as_ref();
         global.logmes += "\r\n";

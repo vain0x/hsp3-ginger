@@ -4,10 +4,14 @@
 
 #define EXPORT extern "C" __declspec (dllexport)
 
+using Hsp3MsgFn = void(*)(HSPCTX*);
+
+using SetModeFn = void(*)(int);
+
 using LogFn = void(*)(wchar_t const* data, std::size_t size);
 
 // spider-server プロジェクトが生成する静的ライブラリで定義される。
-extern "C" void spider_server_initialize(LogFn log);
+extern "C" void spider_server_initialize(SetModeFn, LogFn log);
 extern "C" void spider_server_terminate();
 extern "C" void spider_server_logmes(char const* data, std::size_t size);
 
@@ -16,6 +20,8 @@ static auto const HSP3DEBUG_NOTICE_STOP = 0;
 
 // logmes 命令が実行されたとき。ログの内容は HSP3CTX::stmp にあります。
 static auto const HSP3DEBUG_NOTICE_LOGMES = 1;
+
+static auto s_debug = (HSP3DEBUG*)nullptr;
 
 BOOL APIENTRY DllMain(HMODULE instance, DWORD reason, LPVOID _reserved) {
 	switch (reason) {
@@ -53,10 +59,22 @@ extern "C" void write_debug_log(wchar_t const* data, std::size_t size) {
 	OutputDebugString(data);
 }
 
+extern "C" void set_debug_mode(int debug_mode) {
+	// FIXME: なるべくメインスレッド上で実行したい
+	s_debug->dbg_set(debug_mode);
+	
+	// HSP のウィンドウにメッセージを送信することで、実行モードの変更に気づいてもらいます。
+	// メッセージ自体に意味はありません。
+	PostMessage(HWND_BROADCAST, WM_NULL, WPARAM{}, LPARAM{});
+}
+
 // デバッガーがアタッチされたときに HSP ランタイムから呼ばれます。
 EXPORT BOOL APIENTRY debugini(HSP3DEBUG* debug, int _nouse1, int _nouse2, int _nouse3) {
 	OutputDebugString(TEXT("debugini\n"));
-	spider_server_initialize(write_debug_log);
+
+	s_debug = debug;
+
+	spider_server_initialize(set_debug_mode, write_debug_log);
 	return 0;
 }
 
@@ -81,12 +99,5 @@ EXPORT BOOL WINAPI debug_notice(HSP3DEBUG* debug, int reason, int _nouse1, int _
 		OutputDebugString(TEXT("debug_notice (unknown)\n"));
 		break;
 	}
-
-	// 実行を再開します。(「実行」ボタンが押された時の処理。)
-	debug->dbg_set(HSPDEBUG_RUN);
-
-	// HSP のウィンドウにメッセージを送信することで、実行が再開されたことに気づいてもらいます。
-	// メッセージ自体に意味はありません。
-	PostMessage(HWND_BROADCAST, WM_NULL, WPARAM{}, LPARAM{});
 	return 0;
 }
