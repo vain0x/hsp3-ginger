@@ -1,3 +1,5 @@
+root = true
+
 [*.{c,cc,cpp,cxx,h,hh,hpp,hxx}]
 indent_size = 4
 indent_style = space
