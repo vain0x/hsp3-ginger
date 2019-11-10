@@ -4,7 +4,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-use std::cell::RefCell;
 use std::io::Write;
 use std::net;
 use std::sync::Mutex;
@@ -59,7 +58,7 @@ struct Global {
 }
 
 lazy_static! {
-    static ref GLOBAL: Mutex<RefCell<Option<Global>>> = Mutex::new(RefCell::new(None));
+    static ref GLOBAL: Mutex<Option<Global>> = Mutex::new(None);
 }
 
 #[no_mangle]
@@ -69,9 +68,8 @@ extern "C" fn spider_server_initialize(log_fn: LogFn) {
 
     trace!("spider_server_initialize");
 
-    let lock = GLOBAL.lock().unwrap();
-    let mut cell = lock.borrow_mut();
-    if cell.is_some() {
+    let mut lock = GLOBAL.lock().ok().expect("lock global");
+    if lock.is_some() {
         panic!("already initialized");
     }
 
@@ -108,15 +106,14 @@ extern "C" fn spider_server_initialize(log_fn: LogFn) {
         }
     });
 
-    *cell = Some(Global { join_handle });
+    *lock = Some(Global { join_handle });
 }
 
 #[no_mangle]
 extern "C" fn spider_server_terminate() {
-    let lock = GLOBAL.lock().unwrap();
-    let mut cell = lock.borrow_mut();
+    let mut lock = GLOBAL.lock().unwrap();
 
-    cell.take();
+    lock.take();
     // FIXME: スレッドに join する
 }
 
