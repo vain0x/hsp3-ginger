@@ -41,6 +41,10 @@ HSP3 の「何もしない」デバッガーです。
 - <https://github.com/vain0x/hsp3-ginger/commit/ce27db2>
     chore: _WINDOWS マクロを定義
 
+### 開発: ビルドスクリプト
+
+scripts/README.md を参照。
+
 ## ライセンス
 
 HSPSDK のライセンスは licenses/openhsp を参照してください。
