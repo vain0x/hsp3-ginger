@@ -20,4 +20,9 @@
 #include "hspsdk/hspvar_core.h"
 #include "hspsdk/hsp3debug.h"
 
+// C++
+#include <cassert>
+#include <cstddef>
+#include <vector>
+
 #endif

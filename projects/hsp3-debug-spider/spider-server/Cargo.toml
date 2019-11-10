@@ -11,3 +11,4 @@ crate-type = ["staticlib"]
 
 [dependencies]
 lazy_static = "1"
+log = "0.4"

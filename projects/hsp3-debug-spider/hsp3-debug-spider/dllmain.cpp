@@ -4,8 +4,10 @@
 
 #define EXPORT extern "C" __declspec (dllexport)
 
+using LogFn = void(*)(wchar_t const* data, std::size_t size);
+
 // spider-server プロジェクトが生成する静的ライブラリで定義される。
-extern "C" void spider_server_initialize();
+extern "C" void spider_server_initialize(LogFn log);
 extern "C" void spider_server_terminate();
 
 // assert, stop やステップ実行の完了により、HSP スクリプトの実行が一時停止したとき。
@@ -41,10 +43,19 @@ BOOL APIENTRY DllMain(HMODULE instance, DWORD reason, LPVOID _reserved) {
 	return TRUE;
 }
 
+extern "C" void write_debug_log(wchar_t const* data, std::size_t size) {
+	static auto buffer = std::vector<wchar_t>{};
+	buffer.clear();
+	buffer.insert(buffer.end(), data, data + size);
+	buffer.push_back(0);
+
+	OutputDebugString(data);
+}
+
 // デバッガーがアタッチされたときに HSP ランタイムから呼ばれます。
 EXPORT BOOL APIENTRY debugini(HSP3DEBUG* debug, int _nouse1, int _nouse2, int _nouse3) {
 	OutputDebugString(TEXT("debugini\n"));
-	spider_server_initialize();
+	spider_server_initialize(write_debug_log);
 	return 0;
 }
 
