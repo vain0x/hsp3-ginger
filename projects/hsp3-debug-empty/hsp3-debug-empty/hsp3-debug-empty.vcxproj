@@ -333,7 +333,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h" />
+    <ClInclude Include="hspsdk\hsp3debug.h" />
+    <ClInclude Include="hspsdk\hsp3struct.h" />
+    <ClInclude Include="hspsdk\hspvar_core.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
