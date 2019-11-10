@@ -21,8 +21,10 @@
 #include "hspsdk/hsp3debug.h"
 
 // C++
+#include <array>
 #include <cassert>
 #include <cstddef>
+#include <string>
 #include <vector>
 
 #endif

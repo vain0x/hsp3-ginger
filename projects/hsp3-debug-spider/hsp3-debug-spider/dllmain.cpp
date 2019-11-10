@@ -9,6 +9,7 @@ using LogFn = void(*)(wchar_t const* data, std::size_t size);
 // spider-server プロジェクトが生成する静的ライブラリで定義される。
 extern "C" void spider_server_initialize(LogFn log);
 extern "C" void spider_server_terminate();
+extern "C" void spider_server_logmes(char const* data, std::size_t size);
 
 // assert, stop やステップ実行の完了により、HSP スクリプトの実行が一時停止したとき。
 static auto const HSP3DEBUG_NOTICE_STOP = 0;
@@ -66,12 +67,16 @@ EXPORT BOOL WINAPI debug_notice(HSP3DEBUG* debug, int reason, int _nouse1, int _
 		OutputDebugString(TEXT("debug_notice (stop)\n"));
 		break;
 
-	case HSP3DEBUG_NOTICE_LOGMES:
-		OutputDebugString(TEXT("debug_notice (logmes): {\"\n"));
-		OutputDebugStringA(debug->hspctx->stmp); // FIXME: 文字コード変換
-		OutputDebugString(TEXT("\n\"}\n"));
-		break;
+	case HSP3DEBUG_NOTICE_LOGMES: {
+		auto data = debug->hspctx->stmp;
 
+		OutputDebugString(TEXT("debug_notice (logmes): {\"\n"));
+		OutputDebugStringA(data); // FIXME: 文字コード変換
+		OutputDebugString(TEXT("\n\"}\n"));
+
+		spider_server_logmes(data, std::strlen(data));
+		break;
+	}
 	default:
 		OutputDebugString(TEXT("debug_notice (unknown)\n"));
 		break;

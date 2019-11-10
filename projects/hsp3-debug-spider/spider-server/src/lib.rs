@@ -53,12 +53,34 @@ impl log::Log for DebugLogger {
 }
 
 struct Global {
+    logmes: String,
+
     #[allow(unused)]
     join_handle: JoinHandle<()>,
 }
 
 lazy_static! {
     static ref GLOBAL: Mutex<Option<Global>> = Mutex::new(None);
+}
+
+fn with_global(f: impl FnOnce(&mut Global)) {
+    let mut lock = match GLOBAL.lock() {
+        Err(err) => {
+            warn!("can't lock global {:?}", err);
+            return;
+        }
+        Ok(lock) => lock,
+    };
+
+    let global = match lock.as_mut() {
+        None => {
+            warn!("before initialization");
+            return;
+        }
+        Some(global) => global,
+    };
+
+    f(global);
 }
 
 #[no_mangle]
@@ -92,21 +114,26 @@ extern "C" fn spider_server_initialize(log_fn: LogFn) {
                 Ok(stream) => stream,
             };
 
-            trace!("connected");
-            let body = "<html><head><title>Hello world!</title></head><body><h1>HELLO WORLD</h1></body></html>";
-            write!(
-                stream,
-                "HTTP/1.1 200 OK\r\nContent-Type: text/html; utf-8\r\nContent-Length: {}\r\n\r\n",
-                body.len()
-            )
-            .and_then(|_| stream.write_all(body.as_bytes()))
-            .and_then(|_| stream.flush())
-            .map_err(|err| warn!("writing {:?}", err))
-            .ok();
+            with_global(|global| {
+                trace!("connected");
+                let body = format!("<html><head><title>Hello world!</title></head><body><h1>HELLO WORLD</h1><pre>{}</pre></body></html>", &global.logmes);
+                write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/html; utf-8\r\nContent-Length: {}\r\n\r\n",
+                    body.len()
+                )
+                .and_then(|_| stream.write_all(body.as_bytes()))
+                .and_then(|_| stream.flush())
+                .map_err(|err| warn!("writing {:?}", err))
+                .ok();
+            });
         }
     });
 
-    *lock = Some(Global { join_handle });
+    *lock = Some(Global {
+        logmes: String::new(),
+        join_handle,
+    });
 }
 
 #[no_mangle]
@@ -115,6 +142,17 @@ extern "C" fn spider_server_terminate() {
 
     lock.take();
     // FIXME: スレッドに join する
+}
+
+#[no_mangle]
+extern "C" fn spider_server_logmes(data: *const u8, size: usize) {
+    with_global(|global| {
+        // FIXME: 文字コード
+        let text = unsafe { std::slice::from_raw_parts(data, size) };
+
+        global.logmes += String::from_utf8_lossy(text).as_ref();
+        global.logmes += "\r\n";
+    });
 }
 
 #[cfg(test)]
