@@ -4,8 +4,10 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-use std::io::Write;
-use std::net;
+#[macro_use]
+extern crate rouille;
+
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::thread::{self, JoinHandle};
 
@@ -83,6 +85,33 @@ fn with_global(f: impl FnOnce(&mut Global)) {
     f(global);
 }
 
+fn start_server() {
+    let dist_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dist");
+    trace!("dist_dir = {:?}", dist_dir);
+
+    rouille::start_server("localhost:8080", move |request| {
+        // Serve dist
+        {
+            let response = rouille::match_assets(&request, &dist_dir);
+            if response.is_success() {
+                return response;
+            }
+        }
+
+        // API
+        router! (request,
+            (GET) (/logmes) => {
+                let mut res = None;
+                with_global(|global| {
+                    res = Some(rouille::Response::text(&global.logmes));
+                });
+                res.unwrap()
+            },
+            _ => rouille::Response::html("404").with_status_code(404)
+        )
+    });
+}
+
 #[no_mangle]
 extern "C" fn spider_server_initialize(log_fn: LogFn) {
     // info! などのログ出力が log_fn 関数を使うように設定する。
@@ -95,40 +124,7 @@ extern "C" fn spider_server_initialize(log_fn: LogFn) {
         panic!("already initialized");
     }
 
-    let join_handle = thread::spawn(move || {
-        let listener = match net::TcpListener::bind(("0.0.0.0", 8080)) {
-            Err(err) => {
-                warn!("can't start server {:?}", err);
-                return;
-            }
-            Ok(stream) => stream,
-        };
-
-        trace!("listening...");
-        for income in listener.incoming() {
-            let mut stream = match income {
-                Err(err) => {
-                    warn!("bad incoming {:?}", err);
-                    continue;
-                }
-                Ok(stream) => stream,
-            };
-
-            with_global(|global| {
-                trace!("connected");
-                let body = format!("<html><head><title>Hello world!</title></head><body><h1>HELLO WORLD</h1><pre>{}</pre></body></html>", &global.logmes);
-                write!(
-                    stream,
-                    "HTTP/1.1 200 OK\r\nContent-Type: text/html; utf-8\r\nContent-Length: {}\r\n\r\n",
-                    body.len()
-                )
-                .and_then(|_| stream.write_all(body.as_bytes()))
-                .and_then(|_| stream.flush())
-                .map_err(|err| warn!("writing {:?}", err))
-                .ok();
-            });
-        }
-    });
+    let join_handle = thread::spawn(|| start_server());
 
     *lock = Some(Global {
         logmes: String::new(),
