@@ -1,0 +1,5 @@
+#module
+#deffunc inner_sub
+	mes "inner_sub"
+	return
+#global

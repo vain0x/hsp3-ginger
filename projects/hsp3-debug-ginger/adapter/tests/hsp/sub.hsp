@@ -1,0 +1,8 @@
+#module
+
+#deffunc sub_run
+	mes "sub"
+	await 16
+	return
+
+#global

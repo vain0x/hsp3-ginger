@@ -1,0 +1,7 @@
+Content-Length: 54
+
+{"type": "request", "command": "initialize", "seq": 1}Content-Length: 131
+
+{"type": "request", "command": "launch", "seq": 2, "args": {"cwd": "/", "root": "/hsp", "program": "/src/main.hsp", "trace": true}}Content-Length: 54
+
+{"type": "request", "command": "disconnect", "seq": 3}

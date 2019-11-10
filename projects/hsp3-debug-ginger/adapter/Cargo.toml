@@ -1,0 +1,21 @@
+[package]
+name = "hsp3-debug-adapter"
+version = "0.1.0"
+authors = ["vain0x <vainzerox@gmail.com>"]
+edition = "2018"
+build = "src/build.rs"
+
+[build-dependencies]
+bindgen = "0"
+
+[dependencies]
+encoding = "0"
+log = "0"
+libc = "0"
+winapi = { version = "0", features = ["stringapiset", "winuser"] }
+serde = "1"
+serde_derive = "1"
+serde_json = "1"
+
+[lib]
+crate-type = ["cdylib"]
