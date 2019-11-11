@@ -112,10 +112,12 @@ fn start_server() {
                 res.unwrap()
             },
             (POST) (/continue) => {
+                let mut set_mode = None;
                 with_global(|global| {
-                    trace!("continue");
-                    (global.set_mode)(1); // HSPDEBUG_RUN
+                    set_mode = Some(global.set_mode);
                 });
+                trace!("continue");
+                (set_mode.unwrap())(1);
                 rouille::Response::text("")
             },
             _ => rouille::Response::html("404").with_status_code(404)
@@ -154,11 +156,11 @@ extern "C" fn spider_server_terminate() {
 
 #[no_mangle]
 extern "C" fn spider_server_logmes(data: *const u8, size: usize) {
+    let text = unsafe { std::slice::from_raw_parts(data, size) };
+    trace!("logmes '{}'", String::from_utf8_lossy(text).as_ref());
+
     with_global(|global| {
         // FIXME: 文字コード
-        let text = unsafe { std::slice::from_raw_parts(data, size) };
-        trace!("logmes '{}'", String::from_utf8_lossy(text).as_ref());
-
         global.logmes += String::from_utf8_lossy(text).as_ref();
         global.logmes += "\r\n";
     });

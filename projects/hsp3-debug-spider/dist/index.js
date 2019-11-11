@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const continueButtonElement =document.getElementById("continue-button")
+  const continueButtonElement = document.getElementById("continue-button")
   const logmesElement = document.getElementById("logmes")
 
   continueButtonElement.addEventListener("click", () => {
