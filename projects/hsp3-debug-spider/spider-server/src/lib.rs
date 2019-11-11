@@ -63,6 +63,8 @@ struct Global {
 
     #[allow(unused)]
     join_handle: JoinHandle<()>,
+
+    child: std::process::Child,
 }
 
 lazy_static! {
@@ -139,9 +141,16 @@ extern "C" fn spider_server_initialize(set_mode: SetModeFn, log_fn: LogFn) {
 
     let join_handle = thread::spawn(|| start_server());
 
+    let browser_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../spider-browser/SpiderBrowser/bin/x64/Release/SpiderBrowser.exe");
+    let child = std::process::Command::new(browser_path)
+        .spawn()
+        .expect("spawn browser");
+
     *lock = Some(Global {
         logmes: String::new(),
         set_mode,
+        child,
         join_handle,
     });
 }
@@ -153,7 +162,11 @@ extern "C" fn spider_server_terminate() {
     // NOTE: 本来はここでサーバーに停止命令を送ってからサーバースレッドに join し、
     //       サーバーを安全に停止させるべきですが、rouille のサーバーを停止させる方法を
     //       まだ調べていません。サーバースレッドはプロセス終了時に abort します。
-    lock.take();
+    let global = lock.take();
+
+    if let Some(mut global) = global {
+        global.child.kill().ok();
+    }
 }
 
 #[no_mangle]
