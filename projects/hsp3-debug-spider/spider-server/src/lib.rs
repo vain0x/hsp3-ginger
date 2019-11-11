@@ -93,7 +93,7 @@ fn start_server() {
     let dist_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dist");
     trace!("dist_dir = {:?}", dist_dir);
 
-    rouille::start_server("localhost:8080", move |request| {
+    rouille::start_server_with_pool("localhost:8080", None, move |request| {
         // Serve dist
         {
             let response = rouille::match_assets(&request, &dist_dir);
@@ -150,8 +150,10 @@ extern "C" fn spider_server_initialize(set_mode: SetModeFn, log_fn: LogFn) {
 extern "C" fn spider_server_terminate() {
     let mut lock = GLOBAL.lock().unwrap();
 
+    // NOTE: 本来はここでサーバーに停止命令を送ってからサーバースレッドに join し、
+    //       サーバーを安全に停止させるべきですが、rouille のサーバーを停止させる方法を
+    //       まだ調べていません。サーバースレッドはプロセス終了時に abort します。
     lock.take();
-    // FIXME: スレッドに join する
 }
 
 #[no_mangle]
