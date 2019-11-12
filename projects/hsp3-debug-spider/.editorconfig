@@ -1,0 +1,22 @@
+root = true
+
+[*.{c,cc,cpp,cxx,h,hh,hpp,hxx}]
+indent_size = 4
+indent_style = tab
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+[*.cs]
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+
+[*.{js,jsx,ts,tsx,html}]
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
