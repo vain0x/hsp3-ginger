@@ -6,7 +6,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-debug-empty
 
-<./projects/hsp3-debug-empty>
+[projects/hsp3-debug-empty](projects/hsp3-debug-empty)
 
 - 何もしないデバッガー
 - 新しいデバッガーを作るときの土台
@@ -14,7 +14,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-debug-spider
 
-<./projects/hsp3-debug-spider>
+[projects/hsp3-debug-spider](projects/hsp3-debug-spider)
 
 - デバッガー
 - Web サーバーとブラウザを起動することで、GUI を HTML/CSS により実装しています。
@@ -23,7 +23,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-debug-ginger
 
-<./projects/hsp3-debug-ginger>
+[projects/hsp3-debug-ginger](projects/hsp3-debug-ginger)
 
 - VSCode 用デバッガー
 - Debug Adapter Protocol 対応
@@ -32,7 +32,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### vscode-ext
 
-<./editors/vscode-ext>
+[editors/vscode-ext](editors/vscode-ext)
 
 - VSCode 拡張機能
 - 言語: TypeScript
