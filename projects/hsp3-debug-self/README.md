@@ -1,5 +1,7 @@
 # hsp3-debug-self
 
+クライアントの実装も HSP3 で書いているデバッガー。
+
 ## 開発環境
 
 - Windows 10
