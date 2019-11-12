@@ -16,6 +16,7 @@
 #define WM_USER 0x0400
 #define WM_HDS_HELLO      (WM_USER +  0)
 #define WM_HDS_SHUTDOWN   (WM_USER +  1)
+#define WM_HDS_LOGMES     (WM_USER +  2)
 
 #define s_hds_title "hsp3-debug-self v0.1.0"
 
@@ -41,6 +42,7 @@
 #define FILE_ATTRIBUTE_NORMAL 0x00000080
 #define INVALID_HANDLE_VALUE (-1)
 
+// Connect the server.
 #deffunc hds_pipe_connect str pipe_name, \
 	local retry_count
 
@@ -63,6 +65,7 @@
 	loop
 	return retry_count > 0
 
+// Send a message to the server.
 #deffunc hds_pipe_send str body, \
 	local body_len, local header, local written_size
 
@@ -80,7 +83,7 @@
 		debug_warn "sending header failed"
 		return false
 	}
-	assert (written_size == strlen(header))
+	assert written_size == strlen(header)
 
 	written_size = 0
 	WriteFile s_pipe, body, body_len, varptr(written_size), NULL
@@ -90,6 +93,58 @@
 	}
 	debug_trace "hds_pipe_send '" + body + "'"
 	return true
+
+#global
+
+#module m_hds_down_buffer
+
+#define true 1
+#define false 0
+#define FILE_MAP_READ 0x0004
+#define NULL 0
+
+#define s_down_buffer_name "hdsdownbuffer"
+#define s_buffer_size 0x8000
+
+#deffunc hds_down_buffer_open
+
+	OpenFileMapping FILE_MAP_READ, false, s_down_buffer_name
+	s_file = stat
+	if s_file == NULL {
+		debug_warn "could not open down buffer"
+		return false
+	}
+
+	MapViewOfFile s_file, FILE_MAP_READ, 0, 0, 0
+	s_view = stat
+	if s_view == NULL {
+		debug_warn "could not create view of down buffer"
+		return false
+	}
+
+	dupptr s_buffer, s_view, s_buffer_size, vartype("str")
+	return true
+
+#deffunc hds_down_buffer_read var buf, int read_size
+
+	if s_view == NULL {
+		poke buf, 0, '\0'
+		return
+	}
+
+	memexpand buf, read_size + 1
+	memcpy buf, s_buffer, read_size
+	poke buf, read_size, '\0'
+	return
+
+#deffunc hds_down_buffer_onexit onexit
+
+	sdim s_buffer
+
+	if s_view != NULL {
+		UnmapViewOfFile s_view
+	}
+	return
 
 #global
 
@@ -104,7 +159,9 @@
 
 	s_connected = false
 
-	sdim s_log, 65535
+	sdim s_down_buffer, 0x8000
+	sdim s_log, 0x8000
+	s_log_prev = ""
 	return
 
 *l_init_windows
@@ -124,6 +181,7 @@
 	onexit goto *l_on_exit
 	oncmd gosub *l_on_hds_hello, WM_HDS_HELLO
 	oncmd gosub *l_on_hds_shutdown, WM_HDS_SHUTDOWN
+	oncmd gosub *l_on_hds_logmes, WM_HDS_LOGMES
 	return
 
 *l_connect
@@ -142,13 +200,23 @@
 	}
 
 	hds_pipe_send "hello:" + str(hwnd) + "\n"
+
+	hds_down_buffer_open
+	if stat == false {
+		debug_warn "could not open down buffer"
+		title s_hds_title + " (DISCONNECTED)"
+		return
+	}
 	return
 
 *l_loop
 
 	debug_trace "loop"
 	repeat
-		objprm s_object_id_logbox, s_log
+		if s_log != s_log_prev {
+			objprm s_object_id_logbox, s_log
+			s_log_prev = s_log
+		}
 		await 3000
 	loop
 
@@ -177,3 +245,18 @@
 	s_connected = false
 	title s_hds_title + " (DISCONNECTED)"
 	end
+
+*l_on_hds_logmes
+	
+	debug_trace "hds_logmes"
+	if s_connected == false {
+		return
+	}
+
+	// down_buffer = text
+	// wparam = text length
+	hds_down_buffer_read s_down_buffer, wparam
+
+	s_log += s_down_buffer
+	s_log += "\n"
+	return
