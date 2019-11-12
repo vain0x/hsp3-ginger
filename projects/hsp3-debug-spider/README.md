@@ -4,16 +4,21 @@
 
 - Windows 10
 - Visual Studio 2019 Community
-- Rust tools
+    - C++ と .NET Framework 開発用のコンポーネントをインストールしてください。
+- Rust ツール
 
-### 開発: Rust tools のインストール
+### 開発: Rust ツールのインストール
 
 <https://rustlang.org>
 
-```rust
+32ビット版 Windows のためのツールチェインをターゲットに追加してください。
+
+```sh
 rustup toolchain install stable-i686-pc-windows-msvc
 rustup target add i686-pc-windows-msvc
 ```
+
+### 開発: browser のビルド
 
 ### 開発: ビルドターゲット
 
@@ -32,6 +37,10 @@ rustup target add i686-pc-windows-msvc
 
 scripts/README.md を参照。
 
+spider-browser のビルドスクリプトはまだないので、Visual Studio 2019 で開き、Release-x64 でビルドしてください。
+
+spider-server のビルドスクリプトもないので、以下のコマンドでビルドしてください。
+
 ```rust
 cargo build --target=i686-pc-windows-msvc
 ```
@@ -39,5 +48,3 @@ cargo build --target=i686-pc-windows-msvc
 ## ライセンス
 
 HSPSDK のライセンスは licenses/openhsp を参照してください。
-
-それ以外はパブリックドメイン (著作権なし) として扱います。
