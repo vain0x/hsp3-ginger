@@ -12,15 +12,6 @@ HSP3 開発ツールを作るプロジェクト。
 - 新しいデバッガーを作るときの土台
 - 言語: C++
 
-### hsp3-debug-spider
-
-[projects/hsp3-debug-spider](projects/hsp3-debug-spider)
-
-- デバッガー
-- Web サーバーとブラウザを起動することで、GUI を HTML/CSS により実装しています。
-- 言語: Rust (サーバー),　JavaScript (クライアント), C# (ブラウザ)
-- 状況: 概念実証 (proof-of-concept) 済み。実用レベルではありません。
-
 ### hsp3-debug-ginger
 
 [projects/hsp3-debug-ginger](projects/hsp3-debug-ginger)
@@ -29,6 +20,15 @@ HSP3 開発ツールを作るプロジェクト。
 - Debug Adapter Protocol 対応
 - 言語: Rust
 - 状況: アルファ版リリース済み。まだ実用レベルではありません。
+
+### hsp3-debug-spider
+
+[projects/hsp3-debug-spider](projects/hsp3-debug-spider)
+
+- デバッガー
+- Web サーバーとブラウザを起動することで、GUI を HTML/CSS により実装しています。
+- 言語: Rust (サーバー),　JavaScript (クライアント), C# (ブラウザ)
+- 状況: 概念実証 (proof-of-concept) 済み。実用レベルではありません。
 
 ### vscode-ext
 
