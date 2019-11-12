@@ -24,6 +24,12 @@
 
 scripts/README.md を参照。
 
+```pwsh
+new-item -itemType symbolicLink -path hds-client -value C:\path\to\hsp3-ginger\projects\hsp3-debug-self\hds-client
+
+copy-item hds-client/hds_client_proxy.exe C:\path\to\hsp3-ginger\projects\hsp3-debug-self\hds-client\hds_client_proxy.exe
+```
+
 ## ライセンス
 
 HSPSDK のライセンスは licenses/openhsp を参照してください。

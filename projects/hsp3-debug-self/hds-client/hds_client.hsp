@@ -8,7 +8,8 @@
 
 #define true 1
 #define false 0
-#define gsel_activate 1
+#define gsel_hide (-1)
+#define gsel_show 1
 #define mesbox_readonly 0
 #define objmode_font 2
 
@@ -18,7 +19,8 @@
 
 #define s_hds_title "hsp3-debug-self v0.1.0"
 
-#enum s_window_id_main = 0
+#enum s_window_id_default = 0
+#enum s_window_id_main
 
 //#ifdef _DEBUG
 #define global debug_trace(%1) logmes "TRACE: " + (%1) : s_log@ += "TRACE: " + (%1) + "\n"
@@ -47,9 +49,9 @@
 		debug_trace "pipe=" + pipe_name
 		CreateFile pipe_name, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL
 		s_pipe = stat
-		if (s_pipe == INVALID_HANDLE_VALUE) {
+		if s_pipe == INVALID_HANDLE_VALUE {
 			retry_count--
-			if (retry_count == 0) {
+			if retry_count == 0 {
 				debug_trace "hds_pipe_connect failed"
 				break
 			}
@@ -64,7 +66,7 @@
 #deffunc hds_pipe_send str body, \
 	local body_len, local header, local written_size
 
-	if (s_pipe == INVALID_HANDLE_VALUE || s_pipe == 0) {
+	if s_pipe == INVALID_HANDLE_VALUE || s_pipe == 0 {
 		debug_trace "hds_pipe_send skip"
 		return
 	}
@@ -74,7 +76,7 @@
 
 	written_size = 0
 	WriteFile s_pipe, header, strlen(header), varptr(written_size), NULL
-	if (stat == 0) {
+	if stat == 0 {
 		debug_warn "sending header failed"
 		return false
 	}
@@ -82,7 +84,7 @@
 
 	written_size = 0
 	WriteFile s_pipe, body, body_len, varptr(written_size), NULL
-	if (stat == 0) {
+	if stat == 0 {
 		debug_warn "sending body failed"
 		return false
 	}
@@ -106,6 +108,9 @@
 	return
 
 *l_init_windows
+	
+	gsel s_window_id_default, gsel_hide
+	screen s_window_id_main, ginfo_dispx, ginfo_dispy, screen_hide | screen_tool, ginfo_dispx - 480 - 8, 0, 480, ginfo_dispy
 
 	title s_hds_title + " (connecting...)"
 
@@ -114,9 +119,9 @@
 	mesbox s_log, ginfo_winx, ginfo_winy, mesbox_readonly
 	s_object_id_logbox = stat
 
-	gsel s_window_id_main, gsel_activate
+	gsel s_window_id_main, gsel_show
 
-	onexit gosub *l_on_exit
+	onexit goto *l_on_exit
 	oncmd gosub *l_on_hds_hello, WM_HDS_HELLO
 	oncmd gosub *l_on_hds_shutdown, WM_HDS_SHUTDOWN
 	return
@@ -124,13 +129,13 @@
 *l_connect
 
 	s_pipe_name = dir_cmdline
-	if (s_pipe_name == "") {
+	if s_pipe_name == "" {
 		s_pipe_name = "\\\\.\\pipe\\hdspipe"
 	}
 
 	debug_trace "connect pipe=" + s_pipe_name
 	hds_pipe_connect s_pipe_name
-	if (stat == false) {
+	if stat == false {
 		debug_warn "not connected"
 		title s_hds_title + " (DISCONNECTED)"
 		return
@@ -164,7 +169,7 @@
 *l_on_hds_shutdown
 
 	debug_trace "hds_shutdown"
-	if (s_connected == false) {
+	if s_connected == false {
 		debug_warn "shutdown twice or before hello"
 		return
 	}

@@ -1,6 +1,7 @@
 // DLL アプリケーションのエントリポイント
 
 #include "pch.h"
+#include <array>
 #include <cassert>
 #include <optional>
 #include <string>
@@ -29,6 +30,25 @@ static auto s_hds_client_hwnd = std::optional<HWND>{};
 static auto s_hds_pipe_name = OsString{ TEXT("\\\\.\\pipe\\hdspipe") };
 static auto s_hds_pipe_server = std::optional<std::thread>{};
 static auto s_terminated = false;
+
+static auto get_hsp_dir() -> OsString {
+	// DLL の絶対パスを取得する。
+	auto buffer = std::array<TCHAR, MAX_PATH>{};
+	GetModuleFileName(GetModuleHandle(nullptr), buffer.data(), buffer.size());
+	auto full_path = OsString{ buffer.data() };
+
+	// ファイル名の部分を削除
+	while (!full_path.empty()) {
+		auto last = full_path[full_path.length() - 1];
+		if (last == TEXT('/') || last == TEXT('\\')) {
+			break;
+		}
+
+		full_path.pop_back();
+	}
+
+	return full_path;
+}
 
 static auto serve_hds_pipe() -> int {
 	static auto const MAX_INSTANCE_COUNT = 2;
@@ -143,8 +163,9 @@ static auto serve_hds_pipe() -> int {
 static void app_initialize() {
 	s_hds_pipe_server = std::make_optional(std::thread{ [] { serve_hds_pipe(); } });
 
-	// FIXME: パスを自動で計算する
-	auto name = OsString{ TEXT("<path-to>/hds_client.exe") };
+	auto name = get_hsp_dir();
+	name += TEXT("hds_client_proxy.exe");
+
 	auto cmdline = s_hds_pipe_name;
 
 	auto si = STARTUPINFO{ sizeof(STARTUPINFO) };
