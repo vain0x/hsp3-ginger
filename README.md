@@ -30,6 +30,13 @@ HSP3 開発ツールを作るプロジェクト。
 - 言語: Rust (サーバー),　JavaScript (クライアント), C# (ブラウザ)
 - 状況: 概念実証 (proof-of-concept) 済み。実用レベルではありません。
 
+### hsp3-ginger
+
+[projects/hsp3-ginger](projects/hsp3-ginger)
+
+- コマンドラインコンパイラを作ろうとしていたもの。
+- 状況: 作業途中
+
 ### vscode-ext
 
 [editors/vscode-ext](editors/vscode-ext)
