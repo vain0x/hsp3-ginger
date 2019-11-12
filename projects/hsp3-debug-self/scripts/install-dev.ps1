@@ -16,7 +16,7 @@ remove-item .lock
 
 function install($name, $platform, $config) {
     $root = (get-item $env:HSP3_ROOT).fullName
-    $src = (get-item "./target/hsp3-debug-empty/$platform-$config/bin/$name").fullName
+    $src = (get-item "./target/hsp3-debug-self/$platform-$config/bin/$name").fullName
     $dest = "$root/$name"
 
     if ($(test-path $dest)) {

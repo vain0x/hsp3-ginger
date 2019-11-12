@@ -5,4 +5,4 @@ if (!$(which MSBuild.exe)) {
     exit 1
 }
 
-MSBuild.exe './hsp3-debug-empty.sln' '-t:Build' '-p:Configuration=DebugUtf8;Platform=x86'
+MSBuild.exe './hsp3-debug-self.sln' '-t:Build' '-p:Configuration=DebugUtf8;Platform=x86'

@@ -6,7 +6,7 @@ if (!$(which MSBuild.exe)) {
 }
 
 function build($config) {
-    $sln = './hsp3-debug-empty.sln'
+    $sln = './hsp3-debug-self.sln'
 
     MSBuild.exe $sln '-t:Build' $config
 }
