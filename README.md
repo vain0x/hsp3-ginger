@@ -6,7 +6,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-debug-empty
 
-[projects/hsp3-debug-empty](projects/hsp3-debug-empty)
+[hsp3-debug-empty](hsp3-debug-empty)
 
 - 何もしないデバッガー
 - 新しいデバッガーを作るときの土台
@@ -14,7 +14,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-debug-ginger
 
-[projects/hsp3-debug-ginger](projects/hsp3-debug-ginger)
+[hsp3-debug-ginger](hsp3-debug-ginger)
 
 - VSCode 用デバッガー
 - Debug Adapter Protocol 対応
@@ -23,7 +23,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-debug-self
 
-[projects/hsp3-debug-self](projects/hsp3-debug-self)
+[hsp3-debug-self](hsp3-debug-self)
 
 - サーバーとクライアントに分離したデバッガー
 - 言語: C++ (サーバー), HSP (クライアント)
@@ -31,7 +31,7 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-debug-spider
 
-[projects/hsp3-debug-spider](projects/hsp3-debug-spider)
+[hsp3-debug-spider](hsp3-debug-spider)
 
 - デバッガー
 - Web サーバーとブラウザを起動することで、GUI を HTML/CSS により実装しています。
@@ -40,25 +40,25 @@ HSP3 開発ツールを作るプロジェクト。
 
 ### hsp3-ginger
 
-[projects/hsp3-ginger](projects/hsp3-ginger)
+[hsp3-ginger](hsp3-ginger)
 
 - コマンドラインコンパイラを作ろうとしていたもの。
 - 状況: 作業途中
 
 ### vscode-ext
 
-[editors/vscode-ext](editors/vscode-ext)
+[vscode-ext](vscode-ext)
 
 - VSCode 拡張機能
 - 言語: TypeScript
 - 状況: シンタックスハイライトのみ
 - 備考: [honobonosun/vscode-language-hsp3](https://github.com/honobonosun/vscode-language-hsp3) を使ってください。
 
-## サブツリー
+## その他
 
-lib/ 以下は他のリポジトリのコードの再配布です。
+以下は他のリポジトリのコードの再配布です。
 
-### lib/language-hsp3:
+### language-hsp3
 
 [language-hsp3](https://github.com/honobonosun/language-hsp3)
 

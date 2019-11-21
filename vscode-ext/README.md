@@ -9,7 +9,7 @@
 
 ```
 cp ../../LICENSE LICENSE
-cp ../../lib/language-hsp3/grammars/hsp3.json syntaxes/hsp3.json
+cp ../language-hsp3/grammars/hsp3.json syntaxes/hsp3.json
 
 yarn
 yarn vsce package --yarn --out ginger.vsix
