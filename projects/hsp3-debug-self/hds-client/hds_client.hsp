@@ -1,0 +1,262 @@
+// hsp3-debug-self (HDS) main script
+
+#include "hsp3utf.as"
+#include "kernel32.as"
+
+#packopt name "hds_client"
+#packopt hide 1
+
+#define true 1
+#define false 0
+#define gsel_hide (-1)
+#define gsel_show 1
+#define mesbox_readonly 0
+#define objmode_font 2
+
+#define WM_USER 0x0400
+#define WM_HDS_HELLO      (WM_USER +  0)
+#define WM_HDS_SHUTDOWN   (WM_USER +  1)
+#define WM_HDS_LOGMES     (WM_USER +  2)
+
+#define s_hds_title "hsp3-debug-self v0.1.0"
+
+#enum s_window_id_default = 0
+#enum s_window_id_main
+
+//#ifdef _DEBUG
+#define global debug_trace(%1) logmes "TRACE: " + (%1) : s_log@ += "TRACE: " + (%1) + "\n"
+#define global debug_warn(%1) s_log@ += "WARN: " + (%1) + "\n"
+//#else
+//#define global debug_trace(%1) :
+//#endif
+
+#module m_hds_pipe
+
+#define true 1
+#define false 0
+
+#define NULL 0
+#define GENERIC_READ 0x80000000
+#define GENERIC_WRITE 0x40000000
+#define OPEN_EXISTING 3
+#define FILE_ATTRIBUTE_NORMAL 0x00000080
+#define INVALID_HANDLE_VALUE (-1)
+
+// Connect the server.
+#deffunc hds_pipe_connect str pipe_name, \
+	local retry_count
+
+	retry_count = 10
+	repeat
+		debug_trace "pipe=" + pipe_name
+		CreateFile pipe_name, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL
+		s_pipe = stat
+		if s_pipe == INVALID_HANDLE_VALUE {
+			retry_count--
+			if retry_count == 0 {
+				debug_trace "hds_pipe_connect failed"
+				break
+			}
+			debug_trace "hds_pipe_connect retrying..."
+			await 333
+			continue
+		}
+		break
+	loop
+	return retry_count > 0
+
+// Send a message to the server.
+#deffunc hds_pipe_send str body, \
+	local body_len, local header, local written_size
+
+	if s_pipe == INVALID_HANDLE_VALUE || s_pipe == 0 {
+		debug_trace "hds_pipe_send skip"
+		return
+	}
+
+	body_len = strlen(body)
+	header = "Content-Length: " + body_len + "\n\n"
+
+	written_size = 0
+	WriteFile s_pipe, header, strlen(header), varptr(written_size), NULL
+	if stat == 0 {
+		debug_warn "sending header failed"
+		return false
+	}
+	assert written_size == strlen(header)
+
+	written_size = 0
+	WriteFile s_pipe, body, body_len, varptr(written_size), NULL
+	if stat == 0 {
+		debug_warn "sending body failed"
+		return false
+	}
+	debug_trace "hds_pipe_send '" + body + "'"
+	return true
+
+#global
+
+#module m_hds_down_buffer
+
+#define true 1
+#define false 0
+#define FILE_MAP_READ 0x0004
+#define NULL 0
+
+#define s_down_buffer_name "hdsdownbuffer"
+#define s_buffer_size 0x8000
+
+#deffunc hds_down_buffer_open
+
+	OpenFileMapping FILE_MAP_READ, false, s_down_buffer_name
+	s_file = stat
+	if s_file == NULL {
+		debug_warn "could not open down buffer"
+		return false
+	}
+
+	MapViewOfFile s_file, FILE_MAP_READ, 0, 0, 0
+	s_view = stat
+	if s_view == NULL {
+		debug_warn "could not create view of down buffer"
+		return false
+	}
+
+	dupptr s_buffer, s_view, s_buffer_size, vartype("str")
+	return true
+
+#deffunc hds_down_buffer_read var buf, int read_size
+
+	if s_view == NULL {
+		poke buf, 0, '\0'
+		return
+	}
+
+	memexpand buf, read_size + 1
+	memcpy buf, s_buffer, read_size
+	poke buf, read_size, '\0'
+	return
+
+#deffunc hds_down_buffer_onexit onexit
+
+	sdim s_buffer
+
+	if s_view != NULL {
+		UnmapViewOfFile s_view
+	}
+	return
+
+#global
+
+*l_boot
+
+	gosub *l_init_globals
+	gosub *l_init_windows
+	gosub *l_connect
+	goto *l_loop
+
+*l_init_globals
+
+	s_connected = false
+
+	sdim s_down_buffer, 0x8000
+	sdim s_log, 0x8000
+	s_log_prev = ""
+	return
+
+*l_init_windows
+	
+	gsel s_window_id_default, gsel_hide
+	screen s_window_id_main, ginfo_dispx, ginfo_dispy, screen_hide | screen_tool, ginfo_dispx - 480 - 8, 0, 480, ginfo_dispy
+
+	title s_hds_title + " (connecting...)"
+
+	font "MS Gothic", 12
+	objmode objmode_font
+	mesbox s_log, ginfo_winx, ginfo_winy, mesbox_readonly
+	s_object_id_logbox = stat
+
+	gsel s_window_id_main, gsel_show
+
+	onexit goto *l_on_exit
+	oncmd gosub *l_on_hds_hello, WM_HDS_HELLO
+	oncmd gosub *l_on_hds_shutdown, WM_HDS_SHUTDOWN
+	oncmd gosub *l_on_hds_logmes, WM_HDS_LOGMES
+	return
+
+*l_connect
+
+	s_pipe_name = dir_cmdline
+	if s_pipe_name == "" {
+		s_pipe_name = "\\\\.\\pipe\\hdspipe"
+	}
+
+	debug_trace "connect pipe=" + s_pipe_name
+	hds_pipe_connect s_pipe_name
+	if stat == false {
+		debug_warn "not connected"
+		title s_hds_title + " (DISCONNECTED)"
+		return
+	}
+
+	hds_pipe_send "hello:" + str(hwnd) + "\n"
+
+	hds_down_buffer_open
+	if stat == false {
+		debug_warn "could not open down buffer"
+		title s_hds_title + " (DISCONNECTED)"
+		return
+	}
+	return
+
+*l_loop
+
+	debug_trace "loop"
+	repeat
+		if s_log != s_log_prev {
+			objprm s_object_id_logbox, s_log
+			s_log_prev = s_log
+		}
+		await 3000
+	loop
+
+*l_on_exit
+
+	hds_pipe_send "shutdown\n"
+	end
+
+*l_on_hds_hello
+
+	debug_trace "hds_hello"
+	assert s_connected == false
+
+	s_connected = true
+	title s_hds_title
+	return
+
+*l_on_hds_shutdown
+
+	debug_trace "hds_shutdown"
+	if s_connected == false {
+		debug_warn "shutdown twice or before hello"
+		return
+	}
+
+	s_connected = false
+	title s_hds_title + " (DISCONNECTED)"
+	end
+
+*l_on_hds_logmes
+	
+	debug_trace "hds_logmes"
+	if s_connected == false {
+		return
+	}
+
+	// down_buffer = text
+	// wparam = text length
+	hds_down_buffer_read s_down_buffer, wparam
+
+	s_log += s_down_buffer
+	s_log += "\n"
+	return

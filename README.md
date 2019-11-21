@@ -21,6 +21,14 @@ HSP3 開発ツールを作るプロジェクト。
 - 言語: Rust
 - 状況: アルファ版リリース済み。まだ実用レベルではありません。
 
+### hsp3-debug-self
+
+[projects/hsp3-debug-self](projects/hsp3-debug-self)
+
+- サーバーとクライアントに分離したデバッガー
+- 言語: C++ (サーバー), HSP (クライアント)
+- 状況: 概念実証レベル。コンセプトは [knowbug v2](https://github.com/vain0x) に引き継がれました。
+
 ### hsp3-debug-spider
 
 [projects/hsp3-debug-spider](projects/hsp3-debug-spider)
