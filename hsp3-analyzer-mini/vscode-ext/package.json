@@ -1,0 +1,60 @@
+{
+  "name": "hsp3-analyzer-mini",
+  "version": "0.1.0",
+  "description": "HSP3 minimum-viable LSP extension",
+  "repository": "https://github.com/vain0x/hsp3-ginger",
+  "author": "vain0x",
+  "publisher": "vain0x",
+  "license": "MIT",
+  "private": true,
+  "main": "./out/extension",
+  "activationEvents": [
+    "onLanguage:hsp3"
+  ],
+  "engines": {
+    "vscode": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.11",
+    "typescript": "^3.7.2",
+    "vsce": "^1.69.0",
+    "vscode": "^1.1.36",
+    "vscode-languageserver-protocol": "^3.14.1"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^5.2.1"
+  },
+  "scripts": {
+    "postinstall": "vscode-install",
+    "build": "tsc -b",
+    "watch": "tsc -w",
+    "vsce": "vsce"
+  },
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "hsp3-analyzer-mini config",
+      "properties": {
+        "hsp3-analyzer-mini.hsp3-root": {
+          "type": "string",
+          "description": "HSP のディレクトリへの絶対パス。未指定時は、環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。"
+        },
+        "hsp3-analyzer-mini.lsp-bin": {
+          "type": "string",
+          "description": "[開発者向け] LSP の実行ファイルへの絶対パス。未指定時は同梱されているものが使用されます。"
+        },
+        "hsp3-analyzer-mini.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "[開発者向け] LSP サーバーの通信ログの詳細度",
+          "scope": "window"
+        }
+      }
+    }
+  }
+}

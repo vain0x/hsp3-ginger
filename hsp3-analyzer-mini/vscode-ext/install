@@ -1,0 +1,15 @@
+#!/bin/bash
+# Build compiler before this.
+
+set -eux
+
+cp ../target/release/ham-lsp ./out/ham-lsp
+
+npm install
+npm run build
+npm run vsce -- package -o ham.vsix
+
+./uninstall || :
+code --install-extension ham.vsix
+
+rm ham.vsix

@@ -4,6 +4,15 @@ HSP3 開発ツールを作るプロジェクト。
 
 ## プロジェクト
 
+### hsp3-analyzer-mini
+
+[hsp3-analyzer-mini](hsp3-analyzer-mini)
+
+- LSP クライアント (入力補完など機能)
+- VSCode に拡張機能をインストールすることで入力補完やホバーなどの支援を受けられます。
+- 言語: Rust
+- 状況: 基本的な機能は実装済み。最低限の実用可能なレベルです。マクロや複数行文字列など、複雑な機能には対応していません。
+
 ### hsp3-debug-empty
 
 [hsp3-debug-empty](hsp3-debug-empty)

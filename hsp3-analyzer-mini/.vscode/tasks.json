@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "ham:build",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "ext:build",
+            "type": "shell",
+            "command": "yarn",
+            "args": [
+                "build"
+            ],
+            "options": {
+                "cwd": "./vscode-ext"
+            },
+            "group": "build",
+            "dependsOn": "ham:build"
+        }
+    ]
+}

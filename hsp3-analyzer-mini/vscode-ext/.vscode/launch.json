@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "extensionHost",
+            "request": "launch",
+            "name": "Launch Extension Host",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "env": {
+                "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham-lsp"
+            },
+            "preLaunchTask": "ext:build"
+        }
+    ],
+    "compounds": []
+}
