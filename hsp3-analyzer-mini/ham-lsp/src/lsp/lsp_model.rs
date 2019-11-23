@@ -25,6 +25,14 @@ pub(super) struct LspModel {
     file_event_rx: Option<Receiver<DebouncedEvent>>,
 }
 
+fn canonicalize_uri(uri: Url) -> Url {
+    uri.to_file_path()
+        .ok()
+        .and_then(|path| path.canonicalize().ok())
+        .and_then(|path| Url::from_file_path(path).ok())
+        .unwrap_or(uri)
+}
+
 fn file_ext_is_watched(path: &Path) -> bool {
     path.extension()
         .map_or(false, |ext| ext == "hsp" || ext == "as")
@@ -147,7 +155,7 @@ impl LspModel {
             .map_err(|err| warn!("カレントディレクトリの取得 {:?}", err))
             .ok()?;
 
-        let glob_pattern = format!("{}/**/*.{{hsp,as}}", current_dir.to_str()?);
+        let glob_pattern = format!("{}/**/*.hsp", current_dir.to_str()?);
 
         debug!("ファイルリストを取得します '{}'", glob_pattern);
 
@@ -280,14 +288,14 @@ impl LspModel {
         self.shutdown_file_watcher();
     }
 
-    fn do_change_doc(&mut self, uri: &Url, _version: u64, text: String) {
+    fn do_change_doc(&mut self, uri: Url, _version: u64, text: String) {
         debug!("追加または変更されたファイルを解析します {:?}", uri);
 
-        let doc = match self.uri_to_doc.get(uri) {
+        let doc = match self.uri_to_doc.get(&uri) {
             None => {
                 let doc = self.fresh_doc();
                 self.doc_to_uri.insert(doc, uri.clone());
-                self.uri_to_doc.insert(uri.clone(), doc);
+                self.uri_to_doc.insert(uri, doc);
                 doc
             }
             Some(&doc) => doc,
@@ -296,42 +304,47 @@ impl LspModel {
         self.sem.update_doc(doc, text.into());
     }
 
-    fn do_close_doc(&mut self, uri: &Url) {
-        if let Some(&doc) = self.uri_to_doc.get(uri) {
+    fn do_close_doc(&mut self, uri: Url) {
+        if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.sem.close_doc(doc);
             self.doc_to_uri.remove(&doc);
         }
 
-        self.uri_to_doc.remove(uri);
+        self.uri_to_doc.remove(&uri);
     }
 
     pub(super) fn open_doc(&mut self, uri: Url, version: u64, text: String) {
-        self.poll();
+        let uri = canonicalize_uri(uri);
 
-        self.do_change_doc(&uri, version, text);
+        self.do_change_doc(uri.clone(), version, text);
 
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.open_docs.insert(doc);
         }
+
+        self.poll();
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: u64, text: String) {
-        self.poll();
+        let uri = canonicalize_uri(uri);
 
-        self.do_change_doc(&uri, version, text);
+        self.do_change_doc(uri.clone(), version, text);
 
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.open_docs.insert(doc);
         }
+
+        self.poll();
     }
 
-    pub(super) fn close_doc(&mut self, uri: &Url) {
-        self.poll();
+    pub(super) fn close_doc(&mut self, uri: Url) {
+        let uri = canonicalize_uri(uri);
 
-        debug!("ファイルが閉じられました {:?}", uri);
-        if let Some(&doc) = self.uri_to_doc.get(uri) {
+        if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.open_docs.remove(&doc);
         }
+
+        self.poll();
     }
 
     pub(super) fn change_file(&mut self, path: &Path) -> Option<()> {
@@ -343,6 +356,8 @@ impl LspModel {
         let uri = Url::from_file_path(path)
             .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
             .ok()?;
+        let uri = canonicalize_uri(uri);
+
         let is_open = self
             .uri_to_doc
             .get(&uri)
@@ -358,7 +373,7 @@ impl LspModel {
         }
 
         let version = 1;
-        self.do_change_doc(&uri, version, text);
+        self.do_change_doc(uri, version, text);
 
         None
     }
@@ -368,7 +383,9 @@ impl LspModel {
             .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
             .ok()?;
 
-        self.do_close_doc(&uri);
+        let uri = canonicalize_uri(uri);
+
+        self.do_close_doc(uri);
 
         None
     }
@@ -421,17 +438,19 @@ impl LspModel {
         })
     }
 
-    pub(super) fn completion(&mut self, uri: &Url, position: Position) -> CompletionList {
+    pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
+        let uri = canonicalize_uri(uri);
 
-        self.do_completion(uri, position).unwrap_or(CompletionList {
-            is_incomplete: true,
-            items: vec![],
-        })
+        self.do_completion(&uri, position)
+            .unwrap_or(CompletionList {
+                is_incomplete: true,
+                items: vec![],
+            })
     }
 
-    fn do_definitions(&mut self, uri: &Url, position: Position) -> Option<Vec<Location>> {
-        let loc = self.to_loc(uri, position)?;
+    fn do_definitions(&mut self, uri: Url, position: Position) -> Option<Vec<Location>> {
+        let loc = self.to_loc(&uri, position)?;
         let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
         let symbol_id = symbol.symbol_id;
 
@@ -446,14 +465,15 @@ impl LspModel {
         )
     }
 
-    pub(super) fn definitions(&mut self, uri: &Url, position: Position) -> Vec<Location> {
+    pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
+        let uri = canonicalize_uri(uri);
 
         self.do_definitions(uri, position).unwrap_or(vec![])
     }
 
-    fn do_highlights(&mut self, uri: &Url, position: Position) -> Option<Vec<DocumentHighlight>> {
-        let loc = self.to_loc(uri, position)?;
+    fn do_highlights(&mut self, uri: Url, position: Position) -> Option<Vec<DocumentHighlight>> {
+        let loc = self.to_loc(&uri, position)?;
         let doc = loc.doc;
         let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
         let symbol_id = symbol.symbol_id;
@@ -483,16 +503,18 @@ impl LspModel {
         )
     }
 
-    pub(super) fn highlights(&mut self, uri: &Url, position: Position) -> Vec<DocumentHighlight> {
+    pub(super) fn highlights(&mut self, uri: Url, position: Position) -> Vec<DocumentHighlight> {
         self.poll();
+        let uri = canonicalize_uri(uri);
 
         self.do_highlights(uri, position).unwrap_or(vec![])
     }
 
-    pub(super) fn hover(&mut self, uri: &Url, position: Position) -> Option<Hover> {
+    pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
+        let uri = canonicalize_uri(uri);
 
-        let loc = self.to_loc(uri, position)?;
+        let loc = self.to_loc(&uri, position)?;
         let (symbol, symbol_loc) = self.sem.locate_symbol(loc.doc, loc.start)?;
         let symbol_id = symbol.symbol_id;
 
@@ -540,11 +562,11 @@ impl LspModel {
 
     fn do_references(
         &mut self,
-        uri: &Url,
+        uri: Url,
         position: Position,
         include_definition: bool,
     ) -> Option<Vec<Location>> {
-        let loc = self.to_loc(uri, position)?;
+        let loc = self.to_loc(&uri, position)?;
         let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
         let symbol_id = symbol.symbol_id;
 
@@ -564,17 +586,21 @@ impl LspModel {
 
     pub(super) fn references(
         &mut self,
-        uri: &Url,
+        uri: Url,
         position: Position,
         include_definition: bool,
     ) -> Vec<Location> {
         self.poll();
+        let uri = canonicalize_uri(uri);
 
         self.do_references(uri, position, include_definition)
             .unwrap_or(vec![])
     }
 
-    pub(super) fn validate(&mut self, _uri: &Url) -> Vec<Diagnostic> {
+    pub(super) fn validate(&mut self, _uri: Url) -> Vec<Diagnostic> {
+        // self.poll();
+        // let uri = canonicalize_uri(uri);
+
         // features::diagnostics::sem_to_diagnostics(&analysis.sem)
         vec![]
     }
