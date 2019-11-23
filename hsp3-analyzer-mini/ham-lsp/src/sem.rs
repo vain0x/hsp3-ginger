@@ -435,7 +435,7 @@ fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
         documentation.push(
             lines[y..]
                 .into_iter()
-                .map(|s| s.as_str())
+                .map(|s| s.as_str().trim())
                 .collect::<Vec<_>>()
                 .join("\r\n"),
         );
