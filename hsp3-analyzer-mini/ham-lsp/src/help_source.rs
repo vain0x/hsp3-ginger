@@ -177,7 +177,7 @@ fn parse_for_symbols(
         }
 
         if let Some(inst) = map.get("inst") {
-            documentation.push(inst.join("EOL").trim().to_string());
+            documentation.extend(inst.iter().map(|s| s.to_string()));
         }
 
         symbols.push(HsSymbol {
