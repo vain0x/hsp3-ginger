@@ -62,8 +62,8 @@ type SymbolMap = HashMap<RcStr, Vec<Rc<Symbol>>>;
 // FIXME:　複数行文字列やコメント？
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum LineKind {
-    PP,
     Ground,
+    PreProc,
 }
 
 #[derive(Clone, Debug)]
@@ -123,7 +123,7 @@ impl Line {
     }
 }
 
-// プリプロセッサ行かどうか分類する。
+// 行をおおまかに分類する。
 pub(crate) fn parse_as_lines(
     doc: DocId,
     text: RcStr,
@@ -151,7 +151,7 @@ pub(crate) fn parse_as_lines(
                 }
             } else {
                 lines.push(Line {
-                    kind: LineKind::PP,
+                    kind: LineKind::PreProc,
                     doc,
                     row,
                     text: line_text.clone(),
@@ -285,7 +285,7 @@ pub(crate) fn analyze_pp_scopes(
     let mut command_start = None;
 
     for line in lines.iter_mut() {
-        if line.kind == LineKind::PP {
+        if line.kind == LineKind::PreProc {
             if line.text.as_str().contains("#module") {
                 module_start = Some(line.row);
             }
@@ -436,7 +436,7 @@ pub(crate) fn collect_commands(
     symbol_defs: &mut HashMap<usize, Vec<Loc>>,
 ) {
     for line in lines.iter_mut() {
-        if line.kind != LineKind::PP {
+        if line.kind != LineKind::PreProc {
             continue;
         }
 
@@ -514,7 +514,7 @@ pub(crate) fn collect_macro(
     symbol_defs: &mut HashMap<usize, Vec<Loc>>,
 ) {
     for line in lines.iter_mut() {
-        if line.kind != LineKind::PP {
+        if line.kind != LineKind::PreProc {
             continue;
         }
 
