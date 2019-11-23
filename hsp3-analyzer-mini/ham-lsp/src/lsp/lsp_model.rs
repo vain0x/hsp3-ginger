@@ -1,18 +1,46 @@
 use crate::help_source::collect_all_symbols;
 use crate::sem::{self, ProjectSem};
 use crate::syntax::{self, DocId};
+use encoding::{
+    codec::utf_8::UTF8Encoding, label::encoding_from_windows_code_page, DecoderTrap, Encoding,
+    StringWriter,
+};
 use lsp_types::*;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use notify::{DebouncedEvent, RecommendedWatcher};
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::mpsc::{Receiver, TryRecvError};
 
 #[derive(Default)]
 pub(super) struct LspModel {
     last_doc: usize,
     doc_to_uri: HashMap<DocId, Url>,
     uri_to_doc: HashMap<Url, DocId>,
+    open_docs: HashSet<DocId>,
     sem: ProjectSem,
     hsp_root: PathBuf,
+    file_watcher: Option<RecommendedWatcher>,
+    file_event_rx: Option<Receiver<DebouncedEvent>>,
+}
+
+fn file_ext_is_watched(path: &Path) -> bool {
+    path.extension()
+        .map_or(false, |ext| ext == "hsp" || ext == "as")
+}
+
+/// ファイルを shift_jis または UTF-8 として読む。
+fn read_file(file_path: &Path, out: &mut impl StringWriter, shift_jis: &dyn Encoding) -> bool {
+    let content = match fs::read(file_path).ok() {
+        None => return false,
+        Some(x) => x,
+    };
+
+    shift_jis
+        .decode_to(&content, DecoderTrap::Strict, out)
+        .or_else(|_| UTF8Encoding.decode_to(&content, DecoderTrap::Strict, out))
+        .is_ok()
 }
 
 fn loc_to_range(loc: syntax::Loc) -> Range {
@@ -69,6 +97,7 @@ impl LspModel {
     }
 
     pub(super) fn did_initialize(&mut self) {
+        debug!("hsphelp ファイルからシンボルを探索します。");
         let mut file_count = 0;
         let mut symbols = vec![];
         let mut warnings = vec![];
@@ -104,18 +133,161 @@ impl LspModel {
         self.sem.last_symbol_id += symbols.len();
 
         self.sem.add_hs_symbols(doc, symbols);
+
+        self.scan_files();
+
+        if let Some((file_watcher, file_event_rx)) = self.start_file_watcher() {
+            self.file_watcher = Some(file_watcher);
+            self.file_event_rx = Some(file_event_rx);
+        }
     }
 
-    pub(super) fn open_doc(&mut self, uri: Url, version: u64, text: String) {
-        self.change_doc(uri, version, text.into());
+    fn scan_files(&mut self) -> Option<()> {
+        let current_dir = std::env::current_dir()
+            .map_err(|err| warn!("カレントディレクトリの取得 {:?}", err))
+            .ok()?;
+
+        let glob_pattern = format!("{}/**/*.{{hsp,as}}", current_dir.to_str()?);
+
+        debug!("ファイルリストを取得します '{}'", glob_pattern);
+
+        let entries = match glob::glob(&glob_pattern) {
+            Err(err) => {
+                warn!("ファイルリストの取得 {:?}", err);
+                return None;
+            }
+            Ok(entries) => entries,
+        };
+
+        for entry in entries {
+            match entry {
+                Err(err) => warn!("ファイルエントリの取得 {:?}", err),
+                Ok(path) => {
+                    self.change_file(&path);
+                }
+            }
+        }
+
+        None
     }
 
-    pub(super) fn change_doc(&mut self, uri: Url, _version: u64, text: String) {
-        let doc = match self.uri_to_doc.get(&uri) {
+    fn start_file_watcher(&mut self) -> Option<(RecommendedWatcher, Receiver<DebouncedEvent>)> {
+        debug!("ファイルウォッチャーを起動します");
+
+        use notify::{RecursiveMode, Watcher};
+        use std::sync::mpsc::channel;
+        use std::time::Duration;
+
+        let delay_millis = 1000;
+
+        let current_dir = std::env::current_dir()
+            .map_err(|err| warn!("カレントディレクトリの取得 {:?}", err))
+            .ok()?;
+
+        let (tx, rx) = channel();
+
+        let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_millis(delay_millis))
+            .map_err(|err| warn!("ファイルウォッチャーの作成 {:?}", err))
+            .ok()?;
+
+        watcher
+            .watch(&current_dir, RecursiveMode::Recursive)
+            .map_err(|err| warn!("ファイルウォッチャーの起動 {:?}", err))
+            .ok()?;
+
+        debug!("ファイルウォッチャーを起動しました ({:?})", current_dir);
+        Some((watcher, rx))
+    }
+
+    fn poll(&mut self) {
+        let rx = match self.file_event_rx.as_mut() {
+            None => return,
+            Some(rx) => rx,
+        };
+
+        debug!("ファイルウォッチャーのイベントをポールします。");
+
+        let mut rescan = false;
+        let mut updated_paths = HashSet::new();
+        let mut removed_paths = HashSet::new();
+        let mut disconnected = false;
+
+        loop {
+            match rx.try_recv() {
+                Ok(DebouncedEvent::Create(ref path)) if file_ext_is_watched(path) => {
+                    debug!("ファイルが作成されました: {:?}", path);
+                    updated_paths.insert(path.clone());
+                }
+                Ok(DebouncedEvent::Write(ref path)) if file_ext_is_watched(path) => {
+                    debug!("ファイルが変更されました: {:?}", path);
+                    updated_paths.insert(path.clone());
+                }
+                Ok(DebouncedEvent::Remove(ref path)) if file_ext_is_watched(path) => {
+                    debug!("ファイルが削除されました: {:?}", path);
+                    removed_paths.insert(path.clone());
+                }
+                Ok(DebouncedEvent::Rename(ref src_path, ref dest_path)) => {
+                    debug!("ファイルが移動しました: {:?} → {:?}", src_path, dest_path);
+                    if file_ext_is_watched(src_path) {
+                        removed_paths.insert(src_path.clone());
+                    }
+                    if file_ext_is_watched(dest_path) {
+                        updated_paths.insert(dest_path.clone());
+                    }
+                }
+                Ok(DebouncedEvent::Rescan) => {
+                    debug!("ファイルウォッチャーから再スキャンが要求されました");
+                    rescan = true;
+                }
+                Ok(ev) => {
+                    debug!("ファイルウォッチャーのイベントをスキップします: {:?}", ev);
+                }
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => {
+                    disconnected = true;
+                    break;
+                }
+            }
+        }
+
+        if rescan {
+            self.scan_files();
+        } else {
+            for path in updated_paths {
+                if removed_paths.contains(&path) {
+                    continue;
+                }
+                self.change_file(&path);
+            }
+
+            for path in removed_paths {
+                self.close_file(&path);
+            }
+        }
+
+        if disconnected {
+            self.shutdown_file_watcher();
+        }
+    }
+
+    fn shutdown_file_watcher(&mut self) {
+        debug!("ファイルウォッチャーがシャットダウンしました。");
+        self.file_watcher.take();
+        self.file_event_rx.take();
+    }
+
+    pub(super) fn shutdown(&mut self) {
+        self.shutdown_file_watcher();
+    }
+
+    fn do_change_doc(&mut self, uri: &Url, _version: u64, text: String) {
+        debug!("追加または変更されたファイルを解析します {:?}", uri);
+
+        let doc = match self.uri_to_doc.get(uri) {
             None => {
                 let doc = self.fresh_doc();
                 self.doc_to_uri.insert(doc, uri.clone());
-                self.uri_to_doc.insert(uri, doc);
+                self.uri_to_doc.insert(uri.clone(), doc);
                 doc
             }
             Some(&doc) => doc,
@@ -124,16 +296,81 @@ impl LspModel {
         self.sem.update_doc(doc, text.into());
     }
 
-    pub(super) fn close_doc(&mut self, uri: &Url) {
-        let doc = match self.uri_to_doc.get(uri) {
-            None => return,
-            Some(&doc) => doc,
-        };
-
-        self.sem.close_doc(doc);
+    fn do_close_doc(&mut self, uri: &Url) {
+        if let Some(&doc) = self.uri_to_doc.get(uri) {
+            self.sem.close_doc(doc);
+            self.doc_to_uri.remove(&doc);
+        }
 
         self.uri_to_doc.remove(uri);
-        self.doc_to_uri.remove(&doc);
+    }
+
+    pub(super) fn open_doc(&mut self, uri: Url, version: u64, text: String) {
+        self.poll();
+
+        self.do_change_doc(&uri, version, text);
+
+        if let Some(&doc) = self.uri_to_doc.get(&uri) {
+            self.open_docs.insert(doc);
+        }
+    }
+
+    pub(super) fn change_doc(&mut self, uri: Url, version: u64, text: String) {
+        self.poll();
+
+        self.do_change_doc(&uri, version, text);
+
+        if let Some(&doc) = self.uri_to_doc.get(&uri) {
+            self.open_docs.insert(doc);
+        }
+    }
+
+    pub(super) fn close_doc(&mut self, uri: &Url) {
+        self.poll();
+
+        debug!("ファイルが閉じられました {:?}", uri);
+        if let Some(&doc) = self.uri_to_doc.get(uri) {
+            self.open_docs.remove(&doc);
+        }
+    }
+
+    pub(super) fn change_file(&mut self, path: &Path) -> Option<()> {
+        let shift_jis = encoding_from_windows_code_page(932).or_else(|| {
+            warn!("shift_jis エンコーディングの取得");
+            None
+        })?;
+
+        let uri = Url::from_file_path(path)
+            .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
+            .ok()?;
+        let is_open = self
+            .uri_to_doc
+            .get(&uri)
+            .map_or(false, |doc| self.open_docs.contains(&doc));
+        if is_open {
+            debug!("ファイルは開かれているのでロードされません。");
+            return None;
+        }
+
+        let mut text = String::new();
+        if !read_file(path, &mut text, shift_jis) {
+            warn!("ファイルを開けません {:?}", path);
+        }
+
+        let version = 1;
+        self.do_change_doc(&uri, version, text);
+
+        None
+    }
+
+    pub(super) fn close_file(&mut self, path: &Path) -> Option<()> {
+        let uri = Url::from_file_path(path)
+            .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
+            .ok()?;
+
+        self.do_close_doc(&uri);
+
+        None
     }
 
     fn do_completion(&mut self, uri: &Url, position: Position) -> Option<CompletionList> {
@@ -185,6 +422,8 @@ impl LspModel {
     }
 
     pub(super) fn completion(&mut self, uri: &Url, position: Position) -> CompletionList {
+        self.poll();
+
         self.do_completion(uri, position).unwrap_or(CompletionList {
             is_incomplete: true,
             items: vec![],
@@ -208,6 +447,8 @@ impl LspModel {
     }
 
     pub(super) fn definitions(&mut self, uri: &Url, position: Position) -> Vec<Location> {
+        self.poll();
+
         self.do_definitions(uri, position).unwrap_or(vec![])
     }
 
@@ -243,10 +484,14 @@ impl LspModel {
     }
 
     pub(super) fn highlights(&mut self, uri: &Url, position: Position) -> Vec<DocumentHighlight> {
+        self.poll();
+
         self.do_highlights(uri, position).unwrap_or(vec![])
     }
 
     pub(super) fn hover(&mut self, uri: &Url, position: Position) -> Option<Hover> {
+        self.poll();
+
         let loc = self.to_loc(uri, position)?;
         let (symbol, symbol_loc) = self.sem.locate_symbol(loc.doc, loc.start)?;
         let symbol_id = symbol.symbol_id;
@@ -323,6 +568,8 @@ impl LspModel {
         position: Position,
         include_definition: bool,
     ) -> Vec<Location> {
+        self.poll();
+
         self.do_references(uri, position, include_definition)
             .unwrap_or(vec![])
     }

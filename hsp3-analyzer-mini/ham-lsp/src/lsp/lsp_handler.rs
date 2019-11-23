@@ -44,7 +44,7 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn shutdown(&mut self) {
-        // Pass
+        self.model.shutdown();
     }
 
     fn did_exit(&mut self, _json: &str) {
