@@ -44,7 +44,7 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn shutdown(&mut self) {
-        // Pass
+        self.model.shutdown();
     }
 
     fn did_exit(&mut self, _json: &str) {
@@ -56,7 +56,7 @@ impl<W: io::Write> LspHandler<W> {
         let uri = doc.uri.to_owned();
         self.model.open_doc(doc.uri, doc.version, doc.text);
 
-        self.text_document_did_open_or_change(&uri);
+        self.text_document_did_open_or_change(uri);
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
@@ -71,28 +71,25 @@ impl<W: io::Write> LspHandler<W> {
 
         self.model.change_doc(doc.uri, version, text);
 
-        self.text_document_did_open_or_change(&uri);
+        self.text_document_did_open_or_change(uri);
     }
 
-    fn text_document_did_open_or_change(&mut self, uri: &Url) {
-        let diagnostics = self.model.validate(uri);
+    fn text_document_did_open_or_change(&mut self, uri: Url) {
+        let diagnostics = self.model.validate(uri.clone());
 
         self.sender.send_notification(
             "textDocument/publishDiagnostics",
-            PublishDiagnosticsParams {
-                uri: uri.clone(),
-                diagnostics,
-            },
+            PublishDiagnosticsParams { uri, diagnostics },
         );
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
-        self.model.close_doc(&params.text_document.uri);
+        self.model.close_doc(params.text_document.uri);
     }
 
     fn text_document_completion(&mut self, params: CompletionParams) -> CompletionList {
         self.model
-            .completion(&params.text_document.uri, params.position)
+            .completion(params.text_document.uri, params.position)
     }
 
     fn completion_item_resolve(&mut self, completion_item: CompletionItem) -> CompletionItem {
@@ -113,7 +110,7 @@ impl<W: io::Write> LspHandler<W> {
     ) -> lsp_types::request::GotoDefinitionResponse {
         let definitions = self
             .model
-            .definitions(&params.text_document.uri, params.position);
+            .definitions(params.text_document.uri, params.position);
 
         if definitions.len() == 1 {
             lsp_types::request::GotoDefinitionResponse::Scalar(
@@ -129,16 +126,16 @@ impl<W: io::Write> LspHandler<W> {
         params: TextDocumentPositionParams,
     ) -> Vec<lsp_types::DocumentHighlight> {
         self.model
-            .highlights(&params.text_document.uri, params.position)
+            .highlights(params.text_document.uri, params.position)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {
-        self.model.hover(&params.text_document.uri, params.position)
+        self.model.hover(params.text_document.uri, params.position)
     }
 
     fn text_document_references(&mut self, params: ReferenceParams) -> Vec<Location> {
         self.model.references(
-            &params.text_document.uri,
+            params.text_document.uri,
             params.position,
             params.context.include_declaration,
         )

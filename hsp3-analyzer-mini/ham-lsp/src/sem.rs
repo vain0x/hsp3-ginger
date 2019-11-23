@@ -59,11 +59,12 @@ pub(crate) struct Symbol {
 
 type SymbolMap = HashMap<RcStr, Vec<Rc<Symbol>>>;
 
-// FIXME:　複数行文字列やコメント？
+// 行の種類。
+// 複数行文字列や複数行コメントに分類された行は後続の処理に渡されないので、そのための種類は必要ない。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum LineKind {
-    PP,
     Ground,
+    PreProc,
 }
 
 #[derive(Clone, Debug)]
@@ -123,7 +124,7 @@ impl Line {
     }
 }
 
-// プリプロセッサ行かどうか分類する。
+// 行をおおまかに分類する。
 pub(crate) fn parse_as_lines(
     doc: DocId,
     text: RcStr,
@@ -133,6 +134,8 @@ pub(crate) fn parse_as_lines(
     let mut leading = vec![];
 
     let mut pp = false;
+    let mut in_multiline_str = false;
+    let mut in_multiline_comment = false;
 
     let mut line_start = 0;
 
@@ -151,7 +154,7 @@ pub(crate) fn parse_as_lines(
                 }
             } else {
                 lines.push(Line {
-                    kind: LineKind::PP,
+                    kind: LineKind::PreProc,
                     doc,
                     row,
                     text: line_text.clone(),
@@ -179,6 +182,51 @@ pub(crate) fn parse_as_lines(
             || lt.trim().starts_with(";")
         {
             leading.push(line_text);
+            continue;
+        }
+
+        if in_multiline_comment || lt.contains("/*") {
+            let mut x = 0;
+            loop {
+                if in_multiline_comment {
+                    let n = match lt[x..].find("*/") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += n + 2;
+                    in_multiline_comment = false;
+                } else {
+                    let n = match lt[x..].find("/*") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += 2 + n;
+                    in_multiline_comment = true;
+                }
+            }
+            leading.push(line_text);
+            continue;
+        }
+
+        if in_multiline_str || lt.contains("{\"") {
+            let mut x = 0;
+            loop {
+                if in_multiline_str {
+                    let n = match lt[x..].find("\"}") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += n + 2;
+                    in_multiline_str = false;
+                } else {
+                    let n = match lt[x..].find("{\"") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += 2 + n;
+                    in_multiline_str = true;
+                }
+            }
             continue;
         }
 
@@ -217,14 +265,20 @@ pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
                     i = text.len();
                     break;
                 }
-                // FIXME: multiline comments
 
                 if text.as_str()[i..].starts_with("\"") {
-                    // FIXME: escape sequence
-                    i = text.as_str()[i + 1..]
-                        .find("\"")
-                        .map(|end| i + 1 + end + 1)
-                        .unwrap_or(text.len());
+                    i += 1;
+                    while let Some(c) = text.as_str()[i..].chars().filter(|&c| c != '"').next() {
+                        if c == '\\' {
+                            i += text.as_str()[i..]
+                                .chars()
+                                .take(2)
+                                .map(|c| c.len_utf8())
+                                .sum::<usize>();
+                            continue;
+                        }
+                        i += c.len_utf8();
+                    }
                     continue;
                 }
 
@@ -285,7 +339,7 @@ pub(crate) fn analyze_pp_scopes(
     let mut command_start = None;
 
     for line in lines.iter_mut() {
-        if line.kind == LineKind::PP {
+        if line.kind == LineKind::PreProc {
             if line.text.as_str().contains("#module") {
                 module_start = Some(line.row);
             }
@@ -331,6 +385,15 @@ pub(crate) fn analyze_pp_scopes(
 }
 
 fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
+    fn char_is_ornament_comment(c: char) -> bool {
+        c.is_whitespace() || c == ';' || c == '/' || c == '*' || c == '-' || c == '=' || c == '#'
+    }
+
+    // 装飾コメント (// ---- とか) か空行
+    fn str_is_ornament_comment(s: &str) -> bool {
+        s.chars().all(char_is_ornament_comment)
+    }
+
     let mut description = None;
     let mut documentation = vec![];
 
@@ -339,11 +402,9 @@ fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
     for line in lines {
         y += 1;
 
-        // 無意味な行を無視
+        // 装飾コメントや空行を無視
         let t = line.as_str().trim();
-        if t.chars()
-            .all(|c| c.is_whitespace() || c == ';' || c == '/' || c == '-' || c == '=' || c == '#')
-        {
+        if str_is_ornament_comment(t) {
             continue;
         }
 
@@ -353,11 +414,9 @@ fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
     }
 
     for line in &lines[y..] {
-        // 無意味な行を無視
+        // 装飾コメントや空行を無視
         let t = line.as_str().trim();
-        if t.chars()
-            .all(|c| c.is_whitespace() || c == ';' || c == '/' || c == '-' || c == '=' || c == '#')
-        {
+        if str_is_ornament_comment(t) {
             y += 1;
             continue;
         }
@@ -369,7 +428,7 @@ fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
         documentation.push(
             lines[y..]
                 .into_iter()
-                .map(|s| s.as_str())
+                .map(|s| s.as_str().trim())
                 .collect::<Vec<_>>()
                 .join("\r\n"),
         );
@@ -436,7 +495,7 @@ pub(crate) fn collect_commands(
     symbol_defs: &mut HashMap<usize, Vec<Loc>>,
 ) {
     for line in lines.iter_mut() {
-        if line.kind != LineKind::PP {
+        if line.kind != LineKind::PreProc {
             continue;
         }
 
@@ -514,7 +573,7 @@ pub(crate) fn collect_macro(
     symbol_defs: &mut HashMap<usize, Vec<Loc>>,
 ) {
     for line in lines.iter_mut() {
-        if line.kind != LineKind::PP {
+        if line.kind != LineKind::PreProc {
             continue;
         }
 
@@ -700,9 +759,7 @@ fn symbol_is_in_scope(symbol: &Symbol, doc: DocId, row: usize) -> bool {
         // FIXME: check only_global
         true
     } else {
-        symbol.scope.doc == doc
-            && symbol.scope.row_range.0 <= row
-            && row <= symbol.scope.row_range.1
+        symbol.scope.doc == doc && symbol.scope.row_range.0 <= row && row < symbol.scope.row_range.1
     }
 }
 
