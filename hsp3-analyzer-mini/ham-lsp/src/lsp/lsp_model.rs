@@ -23,6 +23,15 @@ fn loc_to_range(loc: syntax::Loc) -> Range {
     )
 }
 
+fn plain_text_to_marked_string(text: String) -> MarkedString {
+    const PLAIN_LANG_ID: &str = "plaintext";
+
+    MarkedString::LanguageString(LanguageString {
+        language: PLAIN_LANG_ID.to_string(),
+        value: text,
+    })
+}
+
 impl LspModel {
     pub(super) fn new(hsp_root: PathBuf) -> Self {
         Self {
@@ -239,10 +248,10 @@ impl LspModel {
         let (symbol, symbol_loc) = self.sem.locate_symbol(loc.doc, loc.start)?;
 
         let mut contents = vec![];
-        contents.push(MarkedString::String(symbol.name.to_string()));
+        contents.push(plain_text_to_marked_string(symbol.name.to_string()));
 
         if let Some(description) = symbol.details.description.as_ref() {
-            contents.push(MarkedString::String(description.to_string()));
+            contents.push(plain_text_to_marked_string(description.to_string()));
         }
 
         contents.extend(
@@ -250,7 +259,7 @@ impl LspModel {
                 .details
                 .documentation
                 .iter()
-                .map(|text| MarkedString::String(text.to_string())),
+                .map(|text| plain_text_to_marked_string(text.to_string())),
         );
 
         Some(Hover {
