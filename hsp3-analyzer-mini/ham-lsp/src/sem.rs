@@ -60,7 +60,7 @@ pub(crate) struct Symbol {
 type SymbolMap = HashMap<RcStr, Vec<Rc<Symbol>>>;
 
 // 行の種類。
-// 複数行文字列の内部に分類された行は後続の処理に渡されないので、そのための種類は必要ない。
+// 複数行文字列や複数行コメントに分類された行は後続の処理に渡されないので、そのための種類は必要ない。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum LineKind {
     Ground,
@@ -135,6 +135,7 @@ pub(crate) fn parse_as_lines(
 
     let mut pp = false;
     let mut in_multiline_str = false;
+    let mut in_multiline_comment = false;
 
     let mut line_start = 0;
 
@@ -180,6 +181,29 @@ pub(crate) fn parse_as_lines(
             || lt.trim().starts_with("//")
             || lt.trim().starts_with(";")
         {
+            leading.push(line_text);
+            continue;
+        }
+
+        if in_multiline_comment || lt.contains("/*") {
+            let mut x = 0;
+            loop {
+                if in_multiline_comment {
+                    let n = match lt[x..].find("*/") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += n + 2;
+                    in_multiline_comment = false;
+                } else {
+                    let n = match lt[x..].find("/*") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += 2 + n;
+                    in_multiline_comment = true;
+                }
+            }
             leading.push(line_text);
             continue;
         }
@@ -241,7 +265,6 @@ pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
                     i = text.len();
                     break;
                 }
-                // FIXME: multiline comments
 
                 if text.as_str()[i..].starts_with("\"") {
                     // FIXME: escape sequence
