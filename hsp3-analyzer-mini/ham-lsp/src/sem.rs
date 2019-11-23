@@ -766,9 +766,7 @@ fn symbol_is_in_scope(symbol: &Symbol, doc: DocId, row: usize) -> bool {
         // FIXME: check only_global
         true
     } else {
-        symbol.scope.doc == doc
-            && symbol.scope.row_range.0 <= row
-            && row <= symbol.scope.row_range.1
+        symbol.scope.doc == doc && symbol.scope.row_range.0 <= row && row < symbol.scope.row_range.1
     }
 }
 
