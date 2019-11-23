@@ -5,7 +5,7 @@ set -eux
 
 # Check.
 cargo --version
-yarn --version
+npm --version
 code --version
 
 # Build the compiler for release.
