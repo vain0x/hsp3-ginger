@@ -4,17 +4,15 @@ HSP3 用の LSP サーバー実装です。
 
 **実装が雑** なので誤った情報を表示することがあります。ご了承ください。
 
-複数行文字列や条件付きコンパイルなどの機能には完全には対応していません。
-
 ## インストール
 
 - [Visual Studio Code](https://code.visualstudio.com) をインストールしてください。
-- 起動したら `Ctrl+Shift+P` で「コマンドパレット」を開き、install extension と入力して「拡張機能をインストールする」のメニュー項目を押してください。
-- 「Marketplace で拡張機能を検索する」という欄が表示されて、ここに入力すると拡張機能を検索できます。
+- 起動したら `Ctrl+Shift+P` で「コマンドパレット」を開き、install extension と入力して "Extensions: Install Extensions" のメニュー項目を押してください。
+- 表示される検索欄を使って以下の拡張機能を検索し、インストールしてください。
     - `language-hsp3` で検索して install してください
     - `hsp3-analyzer-mini` で検索して install してください
-    - (ちなみに `japanese language pack` を install するとエディターが日本語化されます)
-- `Ctrl+Shift+P` でコマンドパレットを開き、open settings json で「設定ファイルを開く (JSON)」を選び、開かれたファイルに以下を貼り付けてください。
+    - (ちなみに `japanese language pack` を install すると VSCode が日本語化されます)
+- `Ctrl+Shift+P` でコマンドパレットを開き、open user settings json と入力して "Open Users Settings (JSON)" を選び、開かれたファイルの内容を以下のように変更してください。
     - HSP のディレクトリのパスは、HSPで `mes dir_exe` を実行すると確認できます。
 
 ```json
@@ -26,7 +24,18 @@ HSP3 用の LSP サーバー実装です。
 }
 ```
 
-HSP のファイル (.hsp ファイル) を開くと動作するはずです。
+例:
+
+```json
+{
+    "hsp3-analyzer-mini.hsp3-root": "C:\\Program Files (x86)\\hsp351",
+    "[hsp3]": {
+        "files.autoGuessEncoding": true
+    }
+}
+```
+
+その後、HSP のファイル (.hsp ファイル) を開くと動作するはずです。
 
 ## 機能
 
@@ -66,7 +75,8 @@ HSP のファイル (.hsp ファイル) を開くと動作するはずです。
 
 ## その他
 
-- エディターで開いている他のファイルで定義された命令なども解析されます。
+- エディターで開いているファイルと同じディレクトリ (またはその下にディレクトリ) にある `.hsp` ファイルも自動的に解析されます。
+- 動作がおかしくなったら再起動してみてください。(`Ctrl+Shift+P` → "Reload Windows")
 
 ## 未対応
 
@@ -74,6 +84,9 @@ HSP のファイル (.hsp ファイル) を開くと動作するはずです。
 - `#func`, `#cfunc`, `#cmd`, `#comfunc`
 - `#undef`
 - 変数名についた `@`
+- `.as` ファイルの解析
+- common ディレクトリにあるファイルの解析
+- カレントディレクトリにあるヘルプソースファイルの解析
 
 ## 参照
 
