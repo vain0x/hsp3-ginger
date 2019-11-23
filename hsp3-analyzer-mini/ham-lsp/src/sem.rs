@@ -267,11 +267,25 @@ pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
                 }
 
                 if text.as_str()[i..].starts_with("\"") {
-                    // FIXME: escape sequence
-                    i = text.as_str()[i + 1..]
-                        .find("\"")
-                        .map(|end| i + 1 + end + 1)
-                        .unwrap_or(text.len());
+                    i += 1;
+                    loop {
+                        match text.as_str()[i..].chars().next() {
+                            None => break,
+                            Some('\\') => {
+                                i += text.as_str()[i..]
+                                    .chars()
+                                    .take(2)
+                                    .map(|c| c.len_utf8())
+                                    .sum::<usize>();
+                                continue;
+                            }
+                            Some('"') => {
+                                i += 1;
+                                break;
+                            }
+                            _ => i += c.len_utf8(),
+                        }
+                    }
                     continue;
                 }
 
