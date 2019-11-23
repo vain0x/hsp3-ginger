@@ -245,6 +245,14 @@ impl LspModel {
             contents.push(MarkedString::String(description.to_string()));
         }
 
+        contents.extend(
+            symbol
+                .details
+                .documentation
+                .iter()
+                .map(|text| MarkedString::String(text.to_string())),
+        );
+
         Some(Hover {
             contents: HoverContents::Array(contents),
             range: Some(loc_to_range(symbol_loc)),
