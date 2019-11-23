@@ -249,6 +249,7 @@ impl LspModel {
     pub(super) fn hover(&mut self, uri: &Url, position: Position) -> Option<Hover> {
         let loc = self.to_loc(uri, position)?;
         let (symbol, symbol_loc) = self.sem.locate_symbol(loc.doc, loc.start)?;
+        let symbol_id = symbol.symbol_id;
 
         let mut contents = vec![];
         contents.push(plain_text_to_marked_string(symbol.name.to_string()));
@@ -264,6 +265,27 @@ impl LspModel {
                 .iter()
                 .map(|text| plain_text_to_marked_string(text.to_string())),
         );
+
+        {
+            let mut locs = vec![];
+            self.sem.get_symbol_defs(symbol_id, &mut locs);
+            let def_links = locs
+                .iter()
+                .filter_map(|&loc| {
+                    let location = self.loc_to_location(loc)?;
+                    let uri = location
+                        .uri
+                        .to_string()
+                        .replace("%3A", ":")
+                        .replace("\\", "/");
+                    let Position { line, character } = location.range.start;
+                    Some(format!("- [{}:{}:{}]({})", uri, line, character, uri))
+                })
+                .collect::<Vec<_>>();
+            if !def_links.is_empty() {
+                contents.push(MarkedString::from_markdown(def_links.join("\r\n")));
+            }
+        }
 
         Some(Hover {
             contents: HoverContents::Array(contents),
