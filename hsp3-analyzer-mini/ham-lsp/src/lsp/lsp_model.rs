@@ -75,6 +75,9 @@ impl LspModel {
         collect_all_symbols(&self.hsp_root, &mut file_count, &mut symbols, &mut warnings)
             .map_err(|e| warn!("{}", e))
             .ok();
+        for w in warnings {
+            warn!("{}", w);
+        }
 
         let doc = self.fresh_doc();
 
