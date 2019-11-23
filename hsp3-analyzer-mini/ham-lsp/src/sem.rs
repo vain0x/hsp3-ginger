@@ -268,23 +268,16 @@ pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
 
                 if text.as_str()[i..].starts_with("\"") {
                     i += 1;
-                    loop {
-                        match text.as_str()[i..].chars().next() {
-                            None => break,
-                            Some('\\') => {
-                                i += text.as_str()[i..]
-                                    .chars()
-                                    .take(2)
-                                    .map(|c| c.len_utf8())
-                                    .sum::<usize>();
-                                continue;
-                            }
-                            Some('"') => {
-                                i += 1;
-                                break;
-                            }
-                            Some(c) => i += c.len_utf8(),
+                    while let Some(c) = text.as_str()[i..].chars().filter(|&c| c != '"').next() {
+                        if c == '\\' {
+                            i += text.as_str()[i..]
+                                .chars()
+                                .take(2)
+                                .map(|c| c.len_utf8())
+                                .sum::<usize>();
+                            continue;
                         }
+                        i += c.len_utf8();
                     }
                     continue;
                 }
