@@ -378,6 +378,15 @@ pub(crate) fn analyze_pp_scopes(
 }
 
 fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
+    fn char_is_ornament_comment(c: char) -> bool {
+        c.is_whitespace() || c == ';' || c == '/' || c == '*' || c == '-' || c == '=' || c == '#'
+    }
+
+    // 装飾コメント (// ---- とか) か空行
+    fn str_is_ornament_comment(s: &str) -> bool {
+        s.chars().all(char_is_ornament_comment)
+    }
+
     let mut description = None;
     let mut documentation = vec![];
 
@@ -386,11 +395,9 @@ fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
     for line in lines {
         y += 1;
 
-        // 無意味な行を無視
+        // 装飾コメントや空行を無視
         let t = line.as_str().trim();
-        if t.chars()
-            .all(|c| c.is_whitespace() || c == ';' || c == '/' || c == '-' || c == '=' || c == '#')
-        {
+        if str_is_ornament_comment(t) {
             continue;
         }
 
@@ -400,11 +407,9 @@ fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
     }
 
     for line in &lines[y..] {
-        // 無意味な行を無視
+        // 装飾コメントや空行を無視
         let t = line.as_str().trim();
-        if t.chars()
-            .all(|c| c.is_whitespace() || c == ';' || c == '/' || c == '-' || c == '=' || c == '#')
-        {
+        if str_is_ornament_comment(t) {
             y += 1;
             continue;
         }
