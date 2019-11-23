@@ -59,7 +59,8 @@ pub(crate) struct Symbol {
 
 type SymbolMap = HashMap<RcStr, Vec<Rc<Symbol>>>;
 
-// FIXME:　複数行文字列やコメント？
+// 行の種類。
+// 複数行文字列の内部に分類された行は後続の処理に渡されないので、そのための種類は必要ない。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum LineKind {
     Ground,
@@ -133,6 +134,7 @@ pub(crate) fn parse_as_lines(
     let mut leading = vec![];
 
     let mut pp = false;
+    let mut in_multiline_str = false;
 
     let mut line_start = 0;
 
@@ -179,6 +181,28 @@ pub(crate) fn parse_as_lines(
             || lt.trim().starts_with(";")
         {
             leading.push(line_text);
+            continue;
+        }
+
+        if in_multiline_str || lt.contains("{\"") {
+            let mut x = 0;
+            loop {
+                if in_multiline_str {
+                    let n = match lt[x..].find("\"}") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += n + 2;
+                    in_multiline_str = false;
+                } else {
+                    let n = match lt[x..].find("{\"") {
+                        None => break,
+                        Some(n) => n,
+                    };
+                    x += 2 + n;
+                    in_multiline_str = true;
+                }
+            }
             continue;
         }
 
