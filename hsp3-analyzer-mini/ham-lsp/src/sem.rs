@@ -283,7 +283,7 @@ pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
                                 i += 1;
                                 break;
                             }
-                            _ => i += c.len_utf8(),
+                            Some(c) => i += c.len_utf8(),
                         }
                     }
                     continue;
