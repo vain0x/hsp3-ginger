@@ -167,17 +167,34 @@ fn parse_for_symbols(
             Some(name) => name,
         };
 
-        let description =
-            Some(index_lines.join(EOL).trim().to_string()).filter(|s| !str_is_whitespace(s));
+        let description = Some(
+            index_lines
+                .iter()
+                .map(|s| s.trim_end())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+                .join(EOL),
+        );
 
         let mut documentation = vec![];
 
         if let Some(prm) = map.get("prm") {
-            documentation.push(prm.join(EOL).trim().to_string());
+            documentation.push(
+                prm.iter()
+                    .map(|s| s.trim_end())
+                    .collect::<Vec<_>>()
+                    .join(EOL),
+            );
         }
 
         if let Some(inst) = map.get("inst") {
-            documentation.push(inst.join(EOL).trim().to_string());
+            documentation.push(
+                inst.iter()
+                    .map(|s| s.trim_end())
+                    .filter(|&s| s != "^p")
+                    .collect::<Vec<_>>()
+                    .join(EOL),
+            );
         }
 
         symbols.push(HsSymbol {

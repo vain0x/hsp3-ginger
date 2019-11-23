@@ -93,7 +93,7 @@ impl LspModel {
                         ctype: false,
                     },
                     details: sem::SymbolDetails {
-                        description: symbol.description.map(|s| s.trim().to_string().into()),
+                        description: symbol.description.map(|s| s.into()),
                         documentation: symbol.documentation.clone(),
                     },
                     scope: sem::Scope::new_global(doc),
