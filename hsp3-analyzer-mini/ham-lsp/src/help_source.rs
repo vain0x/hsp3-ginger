@@ -1,4 +1,4 @@
-//! Parse HSP Help Source (.hs) files for completion
+//! HSP Help Source (.hs) ファイルの解析
 
 use encoding::{
     codec::utf_8::UTF8Encoding, label::encoding_from_windows_code_page, DecoderTrap, Encoding,
@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 const EOL: &str = "\r\n";
 
+/// ヘルプソースファイルから抽出したシンボル情報
 #[derive(Clone, Debug, Default)]
 pub(crate) struct HsSymbol {
     pub name: String,
@@ -22,6 +23,7 @@ fn str_is_whitespace(s: &str) -> bool {
     s.chars().all(|c| c.is_whitespace())
 }
 
+/// ディレクトリにあるヘルプソースファイルを列挙する
 fn read_dir(hsphelp_dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
     for entry in fs::read_dir(&hsphelp_dir)? {
         let entry = entry?;
@@ -36,7 +38,7 @@ fn read_dir(hsphelp_dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
     Ok(())
 }
 
-// Read a file as shift_jis or UTF-8.
+/// ファイルを shift_jis または UTF-8 として読む。
 fn read_file(file_path: &Path, out: &mut impl StringWriter, shift_jis: &dyn Encoding) -> bool {
     let content = match fs::read(file_path).ok() {
         None => return false,
@@ -49,13 +51,14 @@ fn read_file(file_path: &Path, out: &mut impl StringWriter, shift_jis: &dyn Enco
         .is_ok()
 }
 
+/// ヘルプソースファイルを解析してシンボル情報を集める。
 fn parse_for_symbols(
     file_path: &str,
     content: &str,
     symbols: &mut Vec<HsSymbol>,
     warnings: &mut Vec<String>,
 ) {
-    // Split into sections:
+    // セクションに分割する:
 
     let mut sections = vec![];
     {
@@ -88,7 +91,7 @@ fn parse_for_symbols(
         sections.push(section);
     }
 
-    // Parse sections:
+    // セクションを解析する:
 
     let mut maps = vec![];
 
@@ -125,7 +128,40 @@ fn parse_for_symbols(
         map.clear();
     }
 
-    // Merge defaults:
+    // 不要な行やセクションを削除する。
+
+    for map in maps.iter_mut() {
+        for (_, v) in map.iter_mut() {
+            // 制御記号の削除
+            v.retain(|s| s.trim() != "^p" && s.trim() != "^");
+
+            let mut retain = vec![true; v.len()];
+
+            // 連続する空行の削除
+            let blank = v.iter().map(|s| str_is_whitespace(s)).collect::<Vec<_>>();
+
+            for i in 0..v.len() {
+                if (i == 0 || blank[i - 1]) && blank[i] {
+                    retain[i] = false;
+                }
+            }
+
+            // 後方の空行の削除
+            for i in (0..v.len()).rev().take_while(|&i| blank[i]) {
+                retain[i] = false;
+            }
+
+            let mut i = 0;
+            v.retain(|_| {
+                i += 1;
+                retain[i - 1]
+            });
+        }
+
+        map.retain(|_, v| !v.is_empty());
+    }
+
+    // セクションの既定値を合成する。
 
     let default_map = maps.drain(..1).next().unwrap();
 
@@ -137,23 +173,13 @@ fn parse_for_symbols(
         }
     }
 
-    // Remove leading blank lines:
-
-    for map in maps.iter_mut() {
-        for (_, v) in map.iter_mut() {
-            while v.get(0).filter(|s| str_is_whitespace(s)).is_some() {
-                v.remove(0);
-            }
-        }
-    }
-
-    // Emit symbols:
+    // シンボル情報を構築する。
 
     for mut map in maps {
         let index_lines = match map.get_mut("index") {
             None => {
                 // unreachable?
-                warnings.push(format!("missing %index in {}", file_path));
+                warnings.push(format!("%index がみつかりません {}", file_path));
                 continue;
             }
             Some(index_lines) => index_lines,
@@ -161,40 +187,27 @@ fn parse_for_symbols(
 
         let name = match index_lines.drain(..1).next() {
             None => {
-                warnings.push(format!("empty %index found in {}", file_path));
+                // unreachable?
+                warnings.push(format!("%index が空です {}", file_path));
                 continue;
             }
             Some(name) => name,
         };
 
-        let description = Some(
-            index_lines
-                .iter()
-                .map(|s| s.trim_end())
-                .filter(|s| !s.is_empty())
-                .collect::<Vec<_>>()
-                .join(EOL),
-        );
+        let description = Some(index_lines.join(EOL));
 
         let mut documentation = vec![];
 
         if let Some(prm) = map.get("prm") {
-            documentation.push(
-                prm.iter()
-                    .map(|s| s.trim_end())
-                    .collect::<Vec<_>>()
-                    .join(EOL),
-            );
+            documentation.push(prm.join(EOL));
         }
 
         if let Some(inst) = map.get("inst") {
-            documentation.push(
-                inst.iter()
-                    .map(|s| s.trim_end())
-                    .filter(|&s| s != "^p")
-                    .collect::<Vec<_>>()
-                    .join(EOL),
-            );
+            documentation.push(inst.join(EOL));
+        }
+
+        if let Some(note) = map.get("note") {
+            documentation.push(note.join(EOL));
         }
 
         symbols.push(HsSymbol {
@@ -206,6 +219,7 @@ fn parse_for_symbols(
     }
 }
 
+/// ディレクトリに含まれるすべてのヘルプソースファイルからすべてのシンボル情報を抽出する。
 pub(crate) fn collect_all_symbols(
     hsp_root: &Path,
     file_count: &mut usize,
@@ -225,7 +239,7 @@ pub(crate) fn collect_all_symbols(
 
         if !read_file(&file, &mut content, shift_jis) {
             warnings.push(format!(
-                "File {} can't load or not utf-8 or shift_jis",
+                "ファイル {} は開けないか、shift_jis でも UTF-8 でもありません。",
                 file.to_str().unwrap_or("???.hs")
             ));
             continue;
