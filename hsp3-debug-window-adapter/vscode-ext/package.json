@@ -1,0 +1,120 @@
+{
+    "name": "hsp3-debug-window-adapter",
+    "displayName": "HSP3 デバッグ (標準のデバッグウィンドウを使用)",
+    "description": "HSP3 のデバッグ機能を有効化する拡張機能です。VSCode のデバッグツールではなく、HSP3 標準のデバッグウィンドウを使用します。",
+    "version": "0.1.0",
+    "author": {
+        "name": "vain0x",
+        "email": "vainzerox@gmail.com"
+    },
+    "publisher": "vain0x",
+    "license": "MIT",
+    "keywords": [
+        "HSP3",
+        "Debugger"
+    ],
+    "engines": {
+        "vscode": "^1.40.1",
+        "node": "^10.15.1"
+    },
+    "categories": [
+        "Debuggers"
+    ],
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vain0x/hsp3-inger.git"
+    },
+    "bugs": {
+        "url": "https://github.com/vain0x/hsp3-ginger/issues"
+    },
+    "scripts": {
+        "prepublish": "tsc -b",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "build": "tsc -b",
+        "watch": "tsc -w",
+        "vsce:package": "vsce package --out hsp3-debug-window-adapter.vsix"
+    },
+    "dependencies": {
+        "await-notify": "^1.0.1",
+        "vscode-debugadapter": "^1.37.1"
+    },
+    "devDependencies": {
+        "@types/node": "^12.12.12",
+        "typescript": "^3.7.2",
+        "vsce": "^1.69.0",
+        "vscode": "^1.1.36"
+    },
+    "main": "./out/extension",
+    "activationEvents": [
+        "onLanguage:hsp3",
+        "onDebug"
+    ],
+    "contributes": {
+        "commands": [
+            {
+                "command": "hsp3-debug-window-adapter.createHsptmp",
+                "title": "Create hsptmp file"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "HSP3 debugger with default debug window",
+            "properties": {
+                "hsp3-debug-window-adapter.hsp3-root": {
+                    "type": "string",
+                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。",
+                    "default": "C:\\Program Files (x86)\\hsp351"
+                }
+            }
+        },
+        "debuggers": [
+            {
+                "type": "hsp3",
+                "label": "hsp3-debug-window-adapter",
+                "adapterExecutableCommand": "hsp3-debug-window-adapter.adapterExecutableCommand",
+                "configurationAttributes": {
+                    "launch": {
+                        "required": [
+                            "program"
+                        ],
+                        "properties": {
+                            "program": {
+                                "type": "string",
+                                "description": "デバッグ実行時に実行されるファイルを指定します。省略時は、開いているドキュメントを一時ファイル(hsptmp)に保存して実行します。",
+                                "default": "${command:hsp3-debug-window-adapter.createHsptmp}"
+                            },
+                            "trace": {
+                                "type": "boolean",
+                                "description": "[開発者向け] 詳細なログ出力を行います",
+                                "default": false
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "hsp3",
+                        "request": "launch",
+                        "name": "Run",
+                        "program": "${command:hsp3-debug-window-adapter.createHsptmp}",
+                        "trace": false
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "HSP3 デバッグ実行",
+                        "description": "標準のデバッグウィンドウを使ってデバッグ実行します",
+                        "body": {
+                            "type": "hsp3",
+                            "request": "launch",
+                            "name": "Run",
+                            "program": "${command:hsp3-debug-window-adapter.createHsptmp}",
+                            "trace": false
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

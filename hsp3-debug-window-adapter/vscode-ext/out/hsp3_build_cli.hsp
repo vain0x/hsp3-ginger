@@ -1,0 +1,525 @@
+// Build runner.
+// LICENSE: PUBLID DOMAIN
+
+#include "hspcmp.as"
+
+#ifdef HSP3_BUILD_GUI
+
+#packopt name "hsp3_build_gui"
+#packopt hide 1
+#packopt orgpath 1
+#define global s_exe_name "hsp3_build_gui"
+
+#else
+
+#runtime "hsp3cl"
+#packopt name "hsp3_build_cli"
+#packopt orgpath 1
+#define global s_exe_name "hsp3_build_cli"
+
+#endif
+
+#define global HSP3_BUILD_VERSION "1.0.0"
+
+// -----------------------------------------------
+// Help
+// -----------------------------------------------
+
+	s_help@ = {"EXE_NAME: HSP3 build tool
+
+USAGE:
+\tEXE_NAME [SUBCOMMAND] [OPTIONS...]
+
+EXAMPLE:
+\tEXE_NAME make --hsp "C:/Program Files (x86)/hsp351" hello.hsp
+
+SUBCOMMANDS:
+\trun <src-name>
+\t\tExecute a script.
+
+\t\tmake <src-name>
+\t\tBuild an executable file (.exe)
+
+\tcompile <src-name>
+\t\tJust compile a soruce code as object file.
+
+OPTIONS (required):
+\t--hsp <hsp-dir>
+\t\tSpecify an absolute path to HSP3 directory.
+
+OPTIONS (optional):
+\t--obj-name <file-name>
+\t\tSpecify an output object flien name,
+\t\twhich should end with ".ax".
+\t\tDefaults to "start.ax".
+\t\t(See also hsc_objname)
+
+\t--ref-name <file-name>
+\tModify an internal name of the script.
+\tDefaults to basename of the script file.
+\t(See also hsc_refname)
+
+\t-h, --help
+\t\tPrint this message.
+
+\t-V, --version
+\t\tPrint the version of EXE_NAME.
+"}
+
+	strrep s_help@, "EXE_NAME", s_exe_name
+	strrep s_help@, "\t", "    "
+
+// -----------------------------------------------
+// HSP constants
+// -----------------------------------------------
+
+#define global dialog_warn          1
+#define global gsel_hide            (-1)
+#define global gsel_show            1
+#define global getpath_basename     8
+#define global mesbox_readonly      1
+#define global objmode_font         2
+
+// -----------------------------------------------
+// Windows constants
+// -----------------------------------------------
+
+#define global EXIT_SUCCESS 0
+#define global EXIT_FAILURE 1
+
+// -----------------------------------------------
+// App constants
+// -----------------------------------------------
+
+#define global s_default_window_id 0
+
+// -----------------------------------------------
+// Command line parser
+// -----------------------------------------------
+
+#module m_cmdline_parser
+
+#define true 1
+#define false 0
+
+// Parse a command line string.
+#deffunc cmdline_parser_parse str cmdline, array args, \
+	local argc
+
+	s_cmdline = cmdline
+	s_cmdline_len = strlen(s_cmdline)
+	s_index = 0
+
+	argc = 0
+
+	repeat
+		args(argc) = ""
+		cmdline_parser_next args(argc)
+		if stat == false {
+			break
+		}
+
+		argc++
+	loop
+	return argc
+
+// Parse next argument.
+#deffunc cmdline_parser_next var value, \
+	local ok, local c, local start, local in_quote
+
+	// Skip spaces.
+	repeat
+		if s_index >= s_cmdline_len {
+			break
+		}
+
+		c = peek(s_cmdline, s_index)
+		if c != ' ' {
+			break
+		}
+
+		s_index++
+	loop
+
+	ok = false
+	value = ""
+	in_quote = false
+	start = s_index
+
+	repeat
+		if s_index >= s_cmdline_len {
+			gosub *l_commit
+			break
+		}
+
+		c = peek(s_cmdline, s_index)
+		if c == ' ' && in_quote == false {
+			gosub *l_commit
+			break
+		}
+
+		if c == '"' {
+			gosub *l_commit
+			s_index++
+			start = s_index
+			in_quote = in_quote == false
+			ok = true
+			continue
+		}
+
+		// cmd(^)/PowerShell(`)-style escape.
+		if (c == '^' || c == '`') && s_index + 1 < s_cmdline_len {
+			gosub *l_commit
+			s_index++
+
+			// FIXME: `0, `n, etc are not supported
+			c = peek(s_cmdline, s_index)
+			if c == '0' || c == 'n' || c == 'r' || c == 't' || c == 'x' {
+				assert
+			}
+
+			start = s_index
+			s_index++
+			continue
+		}
+
+		s_index++
+	loop
+	return ok || peek(value) != 0
+
+*l_commit
+
+	value += strmid(s_cmdline, start, s_index - start)
+	return
+
+#global
+
+// -----------------------------------------------
+// Application
+// -----------------------------------------------
+
+#module m_app
+
+#include "hspcmp.as"
+
+#define true 1
+#define false 0
+
+#deffunc app_main
+
+	s_exit_code = EXIT_FAILURE
+	s_show_help = false
+	s_show_version = false
+
+	s_ref_name = ""
+	s_ref_name_exists = false
+
+	s_obj_name = "start.ax"
+
+	s_runtime_name = ""
+
+	s_compile_opts = 1 | 4 // 1: debug info, 4: utf-8
+	s_pp_opt = 4 | 16 | 32 // 4: make packfile, 16/32: utf-8
+	s_debug_mode = true
+
+	sdim s_subcommand
+	s_subcommand_exists = false
+
+	sdim s_src_name
+	s_src_name_exists = false
+
+	s_work_dir = dir_cur
+	s_hsp_root = dir_exe
+
+	sdim s_error, 0x10000
+
+	onexit goto *l_on_exit
+
+	app_parse_cmdline
+	if stat == false {
+		app_fail
+	}
+
+	app_build
+	if stat == false {
+		app_fail
+	}
+	end s_exit_code
+
+#deffunc app_parse_cmdline \
+	local ok, local reason, \
+	local args, local argc, local i, local flag
+
+	cmdline_parser_parse dir_cmdline, args
+	argc = stat
+
+	ok = true
+	i = 0
+
+	repeat
+		if i >= argc {
+			break
+		}
+
+		flag = args(i)
+		i++
+
+		// exe itself (when an obj file passed in to the runtime)
+		if i == 1 && instr(flag, , s_exe_name + ".ax") >= 0 {
+			continue
+		}
+
+		if flag == "-h" || flag == "--help" || flag == "-?" || flag == "/?" {
+			s_show_help = true
+			break
+		}
+
+		if flag == "-V" || flag == "--version" {
+			s_show_version = true
+			break
+		}
+
+		if flag == "--hsp" {
+			if i >= argc {
+				ok = false
+				reason = "Missing value of --hsp"
+				break
+			}
+			s_hsp_root = args(i)
+			i++
+			continue
+		}
+
+		if flag == "--cwd" {
+			if i >= argc {
+				ok = false
+				reason = "Missing value of --cwd"
+				break
+			}
+			s_work_dir = args(i)
+			i++
+			continue
+		}
+
+		if flag == "--ref-name" {
+			if i >= argc {
+				ok = false
+				reason = "Missing value of --ref-name"
+				break
+			}
+			s_ref_name = args(i)
+			s_ref_name_exists = true
+			i++
+			continue
+		}
+
+		if flag == "--obj-name" {
+			if i >= argc {
+				ok = false
+				reason = "Missing value of --obj-name"
+				break
+			}
+			s_obj_name = args(i)
+			i++
+			continue
+		}
+
+		if s_subcommand_exists == false {
+			s_subcommand = flag
+			s_subcommand_exists = true
+			continue
+		}
+
+		if s_src_name_exists == false {
+			s_src_name = flag
+			s_src_name_exists = true
+			continue
+		}
+
+		ok = false
+		reason = "Unknown positional argument " + flag
+		break
+	loop
+
+	if argc == 0 || s_show_help || (s_subcommand_exists && s_subcommand == "help") {
+		s_show_help = true
+		s_subcommand = "help"
+		s_subcommand_exists = true
+	}
+
+	if s_show_version || (s_subcommand_exists && s_subcommand == "version") {
+		s_show_version = true
+		s_subcommand = "version"
+		s_subcommand_exists = true
+	}
+
+	if ok && s_subcommand_exists == false {
+		ok = false
+		reason = "Missing subcommand in cmdline"
+	}
+
+	if ok && s_show_help == false && s_show_version == false && s_src_name_exists == false {
+		ok = false
+		reason = "Missing script file in cmdline"
+	}
+
+	if ok == false {
+		s_error = "ERROR: " + reason + "\ncmdline = '" + dir_cmdline + "'"
+		return false
+	}
+
+	return true
+
+#deffunc app_build
+
+	if s_show_help {
+		s_error = s_help@
+		runtime_stdout s_error
+		return true
+	}
+
+	if s_show_version {
+		s_error = HSP3_BUILD_VERSION
+		runtime_stdout s_error
+		s_exit_code = EXIT_SUCCESS
+		return true
+	}
+
+	chdir s_work_dir
+
+	hsc_ini s_src_name
+	if stat {
+		hsc_getmes s_error
+		return false
+	}
+
+	hsc_objname s_obj_name
+	if stat {
+		hsc_getmes s_error
+		return false
+	}
+
+	if s_ref_name_exists {
+		hsc_refname s_ref_name
+		if stat {
+			hsc_getmes s_error
+			return false
+		}
+	}
+
+	hsc_compath s_hsp_root + "\\common\\"
+	if stat {
+		hsc_getmes s_error
+		return false
+	}
+
+	hsc_comp s_compile_opts, s_pp_opt, s_debug_mode
+	if stat {
+		hsc_getmes s_error
+		return false
+	}
+
+	hsc3_getruntime s_runtime_name, s_obj_name
+	if s_runtime_name == "" {
+		s_runtime_name = "hsp3.exe"
+	}
+
+	switch s_subcommand
+	case "compile":
+		hsc_getmes s_error
+		s_error += "\n#Use runtime \"" + s_runtime_name + "\"\n"
+
+		runtime_stdout s_error
+		swbreak
+
+	case "run":
+		s_runtime_path = s_hsp_root + "\\" + s_runtime_name
+
+		// FIXME: pass args after --
+		// FIXME: fork
+		s_run = "\"" + s_runtime_path + "\" \"" + s_obj_name + "\""
+		hsc3_run s_run
+		swbreak
+
+	case "make":
+		if s_runtime_name == "hsp3.exe" {
+			s_runtime_dir = s_hsp_root + "\\"
+		} else {
+			s_runtime_dir = s_hsp_root + "\\runtime\\"
+		}
+
+		hsc3_make s_runtime_dir
+		if stat {
+			hsc_getmes s_error
+			return false
+		}
+		swbreak
+
+	default:
+		s_error = "ERROR: Unknown subcommand " + s_subcommand
+		return false
+	swend
+
+	s_exit_code = EXIT_SUCCESS
+	return true
+
+#deffunc app_fail
+
+	runtime_error s_error
+	end EXIT_FAILURE
+
+*l_on_exit
+
+	end s_exit_code
+
+#global
+
+// -----------------------------------------------
+// Runtime
+// -----------------------------------------------
+
+#module m_runtime
+
+#ifdef HSP3_BUILD_GUI
+
+#deffunc runtime_stdout var text
+
+	runtime_error text
+	return
+
+#deffunc runtime_warn str text
+
+	dialog text, dialog_warn
+	return
+
+#deffunc runtime_error var text
+
+	title s_exe_name
+	font "MS Gothic", 12
+	objmode objmode_font
+	mesbox text, ginfo_winx, ginfo_winy, mesbox_readonly
+	gsel s_default_window_id, gsel_show
+	stop
+
+#else
+
+#deffunc runtime_stdout var text
+
+	mes text
+	return
+
+#deffunc runtime_warn str text
+
+	mes "WARN: " + text
+	return
+
+#deffunc runtime_error str text
+
+	mes "ERROR: " + text
+	return
+
+#endif
+
+#global
+
+	app_main
