@@ -36,11 +36,13 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 /**
  * [開発用] ファイルにログ出力する。
  */
-const DEBUG_MODE = process.env.HSP3_DEBUG_WINDOW_ADAPTER_DEBUG === "1"
+let trace_log_is_enabled = process.env.HSP3_DEBUG_WINDOW_ADAPTER_DEBUG === "1"
 
-const LOG_FILE = DEBUG_MODE
-    ? path.join(__dirname, "../hsp3-debug-window-adapter.log")
-    : "hsp3-debug-window-adapter.log"
+const TRACE_LOG_FILE_NAME = "hsp3-debug-window-adapter.log"
+
+let trace_log_file = trace_log_is_enabled
+    ? path.join(__dirname, TRACE_LOG_FILE_NAME)
+    : TRACE_LOG_FILE_NAME
 
 /**
  * コンパイルの各ステージのタイムアウト
@@ -51,7 +53,7 @@ const TIMEOUT_MILLIS = 15 * 10000
  * デバッグ用にログを出力する。
  */
 const writeTrace = (msg: string, data?: unknown) => {
-    if (!DEBUG_MODE) {
+    if (!trace_log_is_enabled) {
         return
     }
 
@@ -66,7 +68,7 @@ const writeTrace = (msg: string, data?: unknown) => {
     }
     msg += "\n\n"
 
-    fs.appendFileSync(LOG_FILE, msg)
+    fs.appendFileSync(trace_log_file, msg)
 }
 
 const fileExists = (fileName: string) =>
@@ -89,7 +91,7 @@ const buildBuilder = async (hsp3Root: string, extensionRoot: string) => {
     const compathArg = `--compath=${hsp3Root}/common/`
 
     // ビルド済みならスキップ。
-    if (!DEBUG_MODE && await fileExists(hsp3BuildExe)) {
+    if (!trace_log_is_enabled && await fileExists(hsp3BuildExe)) {
         return hsp3BuildExe
     }
 
@@ -222,7 +224,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
     private _debuggeeProcess: ChildProcess | null = null
 
     constructor() {
-        super(LOG_FILE)
+        super(trace_log_file)
 
         writeTrace("new session", {
             cwd: process.cwd(),
@@ -246,6 +248,11 @@ export class Hsp3DebugSession extends LoggingDebugSession {
     }
 
     private async _doLaunch(args: LaunchRequestArguments): Promise<[boolean, string]> {
+        if (args && args.trace) {
+            trace_log_is_enabled = true
+            trace_log_file = path.join(args.extensionRoot, TRACE_LOG_FILE_NAME)
+        }
+
         writeTrace("launch", args)
 
         // 正しく引数が渡されたか検査する。
