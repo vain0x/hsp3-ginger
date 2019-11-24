@@ -48,6 +48,15 @@ HSP3 開発ツールを作るプロジェクト。
 - 言語: Rust (サーバー),　JavaScript (クライアント), C# (ブラウザ)
 - 状況: 概念実証 (proof-of-concept) 済み。実用レベルではありません。
 
+### hsp3-debug-window-adapter
+
+[hsp3-debug-window-adapter](hsp3-debug-window-adapter)
+
+- HSP3 のデバッグ実行を起動・終了するだけの Debug Adapter Protocol (DAP) の実装です。
+- VSCode などの DAP に対応したエディタにて、標準のデバッグウィンドウを用いてデバッグ実行するのに使用します。
+- 言語: TypeScript
+- 状況: リリース済み。
+
 ### hsp3-ginger
 
 [hsp3-ginger](hsp3-ginger)
