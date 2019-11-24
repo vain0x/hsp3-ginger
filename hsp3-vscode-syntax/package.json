@@ -1,0 +1,62 @@
+{
+    "name": "hsp3-vscode-syntax",
+    "displayName": "HSP3 Syntax for VSCode",
+    "description": "HSP3 言語・文法の定義",
+    "version": "0.1.0",
+    "author": {
+        "name": "vain0x",
+        "email": "vainzerox@gmail.com"
+    },
+    "publisher": "vain0x",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/vain0x/hsp3-ginger.git"
+    },
+    "homepage": "https://github.com/vain0x/hsp3-ginger",
+    "categories": [
+        "Programming Languages"
+    ],
+    "engines": {
+        "vscode": "^1.40.1"
+    },
+    "devDependencies": {
+        "vsce": "^1.69.0",
+        "vscode": "^1.1.36"
+    },
+    "scripts": {
+        "postinstall": "vscode-install",
+        "build": "echo 'nothing to build'",
+        "watch": "echo 'nothing to watch'",
+        "vsce:package": "vsce package --out hsp3-vscode-syntax.vsix"
+    },
+    "main": "out/extension.js",
+    "activationEvents": [
+        "onLanguage:hsp3"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "hsp3",
+                "extensions": [
+                    ".hsp",
+                    ".as"
+                ],
+                "aliases": [
+                    "HSP3",
+                    "hsp",
+                    "Hot Soup Processor",
+                    "Hot Soup Processor 3"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "hsp3",
+                "scopeName": "source.hsp3",
+                "path": "./syntaxes/hsp3.json"
+            }
+        ]
+    }
+}
