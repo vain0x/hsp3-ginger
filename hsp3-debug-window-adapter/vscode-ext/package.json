@@ -63,8 +63,7 @@
             "properties": {
                 "hsp3-debug-window-adapter.hsp3-root": {
                     "type": "string",
-                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。",
-                    "default": "C:\\Program Files (x86)\\hsp351"
+                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。"
                 }
             }
         },

@@ -38,7 +38,7 @@ const doSelectHsp3Root = async () => {
     // 選択してもらう。
     const paths = await window.showOpenDialog({
         canSelectFolders: true,
-        defaultUri: Uri.parse("file://C:/Program Files (x86)"),
+        defaultUri: Uri.parse("file:///C:/Program Files (x86)"),
         openLabel: "HSP3 のインストールディレクトリ",
     })
 
