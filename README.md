@@ -55,14 +55,13 @@ HSP3 開発ツールを作るプロジェクト。
 - コマンドラインコンパイラを作ろうとしていたもの。
 - 状況: 作業途中
 
-### vscode-ext
+### hsp3-vscode-syntax
 
-[vscode-ext](vscode-ext)
+[hsp3-vscode-syntax](hsp3-vscode-syntax)
 
-- VSCode 拡張機能
-- 言語: TypeScript
-- 状況: シンタックスハイライトのみ
-- 備考: [honobonosun/vscode-language-hsp3](https://github.com/honobonosun/vscode-language-hsp3) を使ってください。
+- HSP3 言語・文法を提供する VSCode 拡張機能
+- 言語: 設定ファイル等のみ
+- 状況: HSP 3.51 に対応。
 
 ## その他
 
@@ -72,4 +71,4 @@ HSP3 開発ツールを作るプロジェクト。
 
 [language-hsp3](https://github.com/honobonosun/language-hsp3)
 
-- vscode-ext から参照されます。
+- hsp3-vscode-syntax から参照されます。
