@@ -88,6 +88,50 @@ HSP3 用の Language Server Protocol (LSP) サーバーです。
 - common ディレクトリにあるファイルの解析
 - カレントディレクトリにあるヘルプソースファイルの解析
 
+## 開発環境
+
+この拡張機能を開発する環境の構築手順は以下の通りです。
+
+以下のツールをインストールしてください。
+
+- [Node.js](https://nodejs.org)
+    - node, npm
+- [Rust](https://rustlang.org)
+    - rustup, rustc, cargo
+
+次に必要なパッケージのインストールを行います。
+
+```sh
+cd vscode-ext
+npm install
+```
+
+以上で環境構築は完了です。
+
+ビルドやインストールのコマンドは以下の通りです。
+
+```sh
+# LSP (Rust) のビルド
+cargo build
+
+# 拡張機能のビルド
+cd vscode-ext
+npm install
+npm run build
+```
+
+開発版のインストール
+
+```sh
+./install
+```
+
+アンインストール:
+
+```sh
+./uninstall
+```
+
 ## 参照
 
 - [language-hsp3](https://github.com/honobonosun/vscode-language-hsp3)

@@ -1,3 +1,5 @@
 {
-    "recommendations": []
+    "recommendations": [
+        "rust-lang.rust"
+    ]
 }
