@@ -8,6 +8,29 @@ import { MyConfigurationProvider } from "./ext_config_provider"
 import { HSP3_LANG_ID } from "./ext_constants"
 
 /**
+ * 想定内のエラーを表す。
+ */
+export class DomainError extends Error {
+    public constructor(userFriendlyMessage: string) {
+        super(userFriendlyMessage)
+    }
+
+    public toString() {
+        return this.message
+    }
+}
+
+/**
+ * 非同期処理の例外をキャッチしてエラーメッセージを表示する。
+ */
+export const withNotify = <T>(body: () => Promise<T>) =>
+    () => body().catch(err => {
+        const message = err instanceof Error ? err.toString() : String(err)
+        window.showErrorMessage(message)
+        return null
+    })
+
+/**
  * デバッガーのディレクトリへのパス。
  *
  * FIXME: 名前が適切でない。
