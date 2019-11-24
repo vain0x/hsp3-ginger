@@ -5,7 +5,6 @@ import {
     workspace,
 } from "vscode"
 import { HSP3_CONFIG_SECTION, MY_CONFIG_SECTION } from "./ext_constants"
-import { withNotify } from "./extension"
 
 const HSP3_ROOT_KEY = "hsp3-root"
 
@@ -64,5 +63,3 @@ export const selectHsp3Root = async () => {
 
     return hsp3Root
 }
-
-export const selectHsp3RootCommand = withNotify(selectHsp3Root)

@@ -2,8 +2,8 @@
 
 import * as path from "path"
 import { ExtensionContext, debug, commands, window } from "vscode"
-import { adapterExecutableCommand } from "./ext_command_adapter_executable"
-import { createHsptmpCommand } from "./ext_command_create_hsptmp"
+import { adapterExecutable } from "./ext_command_adapter_executable"
+import { createHsptmp } from "./ext_command_create_hsptmp"
 import { MyConfigurationProvider } from "./ext_config_provider"
 import { HSP3_LANG_ID } from "./ext_constants"
 
@@ -54,13 +54,13 @@ export const activate = (context: ExtensionContext) => {
     context.subscriptions.push(
         commands.registerCommand(
             "hsp3-debug-window-adapter.adapterExecutableCommand",
-            adapterExecutableCommand(extensionRoot),
+            withNotify(adapterExecutable(extensionRoot)),
         ))
 
     context.subscriptions.push(
         commands.registerCommand(
             "hsp3-debug-window-adapter.createHsptmp",
-            createHsptmpCommand,
+            withNotify(createHsptmp),
         ))
 }
 

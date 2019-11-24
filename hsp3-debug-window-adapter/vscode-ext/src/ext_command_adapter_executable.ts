@@ -9,7 +9,7 @@ const fileExists = (fileName: string) =>
 /**
  * デバッガーアダプターの起動コマンドを構成する。
  */
-export const adapterExecutableCommand = (extensionRoot: string) => async () => {
+export const adapterExecutable = (extensionRoot: string) => async () => {
     const program = path.join(extensionRoot, "dap_index.js")
 
     if (!await fileExists(program)) {
