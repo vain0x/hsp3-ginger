@@ -24,9 +24,10 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     hsp3Root: string
 
     /**
-     * 拡張機能のルートディレクトリ (絶対パス)
+     * デバッグアダプターのあるディレクトリ (絶対パス)
      *
      * このファイルからみて ../out のこと。
+     * FIXME: 名前が適切でない。
      */
     extensionRoot: string
 
