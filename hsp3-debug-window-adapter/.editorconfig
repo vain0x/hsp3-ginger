@@ -1,0 +1,13 @@
+root = true
+
+[*.{hsp,as}]
+indent_size = 4
+indent_style = tab
+insert_final_line = true
+trim_trailing_whitespace = true
+
+[*.{js,jsx,ts,tsx}]
+indent_size = 4
+indent_style = space
+insert_final_line = true
+trim_trailing_whitespace = true

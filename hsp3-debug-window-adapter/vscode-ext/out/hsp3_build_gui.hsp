@@ -1,0 +1,5 @@
+// GUI version.
+
+#define global HSP3_BUILD_GUI 1
+
+#include "hsp3_build_cli.hsp"
