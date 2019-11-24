@@ -1,7 +1,5 @@
-out/*.js
-out/*.js.map
 syntaxes/hsp3.json
-ginger.vsix
+hsp3-vscode-syntax.vsix
 LICENSE
 
 
