@@ -6,7 +6,7 @@ if (!$?) {
     exit 1
 }
 
-npm intall
+npm install
 
 cp '../LICENSE' 'LICENSE'
 cp '../language-hsp3/grammars/hsp3.json' 'syntaxes/hsp3.json'
