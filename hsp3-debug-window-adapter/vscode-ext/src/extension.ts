@@ -8,19 +8,12 @@ import { MyConfigurationProvider } from "./ext_config_provider"
 import { HSP3_LANG_ID } from "./ext_constants"
 
 /**
- * 拡張機能のルートディレクトリへのパス。
+ * デバッガーのディレクトリへのパス。
  *
- * このファイルからみて ../out の位置。
+ * FIXME: 名前が適切でない。
  */
-const getExtensionRoot = (extensionPath: string) => {
-    // 開発環境
-    if (path.basename(extensionPath) === "vscode-ext") {
-        return path.join(extensionPath, "out")
-    }
-
-    // 本番環境
-    return extensionPath
-}
+const getExtensionRoot = (extensionPath: string) =>
+    path.join(extensionPath, "out")
 
 /**
  * 拡張機能がロードされたときに呼ばれる。
