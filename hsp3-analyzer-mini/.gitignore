@@ -1,6 +1,5 @@
 target
 Cargo.lock
-compiler/tests/tests_generated.rs
 
 
 
