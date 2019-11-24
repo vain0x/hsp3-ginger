@@ -3,15 +3,15 @@ import * as path from "path"
 import { promisify } from "util"
 import { window, workspace } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
+import { DomainError, withNotify } from "./extension"
 
 /**
  * 作業ディレクトリに hsptmp ファイルを生成する。
  */
-export const createHsptmpCommand = async () => {
+export const createHsptmp = async () => {
     const activeEditor = window.activeTextEditor
     if (!activeEditor) {
-        window.showWarningMessage("エディターが開かれていません。")
-        return
+        throw new DomainError("エディターが開かれていません。")
     }
 
     // ファイルパスを構成する。
@@ -24,9 +24,6 @@ export const createHsptmpCommand = async () => {
             && workspace.workspaceFolders[0].uri.fsPath
             || await selectHsp3Root()
         )
-    if (!dirName) {
-        return null
-    }
     const hsptmpPath = path.join(dirName, "hsptmp")
 
     // ファイルを作成する。
@@ -35,3 +32,5 @@ export const createHsptmpCommand = async () => {
 
     return hsptmpPath
 }
+
+export const createHsptmpCommand = withNotify(createHsptmp)

@@ -6,7 +6,7 @@ if (!$?) {
     exit 1
 }
 
-npm intall
+npm install
 npm run build
 npm run vsce:package
 code --install-extension 'hsp3-debug-window-adapter.vsix'

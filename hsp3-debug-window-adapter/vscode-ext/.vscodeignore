@@ -1,0 +1,16 @@
+~*
+
+
+
+hsptmp
+obj
+start.ax
+packfile
+
+
+
+out/*.ax
+out/*.dll
+out/*.exe
+hsp3-debug-window-adapter.log
+hsp3-debug-window-adapter.vsix

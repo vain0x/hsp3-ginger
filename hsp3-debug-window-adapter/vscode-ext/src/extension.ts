@@ -8,19 +8,35 @@ import { MyConfigurationProvider } from "./ext_config_provider"
 import { HSP3_LANG_ID } from "./ext_constants"
 
 /**
- * 拡張機能のルートディレクトリへのパス。
- *
- * このファイルからみて ../out の位置。
+ * 想定内のエラーを表す。
  */
-const getExtensionRoot = (extensionPath: string) => {
-    // 開発環境
-    if (path.basename(extensionPath) === "vscode-ext") {
-        return path.join(extensionPath, "out")
+export class DomainError extends Error {
+    public constructor(userFriendlyMessage: string) {
+        super(userFriendlyMessage)
     }
 
-    // 本番環境
-    return extensionPath
+    public toString() {
+        return this.message
+    }
 }
+
+/**
+ * 非同期処理の例外をキャッチしてエラーメッセージを表示する。
+ */
+export const withNotify = <T>(body: () => Promise<T>) =>
+    () => body().catch(err => {
+        const message = err instanceof Error ? err.toString() : String(err)
+        window.showErrorMessage(message)
+        return null
+    })
+
+/**
+ * デバッガーのディレクトリへのパス。
+ *
+ * FIXME: 名前が適切でない。
+ */
+const getExtensionRoot = (extensionPath: string) =>
+    path.join(extensionPath, "out")
 
 /**
  * 拡張機能がロードされたときに呼ばれる。
