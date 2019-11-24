@@ -5,6 +5,7 @@ import {
     workspace,
 } from "vscode"
 import { HSP3_CONFIG_SECTION, MY_CONFIG_SECTION } from "./ext_constants"
+import { DomainError } from "./extension"
 
 const HSP3_ROOT_KEY = "hsp3-root"
 
@@ -58,7 +59,7 @@ const doSelectHsp3Root = async () => {
 export const selectHsp3Root = async () => {
     const hsp3Root = await doSelectHsp3Root()
     if (!hsp3Root) {
-        throw new Error("HSP3 のインストールディレクトリが指定されていません。")
+        throw new DomainError("HSP3 のインストールディレクトリが指定されていません。")
     }
 
     return hsp3Root
