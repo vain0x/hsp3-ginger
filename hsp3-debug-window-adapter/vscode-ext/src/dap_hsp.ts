@@ -36,7 +36,7 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 /**
  * [開発用] ファイルにログ出力する。
  */
-const DEBUG_MODE = process.env.HSP3_DEBUG_ADAPTER_DEBUG === "1"
+const DEBUG_MODE = process.env.HSP3_DEBUG_WINDOW_ADAPTER_DEBUG === "1"
 
 const LOG_FILE = DEBUG_MODE
     ? path.join(__dirname, "../hsp3-debug-window-adapter.log")

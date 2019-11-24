@@ -14,7 +14,7 @@
         "${workspaceFolder}/vscode-ext/out/**/*.js"
       ],
       "env": {
-        "HSP3_DEBUG_ADAPTER_DEBUG": "1",
+        "HSP3_DEBUG_WINDOW_ADAPTER_DEBUG": "1",
       }
     }
   ]
