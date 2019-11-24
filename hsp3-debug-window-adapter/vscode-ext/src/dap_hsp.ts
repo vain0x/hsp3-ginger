@@ -262,7 +262,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
             || typeof hsp3Root !== "string"
             || typeof extensionRoot !== "string") {
             writeTrace("bad arguments")
-            return [false, "おや、なにかがおかしいです。"]
+            return [false, "デバッガーの起動に失敗しました。(launch 引数が不正です。)"]
         }
 
         // HSP3 のインストールディレクトリが正しいパスか検査する。
