@@ -74,9 +74,6 @@
                 "adapterExecutableCommand": "hsp3-debug-window-adapter.adapterExecutableCommand",
                 "configurationAttributes": {
                     "launch": {
-                        "required": [
-                            "program"
-                        ],
                         "properties": {
                             "program": {
                                 "type": "string",
@@ -95,9 +92,7 @@
                     {
                         "type": "hsp3",
                         "request": "launch",
-                        "name": "Run",
-                        "program": "${command:hsp3-debug-window-adapter.createHsptmp}",
-                        "trace": false
+                        "name": "Run"
                     }
                 ],
                 "configurationSnippets": [
@@ -107,9 +102,7 @@
                         "body": {
                             "type": "hsp3",
                             "request": "launch",
-                            "name": "Run",
-                            "program": "${command:hsp3-debug-window-adapter.createHsptmp}",
-                            "trace": false
+                            "name": "Run"
                         }
                     }
                 ]
