@@ -14,8 +14,7 @@
         "Debugger"
     ],
     "engines": {
-        "vscode": "^1.40.1",
-        "node": "^10.15.1"
+        "vscode": "^1.40.1"
     },
     "categories": [
         "Debuggers"
