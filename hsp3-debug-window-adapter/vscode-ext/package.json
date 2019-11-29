@@ -2,7 +2,7 @@
     "name": "hsp3-debug-window-adapter",
     "displayName": "HSP3 デバッグ (標準のデバッグウィンドウを使用)",
     "description": "HSP3 のデバッグ機能を有効化する拡張機能です。VSCode のデバッグツールではなく、HSP3 標準のデバッグウィンドウを使用します。",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": {
         "name": "vain0x",
         "email": "vainzerox@gmail.com"
@@ -14,8 +14,7 @@
         "Debugger"
     ],
     "engines": {
-        "vscode": "^1.40.1",
-        "node": "^10.15.1"
+        "vscode": "^1.40.1"
     },
     "categories": [
         "Debuggers"
@@ -63,8 +62,7 @@
             "properties": {
                 "hsp3-debug-window-adapter.hsp3-root": {
                     "type": "string",
-                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。",
-                    "default": "C:\\Program Files (x86)\\hsp351"
+                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。"
                 }
             }
         },
@@ -75,9 +73,6 @@
                 "adapterExecutableCommand": "hsp3-debug-window-adapter.adapterExecutableCommand",
                 "configurationAttributes": {
                     "launch": {
-                        "required": [
-                            "program"
-                        ],
                         "properties": {
                             "program": {
                                 "type": "string",
@@ -96,9 +91,7 @@
                     {
                         "type": "hsp3",
                         "request": "launch",
-                        "name": "Run",
-                        "program": "${command:hsp3-debug-window-adapter.createHsptmp}",
-                        "trace": false
+                        "name": "Run"
                     }
                 ],
                 "configurationSnippets": [
@@ -108,9 +101,7 @@
                         "body": {
                             "type": "hsp3",
                             "request": "launch",
-                            "name": "Run",
-                            "program": "${command:hsp3-debug-window-adapter.createHsptmp}",
-                            "trace": false
+                            "name": "Run"
                         }
                     }
                 ]

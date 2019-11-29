@@ -3,7 +3,7 @@ import * as path from "path"
 import { promisify } from "util"
 import { window, workspace } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
-import { DomainError, withNotify } from "./extension"
+import { DomainError } from "./extension"
 
 /**
  * 作業ディレクトリに hsptmp ファイルを生成する。
@@ -32,5 +32,3 @@ export const createHsptmp = async () => {
 
     return hsptmpPath
 }
-
-export const createHsptmpCommand = withNotify(createHsptmp)
