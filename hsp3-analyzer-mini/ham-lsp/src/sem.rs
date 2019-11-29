@@ -268,7 +268,8 @@ pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
 
                 if text.as_str()[i..].starts_with("\"") {
                     i += 1;
-                    while let Some(c) = text.as_str()[i..].chars().filter(|&c| c != '"').next() {
+                    while let Some(c) = text.as_str()[i..].chars().take_while(|&c| c != '"').next()
+                    {
                         if c == '\\' {
                             i += text.as_str()[i..]
                                 .chars()

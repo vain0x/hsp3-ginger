@@ -12,7 +12,7 @@ cp ../target/release/ham-lsp ./out/ham-lsp
 
 npm install
 npm run build
-npm run vsce -- package -o ham.vsix
+npm run vsce:package
 
 ./uninstall || :
 code --install-extension ham.vsix
