@@ -1,6 +1,6 @@
 {
   "name": "hsp3-analyzer-mini",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "HSP3 minimum-viable LSP extension",
   "repository": "https://github.com/vain0x/hsp3-ginger",
   "author": "vain0x",
