@@ -1,6 +1,6 @@
-# HSP3 Analyzer Mini
+# HSP3 アナライザー・ミニ
 
-HSP3 用の Language Server Protocol (LSP) サーバーです。
+HSP3 の実用最小限なインテリセンス機能です。Language Server Protocol (LSP) に準拠。
 
 **実装が雑** なので誤った情報を表示することがあります。ご了承ください。
 
