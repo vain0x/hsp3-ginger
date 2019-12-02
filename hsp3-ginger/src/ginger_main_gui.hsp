@@ -1,0 +1,42 @@
+// GUI 版のエントリーポイント
+
+#include "hsp3utf.as"
+
+#packopt name "ginger_gui"
+#packopt hide 1
+#packopt orgpath 1
+
+#include "ginger_core.hsp"
+
+#module m_ginger_infra
+
+#deffunc ginger_infra_get_exe_name var name
+
+	name = "ginger_gui"
+	return
+
+#deffunc ginger_infra_get_version var text
+
+	text = GINGER_VERSION
+	return
+
+#deffunc ginger_infra_stdout var text
+
+	ginger_infra_error text
+	return
+
+#deffunc ginger_infra_error var text, \
+	local exe_name
+
+	ginger_infra_get_exe_name exe_name
+
+	title exe_name + " v" + GINGER_VERSION
+	font "MS Gothic", 12
+	objmode objmode_font
+	mesbox text, ginfo_winx, ginfo_winy, mesbox_readonly
+	gsel s_default_window_id, gsel_show
+	stop
+
+#global
+
+	ginger_core_main

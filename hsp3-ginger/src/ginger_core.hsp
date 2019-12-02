@@ -1,0 +1,375 @@
+// メイン処理
+
+#include "ginger_constants.hsp"
+#include "ginger_sub_compile.hsp"
+#include "ginger_sub_help.hsp"
+#include "ginger_sub_make.hsp"
+#include "ginger_sub_run.hsp"
+#include "mod_cmdline_parser.hsp"
+
+#module m_ginger_core
+
+#include "hspcmp.as"
+
+#define true 1
+#define false 0
+
+#deffunc ginger_core_main
+
+	sdim s_error
+
+	onexit gosub *l_on_exit
+
+	ginger_core_do_main
+	if stat == false {
+		ginger_infra_error s_error
+		end EXIT_FAILURE
+	}
+
+	assert s_error == ""
+	s_exit_success = true
+	end
+
+*l_on_exit
+
+	if s_exit_success == false {
+		end EXIT_FAILURE
+	}
+	end
+
+#deffunc ginger_core_do_main
+
+	sdim s_args
+	sdim s_forward_args
+	s_forward_argc = 0
+
+	sdim s_hsp_dir
+	sdim s_ref_name
+	s_obj_name = "start.ax"
+
+	ginger_infra_get_exe_name s_exe_name
+
+	ginger_core_parse_args
+	if stat == false {
+		return false
+	}
+
+	ginger_core_subcommand
+	if stat == false {
+		return false
+	}
+
+	return true
+
+#deffunc ginger_core_parse_args \
+	local i, local forward_rest
+
+	cmdline_parser_parse dir_cmdline, s_args
+	s_argc = stat
+
+	repeat
+		if i >= s_argc {
+			break
+		}
+
+		// ランタイムにオブジェクトファイルを渡して起動されているとき
+		if i == 0 {
+			if instr(s_args(i), , s_exe_name + ".ax") >= 0 {
+				i++
+				continue
+			}
+		}
+
+		if forward_rest {
+			s_forward_args(s_forward_argc) = s_args(i)
+			s_forward_argc++
+			i++
+			continue
+		}
+
+		// 引数の区切り
+		// この区切りも含めて、残りの引数はすべてサブコマンドに渡す。
+		if s_args(i) == "--" {
+			forward_rest = true
+			continue
+		}
+
+		// ヘルプ
+		if s_args(i) == "-h" || s_args(i) == "--help" || s_args(i) == "-?" || s_args(i) == "/?" {
+			s_show_help = true
+			i++
+			continue
+		}
+
+		// バージョン
+		if s_args(i) == "-V" || s_args(i) == "--version" {
+			s_subcommand = "version"
+			s_subcommand_exists = true
+			break
+		}
+
+		// グローバルオプション
+		if s_args(i) == "--hsp" && i + 1 < s_argc {
+			s_hsp_dir = s_args(i + 1)
+			s_hsp_dir_exists = true
+			i += 2
+			continue
+		}
+
+		if s_args(i) == "--release" {
+			s_release_mode = true
+			i++
+			continue
+		}
+
+		if s_args(i) == "--debug" {
+			s_release_mode = false
+			i++
+			continue
+		}
+
+		if s_args(i) == "--obj-name" && i + 1 < s_argc {
+			s_obj_name = s_args(i + 1)
+			i += 2
+			continue
+		}
+
+		if s_args(i) == "--ref-name" && i + 1 < s_argc {
+			s_ref_name = s_args(i + 1)
+			s_ref_name_exists = true
+			i += 2
+			continue
+		}
+
+		// 最初の位置引数はサブコマンドとみなす。
+		if s_subcommand_exists == false {
+			s_subcommand = s_args(i)
+			s_subcommand_exists = true
+			i++
+			continue
+		}
+
+		// 不明な引数はサブコマンドに渡す。
+		s_forward_args(s_forward_argc) = s_args(i)
+		s_forward_argc++
+		i++
+	loop
+
+	if s_subcommand_exists == false {
+		s_subcommand_exists = true
+		s_subcommand = "help"
+		s_show_help = true
+	}
+	return true
+
+// -----------------------------------------------
+// サブコマンドの実行
+// -----------------------------------------------
+
+#deffunc ginger_core_subcommand
+
+	assert s_subcommand_exists
+	if s_subcommand == "help" {
+		ginger_sub_help_main s_forward_args, s_forward_argc, s_show_help, s_error
+		return stat
+	}
+
+	if s_subcommand == "version" {
+		ginger_infra_get_version s_version
+		ginger_infra_stdout s_version
+		return stat
+	}
+
+	if s_subcommand = "run" {
+		ginger_sub_run_main s_forward_args, s_forward_argc, s_show_help, s_error
+		return stat
+	}
+
+	if s_subcommand = "make" {
+		ginger_sub_make_main s_forward_args, s_forward_argc, s_show_help, s_error
+		return stat
+	}
+
+	if s_subcommand = "compile" {
+		ginger_sub_compile_main s_forward_args, s_forward_argc, s_show_help, s_error
+		return stat
+	}
+
+	s_error = "不明なサブコマンド: " + s_subcommand
+	return false
+
+// -----------------------------------------------
+// コンパイル機能
+// -----------------------------------------------
+
+#deffunc ginger_core_get_hsp_dir var hsp_dir
+
+	if s_hsp_dir_exists {
+		hsp_dir = s_hsp_dir
+		return true
+	}
+
+	exist dir_exe + "/hsp3.exe"
+	if strsize > 0 {
+		hsp_dir = dir_exe
+		return true
+	}
+
+	// FIXME: 環境変数 HSP3_ROOT から取得する。
+	return false
+
+#deffunc ginger_core_get_common_dir var common_dir
+
+	ginger_core_get_hsp_dir common_dir
+	if stat == false {
+		return false
+	}
+
+	common_dir += "\\common\\"
+	return true
+
+#deffunc ginger_core_get_compile_opts \
+	local compile_opts
+
+	if s_release_mode == false {
+		// デバッグ情報の埋め込み
+		compile_opts = 1
+	}
+
+	// UTF-8 入力
+	compile_opts |= 4
+
+	return compile_opts
+
+#deffunc ginger_core_get_pp_opts
+
+	// 4: packfile 生成 (実行ファイルの生成に必要)
+	// 32: UTF-8 出力モード
+	return 4 | 32
+
+#deffunc ginger_core_is_debug_mode
+
+	return s_release_mode == false
+
+#deffunc ginger_core_get_obj_name var obj_name
+
+	obj_name = s_obj_name
+	return true
+
+#deffunc ginger_core_get_ref_name var ref_name
+
+	ref_name = s_ref_name
+	return s_ref_name_exists
+
+// HSP3 コンパイラが出力したメッセージを取得する。
+#deffunc ginger_core_getmes var message, \
+	local message_size
+
+	hsc3_messize message_size
+
+	message = ""
+	memexpand message, message_size + 1
+
+	hsc_getmes message
+	return
+
+#deffunc ginger_core_compile var src_path, var runtime_name, \
+	local hsp_dir, local common_dir, \
+	local compile_opts, local pp_opts, local is_debug_mode
+
+	hsc_ini src_path
+	if stat {
+		return false
+	}
+
+	hsc_objname s_obj_name
+	if stat {
+		return false
+	}
+
+	if s_ref_name_exists {
+		hsc_refname s_ref_name
+		if stat {
+			return false
+		}
+	}
+
+	ginger_core_get_common_dir common_dir
+	hsc_compath common_dir
+	if stat {
+		return false
+	}
+
+	ginger_core_get_compile_opts
+	compile_opts = stat
+
+	ginger_core_get_pp_opts
+	pp_opts = stat
+
+	ginger_core_is_debug_mode
+	is_debug_mode = stat
+
+	hsc_comp compile_opts, pp_opts, is_debug_mode
+	if stat {
+		return false
+	}
+
+	runtime_name = ""
+	hsc3_getruntime runtime_name, s_obj_name
+	if runtime_name == "" {
+		runtime_name = "hsp3.exe"
+	}
+
+	return true
+
+// -----------------------------------------------
+// ヘルプ
+// -----------------------------------------------
+
+// ヘルプテキストを生成する。
+#deffunc ginger_core_make_help str content, var text, \
+	local subcommand
+
+	text = {"${EXE_NAME}: HSP3 ビルドツール
+
+${CONTENT}
+グローバルオプション:
+\t--hsp <HSPのディレクトリ>
+\t\tHSP3 のインストールディレクトリへの絶対パスを指定してください。
+\t\t省略時は環境変数 HSP3_ROOT を使用します。
+
+\t--release
+\t\tコンパイル時にデバッグ情報を埋め込まず、
+\t\t実行時にデバッグウィンドウを表示しません。
+\t\t省略時はデバッグモードになります。
+
+\t--obj-name <オブジェクトファイル>
+\t\t生成されるオブジェクトファイルの名前を指定します。
+\t\tファイル名は拡張子 .ax を含まなければいけません。
+\t\t省略時は start.ax が使用されます。
+\t\t(hsc_objname も参照)
+
+\t--ref-name <ファイル名>
+\t\tコンパイルエラーやデバッグ情報の中で、
+\t\tスクリプトのファイル名の代わりに指定された名前を使用します。
+\t\t(hsc_refname も参照)
+
+\t-h, --help
+\t\tこのヘルプメッセージを表示します。
+
+\t-V, --version
+\t\tバージョン情報を表示します。
+"}
+
+	subcommand = s_subcommand
+	if subcommand == "help" {
+		subcommand = "<サブコマンド>"
+	}
+
+	strrep text, "${SUBCOMMAND}", subcommand
+	strrep text, "${CONTENT}", content
+	strrep text, "${EXE_NAME}", s_exe_name
+	strrep text, "\t", "    "
+	return
+
+#global

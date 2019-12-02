@@ -1,0 +1,37 @@
+// CLI 版のエントリーポイント
+
+#runtime "hsp3cl"
+
+#packopt name "ginger"
+#packopt orgpath 1
+
+#include "ginger_core.hsp"
+
+#module m_ginger_infra
+
+#deffunc ginger_infra_get_exe_name var name
+
+	name = "ginger"
+	return
+
+#deffunc ginger_infra_get_version var text
+
+	text = GINGER_VERSION
+	return
+
+#deffunc ginger_infra_stdout var text
+
+	mes text
+	return
+
+#deffunc ginger_infra_error var text
+
+	if text != "" {
+		mes "ERROR: " + text
+	}
+	return
+
+#global
+
+	ginger_core_main
+	end

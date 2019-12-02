@@ -1,0 +1,151 @@
+// コマンドライン引数を解析するモジュール
+// LICENSE: PUBLIC DOMAIN
+
+#ifndef included_mod_cmdline_parser_hsp
+#define included_mod_cmdline_parser_hsp
+
+#module m_cmdline_parser
+
+#define true 1
+#define false 0
+
+#define char_lf 0x0a
+
+// 文字列をコマンドライン引数として解析する。
+//
+// %prm
+// cmdline, args
+// str cmdline: コマンドライン文字列
+// array args: 引数を格納する配列変数
+// stat: 引数の個数
+//
+// %inst
+// cmdline をコマンドライン引数として解析します。
+// 結果はすべて文字列として、args(0), args(1), ..., args(stat - 1) に格納されます。
+//
+// 引数は基本的に空白区切りで解釈されます。
+// 例えば「foo bar」は foo, bar という2つの引数になります。
+// 文字列や各単語の前後にある空白はすべて無視されます。
+//
+// ただし、例外が2つあります。
+//
+// 1つ目に、二重引用符 "" で囲まれた範囲は空白を無視しません。
+// 例えば「"foo bar"」は「foo bar」という1個の引数になります。
+//
+// 2つ目に、^ の次の文字はエスケープされ、文字通りに解釈されます。
+// 例えば「^"」は「"」の意味になります。(HSP の文字列における \ のようなものです。)
+// 引数の中に ^ を使いたい場合は ^^ と書きます。
+#deffunc cmdline_parser_parse str cmdline, array args, \
+	local cmdline_var, local cmdline_len, local index, local argc
+
+	cmdline_var = cmdline
+	cmdline_len = strlen(cmdline_var)
+	index = 0
+	argc = 0
+
+	repeat
+		args(argc) = ""
+		cmdline_parser_next cmdline_var, cmdline_len, index, args(argc)
+		if stat < 0 {
+			break
+		}
+
+		index += stat
+		argc++
+	loop
+	return argc
+
+// 次のコマンドライン引数をパースする。
+//
+// stat に読み進めた文字数、あるいは -1 (引数なし) が入る。
+#deffunc cmdline_parser_next var cmdline, int cmdline_len, int start, var value, \
+	local index, local c, local last
+
+	index = start
+	value = ""
+
+	// 空白を飛ばす。
+	repeat
+		if index >= cmdline_len {
+			break
+		}
+
+		c = peek(cmdline, index)
+		if c != ' ' && c != '\t' && c != '\r' && c != char_lf {
+			break
+		}
+
+		index++
+	loop
+
+	// 引数なし。
+	if index >= cmdline_len {
+		return -1
+	}
+
+	// "" で囲まれた引数がある。
+	if peek(cmdline, index) == '"' {
+		index++
+		last = index
+
+		repeat
+			if index >= cmdline_len {
+				gosub *l_commit
+				break
+			}
+
+			c = peek(cmdline, index)
+			if c == '"' {
+				gosub *l_commit
+				index++
+				break
+			}
+
+			if c == 0 {
+				gosub *l_commit
+				break
+			}
+
+			index++
+		loop
+
+		return index - start
+	}
+
+	// 引用符に囲まれていない引数がある。
+	last = index
+
+	repeat
+		if index >= cmdline_len {
+			break
+		}
+
+		c = peek(cmdline, index)
+		if c == 0 || c == ' ' || c == '\t' || c == '\r' || c == char_lf || c == '"' {
+			break
+		}
+
+		// エスケープシーケンスを読む。(^ が末尾にあるときはエスケープでないとみなす。)
+		if c == '^' && index + 1 < cmdline_len {
+			gosub *l_commit
+			index++
+			last = index
+
+			index++
+			continue
+		}
+
+		index++
+	loop
+
+	gosub *l_commit
+	return index - start
+
+*l_commit
+
+	value += strmid(cmdline, last, index - last)
+	return
+
+#global
+
+#endif

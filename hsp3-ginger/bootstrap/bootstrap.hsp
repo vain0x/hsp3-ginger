@@ -1,0 +1,49 @@
+// Make an executable of the ginger without using the ginger itself.
+
+#runtime "hsp3cl"
+
+#packopt name "bootstrap"
+
+#include "hspcmp.as"
+
+// 4: utf-8 input
+#define s_compile_opts 4
+
+// 4: packfile
+// 32: utf-8 output
+#define s_pp_opts (4 | 32)
+
+	s_hsp_root = dir_exe
+
+	s_src_path = dir_cmdline
+
+	hsc_ini s_src_path
+	if stat {
+		goto *l_fail
+	}
+
+	hsc_objname "start.ax"
+	if stat {
+		goto *l_fail
+	}
+
+	hsc_compath s_hsp_root + "\\common\\"
+
+	hsc_comp s_compile_opts, s_pp_opts
+	if stat {
+		goto *l_fail
+	}
+
+	hsc3_make s_hsp_root + "\\runtime\\"
+	if stat {
+		goto *l_fail
+	}
+	end
+
+*l_fail
+
+	hsc3_messize s_message_size
+	sdim s_error, s_message_size + 1
+	hsc_getmes s_error
+	mes s_error
+	end 1

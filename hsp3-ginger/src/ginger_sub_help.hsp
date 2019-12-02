@@ -1,0 +1,35 @@
+// ヘルプ機能
+
+#module m_ginger_sub_help
+
+#define true 1
+#define false 0
+
+#deffunc ginger_sub_help_main array args, int argc, int show_help, var s_error, \
+	local content, local text
+
+	assert show_help
+
+	content = {"使用法:
+\t${EXE_NAME} <サブコマンド> [オプション]
+
+使用例:
+\t${EXE_NAME} make hello.hsp
+
+サブコマンド:
+\trun <スクリプトファイル>
+\t\tスクリプトを実行します。(F5 相当)
+
+\tmake <スクリプトファイル>
+\t\tスクリプトを実行形式 (.exe) に変換します。(Ctrl+F9 相当)
+
+\tcompile <スクリプトファイル>
+\t\tスクリプトをコンパイルし、オブジェクトファイルを生成します。(F7 相当)
+"}
+
+	ginger_core_make_help content, text
+
+	ginger_infra_stdout text
+	return false
+
+#global
