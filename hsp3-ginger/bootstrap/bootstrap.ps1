@@ -48,6 +48,8 @@ try {
         write-error 'ginger_gui の実行ファイル生成に失敗しました。'
         exit 1
     }
+
+    cp "$hsp3Root/ginger.exe" "$workDir/bin/ginger.exe"
 } finally {
     cd $workDir
 }
