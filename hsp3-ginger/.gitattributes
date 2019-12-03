@@ -1,0 +1,5 @@
+* text=auto
+
+*.as linguist-language=HSP3
+*.hs linguist-language=HDL Help Source
+*.hsp linguist-language=HSP3

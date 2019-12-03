@@ -1,0 +1,76 @@
+// ヘルプ機能
+
+#module m_ginger_sub_help
+
+#define true 1
+#define false 0
+
+// help コマンドのエントリーポイント
+#deffunc ginger_sub_help_main array args, int argc, int show_help, var s_error, \
+	local content, local text
+
+	content = {"使用法:
+\t${EXE_NAME} <サブコマンド> [オプション]
+
+使用例:
+\t${EXE_NAME} make hello.hsp
+
+サブコマンド:
+\trun <スクリプトファイル>
+\t\tスクリプトを実行します。(F5 相当)
+
+\tmake <スクリプトファイル>
+\t\tスクリプトを実行形式 (.exe) に変換します。(Ctrl+F9 相当)
+
+\tcompile <スクリプトファイル>
+\t\tスクリプトをコンパイルし、オブジェクトファイルを生成します。(F7 相当)
+"}
+
+	ginger_sub_help_layout content, text
+
+	ginger_infra_stdout text
+	return false
+
+// ヘルプテキスト全体を構築する
+#deffunc ginger_sub_help_layout str content, var text, \
+	local exe_name
+
+	text = {"${EXE_NAME}: HSP3 ビルドツール
+
+${CONTENT}
+グローバルオプション:
+\t--hsp <HSPのディレクトリ>
+\t\tHSP3 のインストールディレクトリへの絶対パスを指定してください。
+\t\t省略時は環境変数 HSP3_ROOT を使用します。
+
+\t--release
+\t\tコンパイル時にデバッグ情報を埋め込まず、
+\t\t実行時にデバッグウィンドウを表示しません。
+\t\t省略時はデバッグモードになります。
+
+\t--ref-name <ファイル名>
+\t\tコンパイルエラーやデバッグ情報の中で、
+\t\tスクリプトのファイル名の代わりに指定された名前を使用します。
+\t\t(hsc_refname も参照)
+
+\t--obj-name <オブジェクトファイル>
+\t\t生成されるオブジェクトファイルの名前を指定します。
+\t\tファイル名は拡張子 .ax を含まなければいけません。
+\t\t省略時は start.ax が使用されます。
+\t\t(hsc_objname も参照)
+
+\t-h, --help
+\t\tこのヘルプメッセージを表示します。
+
+\t-V, --version
+\t\tバージョン情報を表示します。
+"}
+
+	ginger_infra_get_exe_name exe_name
+
+	strrep text, "${CONTENT}", content
+	strrep text, "${EXE_NAME}", exe_name
+	strrep text, "\t", "    "
+	return
+
+#global

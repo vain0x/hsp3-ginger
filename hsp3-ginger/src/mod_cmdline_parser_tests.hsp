@@ -1,0 +1,51 @@
+// mod_cmdline_parser.hsp のテスト
+// LICENSE: PUBLIC DOMAIN
+
+#include "hsp3utf.as"
+#include "mod_cmdline_parser.hsp"
+
+	// 空文字列のケース
+	cmdline_parser_parse "", args
+	assert stat == 0
+
+	// 通常の引数が1つあるケース
+	cmdline_parser_parse "foo", args
+	assert stat == 1
+	assert args(0) == "foo"
+
+	// 空白区切りの引数が複数あるケース
+	cmdline_parser_parse " foo bar ", args
+	assert stat == 2
+	assert args(0) == "foo"
+	assert args(1) == "bar"
+
+	// 引用符で囲まれた引数があるケース
+	cmdline_parser_parse "\"foo bar\"", args
+	assert stat == 1
+	assert args(0) == "foo bar"
+
+	// 引用符の終端がないケース
+	cmdline_parser_parse "\"foo bar", args
+	assert stat == 1
+	assert args(0) == "foo bar"
+
+	// 引用符で囲まれた引数と通常の引数が混在するケース
+	cmdline_parser_parse "hoge \"foo bar\" piyo", args
+	assert stat == 3
+	assert args(0) == "hoge"
+	assert args(1) == "foo bar"
+	assert args(2) == "piyo"
+
+	// 引用符の隣にスペースがないケース
+	cmdline_parser_parse "hoge\"foo bar\"piyo", args
+	assert stat == 3
+	assert args(0) == "hoge"
+	assert args(1) == "foo bar"
+	assert args(2) == "piyo"
+
+	// エスケープシーケンス
+	cmdline_parser_parse "^\"^ ^^^", args
+	assert stat = 1
+	assert args(0) = "\" ^^"
+
+	mes "ok"

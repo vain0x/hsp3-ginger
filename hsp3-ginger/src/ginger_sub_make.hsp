@@ -1,0 +1,109 @@
+// 実行ファイル作成機能
+
+#module m_ginger_sub_make
+
+#include "hspcmp.as"
+
+#define true 1
+#define false 0
+
+// make コマンドのエントリーポイント
+//
+// 成功したら stat=true
+#deffunc ginger_sub_make_main var args, int argc, int show_help, var error
+
+	sdim s_src_path
+	s_src_path_exists = false
+
+	if show_help {
+		ginger_sub_help_main args, argc, show_help, error
+		return stat
+	}
+
+	ginger_sub_make_parse_args args, argc, error
+	if stat == false {
+		return false
+	}
+
+	ginger_sub_make_run error
+	return stat
+
+// 引数を解析する
+//
+// 成功したら stat=true
+#deffunc ginger_sub_make_parse_args array args, int argc, var error, \
+	local i, local ok
+
+	ok = true
+
+	repeat
+		if i >= argc {
+			break
+		}
+
+		if args(i) == "--" {
+			break
+		}
+
+		if s_src_path_exists == false {
+			s_src_path = args(i)
+			s_src_path_exists = true
+			i++
+			continue
+		}
+
+		error = "不明な引数: " + args(i)
+		ok = false
+		break
+	loop
+
+	if ok == false {
+		return false
+	}
+
+	if s_src_path_exists == false {
+		error = "スクリプトファイルを指定してください。"
+		return false
+	}
+
+	return true
+
+// 実行ファイルの生成を行う
+//
+// 成功したら stat=true
+#deffunc ginger_sub_make_run var error, \
+	local hsp_dir, local runtime_name, local runtime_dir, local message
+
+	ginger_compile_get_hsp_dir hsp_dir
+	if stat == false {
+		error = "HSP のインストールディレクトリを指定してください。"
+		return false
+	}
+
+	ginger_compile_compile s_src_path
+	if stat == false {
+		ginger_compile_get_message error
+		return false
+	}
+
+	ginger_compile_get_message message
+
+	ginger_compile_get_runtime_name runtime_name
+
+	if runtime_name == "hsp3.exe" {
+		runtime_dir = hsp_dir + "\\"
+	} else {
+		runtime_dir = hsp_dir + "\\runtime\\"
+	}
+
+	hsc3_make runtime_dir
+	if stat {
+		ginger_compile_get_message error
+		return false
+	}
+
+	message += "#Use runtime \"" + runtime_name + "\"\n"
+	ginger_infra_stdout message
+	return true
+
+#global
