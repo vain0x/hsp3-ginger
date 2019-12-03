@@ -2,8 +2,6 @@
 
 #module m_ginger_sub_run
 
-#include "hspcmp.as"
-
 #define true 1
 #define false 0
 
@@ -73,7 +71,7 @@
 // 成功したら stat=true。
 // いまのところ実行は待機しない。
 #deffunc ginger_sub_run_run var error, \
-	local hsp_dir, local obj_name, local runtime_name, local runtime_path, local cmdline
+	local hsp_dir
 
 	ginger_compile_get_hsp_dir hsp_dir
 	if stat == false {
@@ -87,16 +85,7 @@
 		return false
 	}
 
-	ginger_compile_get_runtime_name runtime_name
-
-	runtime_path = hsp_dir + "\\" + runtime_name
-
-	ginger_compile_get_obj_name obj_name
-
-	// FIXME: 引数を渡す
-	// FIXME: 標準入出力を継承する
-	cmdline = "\"" + runtime_path + "\" \"" + obj_name + "\""
-	hsc3_run cmdline
+	ginger_compile_run hsp_dir
 	return true
 
 #global
