@@ -7,6 +7,11 @@ if (!$hsp3Root) {
     $hsp3Root = $env:HSP3_ROOT
 }
 
+# 作者環境用
+if (!$hsp3Root) {
+    $hsp3Root = $env:KNOWBUG_CLIENT_HSP3_ROOT
+}
+
 if (!$hsp3Root) {
     write-error '引数または環境変数 HSP3_ROOT に HSP のインストールディレクトリを指定してください。'
     exit 1
@@ -35,6 +40,12 @@ try {
     & "$hsp3Root/hsp3cl.exe" $bootstrapAx "$workDir/src/ginger_main_cli.hsp"
     if (!$?) {
         write-error 'ginger の実行ファイル生成に失敗しました。'
+        exit 1
+    }
+
+    & "$hsp3Root/ginger.exe" make "$workDir/src/ginger_main_gui.hsp"
+    if (!$?) {
+        write-error 'ginger_gui の実行ファイル生成に失敗しました。'
         exit 1
     }
 } finally {
