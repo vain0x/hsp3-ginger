@@ -54,6 +54,12 @@
 	s_pp_only = pp_only
 	return
 
+// 実行ファイルの作成を行うかを設定する
+#deffunc ginger_compile_does_make int value
+
+	s_does_make = value
+	return
+
 // コンパイルオプションを取得する
 #deffunc ginger_compile_get_compile_ops \
 	local compile_opts
@@ -75,11 +81,18 @@
 	return compile_opts
 
 // プリプロセッサオプションを取得する
-#deffunc ginger_compile_get_pp_opts
+#deffunc ginger_compile_get_pp_opts \
+	local pp_opts
 
-	// 4: packfile 生成 (実行ファイルの生成に必要)
 	// 32: UTF-8 出力モード
-	return 4 | 32
+	pp_opts = 32
+
+	if s_does_make {
+		// 4: packfile 生成 (実行ファイルの生成に必要)
+		pp_opts |= 4
+	}
+
+	return pp_opts
 
 // デバッグモードか？
 #deffunc ginger_compile_is_debug_mode

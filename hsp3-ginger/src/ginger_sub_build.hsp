@@ -144,6 +144,10 @@
 		return stat
 	}
 
+	if s_build_format == build_format_exe {
+		ginger_compile_does_make true
+	}
+
 	ginger_compile_get_hsp_dir hsp_dir
 	if stat == false {
 		error = "HSP のインストールディレクトリを指定してください。"
