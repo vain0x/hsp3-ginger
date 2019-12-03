@@ -7,7 +7,9 @@
 #define global gsel_hide            (-1)
 #define global gsel_show            1
 
+#define global getpath_no_ext       1
 #define global getpath_basename     8
+#define global getpath_dir          32
 
 #define global mesbox_readonly      0
 

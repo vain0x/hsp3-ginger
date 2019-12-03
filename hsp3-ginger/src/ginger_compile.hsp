@@ -48,6 +48,12 @@
 	}
 	return
 
+// プリプロセスのみ行うかを設定する
+#deffunc ginger_compile_set_pp_only int pp_only
+
+	s_pp_only = pp_only
+	return
+
 // コンパイルオプションを取得する
 #deffunc ginger_compile_get_compile_ops \
 	local compile_opts
@@ -56,6 +62,11 @@
 	if stat {
 		// デバッグ情報の埋め込み
 		compile_opts = 1
+	}
+
+	if s_pp_only {
+		// プリプロセスのみ
+		compile_opts |= 2
 	}
 
 	// UTF-8 入力

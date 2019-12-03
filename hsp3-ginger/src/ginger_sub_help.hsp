@@ -24,6 +24,9 @@
 
 \tbuild <スクリプトファイル> --ax
 \t\tスクリプトをコンパイルし、オブジェクトファイルを生成します。(F7 相当)
+
+\tbuild <スクリプトファイル> --pp
+\t\tスクリプトのプリプロセスを行い、中間ファイルを生成します。(#cmpopt ppout 参照)
 "}
 
 	ginger_sub_help_layout content, text
