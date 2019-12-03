@@ -1,0 +1,157 @@
+// 引数の解析
+
+#module m_ginger_args
+
+#define true 1
+#define false 0
+
+#deffunc ginger_args_init
+
+	sdim s_subcommand
+	s_subcommand_exists = false
+
+	s_show_help = false
+
+	sdim s_hsp_dir
+	s_hsp_dir_exists = false
+
+	sdim s_ref_name
+	s_ref_name_exists = false
+
+	sdim s_obj_name
+	s_obj_name_exists = false
+
+	s_release_mode = false
+	return
+
+// コマンドライン引数を解析する。
+// 余った引数を forward_args に渡す。
+#deffunc ginger_args_parse array forward_args, var forward_argc, \
+	local args, local argc, local i, local forward_rest, local exe_name
+
+	ginger_infra_get_exe_name exe_name
+
+	cmdline_parser_parse dir_cmdline, args
+	argc = stat
+
+	repeat
+		if i >= argc {
+			break
+		}
+
+		// ランタイムにオブジェクトファイルを渡して起動されているとき
+		if i == 0 {
+			if instr(args(i), , exe_name + ".ax") >= 0 {
+				i++
+				continue
+			}
+		}
+
+		if forward_rest {
+			forward_args(forward_argc) = args(i)
+			forward_argc++
+			i++
+			continue
+		}
+
+		// 引数の区切り
+		// この区切りも含めて、残りの引数はすべてサブコマンドに渡す。
+		if args(i) == "--" {
+			forward_rest = true
+			continue
+		}
+
+		// ヘルプ
+		if args(i) == "-h" || args(i) == "--help" || args(i) == "-?" || args(i) == "/?" {
+			s_show_help = true
+			i++
+			continue
+		}
+
+		// バージョン
+		if args(i) == "-V" || args(i) == "--version" {
+			s_subcommand = "version"
+			s_subcommand_exists = true
+			break
+		}
+
+		// グローバルオプション
+		if args(i) == "--hsp" && i + 1 < argc {
+			s_hsp_dir = args(i + 1)
+			s_hsp_dir_exists = true
+			i += 2
+			continue
+		}
+
+		if args(i) == "--release" {
+			s_release_mode = true
+			i++
+			continue
+		}
+
+		if args(i) == "--debug" {
+			s_release_mode = false
+			i++
+			continue
+		}
+
+		if args(i) == "--obj-name" && i + 1 < argc {
+			s_obj_name = args(i + 1)
+			s_obj_name_exists = true
+			i += 2
+			continue
+		}
+
+		if args(i) == "--ref-name" && i + 1 < argc {
+			s_ref_name = args(i + 1)
+			s_ref_name_exists = true
+			i += 2
+			continue
+		}
+
+		// 最初の位置引数はサブコマンドとみなす。
+		if s_subcommand_exists == false {
+			s_subcommand = args(i)
+			s_subcommand_exists = true
+			i++
+			continue
+		}
+
+		// 不明な引数はサブコマンドに渡す。
+		forward_args(forward_argc) = args(i)
+		forward_argc++
+		i++
+	loop
+	return
+
+#deffunc ginger_args_get_subcommand var subcommand
+
+	subcommand = s_subcommand
+	return s_subcommand_exists
+
+#deffunc ginger_args_show_help
+
+	return s_show_help
+
+#deffunc ginger_args_get_hsp_dir var hsp_dir
+
+	hsp_dir = s_hsp_dir
+	return s_hsp_dir_exists
+
+#deffunc gigner_args_get_ref_name var ref_name
+
+	ref_name = s_ref_name
+	return s_ref_name_exists
+
+#deffunc ginger_args_get_obj_name var obj_name
+
+	obj_name = s_obj_name
+	return s_obj_name_exists
+
+#deffunc ginger_args_is_release_mode
+
+	return s_release_mode
+
+#global
+
+	ginger_args_init

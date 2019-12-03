@@ -9,8 +9,6 @@
 #deffunc ginger_sub_help_main array args, int argc, int show_help, var s_error, \
 	local content, local text
 
-	assert show_help
-
 	content = {"使用法:
 \t${EXE_NAME} <サブコマンド> [オプション]
 
@@ -35,7 +33,7 @@
 
 // ヘルプテキストを生成する。
 #deffunc ginger_sub_help_layout str content, var text, \
-	local subcommand, local exe_name
+	local exe_name
 
 	text = {"${EXE_NAME}: HSP3 ビルドツール
 
@@ -50,16 +48,16 @@ ${CONTENT}
 \t\t実行時にデバッグウィンドウを表示しません。
 \t\t省略時はデバッグモードになります。
 
+\t--ref-name <ファイル名>
+\t\tコンパイルエラーやデバッグ情報の中で、
+\t\tスクリプトのファイル名の代わりに指定された名前を使用します。
+\t\t(hsc_refname も参照)
+
 \t--obj-name <オブジェクトファイル>
 \t\t生成されるオブジェクトファイルの名前を指定します。
 \t\tファイル名は拡張子 .ax を含まなければいけません。
 \t\t省略時は start.ax が使用されます。
 \t\t(hsc_objname も参照)
-
-\t--ref-name <ファイル名>
-\t\tコンパイルエラーやデバッグ情報の中で、
-\t\tスクリプトのファイル名の代わりに指定された名前を使用します。
-\t\t(hsc_refname も参照)
 
 \t-h, --help
 \t\tこのヘルプメッセージを表示します。
@@ -68,14 +66,8 @@ ${CONTENT}
 \t\tバージョン情報を表示します。
 "}
 
-	ginger_core_get_subcommand subcommand
-	if subcommand == "help" {
-		subcommand = "<サブコマンド>"
-	}
-
 	ginger_infra_get_exe_name exe_name
 
-	strrep text, "${SUBCOMMAND}", subcommand
 	strrep text, "${CONTENT}", content
 	strrep text, "${EXE_NAME}", exe_name
 	strrep text, "\t", "    "
