@@ -19,8 +19,6 @@
 
 	sdim s_error
 
-	onexit gosub *l_on_exit
-
 	ginger_core_do_main
 	if stat == false {
 		ginger_infra_error s_error
@@ -28,14 +26,6 @@
 	}
 
 	assert s_error == ""
-	s_exit_success = true
-	end
-
-*l_on_exit
-
-	if s_exit_success == false {
-		end EXIT_FAILURE
-	}
 	end
 
 #deffunc ginger_core_do_main

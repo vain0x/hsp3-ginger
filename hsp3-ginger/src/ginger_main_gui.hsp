@@ -10,6 +10,17 @@
 
 #module m_ginger_infra
 
+#deffunc ginger_infra_init
+
+	onexit gosub *l_on_exit
+
+	s_exit_code = EXIT_SUCCESS
+	return
+
+*l_on_exit
+
+	end s_exit_code
+
 #deffunc ginger_infra_get_exe_name var name
 
 	name = "ginger_gui"
@@ -27,6 +38,8 @@
 
 #deffunc ginger_infra_error var text, \
 	local exe_name
+
+	s_exit_code = EXIT_FAILURE
 
 	ginger_infra_get_exe_name exe_name
 
