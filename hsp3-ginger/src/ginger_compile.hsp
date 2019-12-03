@@ -103,7 +103,7 @@
 // ランタイム名を取得する
 //
 // %inst
-// ginger_compile_compie の後に使用すること
+// ginger_compile_compile より後に使用すること。
 #deffunc ginger_compile_get_runtime_name var runtime_name, \
 	local obj_name
 
@@ -208,6 +208,28 @@
 	is_debug_mode = stat
 
 	hsc_comp compile_opts, pp_opts, is_debug_mode
+	return stat == 0
+
+// 実行ファイルを作成する
+//
+// %prm
+//
+// stat: 成功したら true
+//
+// %inst
+// ginger_compile_compile より後に使用すること。
+#deffunc ginger_compile_build_exe var hsp_dir, var runtime_name, \
+	local runtime_dir
+
+	ginger_compile_get_runtime_name runtime_name
+
+	if runtime_name == "hsp3.exe" {
+		runtime_dir = hsp_dir + "\\"
+	} else {
+		runtime_dir = hsp_dir + "\\runtime\\"
+	}
+
+	hsc3_make runtime_dir
 	return stat == 0
 
 #global

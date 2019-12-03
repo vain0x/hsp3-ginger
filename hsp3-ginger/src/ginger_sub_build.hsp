@@ -2,8 +2,6 @@
 
 #module m_ginger_sub_build
 
-#include "hspcmp.as"
-
 #define true 1
 #define false 0
 
@@ -167,14 +165,8 @@
 	message += "#Use runtime \"" + runtime_name + "\"\n"
 
 	if s_build_format == build_format_exe {
-		if runtime_name == "hsp3.exe" {
-			runtime_dir = hsp_dir + "\\"
-		} else {
-			runtime_dir = hsp_dir + "\\runtime\\"
-		}
-
-		hsc3_make runtime_dir
-		if stat {
+		ginger_compile_build_exe hsp_dir, runtime_name
+		if stat == false {
 			ginger_compile_get_message error
 			return false
 		}
