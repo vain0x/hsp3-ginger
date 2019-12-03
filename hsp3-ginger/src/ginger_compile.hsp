@@ -1,0 +1,172 @@
+// コンパイル機能
+
+#module m_ginger_compile
+
+#include "hspcmp.as"
+
+#define true 1
+#define false 0
+
+#deffunc ginger_compile_get_hsp_dir var hsp_dir
+
+	ginger_args_get_hsp_dir hsp_dir
+	if stat {
+		return true
+	}
+
+	exist dir_exe + "/hsp3.exe"
+	if strsize > 0 {
+		hsp_dir = dir_exe
+		return true
+	}
+
+	// FIXME: 環境変数 HSP3_ROOT から取得する。
+	return false
+
+#deffunc ginger_compile_get_common_dir var common_dir
+
+	ginger_compile_get_hsp_dir common_dir
+	if stat == false {
+		return false
+	}
+
+	common_dir += "\\common\\"
+	return true
+
+#deffunc ginger_compile_get_obj_name var obj_name
+
+	ginger_args_get_obj_name obj_name
+	if stat == false {
+		obj_name = "start.ax"
+	}
+	return
+
+#deffunc ginger_compile_get_compile_ops \
+	local compile_opts
+
+	ginger_compile_is_debug_mode
+	if stat {
+		// デバッグ情報の埋め込み
+		compile_opts = 1
+	}
+
+	// UTF-8 入力
+	compile_opts |= 4
+
+	return compile_opts
+
+#deffunc ginger_compile_get_pp_opts
+
+	// 4: packfile 生成 (実行ファイルの生成に必要)
+	// 32: UTF-8 出力モード
+	return 4 | 32
+
+#deffunc ginger_compile_is_debug_mode
+
+	ginger_args_is_release_mode
+	return stat == false
+
+#deffunc ginger_compile_get_runtime_name var runtime_name, \
+	local obj_name
+
+	ginger_compile_get_obj_name obj_name
+
+	runtime_name = ""
+	hsc3_getruntime runtime_name, obj_name
+	if runtime_name == "" {
+		runtime_name = "hsp3.exe"
+	}
+	return
+
+// HSP3 コンパイラが出力したメッセージを取得する
+//
+// %prm
+// message
+//
+// var message: メッセージの内容が格納される文字列型変数
+//
+// %inst
+// コンパイラからメッセージを取得する。
+//
+// コンパイラのメッセージは shift_jis エンコーディングになっているが、
+// ソースコードから抜粋された部分だけ UTF-8 になる。
+//
+// ここでは、ソースコードからの抜粋と思われる部分以外を UTF-8 に変換して、
+// 全体を UTF-8 にする。
+#deffunc ginger_compile_get_message var message, \
+	local message_size, local lines, local line_count, local utf8_line, \
+	local os_line, local os_line_len, local utf8_line_len
+
+	// メッセージを取得する。
+	hsc3_messize message_size
+
+	message = ""
+	memexpand message, message_size + 1
+
+	hsc_getmes message
+
+	// メッセージを行ごとに分割する。
+	split message, "\n", lines
+	line_count = stat
+
+	// 各行を UTF-8 に変換する。
+	message = ""
+
+	repeat line_count
+		if instr(lines(cnt), , "-->") >= 0 {
+			// この行はソースコードの抜粋なので変換しない。
+			utf8_line = lines(cnt)
+		} else {
+			utf8_line = ""
+			unicode_cnv_from_sjis lines(cnt), strlen(lines(cnt)), os_line, os_line_len
+			unicode_cnv_to_utf8 os_line, os_line_len, utf8_line, utf8_line_len
+		}
+
+		// OK: コンパイルメッセージは短いので += の遅さは問題ない
+		message += utf8_line + "\n"
+	loop
+
+	return
+
+#deffunc ginger_compile_compile var src_path, \
+	local hsp_dir, local common_dir, local ref_name, local obj_name, \
+	local compile_opts, local pp_opts, local is_debug_mode
+
+	hsc_ini src_path
+	if stat {
+		return false
+	}
+
+	gigner_args_get_ref_name ref_name
+	if stat {
+		hsc_refname ref_name
+		if stat {
+			return false
+		}
+	}
+
+	ginger_compile_get_obj_name obj_name
+	hsc_objname obj_name
+	if stat {
+		return false
+	}
+
+	ginger_compile_get_common_dir common_dir
+	hsc_compath common_dir
+	if stat {
+		return false
+	}
+
+	ginger_compile_get_compile_ops
+	compile_opts = stat
+
+	ginger_compile_get_pp_opts
+	pp_opts = stat
+
+	ginger_compile_is_debug_mode
+	is_debug_mode = stat
+
+	hsc_comp compile_opts, pp_opts, is_debug_mode
+	return stat == 0
+
+#global

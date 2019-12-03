@@ -65,21 +65,21 @@
 #deffunc ginger_sub_make_run var error, \
 	local hsp_dir, local runtime_name, local runtime_dir, local message
 
-	ginger_core_get_hsp_dir hsp_dir
+	ginger_compile_get_hsp_dir hsp_dir
 	if stat == false {
 		error = "HSP のインストールディレクトリを指定してください。"
 		return false
 	}
 
-	ginger_core_compile s_src_path
+	ginger_compile_compile s_src_path
 	if stat == false {
-		ginger_core_getmes error
+		ginger_compile_get_message error
 		return false
 	}
 
-	ginger_core_getmes message
+	ginger_compile_get_message message
 
-	ginger_core_get_runtime_name runtime_name
+	ginger_compile_get_runtime_name runtime_name
 
 	if runtime_name == "hsp3.exe" {
 		runtime_dir = hsp_dir + "\\"
@@ -89,7 +89,7 @@
 
 	hsc3_make runtime_dir
 	if stat {
-		ginger_core_getmes error
+		ginger_compile_get_message error
 		return false
 	}
 

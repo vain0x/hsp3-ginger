@@ -65,23 +65,23 @@
 #deffunc ginger_sub_run_run var error, \
 	local hsp_dir, local obj_name, local runtime_name, local runtime_path, local cmdline
 
-	ginger_core_get_hsp_dir hsp_dir
+	ginger_compile_get_hsp_dir hsp_dir
 	if stat == false {
 		error = "HSP のインストールディレクトリを指定してください。"
 		return false
 	}
 
-	ginger_core_compile s_src_path
+	ginger_compile_compile s_src_path
 	if stat == false {
-		ginger_core_getmes error
+		ginger_compile_get_message error
 		return false
 	}
 
-	ginger_core_get_runtime_name runtime_name
+	ginger_compile_get_runtime_name runtime_name
 
 	runtime_path = hsp_dir + "\\" + runtime_name
 
-	ginger_core_get_obj_name obj_name
+	ginger_compile_get_obj_name obj_name
 
 	// FIXME: 引数を渡す
 	// FIXME: 標準入出力を継承する
