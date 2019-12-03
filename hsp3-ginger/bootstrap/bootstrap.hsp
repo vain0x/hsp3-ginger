@@ -1,4 +1,4 @@
-// Make an executable of the ginger without using the ginger itself.
+// Build an executable of the ginger without using the ginger itself.
 
 #runtime "hsp3cl"
 

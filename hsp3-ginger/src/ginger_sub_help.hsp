@@ -13,13 +13,13 @@
 \t${EXE_NAME} <サブコマンド> [オプション]
 
 使用例:
-\t${EXE_NAME} make hello.hsp
+\t${EXE_NAME} build hello.hsp
 
 サブコマンド:
 \trun <スクリプトファイル>
 \t\tスクリプトを実行します。(F5 相当)
 
-\tmake <スクリプトファイル>
+\tbuild <スクリプトファイル>
 \t\tスクリプトを実行形式 (.exe) に変換します。(Ctrl+F9 相当)
 
 \tcompile <スクリプトファイル>

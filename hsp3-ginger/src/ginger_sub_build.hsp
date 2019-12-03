@@ -1,16 +1,16 @@
 // 実行ファイル作成機能
 
-#module m_ginger_sub_make
+#module m_ginger_sub_build
 
 #include "hspcmp.as"
 
 #define true 1
 #define false 0
 
-// make コマンドのエントリーポイント
+// build コマンドのエントリーポイント
 //
 // 成功したら stat=true
-#deffunc ginger_sub_make_main var args, int argc, int show_help, var error
+#deffunc ginger_sub_build_main var args, int argc, int show_help, var error
 
 	sdim s_src_path
 	s_src_path_exists = false
@@ -20,18 +20,18 @@
 		return stat
 	}
 
-	ginger_sub_make_parse_args args, argc, error
+	ginger_sub_build_parse_args args, argc, error
 	if stat == false {
 		return false
 	}
 
-	ginger_sub_make_run error
+	ginger_sub_build_run error
 	return stat
 
 // 引数を解析する
 //
 // 成功したら stat=true
-#deffunc ginger_sub_make_parse_args array args, int argc, var error, \
+#deffunc ginger_sub_build_parse_args array args, int argc, var error, \
 	local i, local ok
 
 	ok = true
@@ -71,7 +71,7 @@
 // 実行ファイルの生成を行う
 //
 // 成功したら stat=true
-#deffunc ginger_sub_make_run var error, \
+#deffunc ginger_sub_build_run var error, \
 	local hsp_dir, local runtime_name, local runtime_dir, local message
 
 	ginger_compile_get_hsp_dir hsp_dir

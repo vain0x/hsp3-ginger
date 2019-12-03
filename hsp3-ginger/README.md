@@ -21,13 +21,13 @@ ginger: HSP3 ビルドツール
     ginger <サブコマンド> [オプション]
 
 使用例:
-    ginger make hello.hsp
+    ginger build hello.hsp
 
 サブコマンド:
     run <スクリプトファイル>
         スクリプトを実行します。(F5 相当)
 
-    make <スクリプトファイル>
+    build <スクリプトファイル>
         スクリプトを実行形式 (.exe) に変換します。(Ctrl+F9 相当)
 
     compile <スクリプトファイル>

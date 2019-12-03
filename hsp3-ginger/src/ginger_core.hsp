@@ -3,9 +3,9 @@
 #include "ginger_constants.hsp"
 #include "ginger_args.hsp"
 #include "ginger_compile.hsp"
+#include "ginger_sub_build.hsp"
 #include "ginger_sub_compile.hsp"
 #include "ginger_sub_help.hsp"
-#include "ginger_sub_make.hsp"
 #include "ginger_sub_run.hsp"
 #include "mod_cmdline_parser.hsp"
 #include "mod_unicode_cnv.hsp"
@@ -63,8 +63,8 @@
 		return stat
 	}
 
-	if subcommand = "make" {
-		ginger_sub_make_main s_forward_args, s_forward_argc, show_help, s_error
+	if subcommand = "build" {
+		ginger_sub_build_main s_forward_args, s_forward_argc, show_help, s_error
 		return stat
 	}
 

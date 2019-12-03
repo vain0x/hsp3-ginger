@@ -43,7 +43,7 @@ try {
         exit 1
     }
 
-    & "$hsp3Root/ginger.exe" make "$workDir/src/ginger_main_gui.hsp"
+    & "$hsp3Root/ginger.exe" build "$workDir/src/ginger_main_gui.hsp"
     if (!$?) {
         write-error 'ginger_gui の実行ファイル生成に失敗しました。'
         exit 1
