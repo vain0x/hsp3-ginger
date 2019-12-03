@@ -62,7 +62,7 @@
 	return true
 
 #deffunc ginger_sub_make_run var error, \
-	local hsp_dir, local runtime_name, local runtime_dir
+	local hsp_dir, local runtime_name, local runtime_dir, local message
 
 	ginger_core_get_hsp_dir hsp_dir
 	if stat == false {
@@ -75,6 +75,8 @@
 		ginger_core_getmes error
 		return false
 	}
+
+	ginger_core_getmes message
 
 	ginger_core_get_runtime_name runtime_name
 
@@ -89,6 +91,9 @@
 		ginger_core_getmes error
 		return false
 	}
+
+	message += "#Use runtime \"" + runtime_name + "\"\n"
+	ginger_infra_stdout message
 	return true
 
 #global
