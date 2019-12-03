@@ -7,6 +7,11 @@
 #define true 1
 #define false 0
 
+// 実行ファイルを生成する
+#enum build_format_exe = 1
+// オブジェクトファイルを生成する
+#enum build_format_ax
+
 // build コマンドのエントリーポイント
 //
 // 成功したら stat=true
@@ -14,6 +19,8 @@
 
 	sdim s_src_path
 	s_src_path_exists = false
+
+	s_build_format = build_format_exe
 
 	if show_help {
 		ginger_sub_help_main args, argc, show_help, error
@@ -45,6 +52,12 @@
 			break
 		}
 
+		if args(i) == "--ax" {
+			s_build_format = build_format_ax
+			i++
+			continue
+		}
+
 		if s_src_path_exists == false {
 			s_src_path = args(i)
 			s_src_path_exists = true
@@ -68,7 +81,7 @@
 
 	return true
 
-// 実行ファイルの生成を行う
+// ビルドを行う
 //
 // 成功したら stat=true
 #deffunc ginger_sub_build_run var error, \
@@ -90,20 +103,31 @@
 
 	ginger_compile_get_runtime_name runtime_name
 
-	if runtime_name == "hsp3.exe" {
-		runtime_dir = hsp_dir + "\\"
-	} else {
-		runtime_dir = hsp_dir + "\\runtime\\"
-	}
-
-	hsc3_make runtime_dir
-	if stat {
-		ginger_compile_get_message error
-		return false
-	}
-
 	message += "#Use runtime \"" + runtime_name + "\"\n"
-	ginger_infra_stdout message
-	return true
+
+	if s_build_format == build_format_exe {
+		if runtime_name == "hsp3.exe" {
+			runtime_dir = hsp_dir + "\\"
+		} else {
+			runtime_dir = hsp_dir + "\\runtime\\"
+		}
+
+		hsc3_make runtime_dir
+		if stat {
+			ginger_compile_get_message error
+			return false
+		}
+
+		ginger_infra_stdout message
+		return true
+	}
+
+	if s_build_format == build_format_ax {
+		ginger_infra_stdout message
+		return true
+	}
+
+	error = "不明なビルドフォーマット: " + s_build_format
+	return false
 
 #global

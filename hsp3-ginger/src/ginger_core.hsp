@@ -4,7 +4,6 @@
 #include "ginger_args.hsp"
 #include "ginger_compile.hsp"
 #include "ginger_sub_build.hsp"
-#include "ginger_sub_compile.hsp"
 #include "ginger_sub_help.hsp"
 #include "ginger_sub_run.hsp"
 #include "mod_cmdline_parser.hsp"
@@ -65,11 +64,6 @@
 
 	if subcommand = "build" {
 		ginger_sub_build_main s_forward_args, s_forward_argc, show_help, s_error
-		return stat
-	}
-
-	if subcommand = "compile" {
-		ginger_sub_compile_main s_forward_args, s_forward_argc, show_help, s_error
 		return stat
 	}
 
