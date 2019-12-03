@@ -19,17 +19,6 @@
 
 	sdim s_error
 
-	ginger_core_do_main
-	if stat == false {
-		ginger_infra_error s_error
-		end EXIT_FAILURE
-	}
-
-	assert s_error == ""
-	end
-
-#deffunc ginger_core_do_main
-
 	sdim s_forward_args
 	s_forward_argc = 0
 
@@ -37,9 +26,12 @@
 
 	ginger_core_do_subcommand
 	if stat == false {
-		return false
+		ginger_infra_error s_error
+		end EXIT_FAILURE
 	}
-	return true
+
+	assert s_error == ""
+	end
 
 // サブコマンドを実行する
 //
