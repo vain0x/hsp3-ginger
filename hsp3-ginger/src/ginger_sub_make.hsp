@@ -7,6 +7,9 @@
 #define true 1
 #define false 0
 
+// make コマンドのエントリーポイント
+//
+// 成功したら stat=true
 #deffunc ginger_sub_make_main var args, int argc, int show_help, var error
 
 	sdim s_src_path
@@ -25,6 +28,9 @@
 	ginger_sub_make_run error
 	return stat
 
+// 引数を解析する
+//
+// 成功したら stat=true
 #deffunc ginger_sub_make_parse_args array args, int argc, var error, \
 	local i, local ok
 
@@ -62,6 +68,9 @@
 
 	return true
 
+// 実行ファイルの生成を行う
+//
+// 成功したら stat=true
 #deffunc ginger_sub_make_run var error, \
 	local hsp_dir, local runtime_name, local runtime_dir, local message
 

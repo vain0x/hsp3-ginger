@@ -9,21 +9,25 @@
 
 #module m_ginger_infra
 
+// ginger コマンド自身の実行ファイル名を取得する
 #deffunc ginger_infra_get_exe_name var name
 
 	name = "ginger"
 	return
 
+// ginger コマンドのバージョン番号を取得する
 #deffunc ginger_infra_get_version var text
 
 	text = GINGER_VERSION
 	return
 
+// 標準出力に書き出す
 #deffunc ginger_infra_stdout var text
 
 	mes text
 	return
 
+// 致命的なエラーを報告する
 #deffunc ginger_infra_error var text
 
 	if text != "" {
@@ -34,4 +38,3 @@
 #global
 
 	ginger_core_main
-	end

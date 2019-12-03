@@ -57,9 +57,17 @@
 	loop
 	return argc
 
-// 次のコマンドライン引数をパースする。
+// 次のコマンドライン引数をパースする
 //
-// stat に読み進めた文字数、あるいは -1 (引数なし) が入る。
+// %prm
+// cmdline, cmdline_len, start, value
+//
+// var cmdline: コマンドライン文字列が格納された変数
+// int cmdline_len: cmdline のバイト数
+// int start: cmdline の解析を開始する位置 (バイト単位)
+// var value: 解析して得られたコマンドライン引数を格納する変数
+//
+// stat: 次の引数が見つかったら、読み進めたバイト数。見つからなければ -1
 #deffunc cmdline_parser_next var cmdline, int cmdline_len, int start, var value, \
 	local index, local c, local last
 

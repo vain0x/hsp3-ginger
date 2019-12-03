@@ -5,7 +5,7 @@
 
 // 文字列のエンコーディングを Unicode と相互変換する機能を提供する
 //
-// %notes
+// %note
 // m_unicode_cnv.hsp を #include すること。
 // Win32 API を使用するため Windows 上でのみ動作する。
 #module m_unicode_cnv
@@ -47,7 +47,7 @@
 // var os_str: 変換後の Unicode 文字列が格納される変数
 // var os_len: os_str の文字数 (バイト数の半分) が格納される変数
 //
-// stat: 成功すると true
+// stat: 成功したら true
 //
 // %inst
 // os_str を事前に初期化する必要はない。
@@ -99,7 +99,7 @@
 // var mb_str: 変換後のマルチバイト文字列が格納される変数
 // var mb_len: mb_str のバイト数が格納される変数
 //
-// stat: 成功すると true
+// stat: 成功したら true
 //
 // %inst
 // mb_str を事前に初期化する必要はない。
@@ -145,7 +145,7 @@
 //
 // %inst
 // 変換結果は NULL 終端される。
-// 成功すると stat=true になる。
+// 成功したら stat=true になる。
 #deffunc unicode_cnv_from_sjis var sjis_str, int sjis_len, var os_str, var os_len
 
 	unicode_cnv_from_multibyte CP_SJIS, sjis_str, sjis_len, os_str, os_len
@@ -155,7 +155,7 @@
 //
 // %inst
 // 変換結果は NULL 終端される。
-// 成功すると stat=true になる。
+// 成功したら stat=true になる。
 #deffunc unicode_cnv_to_sjis var os_str, int os_len, var sjis_str, var sjis_len
 
 	unicode_cnv_to_multibyte CP_SJIS, os_str, os_len, sjis_str, sjis_len
@@ -165,7 +165,7 @@
 //
 // %inst
 // 変換結果は NULL 終端される。
-// 成功すると stat=true になる。
+// 成功したら stat=true になる。
 #deffunc unicode_cnv_from_utf8 var utf8_str, int utf8_len, var os_str, var os_len
 
 	unicode_cnv_from_multibyte CP_UTF8, utf8_str, utf8_len, os_str, os_len
@@ -175,7 +175,7 @@
 //
 // %inst
 // 変換結果は NULL 終端される。
-// 成功すると stat=true になる。
+// 成功したら stat=true になる。
 #deffunc unicode_cnv_to_utf8 var os_str, int os_len, var utf8_str, var utf8_len
 
 	unicode_cnv_to_multibyte CP_UTF8, os_str, os_len, utf8_str, utf8_len
@@ -185,7 +185,7 @@
 //
 // %inst
 // 変換結果は NULL 終端される。
-// 成功すると stat=true になる。
+// 成功したら stat=true になる。
 #deffunc unicode_cnv_from_hsp var mb_str, int mb_len, var os_str, var os_len
 
 	unicode_cnv_from_multibyte CP_HSP, mb_str, mb_len, os_str, os_len
@@ -195,7 +195,7 @@
 //
 // %inst
 // 変換結果は NULL 終端される。
-// 成功すると stat=true になる。
+// 成功したら stat=true になる。
 #deffunc unicode_cnv_to_hsp var os_str, int os_len, var mb_str, var mb_len
 
 	unicode_cnv_to_multibyte CP_HSP, os_str, os_len, mb_str, mb_len

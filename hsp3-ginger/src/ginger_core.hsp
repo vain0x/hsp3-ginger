@@ -41,10 +41,9 @@
 	}
 	return true
 
-// -----------------------------------------------
-// サブコマンドの実行
-// -----------------------------------------------
-
+// サブコマンドを実行する
+//
+// 成功したら stat=true
 #deffunc ginger_core_do_subcommand \
 	local subcommand, local show_help, local version
 

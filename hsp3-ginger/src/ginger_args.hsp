@@ -24,8 +24,16 @@
 	s_release_mode = false
 	return
 
-// コマンドライン引数を解析する。
-// 余った引数を forward_args に渡す。
+// コマンドライン引数を解析する
+//
+// %prm
+// forward_args, forward_argc
+//
+// array forward_args: ginger コマンドが受け取らなかったコマンドライン引数が格納される配列変数
+// var forward_argc: forward_args に入った引数の個数を受け取る変数
+//
+// %inst
+// コマンドライン引数を解析する。余った引数は forward_args に渡す。
 #deffunc ginger_args_parse array forward_args, var forward_argc, \
 	local args, local argc, local i, local forward_rest, local exe_name
 
@@ -124,30 +132,48 @@
 	loop
 	return
 
+// サブコマンドを取得する
+//
+// 取得できたら stat=true
 #deffunc ginger_args_get_subcommand var subcommand
 
 	subcommand = s_subcommand
 	return s_subcommand_exists
 
+// --help フラグが指定されたか？
+//
+// 指定されていたら stat=true
 #deffunc ginger_args_show_help
 
 	return s_show_help
 
+// --hsp オプションの値を取得する
+//
+// 指定されていたら stat=true
 #deffunc ginger_args_get_hsp_dir var hsp_dir
 
 	hsp_dir = s_hsp_dir
 	return s_hsp_dir_exists
 
+// --ref-name オプションの値を取得する
+//
+// 指定されていたら stat=true
 #deffunc gigner_args_get_ref_name var ref_name
 
 	ref_name = s_ref_name
 	return s_ref_name_exists
 
+// --obj-name オプションの値を取得する
+//
+// 指定されていたら stat=true
 #deffunc ginger_args_get_obj_name var obj_name
 
 	obj_name = s_obj_name
 	return s_obj_name_exists
 
+// --release フラグが指定されたか？
+//
+// 指定されていたら stat=true
 #deffunc ginger_args_is_release_mode
 
 	return s_release_mode

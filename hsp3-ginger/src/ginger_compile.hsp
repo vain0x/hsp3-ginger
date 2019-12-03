@@ -7,6 +7,9 @@
 #define true 1
 #define false 0
 
+// HSP3 のインストールディレクトリを取得する
+//
+// 取得できたら stat=true
 #deffunc ginger_compile_get_hsp_dir var hsp_dir
 
 	ginger_args_get_hsp_dir hsp_dir
@@ -20,9 +23,12 @@
 		return true
 	}
 
-	// FIXME: 環境変数 HSP3_ROOT から取得する。
+	// FIXME: 環境変数 HSP3_ROOT やパスの通ったディレクトリなども探す。
 	return false
 
+// common ディレクトリのパスを取得する
+//
+// 取得できたら stat=true
 #deffunc ginger_compile_get_common_dir var common_dir
 
 	ginger_compile_get_hsp_dir common_dir
@@ -33,6 +39,7 @@
 	common_dir += "\\common\\"
 	return true
 
+// コンパイル時に出力するオブジェクトファイル名を取得する
 #deffunc ginger_compile_get_obj_name var obj_name
 
 	ginger_args_get_obj_name obj_name
@@ -41,6 +48,7 @@
 	}
 	return
 
+// コンパイルオプションを取得する
 #deffunc ginger_compile_get_compile_ops \
 	local compile_opts
 
@@ -55,17 +63,23 @@
 
 	return compile_opts
 
+// プリプロセッサオプションを取得する
 #deffunc ginger_compile_get_pp_opts
 
 	// 4: packfile 生成 (実行ファイルの生成に必要)
 	// 32: UTF-8 出力モード
 	return 4 | 32
 
+// デバッグモードか？
 #deffunc ginger_compile_is_debug_mode
 
 	ginger_args_is_release_mode
 	return stat == false
 
+// ランタイム名を取得する
+//
+// %inst
+// ginger_compile_compie の後に使用すること
 #deffunc ginger_compile_get_runtime_name var runtime_name, \
 	local obj_name
 
@@ -128,6 +142,9 @@
 
 	return
 
+// スクリプトファイルをコンパイルする
+//
+// 成功したら stat=true
 #deffunc ginger_compile_compile var src_path, \
 	local hsp_dir, local common_dir, local ref_name, local obj_name, \
 	local compile_opts, local pp_opts, local is_debug_mode
