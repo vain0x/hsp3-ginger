@@ -47,7 +47,7 @@
 // -----------------------------------------------
 
 #deffunc ginger_core_do_subcommand \
-	local subcommand, local show_help
+	local subcommand, local show_help, local version
 
 	ginger_args_get_subcommand subcommand
 	if stat == false {
@@ -63,8 +63,8 @@
 	}
 
 	if subcommand == "version" {
-		ginger_infra_get_version s_version
-		ginger_infra_stdout s_version
+		ginger_infra_get_version version
+		ginger_infra_stdout version
 		return stat
 	}
 

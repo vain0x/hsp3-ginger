@@ -10,6 +10,7 @@
 #deffunc ginger_sub_run_main var args, int argc, int show_help, var error
 
 	sdim s_src_path
+	s_src_path_exists = false
 
 	if show_help {
 		ginger_sub_help_main args, argc, show_help, error
