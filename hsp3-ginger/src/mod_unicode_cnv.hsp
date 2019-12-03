@@ -6,8 +6,8 @@
 // 文字列のエンコーディングを Unicode と相互変換する機能を提供する
 //
 // %notes
-// m_unicode_cnv.hsp をインストールしてください。
-// Win32 API を使用するため Windows 上でのみ動作します。
+// m_unicode_cnv.hsp を #include すること。
+// Win32 API を使用するため Windows 上でのみ動作する。
 #module m_unicode_cnv
 
 #uselib "kernel32.dll"
@@ -36,9 +36,22 @@
 	#endif
 #endif
 
-// 特定のコードページのマルチバイト文字列を Unicode に変換する。
-// 変換結果は NULL 終端される。
-// 成功すると stat=true になる。
+// 特定のコードページのマルチバイト文字列を Unicode に変換する
+//
+// %prm
+// cp, mb_str, mb_len, os_str, os_len
+//
+// int cp: コードページ
+// var mb_str: 変換元のマルチバイト文字列の格納された変数
+// int mb_len: mb_str のバイト数
+// var os_str: 変換後の Unicode 文字列が格納される変数
+// var os_len: os_str の文字数 (バイト数の半分) が格納される変数
+//
+// stat: 成功すると true
+//
+// %inst
+// os_str を事前に初期化する必要はない。
+// os_str は NULL 終端される。
 #deffunc unicode_cnv_from_multibyte int cp, var mb_str, int mb_len, var os_str, var os_len, \
 	local size
 
@@ -75,9 +88,24 @@
 	wpoke os_str, os_len * 2, 0
 	return true
 
-// Unicode 文字列を特定のコードページのマルチバイト文字列に変換する。
-// 結果は NULL 終端される。
-// 成功すると stat=true になる。
+// Unicode 文字列を特定のコードページのマルチバイト文字列に変換する
+//
+// %prm
+// cp, os_str, os_len, mb_str, mb_len
+//
+// int cp: コードページ
+// var os_str: 変換元の Unicode 文字列が格納された変数
+// int os_len: os_str の文字数 (バイト数の半分)
+// var mb_str: 変換後のマルチバイト文字列が格納される変数
+// var mb_len: mb_str のバイト数が格納される変数
+//
+// stat: 成功すると true
+//
+// %inst
+// mb_str を事前に初期化する必要はない。
+// mb_str は NULL 終端される。
+//
+// %note
 // 参考: <https://docs.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-widechartomultibyte>
 #deffunc unicode_cnv_to_multibyte int cp, var os_str, int os_len, var mb_str, var mb_len, \
 	local size
@@ -113,7 +141,9 @@
 	poke mb_str, mb_len, 0
 	return true
 
-// shift_jis 文字列を Unicode に変換する。
+// shift_jis 文字列を Unicode に変換する
+//
+// %inst
 // 変換結果は NULL 終端される。
 // 成功すると stat=true になる。
 #deffunc unicode_cnv_from_sjis var sjis_str, int sjis_len, var os_str, var os_len
@@ -121,7 +151,9 @@
 	unicode_cnv_from_multibyte CP_SJIS, sjis_str, sjis_len, os_str, os_len
 	return stat
 
-// Unicode 文字列を shift_jis に変換する。
+// Unicode 文字列を shift_jis に変換する
+//
+// %inst
 // 変換結果は NULL 終端される。
 // 成功すると stat=true になる。
 #deffunc unicode_cnv_to_sjis var os_str, int os_len, var sjis_str, var sjis_len
@@ -129,7 +161,9 @@
 	unicode_cnv_to_multibyte CP_SJIS, os_str, os_len, sjis_str, sjis_len
 	return stat
 
-// UTF-8 文字列を Unicode に変換する。
+// UTF-8 文字列を Unicode に変換する
+//
+// %inst
 // 変換結果は NULL 終端される。
 // 成功すると stat=true になる。
 #deffunc unicode_cnv_from_utf8 var utf8_str, int utf8_len, var os_str, var os_len
@@ -137,7 +171,9 @@
 	unicode_cnv_from_multibyte CP_UTF8, utf8_str, utf8_len, os_str, os_len
 	return stat
 
-// Unicode 文字列を UTF-8 に変換する。
+// Unicode 文字列を UTF-8 に変換する
+//
+// %inst
 // 変換結果は NULL 終端される。
 // 成功すると stat=true になる。
 #deffunc unicode_cnv_to_utf8 var os_str, int os_len, var utf8_str, var utf8_len
@@ -145,7 +181,9 @@
 	unicode_cnv_to_multibyte CP_UTF8, os_str, os_len, utf8_str, utf8_len
 	return stat
 
-// HSP ランタイムの既定のエンコーディングの文字列を Unicode に変換する。
+// HSP ランタイムの既定のエンコーディングの文字列を Unicode に変換する
+//
+// %inst
 // 変換結果は NULL 終端される。
 // 成功すると stat=true になる。
 #deffunc unicode_cnv_from_hsp var mb_str, int mb_len, var os_str, var os_len
@@ -153,7 +191,9 @@
 	unicode_cnv_from_multibyte CP_HSP, mb_str, mb_len, os_str, os_len
 	return stat
 
-// Unicode 文字列を HSP ランタイムの既定のエンコーディングに変換する。
+// Unicode 文字列を HSP ランタイムの既定のエンコーディングに変換する
+//
+// %inst
 // 変換結果は NULL 終端される。
 // 成功すると stat=true になる。
 #deffunc unicode_cnv_to_hsp var os_str, int os_len, var mb_str, var mb_len
