@@ -1,5 +1,5 @@
 // コマンドライン引数を解析するモジュール
-// LICENSE: PUBLIC DOMAIN
+// LICENSE: Unlicensed (PUBLIC DOMAIN)
 
 #ifndef included_mod_cmdline_parser_hsp
 #define included_mod_cmdline_parser_hsp
