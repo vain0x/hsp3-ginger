@@ -157,6 +157,11 @@
 // サブコマンドの実行
 // -----------------------------------------------
 
+#deffunc ginger_core_get_subcommand var subcommand
+
+	subcommand = s_subcommand
+	return
+
 #deffunc ginger_core_subcommand
 
 	assert s_subcommand_exists
@@ -352,56 +357,6 @@
 	if runtime_name == "" {
 		runtime_name = "hsp3.exe"
 	}
-	return
-
-// -----------------------------------------------
-// ヘルプ
-// -----------------------------------------------
-
-// ヘルプテキストを生成する。
-#deffunc ginger_core_make_help str content, var text, \
-	local subcommand
-
-	text = {"${EXE_NAME}: HSP3 ビルドツール
-
-${CONTENT}
-グローバルオプション:
-\t--hsp <HSPのディレクトリ>
-\t\tHSP3 のインストールディレクトリへの絶対パスを指定してください。
-\t\t省略時は環境変数 HSP3_ROOT を使用します。
-
-\t--release
-\t\tコンパイル時にデバッグ情報を埋め込まず、
-\t\t実行時にデバッグウィンドウを表示しません。
-\t\t省略時はデバッグモードになります。
-
-\t--obj-name <オブジェクトファイル>
-\t\t生成されるオブジェクトファイルの名前を指定します。
-\t\tファイル名は拡張子 .ax を含まなければいけません。
-\t\t省略時は start.ax が使用されます。
-\t\t(hsc_objname も参照)
-
-\t--ref-name <ファイル名>
-\t\tコンパイルエラーやデバッグ情報の中で、
-\t\tスクリプトのファイル名の代わりに指定された名前を使用します。
-\t\t(hsc_refname も参照)
-
-\t-h, --help
-\t\tこのヘルプメッセージを表示します。
-
-\t-V, --version
-\t\tバージョン情報を表示します。
-"}
-
-	subcommand = s_subcommand
-	if subcommand == "help" {
-		subcommand = "<サブコマンド>"
-	}
-
-	strrep text, "${SUBCOMMAND}", subcommand
-	strrep text, "${CONTENT}", content
-	strrep text, "${EXE_NAME}", s_exe_name
-	strrep text, "\t", "    "
 	return
 
 #global
