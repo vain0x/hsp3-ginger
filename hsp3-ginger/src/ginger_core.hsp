@@ -156,7 +156,7 @@
 		i++
 	loop
 
-	if s_subcommand_exists == false {
+	if s_subcommand_exists == false || s_subcommand == "help" {
 		s_subcommand_exists = true
 		s_subcommand = "help"
 		s_show_help = true
@@ -170,6 +170,7 @@
 #deffunc ginger_core_subcommand
 
 	assert s_subcommand_exists
+
 	if s_subcommand == "help" {
 		ginger_sub_help_main s_forward_args, s_forward_argc, s_show_help, s_error
 		return stat
