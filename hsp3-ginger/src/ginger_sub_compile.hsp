@@ -70,13 +70,15 @@
 		return false
 	}
 
-	ginger_core_compile s_src_path, runtime_name
+	ginger_core_compile s_src_path
 	if stat == false {
 		ginger_core_getmes error
 		return false
 	}
 
-	hsc_getmes message
+	ginger_core_getmes message
+
+	ginger_core_get_runtime_name runtime_name
 	message += "#Use runtime \"" + runtime_name + "\"\n"
 
 	ginger_infra_stdout message

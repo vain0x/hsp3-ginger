@@ -273,7 +273,7 @@
 	hsc_getmes message
 	return
 
-#deffunc ginger_core_compile var src_path, var runtime_name, \
+#deffunc ginger_core_compile var src_path, \
 	local hsp_dir, local common_dir, \
 	local compile_opts, local pp_opts, local is_debug_mode
 
@@ -313,14 +313,16 @@
 	if stat {
 		return false
 	}
+	return true
+
+#deffunc ginger_core_get_runtime_name var runtime_name
 
 	runtime_name = ""
 	hsc3_getruntime runtime_name, s_obj_name
 	if runtime_name == "" {
 		runtime_name = "hsp3.exe"
 	}
-
-	return true
+	return
 
 // -----------------------------------------------
 // ヘルプ

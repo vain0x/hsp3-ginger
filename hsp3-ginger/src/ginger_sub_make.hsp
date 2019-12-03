@@ -70,11 +70,13 @@
 		return false
 	}
 
-	ginger_core_compile s_src_path, runtime_name
+	ginger_core_compile s_src_path
 	if stat == false {
 		ginger_core_getmes error
 		return false
 	}
+
+	ginger_core_get_runtime_name runtime_name
 
 	if runtime_name == "hsp3.exe" {
 		runtime_dir = hsp_dir + "\\"
