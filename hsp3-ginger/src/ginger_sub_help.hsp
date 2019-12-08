@@ -13,17 +13,20 @@
 \t${EXE_NAME} <サブコマンド> [オプション]
 
 使用例:
-\t${EXE_NAME} make hello.hsp
+\t${EXE_NAME} build hello.hsp
 
 サブコマンド:
 \trun <スクリプトファイル>
 \t\tスクリプトを実行します。(F5 相当)
 
-\tmake <スクリプトファイル>
+\tbuild <スクリプトファイル>
 \t\tスクリプトを実行形式 (.exe) に変換します。(Ctrl+F9 相当)
 
-\tcompile <スクリプトファイル>
+\tbuild <スクリプトファイル> --ax
 \t\tスクリプトをコンパイルし、オブジェクトファイルを生成します。(F7 相当)
+
+\tbuild <スクリプトファイル> --pp
+\t\tスクリプトのプリプロセスを行い、中間ファイルを生成します。(#cmpopt ppout 参照)
 "}
 
 	ginger_sub_help_layout content, text
@@ -41,7 +44,7 @@ ${CONTENT}
 グローバルオプション:
 \t--hsp <HSPのディレクトリ>
 \t\tHSP3 のインストールディレクトリへの絶対パスを指定してください。
-\t\t省略時は環境変数 HSP3_ROOT を使用します。
+\t\t省略時は ${EXE_NAME} が配置されたディレクトリを使用します。
 
 \t--release
 \t\tコンパイル時にデバッグ情報を埋め込まず、

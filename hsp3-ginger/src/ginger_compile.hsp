@@ -48,6 +48,18 @@
 	}
 	return
 
+// プリプロセスのみ行うかを設定する
+#deffunc ginger_compile_set_pp_only int pp_only
+
+	s_pp_only = pp_only
+	return
+
+// 実行ファイルの作成を行うかを設定する
+#deffunc ginger_compile_does_make int value
+
+	s_does_make = value
+	return
+
 // コンパイルオプションを取得する
 #deffunc ginger_compile_get_compile_ops \
 	local compile_opts
@@ -58,17 +70,29 @@
 		compile_opts = 1
 	}
 
+	if s_pp_only {
+		// プリプロセスのみ
+		compile_opts |= 2
+	}
+
 	// UTF-8 入力
 	compile_opts |= 4
 
 	return compile_opts
 
 // プリプロセッサオプションを取得する
-#deffunc ginger_compile_get_pp_opts
+#deffunc ginger_compile_get_pp_opts \
+	local pp_opts
 
-	// 4: packfile 生成 (実行ファイルの生成に必要)
 	// 32: UTF-8 出力モード
-	return 4 | 32
+	pp_opts = 32
+
+	if s_does_make {
+		// 4: packfile 生成 (実行ファイルの生成に必要)
+		pp_opts |= 4
+	}
+
+	return pp_opts
 
 // デバッグモードか？
 #deffunc ginger_compile_is_debug_mode
@@ -79,7 +103,7 @@
 // ランタイム名を取得する
 //
 // %inst
-// ginger_compile_compie の後に使用すること
+// ginger_compile_compile より後に使用すること。
 #deffunc ginger_compile_get_runtime_name var runtime_name, \
 	local obj_name
 
@@ -185,5 +209,51 @@
 
 	hsc_comp compile_opts, pp_opts, is_debug_mode
 	return stat == 0
+
+// 実行ファイルを作成する
+//
+// %prm
+//
+// stat: 成功したら true
+//
+// %inst
+// ginger_compile_compile より後に使用すること。
+#deffunc ginger_compile_build_exe var hsp_dir, var runtime_name, \
+	local runtime_dir
+
+	ginger_compile_get_runtime_name runtime_name
+
+	if runtime_name == "hsp3.exe" {
+		runtime_dir = hsp_dir + "\\"
+	} else {
+		runtime_dir = hsp_dir + "\\runtime\\"
+	}
+
+	hsc3_make runtime_dir
+	return stat == 0
+
+// オブジェクトファイルを実行する
+//
+// %prm
+//
+// stat: 成功したら true
+//
+// %inst
+// ginger_compile_compile より後に使用すること。
+#deffunc ginger_compile_run var hsp_dir, \
+	local obj_name, local runtime_name, local cmdline
+
+	ginger_compile_get_runtime_name runtime_name
+
+	runtime_path = hsp_dir + "\\" + runtime_name
+
+	ginger_compile_get_obj_name obj_name
+
+	// FIXME: 引数を渡す
+	// FIXME: 標準入出力を継承する
+	cmdline = "\"" + runtime_path + "\" \"" + obj_name + "\""
+
+	hsc3_run cmdline
+	return
 
 #global

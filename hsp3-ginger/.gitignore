@@ -1,5 +1,6 @@
 *.ax
 *.dpm
+*.i
 hsptmp
 obj
 packfile

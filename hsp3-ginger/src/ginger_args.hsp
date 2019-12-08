@@ -163,6 +163,13 @@
 	ref_name = s_ref_name
 	return s_ref_name_exists
 
+// --ref-name オプションの値を再設定する
+#deffunc ginger_args_set_ref_name var ref_name
+
+	s_ref_name = ref_name
+	s_ref_name_exists = true
+	return
+
 // --obj-name オプションの値を取得する
 //
 // 指定されていたら stat=true
