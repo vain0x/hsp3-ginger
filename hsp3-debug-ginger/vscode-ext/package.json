@@ -8,7 +8,7 @@
     "email": "vainzerox@gmail.com"
   },
   "publisher": "vain0x",
-  "license": "MIT",
+  "license": "UNLICENSE",
   "keywords": [],
   "engines": {
     "vscode": "^1.18.0",
