@@ -2,87 +2,134 @@ use super::parse_context::ParseContext;
 use super::*;
 
 impl Token {
-    pub(crate) fn is_atom_first(self) -> bool {
+    pub(crate) fn is_atom_expr_first(self) -> bool {
         self == Token::Number || self == Token::Ident || self == Token::LeftParen
+    }
+
+    pub(crate) fn is_element_first(self) -> bool {
+        self == Token::Ident
+    }
+
+    pub(crate) fn is_arg_first(self) -> bool {
+        self.is_expr_first() || self == Token::Comma
     }
 
     /// 次のトークンが式の FIRST 集合に入っているか？
     ///
     /// 次のトークンから始まるような式の構文があるなら true。
     pub(crate) fn is_expr_first(self) -> bool {
-        self.is_atom_first()
+        self.is_atom_expr_first()
     }
 }
 
-/// 原子式をパースする。
-pub(crate) fn parse_atom(p: &mut ParseContext) -> Option<NodeData> {
-    match p.next() {
-        Token::Number => {
-            let mut node = NodeData::new();
-            p.bump(&mut node);
-            Some(node.set_node(Node::NumberLiteral))
-        }
-        Token::Ident => {
-            let mut node = NodeData::new();
-            p.bump(&mut node);
-            Some(node.set_node(Node::Name))
-        }
-        Token::LeftParen => {
-            let mut node = NodeData::new();
-            p.bump(&mut node);
+pub(crate) fn parse_args(p: &mut ParseContext, node: &mut NodeData) {
+    while p.next().is_arg_first() {
+        let mut arg = NodeData::new();
 
-            if let Some(body) = parse_expr(p) {
-                node.push_node(body);
-            } else {
-                node.push_error(ParseError::ExpectedExpr);
-            }
-
-            if p.next() == Token::RightParen {
-                p.bump(&mut node);
-            } else {
-                node.push_error(ParseError::ExpectedRightParen);
-            }
-
-            Some(node.set_node(Node::Group))
+        if p.next().is_expr_first() {
+            arg.push_node(parse_expr(p));
         }
-        _ => {
-            debug_assert!(!p.next().is_atom_first());
-            None
+
+        if p.next() == Token::Comma {
+            p.bump(&mut arg);
         }
+
+        node.push_node(arg.set_node(Node::Arg));
     }
 }
 
-/// 関数呼び出しをパースする。
-pub(crate) fn parse_call(p: &mut ParseContext) -> Option<NodeData> {
-    let mut callee = parse_atom(p)?;
+fn parse_number(p: &mut ParseContext) -> NodeData {
+    assert_eq!(p.next(), Token::Number);
 
-    while p.next() == Token::LeftParen {
-        // FIXME: callee が識別子でなければ構文エラー
-        let mut node = NodeData::new_before(callee);
+    let mut node = NodeData::new();
+    p.bump(&mut node);
+    node.set_node(Node::NumberLiteral)
+}
+
+pub(crate) fn parse_name(p: &mut ParseContext) -> NodeData {
+    assert_eq!(p.next(), Token::Ident);
+
+    let mut node = NodeData::new();
+    p.eat(&mut node, Token::Ident);
+    node.set_node(Node::Name)
+}
+
+fn parse_group(p: &mut ParseContext) -> NodeData {
+    assert_eq!(p.next(), Token::LeftParen);
+
+    let mut node = NodeData::new();
+    p.bump(&mut node);
+
+    if p.next().is_expr_first() {
+        node.push_node(parse_atom(p));
+    } else {
+        node.push_error(ParseError::ExpectedExpr);
+    }
+
+    if p.next() == Token::RightParen {
         p.bump(&mut node);
+    } else {
+        node.push_error(ParseError::ExpectedRightParen);
+    }
 
-        while let Some(arg) = parse_expr(p) {
-            let arg = NodeData::new_before(arg);
-            node.push_node(arg.set_node(Node::Argument));
+    node.set_node(Node::Group)
+}
 
-            p.eat(&mut node, Token::Comma);
-        }
+pub(crate) fn parse_atom(p: &mut ParseContext) -> NodeData {
+    assert!(p.next().is_atom_expr_first());
 
-        if !p.eat(&mut node, Token::RightParen) {
+    match p.next() {
+        Token::Number => parse_number(p),
+        Token::Ident => parse_name(p),
+        Token::LeftParen => parse_group(p),
+        _ => unreachable!(stringify!(is_atom_expr_first)),
+    }
+}
+
+/// 添字付きなら true
+fn parse_element_content(p: &mut ParseContext, node: &mut NodeData) -> bool {
+    assert!(p.next().is_element_first());
+
+    node.push_node(parse_atom(p));
+
+    if p.next() == Token::LeftParen {
+        parse_args(p, &mut node);
+
+        if p.next() == Token::RightParen {
+            p.bump(&mut node);
+        } else {
             node.push_error(ParseError::ExpectedRightParen);
         }
 
-        callee = node.set_node(Node::Call);
+        return true;
     }
 
-    Some(callee)
+    false
 }
 
-/// `K {}` 形式のデータ構築以外の式をパースする。
-pub(crate) fn parse_cond(p: &mut ParseContext) -> Option<NodeData> {
-    parse_call(p)
+pub(crate) fn parse_element(p: &mut ParseContext) -> NodeData {
+    let mut node = NodeData::new();
+    parse_element_content(p, &mut node);
+    node.set_node(Node::ElementExpr)
 }
 
-pub(crate) fn parse_expr(p: &mut ParseContext) -> Option<NodeData> {
+pub(crate) fn parse_element_or_command(p: &mut ParseContext, node: &mut NodeData) -> bool {
+    parse_element_content(p, node) || !(p.at_eol() || p.next().is_expr_first())
+}
+
+pub(crate) fn parse_call(p: &mut ParseContext) -> NodeData {
+    assert!(p.next().is_expr_first());
+
+    match p.next() {
+        Token::Number => parse_number(p),
+        Token::Ident => parse_element(p),
+        Token::LeftParen => parse_group(p),
+        _ => {
+            unreachable!(stringify!(is_expr_first));
+        }
+    }
+}
+
+pub(crate) fn parse_expr(p: &mut ParseContext) -> NodeData {
     parse_call(p)
 }

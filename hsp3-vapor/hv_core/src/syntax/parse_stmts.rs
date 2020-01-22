@@ -8,13 +8,9 @@ impl Token {
     }
 }
 
-fn parse_name(p: &mut ParseContext) -> NodeData {
-    let mut node = NodeData::new();
-    p.eat(&mut node, Token::Ident);
-    node.set_node(Node::Name)
-}
+pub(crate) fn parse_stmt(p: &mut ParseContext) -> NodeData {
+    parse_element()
 
-pub(crate) fn parse_stmt(p: &mut ParseContext) -> Option<NodeData> {
     match p.next() {
         _ => {
             if let Some(expr) = parse_expr(p) {

@@ -42,6 +42,19 @@ impl ParseContext {
         self.nth(0).map_or(Token::Eof, |token| token.token())
     }
 
+    pub(crate) fn snapshot(&self, node: &mut NodeData) -> (usize, usize) {
+        (self.index, node.snapshot())
+    }
+
+    pub(crate) fn rollback(&mut self, node: &mut NodeData, snapshot: (usize, usize)) {
+        assert!(0 <= self.tokens.len());
+
+        let (index, node_snapshot) = snapshot;
+
+        self.index = index;
+        node.rollback(node_snapshot);
+    }
+
     /// 次の字句を読み進める。
     pub(crate) fn bump(&mut self, node: &mut NodeData) {
         assert!(self.index + 1 <= self.tokens.len());

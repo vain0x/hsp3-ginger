@@ -7,8 +7,9 @@ pub(crate) enum Node {
     Name,
     NumberLiteral,
     Group,
+    ElementExpr,
     Call,
-    Argument,
+    Arg,
     ExprStmt,
     MatchStmt,
     MatchArm,
@@ -44,6 +45,14 @@ impl NodeData {
 
     pub(crate) fn node(&self) -> Node {
         self.node
+    }
+
+    pub(crate) fn snapshot(&self) -> usize {
+        self.children.len()
+    }
+
+    pub(crate) fn rollback(&mut self, snapshot: usize) {
+        self.children.drain(snapshot..);
     }
 
     pub(crate) fn set_node(mut self, node: Node) -> Self {
