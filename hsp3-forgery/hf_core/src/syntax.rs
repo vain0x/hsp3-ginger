@@ -1,13 +1,17 @@
 pub(crate) mod keyword;
+pub(crate) mod location;
+pub(crate) mod position;
 pub(crate) mod pun;
-pub(crate) mod source;
+pub(crate) mod range;
 pub(crate) mod text_cursor;
 pub(crate) mod token;
 pub(crate) mod tokenize;
 pub(crate) mod tokenize_context;
 pub(crate) mod tokenize_rules;
 
-pub(crate) use source::{Position, Range, SourceLocation};
+pub(crate) use location::SourceLocation;
+pub(crate) use position::Position;
+pub(crate) use range::Range;
 pub(crate) use text_cursor::TextCursor;
 pub(crate) use token::{Token, TokenData};
 
