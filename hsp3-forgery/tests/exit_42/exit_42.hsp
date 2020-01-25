@@ -1,0 +1,6 @@
+#module
+
+#deffunc main
+	return 42
+
+#global

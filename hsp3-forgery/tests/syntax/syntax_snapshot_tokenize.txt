@@ -1,0 +1,85 @@
+Eol `
+`
+Hash `#`
+Ident `module`
+Space ` `
+Ident `m_main`
+Eol `
+
+// メイン関数
+`
+Hash `#`
+Ident `deffunc`
+Space ` `
+Ident `main`
+Space ` `
+Space `\
+`
+Space `	`
+Ident `local`
+Space ` `
+Ident `a`
+Eol `
+
+	`
+Ident `a`
+Plus `+`
+Plus `+`
+Eol `
+	`
+If `if`
+Space ` `
+Ident `a`
+Space ` `
+EqualEqual `==`
+Space ` `
+Digit `1`
+Space ` `
+LeftBrace `{`
+Eol `
+		`
+Break `break`
+Eol `
+	`
+RightBrace `}`
+Eol `
+
+	`
+Ident `mes`
+Space ` `
+DoubleQuote `"`
+StrVerbatim `hello, world!`
+DoubleQuote `"`
+Eol `
+	`
+Ident `mes`
+Space ` `
+DoubleQuote `"`
+StrVerbatim `good bye ->`
+Eol `
+
+	`
+Ident `mes`
+Space ` `
+LeftQuote `{"`
+StrVerbatim `
+		multiline
+		text
+	`
+RightQuote `"}`
+Eol `
+	`
+Return `return`
+Eol `
+
+`
+Hash `#`
+Ident `global`
+Eol `
+
+	; トップレベルコード
+	`
+Ident `main`
+Eol `
+`
+Eof ``

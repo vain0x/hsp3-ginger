@@ -1,0 +1,60 @@
+ANodeData {
+    node: Root(
+        ARootNode {
+            errors: [],
+        },
+    ),
+    children: [
+        ANodeData {
+            node: Module(
+                AModuleNode {
+                    module_stmt: AModuleStmt {
+                        hash: "#",
+                        keyword: "module",
+                        name_opt: None,
+                    },
+                    global_stmt_opt: Some(
+                        AGlobalStmt {
+                            hash: "#",
+                            keyword: "global",
+                        },
+                    ),
+                },
+            ),
+            children: [
+                ANodeData {
+                    node: Fn(
+                        AFnNode {
+                            deffunc_stmt: ADeffuncStmt {
+                                hash: "#",
+                                keyword: "deffunc",
+                                name_opt: Some(
+                                    "main",
+                                ),
+                            },
+                        },
+                    ),
+                    children: [
+                        ANodeData {
+                            node: Stmt(
+                                Return(
+                                    AReturnStmt {
+                                        keyword: "return",
+                                        result_opt: Some(
+                                            Int(
+                                                AIntExpr {
+                                                    token: "42",
+                                                },
+                                            ),
+                                        ),
+                                    },
+                                ),
+                            ),
+                            children: [],
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
+}

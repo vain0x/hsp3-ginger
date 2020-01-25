@@ -1,0 +1,25 @@
+
+#module m_main
+
+// メイン関数
+#deffunc main \
+	local a
+
+	a++
+	if a == 1 {
+		break
+	}
+
+	mes "hello, world!"
+	mes "good bye ->
+
+	mes {"
+		multiline
+		text
+	"}
+	return
+
+#global
+
+	; トップレベルコード
+	main
