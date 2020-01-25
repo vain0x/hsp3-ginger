@@ -189,6 +189,33 @@ fn parse_pp_stmt(hash: TokenData, p: &mut Px) -> AStmt {
     }
 }
 
+fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
+    assert_eq!(p.next(), Token::Ident);
+    let head = p.bump();
+
+    match p.next() {
+        Token::Equal => {
+            let equal = p.bump();
+
+            // FIXME: 右辺はカンマ区切り
+            let right_opt = if p.next().is_expr_first() {
+                Some(parse_expr(p))
+            } else {
+                None
+            };
+
+            parse_end_of_stmt(p);
+
+            AStmt::Assign(AAssignStmt {
+                left: head,
+                equal,
+                right_opt,
+            })
+        }
+        _ => unimplemented!("{:?}", p.next_data()),
+    }
+}
+
 fn parse_stmt(p: &mut Px) -> AStmt {
     match p.next() {
         Token::Hash => {
@@ -196,6 +223,7 @@ fn parse_stmt(p: &mut Px) -> AStmt {
             parse_pp_stmt(hash, p)
         }
         Token::Return => AStmt::Return(parse_return_stmt(p)),
+        Token::Ident => parse_assign_or_command_stmt(p),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

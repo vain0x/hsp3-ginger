@@ -47,6 +47,7 @@ mod tests {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
 
+        snapshot_test("assign", &tests_dir);
         snapshot_test("exit_42", &tests_dir);
     }
 }

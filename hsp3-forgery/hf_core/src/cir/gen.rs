@@ -25,6 +25,14 @@ impl Context {
     }
 }
 
+fn take_term(slot: &mut KTerm) -> KTerm {
+    slot.clone()
+}
+
+fn take_node(slot: &mut KNode) -> KNode {
+    std::mem::replace(slot, KNode::Entry)
+}
+
 fn gen_term(term: KTerm) -> CExpr {
     match term {
         KTerm::Int(int_term) => CExpr::Int(int_term.token.text().to_string()),
@@ -32,9 +40,41 @@ fn gen_term(term: KTerm) -> CExpr {
     }
 }
 
+fn gen_prim_node(
+    prim: KPrim,
+    mut args: Vec<KTerm>,
+    mut results: Vec<String>,
+    mut nexts: Vec<KNode>,
+    cx: &mut Cx,
+) {
+    match prim {
+        KPrim::Assign => {
+            let (left, right, next) = match (
+                args.as_mut_slice(),
+                results.as_slice(),
+                nexts.as_mut_slice(),
+            ) {
+                ([left, right], [], [next]) => (take_term(left), take_term(right), take_node(next)),
+                _ => unreachable!(),
+            };
+
+            // FIXME: left = right
+        }
+    }
+}
+
 fn gen_node(node: KNode, stmts: &mut Vec<CStmt>, cx: &mut Cx) {
     match node {
         KNode::Entry => {}
+        KNode::Abort => {
+            // FIXME: abort();
+        }
+        KNode::Prim {
+            prim,
+            args,
+            results,
+            nexts,
+        } => gen_prim_node(prim, args, results, nexts, cx),
         KNode::Return(args) => {
             assert!(args.terms.len() <= 1);
             let arg_opt = args.terms.into_iter().next().map(gen_term);

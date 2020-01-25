@@ -27,21 +27,29 @@ fn gen_expr(expr: AExpr, hole: KHole) -> KNode {
     }
 }
 
-fn gen_stmts(stmts: Vec<AStmtNode>) -> KNode {
-    for stmt in stmts {
-        match stmt {
-            AStmtNode::Return(return_stmt) => match return_stmt.result_opt {
-                None => {
-                    return KNode::Return(KArgs { terms: vec![] });
-                }
-                Some(expr) => {
-                    return gen_expr(expr, KHole::ReturnWithArg);
-                }
-            },
-        }
-    }
+fn gen_stmts(stmts: &mut Vec<AStmtNode>) -> KNode {
+    let stmt = match stmts.pop() {
+        None => return KNode::Entry,
+        Some(stmt) => stmt,
+    };
 
-    KNode::Entry
+    match stmt {
+        AStmtNode::Assign(assign_stmt) => {
+            let left = KName {
+                token: assign_stmt.left,
+            };
+            let next = gen_stmts(stmts);
+
+            match assign_stmt.right_opt {
+                None => KNode::Abort,
+                Some(right) => gen_expr(right, KHole::Assign { left, next }),
+            }
+        }
+        AStmtNode::Return(return_stmt) => match return_stmt.result_opt {
+            None => KNode::Return(KArgs { terms: vec![] }),
+            Some(expr) => gen_expr(expr, KHole::ReturnWithArg),
+        },
+    }
 }
 
 fn gen_fn_node(fn_node: AFnNode, children: Vec<ANodeData>, fns: &mut Vec<KFn>, kx: &mut Kx) {
@@ -56,7 +64,10 @@ fn gen_fn_node(fn_node: AFnNode, children: Vec<ANodeData>, fns: &mut Vec<KFn>, k
     let mut stmts = vec![];
     gen_nodes(children, &mut stmts, fns, kx);
 
-    let body = gen_stmts(stmts);
+    let body = {
+        stmts.reverse();
+        gen_stmts(&mut stmts)
+    };
     fns.push(KFn { name, body });
 }
 
@@ -102,7 +113,10 @@ pub(crate) fn gen(root: ANodeData) -> KRoot {
     let mut fns = vec![];
     gen_nodes(vec![root], &mut stmts, &mut fns, &mut context);
 
-    let body = gen_stmts(stmts);
+    let body = {
+        stmts.reverse();
+        gen_stmts(&mut stmts)
+    };
     fns.push(KFn {
         name: "forgery_main".to_string(),
         body,

@@ -1,0 +1,18 @@
+CModule {
+    stmts: [
+        Func(
+            CFuncStmt {
+                name: "main",
+                result_ty: Int,
+                body: [],
+            },
+        ),
+        Func(
+            CFuncStmt {
+                name: "forgery_main",
+                result_ty: Int,
+                body: [],
+            },
+        ),
+    ],
+}

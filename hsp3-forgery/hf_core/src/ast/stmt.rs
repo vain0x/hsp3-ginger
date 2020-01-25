@@ -2,6 +2,19 @@ use super::*;
 use crate::syntax::*;
 
 #[derive(Clone, Debug)]
+pub(crate) struct AAssignStmt {
+    pub left: TokenData,
+    pub equal: TokenData,
+    pub right_opt: Option<AExpr>,
+}
+
+impl AAssignStmt {
+    pub(crate) fn main_location(&self) -> SourceLocation {
+        self.equal.location
+    }
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct AReturnStmt {
     pub keyword: TokenData,
     pub result_opt: Option<AExpr>,
@@ -60,6 +73,7 @@ impl AGlobalStmt {
 
 #[derive(Clone, Debug)]
 pub(crate) enum AStmt {
+    Assign(AAssignStmt),
     Return(AReturnStmt),
     Module(AModuleStmt),
     Global(AGlobalStmt),
@@ -70,6 +84,7 @@ pub(crate) enum AStmt {
 impl AStmt {
     pub(crate) fn main_location(&self) -> SourceLocation {
         match self {
+            AStmt::Assign(stmt) => stmt.main_location(),
             AStmt::Return(stmt) => stmt.main_location(),
             AStmt::Module(stmt) => stmt.main_location(),
             AStmt::Global(stmt) => stmt.main_location(),

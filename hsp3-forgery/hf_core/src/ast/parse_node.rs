@@ -90,6 +90,7 @@ fn gen_fn(mut deffunc_stmt: ADeffuncStmt, context: &mut Context) -> ANodeData {
 
     while let Some(stmt) = context.pop_stmt() {
         match stmt {
+            AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Return(return_stmt) => children.push(return_stmt.into()),
             AStmt::Module(module_stmt) => {
                 if context.in_module() {
@@ -125,6 +126,7 @@ fn gen_module(module_stmt: AModuleStmt, context: &mut Context) -> ANodeData {
 
     while let Some(stmt) = context.pop_stmt() {
         match stmt {
+            AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Return(return_stmt) => children.push(return_stmt.into()),
             AStmt::Module(module_stmt) => {
                 nested_module_error(module_stmt, context);
@@ -152,6 +154,7 @@ fn gen_module(module_stmt: AModuleStmt, context: &mut Context) -> ANodeData {
 fn gen_root(children: &mut Vec<ANodeData>, context: &mut Context) {
     while let Some(stmt) = context.pop_stmt() {
         match stmt {
+            AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Return(return_stmt) => children.push(return_stmt.into()),
             AStmt::Module(module_stmt) => {
                 children.push(gen_module(module_stmt, context));
