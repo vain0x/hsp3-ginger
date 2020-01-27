@@ -1,5 +1,4 @@
 pub(crate) mod ast;
-pub(crate) mod cir;
 pub(crate) mod kir;
 pub(crate) mod syntax;
 
@@ -35,11 +34,6 @@ mod tests {
         // snapshot(name, "kir.txt", tests_dir, |out| {
         //     write!(out, "{:#?}\n", kir_root).unwrap();
         // });
-
-        let c_module = cir::gen::gen(kir_root);
-        write_snapshot(name, "cir.txt", tests_dir, |out| {
-            write!(out, "{:#?}\n", c_module).unwrap();
-        })
     }
 
     #[test]
