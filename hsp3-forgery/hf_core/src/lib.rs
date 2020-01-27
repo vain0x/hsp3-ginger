@@ -1,3 +1,4 @@
+pub(crate) mod analysis;
 pub(crate) mod ast;
 pub(crate) mod kir;
 pub(crate) mod syntax;
@@ -43,5 +44,29 @@ mod tests {
 
         snapshot_test("assign", &tests_dir);
         snapshot_test("exit_42", &tests_dir);
+    }
+
+    #[test]
+    fn completion_tests() {
+        let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let tests_dir = root_dir.join("../tests");
+        let name = "assign";
+
+        let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
+
+        use crate::analysis::completion::*;
+        let id_provider = IdProvider::new();
+        let mut project = Project::new();
+
+        load_source(source_path.clone(), &id_provider, &mut project.sources).unwrap();
+        let source_id = project.sources.path_to_id(source_path.as_ref()).unwrap();
+
+        let position = syntax::Position {
+            line: 4,
+            character: 1,
+        };
+        let completion_items =
+            crate::analysis::completion::get_completion_list(source_id, position, &mut project);
+        assert_eq!(completion_items.len(), 1);
     }
 }
