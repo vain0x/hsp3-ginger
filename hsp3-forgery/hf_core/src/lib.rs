@@ -20,10 +20,10 @@ mod tests {
 
     fn snapshot_test(name: &str, tests_dir: &Path) {
         let source_id = 1;
-        let source_path = tests_dir.join(format!("{}/{}.hsp", name, name));
-        let source_code = fs::read_to_string(&source_path).unwrap();
+        let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
+        let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
 
-        let tokens = syntax::tokenize::tokenize(source_id, Rc::new(source_code));
+        let tokens = syntax::tokenize::tokenize(source_id, source_path, Rc::new(source_code));
         let ast_root = ast::parse::parse(tokens);
 
         write_snapshot(name, "ast.txt", tests_dir, |out| {

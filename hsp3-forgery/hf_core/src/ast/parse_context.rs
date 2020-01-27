@@ -80,12 +80,12 @@ impl ParseContext {
     pub(crate) fn error(&mut self, msg: &str, token: &TokenData) {
         self.errors.push(SyntaxError {
             msg: msg.to_string(),
-            location: token.location,
+            location: token.location.clone(),
         })
     }
 
     pub(crate) fn error_next(&mut self, msg: &str) {
-        let location = self.nth(0).unwrap().location;
+        let location = self.nth(0).unwrap().location.clone();
 
         self.errors.push(SyntaxError {
             msg: msg.to_string(),

@@ -10,7 +10,7 @@ pub(crate) struct AAssignStmt {
 
 impl AAssignStmt {
     pub(crate) fn main_location(&self) -> SourceLocation {
-        self.equal.location
+        self.equal.location.clone()
     }
 }
 
@@ -22,7 +22,7 @@ pub(crate) struct AReturnStmt {
 
 impl AReturnStmt {
     pub(crate) fn main_location(&self) -> SourceLocation {
-        self.keyword.location
+        self.keyword.location.clone()
     }
 }
 
@@ -42,7 +42,7 @@ impl ADeffuncStmt {
     }
 
     pub(crate) fn main_location(&self) -> SourceLocation {
-        self.hash.location.unite(self.keyword.location)
+        self.hash.location.clone().unite(&self.keyword.location)
     }
 }
 
@@ -55,7 +55,7 @@ pub(crate) struct AModuleStmt {
 
 impl AModuleStmt {
     pub(crate) fn main_location(&self) -> SourceLocation {
-        self.hash.location.unite(self.keyword.location)
+        self.hash.location.clone().unite(&self.keyword.location)
     }
 }
 
@@ -67,7 +67,7 @@ pub(crate) struct AGlobalStmt {
 
 impl AGlobalStmt {
     pub(crate) fn main_location(&self) -> SourceLocation {
-        self.hash.location.unite(self.keyword.location)
+        self.hash.location.clone().unite(&self.keyword.location)
     }
 }
 
@@ -89,7 +89,7 @@ impl AStmt {
             AStmt::Module(stmt) => stmt.main_location(),
             AStmt::Global(stmt) => stmt.main_location(),
             AStmt::Deffunc(stmt) => stmt.main_location(),
-            AStmt::UnknownPreprocessor { hash, .. } => hash.location,
+            AStmt::UnknownPreprocessor { hash, .. } => hash.location.clone(),
         }
     }
 }

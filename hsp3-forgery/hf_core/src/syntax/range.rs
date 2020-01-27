@@ -18,6 +18,14 @@ impl Range {
 
 impl fmt::Debug for Range {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}..{:?}", self.start, self.end)
+        // GNU 形式 (https://www.gnu.org/prep/standards/html_node/Errors.html)
+        write!(
+            f,
+            "{}.{}-{}.{}",
+            self.start.line + 1,
+            self.start.character + 1,
+            self.end.line + 1,
+            self.end.character + 1
+        )
     }
 }

@@ -29,9 +29,10 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
 
         let source_id = 1;
-        let source_code = fs::read_to_string(&tests_dir.join("syntax/syntax.hsp")).unwrap();
+        let source_path = Rc::new(tests_dir.join("syntax/syntax.hsp"));
+        let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
 
-        let tokens = tokenize::tokenize(source_id, Rc::new(source_code));
+        let tokens = tokenize::tokenize(source_id, source_path, Rc::new(source_code));
 
         let mut snapshot = vec![];
 
@@ -52,9 +53,10 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
 
         let source_id = 1;
-        let source_code = fs::read_to_string(&tests_dir.join("exit_42/exit_42.hsp")).unwrap();
+        let source_path = Rc::new(tests_dir.join("exit_42/exit_42.hsp"));
+        let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
 
-        let tokens = tokenize::tokenize(source_id, Rc::new(source_code));
+        let tokens = tokenize::tokenize(source_id, source_path, Rc::new(source_code));
         let ast_root = crate::ast::parse::parse(tokens);
 
         let mut snapshot = vec![];
