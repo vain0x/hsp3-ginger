@@ -72,14 +72,12 @@ fn gen_fn_node(fn_node: AFnNode, children: Vec<ANodeData>, fns: &mut Vec<KFn>, k
 }
 
 fn gen_module_node(module_node: AModuleNode, children: Vec<ANodeData>, kx: &mut Kx) {
-    // FIXME: m1, m2, etc.
     let name = module_node
         .module_stmt
         .name_opt
         .as_ref()
-        .map(|token| token.text())
-        .unwrap_or("_")
-        .to_string();
+        .map(|token| token.text().to_string())
+        .unwrap_or_else(|| format!("{}", kx.modules.len() + 1));
 
     let mut stmts = vec![];
     let mut fns = vec![];
