@@ -101,6 +101,9 @@ pub(crate) fn get_completion_list(
             AStmtNode::Assign(stmt) => {
                 idents.push(stmt.left.text().to_string());
             }
+            AStmtNode::Command(stmt) => {
+                // FIXME: 実装
+            }
             AStmtNode::Return(..) => {}
         }
     }

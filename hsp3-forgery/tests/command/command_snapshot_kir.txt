@@ -1,0 +1,44 @@
+KRoot {
+    modules: [
+        KModule {
+            name: "global",
+            fns: [
+                KFn {
+                    name: "forgery_main",
+                    body: Prim {
+                        prim: Command,
+                        args: [
+                            Name(
+                                width,
+                            ),
+                            Int(
+                                512,
+                            ),
+                            Int(
+                                800,
+                            ),
+                        ],
+                        results: [],
+                        nexts: [
+                            Prim {
+                                prim: Assign,
+                                args: [
+                                    Name(
+                                        width,
+                                    ),
+                                    Int(
+                                        1,
+                                    ),
+                                ],
+                                results: [],
+                                nexts: [
+                                    Abort,
+                                ],
+                            },
+                        ],
+                    },
+                },
+            ],
+        },
+    ],
+}

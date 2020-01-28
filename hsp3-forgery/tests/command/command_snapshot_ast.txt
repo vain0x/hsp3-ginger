@@ -1,0 +1,61 @@
+ANodeData {
+    node: Root(
+        ARootNode {
+            errors: [],
+        },
+    ),
+    children: [
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "width",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Int(
+                                        AIntExpr {
+                                            token: "800",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: Some(
+                                    ",",
+                                ),
+                            },
+                            AArg {
+                                expr_opt: Some(
+                                    Int(
+                                        AIntExpr {
+                                            token: "512",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Assign(
+                    AAssignStmt {
+                        left: "width",
+                        equal: "=",
+                        right_opt: Some(
+                            Int(
+                                AIntExpr {
+                                    token: "1",
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            ),
+            children: [],
+        },
+    ],
+}

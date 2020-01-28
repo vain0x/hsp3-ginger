@@ -1,6 +1,25 @@
 use super::*;
 use crate::ast::*;
 
+#[derive(Debug)]
+enum KNodeHead {
+    Assign { left: KName },
+    Command { command: KName },
+    Return,
+}
+
+#[derive(Debug)]
+enum KCode {
+    Term(KTerm),
+    Node { head: KNodeHead, arity: usize },
+}
+
+#[derive(Debug)]
+enum KElement {
+    Term(KTerm),
+    Node(KNode),
+}
+
 struct KirGenContext {
     modules: Vec<KModule>,
 }
@@ -19,36 +38,152 @@ impl KirGenContext {
 
 type Kx = KirGenContext;
 
-fn gen_expr(expr: AExpr, hole: KHole) -> KNode {
+fn take_term(slot: &mut KTerm) -> KTerm {
+    std::mem::replace(slot, KTerm::Omit)
+}
+
+fn take_node(slot: &mut KNode) -> KNode {
+    std::mem::replace(slot, KNode::Entry)
+}
+
+fn gen_expr(expr: AExpr, codes: &mut Vec<KCode>) {
     match expr {
-        AExpr::Int(int_expr) => hole.apply(KTerm::Int(KInt {
+        AExpr::Int(int_expr) => codes.push(KCode::Term(KTerm::Int(KInt {
             token: int_expr.token,
-        })),
+        }))),
+    }
+}
+
+fn gen_expr_opt(expr_opt: Option<AExpr>, codes: &mut Vec<KCode>) {
+    match expr_opt {
+        Some(expr) => gen_expr(expr, codes),
+        None => codes.push(KCode::Term(KTerm::Omit)),
+    }
+}
+
+fn gen_code(codes: &mut Vec<KCode>) -> KElement {
+    // stop?
+    let default_node = KNode::Abort;
+
+    let (head, arity) = match codes.pop() {
+        None => return KElement::Node(default_node),
+        Some(KCode::Term(term)) => {
+            return KElement::Term(term);
+        }
+        Some(KCode::Node { head, arity }) => (head, arity),
+    };
+
+    let mut children = vec![];
+    for _ in 0..arity {
+        children.push(gen_code(codes));
+    }
+
+    match head {
+        KNodeHead::Assign { left } => match children.as_mut_slice() {
+            [KElement::Term(right), KElement::Node(next)] => KElement::Node(KNode::Prim {
+                prim: KPrim::Assign,
+                args: vec![KTerm::Name(left), take_term(right)],
+                results: vec![],
+                nexts: vec![take_node(next)],
+            }),
+            _ => unimplemented!("{:?}", children),
+        },
+        KNodeHead::Command { command } => {
+            let next = match children.pop() {
+                Some(KElement::Node(node)) => node,
+                Some(_) | None => default_node,
+            };
+
+            let mut args = vec![KTerm::Name(command)];
+            for element in children {
+                let term = match element {
+                    KElement::Term(term) => term,
+                    KElement::Node(node) => unreachable!("Expected term {:?}", node),
+                };
+                args.push(term);
+            }
+
+            KElement::Node(KNode::Prim {
+                prim: KPrim::Command,
+                args,
+                results: vec![],
+                nexts: vec![next],
+            })
+        }
+        KNodeHead::Return => {
+            let mut args = vec![];
+            for element in children {
+                let term = match element {
+                    KElement::Term(term) => term,
+                    KElement::Node(node) => unreachable!("Expected term {:?}", node),
+                };
+                args.push(term);
+            }
+
+            KElement::Node(KNode::Return(KArgs { terms: args }))
+        }
     }
 }
 
 fn gen_stmts(stmts: &mut Vec<AStmtNode>) -> KNode {
-    let stmt = match stmts.pop() {
-        None => return KNode::Entry,
-        Some(stmt) => stmt,
-    };
+    if stmts.is_empty() {
+        return KNode::Entry;
+    }
 
-    match stmt {
-        AStmtNode::Assign(assign_stmt) => {
-            let left = KName {
-                token: assign_stmt.left,
-            };
-            let next = gen_stmts(stmts);
+    // FIXME: モジュール内なら abort, トップレベルなら stop
+    let mut codes = vec![];
 
-            match assign_stmt.right_opt {
-                None => KNode::Abort,
-                Some(right) => gen_expr(right, KHole::Assign { left, next }),
+    stmts.reverse();
+
+    while let Some(stmt) = stmts.pop() {
+        match stmt {
+            AStmtNode::Assign(assign_stmt) => {
+                let left = KName {
+                    token: assign_stmt.left,
+                };
+
+                gen_expr_opt(assign_stmt.right_opt, &mut codes);
+
+                codes.push(KCode::Node {
+                    head: KNodeHead::Assign { left },
+                    arity: 2,
+                });
+            }
+            AStmtNode::Command(command_stmt) => {
+                let command = KName {
+                    token: command_stmt.command,
+                };
+
+                let arity = command_stmt.args.len();
+
+                for arg in command_stmt.args {
+                    gen_expr_opt(arg.expr_opt, &mut codes);
+                }
+
+                codes.push(KCode::Node {
+                    head: KNodeHead::Command { command },
+                    arity: arity + 1,
+                });
+            }
+            AStmtNode::Return(return_stmt) => {
+                let arity = if let Some(expr) = return_stmt.result_opt {
+                    gen_expr(expr, &mut codes);
+                    1
+                } else {
+                    0
+                };
+
+                codes.push(KCode::Node {
+                    head: KNodeHead::Return,
+                    arity,
+                });
             }
         }
-        AStmtNode::Return(return_stmt) => match return_stmt.result_opt {
-            None => KNode::Return(KArgs { terms: vec![] }),
-            Some(expr) => gen_expr(expr, KHole::ReturnWithArg),
-        },
+    }
+
+    match gen_code(&mut codes) {
+        KElement::Term(term) => unimplemented!("bad code {:?}", term),
+        KElement::Node(node) => node,
     }
 }
 

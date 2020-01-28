@@ -15,6 +15,18 @@ impl Token {
             || self == Token::Star
     }
 
+    fn at_end_of_expr(self) -> bool {
+        self.at_end_of_stmt() || self == Token::RightParen
+    }
+
+    fn is_arg_first(self) -> bool {
+        self.is_expr_first() || self == Token::Comma
+    }
+
+    fn at_end_of_args(self) -> bool {
+        self.at_end_of_expr() || self.at_end_of_stmt()
+    }
+
     fn is_stmt_first(self, line_head: bool) -> bool {
         (line_head && self == Token::Hash)
             || self == Token::Ident
@@ -189,6 +201,43 @@ fn parse_pp_stmt(hash: TokenData, p: &mut Px) -> AStmt {
     }
 }
 
+fn parse_args(args: &mut Vec<AArg>, p: &mut Px) {
+    assert!(p.next().is_arg_first());
+
+    loop {
+        let arg = if let Some(comma) = p.eat(Token::Comma) {
+            AArg {
+                expr_opt: None,
+                comma_opt: Some(comma),
+            }
+        } else if p.next().is_expr_first() {
+            let expr = parse_expr(p);
+            let comma_opt = p.eat(Token::Comma);
+            AArg {
+                expr_opt: Some(expr),
+                comma_opt: comma_opt,
+            }
+        } else {
+            unreachable!("ERROR: is_arg_first bug")
+        };
+
+        let ends_with_comma = arg.comma_opt.is_some();
+        args.push(arg);
+
+        if ends_with_comma || p.next().is_arg_first() {
+            continue;
+        }
+
+        if !p.next().at_end_of_args() {
+            let bad_token = p.bump();
+            p.error("引数リストの終端が期待されました", &bad_token);
+            continue;
+        }
+
+        break;
+    }
+}
+
 fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
     assert_eq!(p.next(), Token::Ident);
     let head = p.bump();
@@ -212,7 +261,20 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
                 right_opt,
             })
         }
-        _ => unimplemented!("{:?}", p.next_data()),
+        _ if p.next().is_expr_first() => {
+            let mut args = vec![];
+
+            parse_args(&mut args, p);
+            parse_end_of_stmt(p);
+
+            AStmt::Command(ACommandStmt {
+                command: head,
+                args,
+            })
+        }
+        _ => {
+            unimplemented!("{:?}", p.next_data());
+        }
     }
 }
 

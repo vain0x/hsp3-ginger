@@ -26,11 +26,12 @@ impl fmt::Debug for KName {
 
 #[derive(Clone, Debug)]
 pub(crate) enum KTerm {
+    Omit,
     Int(KInt),
     Name(KName),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct KArgs {
     pub terms: Vec<KTerm>,
 }

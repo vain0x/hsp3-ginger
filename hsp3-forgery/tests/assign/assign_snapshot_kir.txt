@@ -1,0 +1,40 @@
+KRoot {
+    modules: [
+        KModule {
+            name: "1",
+            fns: [
+                KFn {
+                    name: "main",
+                    body: Prim {
+                        prim: Assign,
+                        args: [
+                            Name(
+                                a,
+                            ),
+                            Int(
+                                1,
+                            ),
+                        ],
+                        results: [],
+                        nexts: [
+                            Return(
+                                KArgs {
+                                    terms: [],
+                                },
+                            ),
+                        ],
+                    },
+                },
+            ],
+        },
+        KModule {
+            name: "global",
+            fns: [
+                KFn {
+                    name: "forgery_main",
+                    body: Entry,
+                },
+            ],
+        },
+    ],
+}

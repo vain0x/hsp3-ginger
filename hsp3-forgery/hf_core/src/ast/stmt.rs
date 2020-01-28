@@ -15,6 +15,18 @@ impl AAssignStmt {
 }
 
 #[derive(Clone, Debug)]
+pub(crate) struct ACommandStmt {
+    pub command: TokenData,
+    pub args: Vec<AArg>,
+}
+
+impl ACommandStmt {
+    pub(crate) fn main_location(&self) -> SourceLocation {
+        self.command.location.clone()
+    }
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct AReturnStmt {
     pub keyword: TokenData,
     pub result_opt: Option<AExpr>,
@@ -74,6 +86,7 @@ impl AGlobalStmt {
 #[derive(Clone, Debug)]
 pub(crate) enum AStmt {
     Assign(AAssignStmt),
+    Command(ACommandStmt),
     Return(AReturnStmt),
     Module(AModuleStmt),
     Global(AGlobalStmt),
@@ -85,6 +98,7 @@ impl AStmt {
     pub(crate) fn main_location(&self) -> SourceLocation {
         match self {
             AStmt::Assign(stmt) => stmt.main_location(),
+            AStmt::Command(stmt) => stmt.main_location(),
             AStmt::Return(stmt) => stmt.main_location(),
             AStmt::Module(stmt) => stmt.main_location(),
             AStmt::Global(stmt) => stmt.main_location(),

@@ -32,9 +32,9 @@ mod tests {
         });
 
         let kir_root = kir::gen::gen(ast_root);
-        // snapshot(name, "kir.txt", tests_dir, |out| {
-        //     write!(out, "{:#?}\n", kir_root).unwrap();
-        // });
+        write_snapshot(name, "kir.txt", tests_dir, |out| {
+            write!(out, "{:#?}\n", kir_root).unwrap();
+        });
     }
 
     #[test]
@@ -43,6 +43,7 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
 
         snapshot_test("assign", &tests_dir);
+        snapshot_test("command", &tests_dir);
         snapshot_test("exit_42", &tests_dir);
     }
 

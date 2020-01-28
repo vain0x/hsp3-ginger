@@ -3,6 +3,7 @@ use super::*;
 #[derive(Clone, Debug)]
 pub(crate) enum AStmtNode {
     Assign(AAssignStmt),
+    Command(ACommandStmt),
     Return(AReturnStmt),
 }
 
@@ -53,6 +54,16 @@ impl From<AAssignStmt> for ANodeData {
         }
     }
 }
+
+impl From<ACommandStmt> for ANodeData {
+    fn from(stmt: ACommandStmt) -> ANodeData {
+        ANodeData {
+            node: ANode::Stmt(AStmtNode::Command(stmt)),
+            children: vec![],
+        }
+    }
+}
+
 impl From<AReturnStmt> for ANodeData {
     fn from(return_stmt: AReturnStmt) -> ANodeData {
         ANodeData {
