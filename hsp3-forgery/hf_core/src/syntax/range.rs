@@ -22,6 +22,12 @@ impl Range {
 
 impl fmt::Debug for Range {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl fmt::Display for Range {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // GNU 形式 (https://www.gnu.org/prep/standards/html_node/Errors.html)
         write!(
             f,

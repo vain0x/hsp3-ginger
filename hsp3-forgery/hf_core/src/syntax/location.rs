@@ -25,6 +25,12 @@ impl Location {
 
 impl fmt::Debug for Location {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}:{:?}", self.source_path, self.range)
+        write!(f, "{}", self)
+    }
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}", self.source_path.to_string_lossy(), self.range)
     }
 }
