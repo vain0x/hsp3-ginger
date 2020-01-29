@@ -9,7 +9,7 @@ pub(crate) struct AAssignStmt {
 }
 
 impl AAssignStmt {
-    pub(crate) fn main_location(&self) -> SourceLocation {
+    pub(crate) fn main_location(&self) -> Location {
         self.equal.location.clone()
     }
 }
@@ -21,7 +21,7 @@ pub(crate) struct ACommandStmt {
 }
 
 impl ACommandStmt {
-    pub(crate) fn main_location(&self) -> SourceLocation {
+    pub(crate) fn main_location(&self) -> Location {
         self.command.location.clone()
     }
 }
@@ -33,7 +33,7 @@ pub(crate) struct AReturnStmt {
 }
 
 impl AReturnStmt {
-    pub(crate) fn main_location(&self) -> SourceLocation {
+    pub(crate) fn main_location(&self) -> Location {
         self.keyword.location.clone()
     }
 }
@@ -53,7 +53,7 @@ impl ADeffuncStmt {
             .unwrap_or("_")
     }
 
-    pub(crate) fn main_location(&self) -> SourceLocation {
+    pub(crate) fn main_location(&self) -> Location {
         self.hash.location.clone().unite(&self.keyword.location)
     }
 }
@@ -66,7 +66,7 @@ pub(crate) struct AModuleStmt {
 }
 
 impl AModuleStmt {
-    pub(crate) fn main_location(&self) -> SourceLocation {
+    pub(crate) fn main_location(&self) -> Location {
         self.hash.location.clone().unite(&self.keyword.location)
     }
 }
@@ -78,7 +78,7 @@ pub(crate) struct AGlobalStmt {
 }
 
 impl AGlobalStmt {
-    pub(crate) fn main_location(&self) -> SourceLocation {
+    pub(crate) fn main_location(&self) -> Location {
         self.hash.location.clone().unite(&self.keyword.location)
     }
 }
@@ -95,7 +95,7 @@ pub(crate) enum AStmt {
 }
 
 impl AStmt {
-    pub(crate) fn main_location(&self) -> SourceLocation {
+    pub(crate) fn main_location(&self) -> Location {
         match self {
             AStmt::Assign(stmt) => stmt.main_location(),
             AStmt::Command(stmt) => stmt.main_location(),

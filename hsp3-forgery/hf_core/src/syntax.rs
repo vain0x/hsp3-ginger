@@ -9,7 +9,7 @@ pub(crate) mod tokenize;
 pub(crate) mod tokenize_context;
 pub(crate) mod tokenize_rules;
 
-pub(crate) use location::SourceLocation;
+pub(crate) use location::Location;
 pub(crate) use position::Position;
 pub(crate) use range::Range;
 pub(crate) use text_cursor::TextCursor;

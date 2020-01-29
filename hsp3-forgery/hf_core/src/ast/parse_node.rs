@@ -58,7 +58,7 @@ impl Context {
         self.stmts.pop()
     }
 
-    fn error(&mut self, msg: &str, location: SourceLocation) {
+    fn error(&mut self, msg: &str, location: Location) {
         self.errors
             .push(SyntaxError::new(msg.to_string(), location));
     }

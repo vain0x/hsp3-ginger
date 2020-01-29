@@ -103,7 +103,7 @@ impl TokenizeContext {
         let start = self.cursor.current();
         self.cursor.advance(&text);
         let end = self.cursor.current();
-        let location = SourceLocation {
+        let location = Location {
             source_id: self.source_id,
             source_path: self.source_path.clone(),
             range: Range { start, end },

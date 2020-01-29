@@ -73,7 +73,7 @@ pub(crate) struct TokenData {
     token: Token,
     text: String,
 
-    pub(crate) location: SourceLocation,
+    pub(crate) location: Location,
 
     /// 行頭？
     pub(crate) line_head: bool,
@@ -86,7 +86,7 @@ pub(crate) struct TokenData {
 }
 
 impl TokenData {
-    pub(crate) fn new(token: Token, text: String, location: SourceLocation) -> Self {
+    pub(crate) fn new(token: Token, text: String, location: Location) -> Self {
         TokenData {
             token,
             text,
@@ -97,7 +97,7 @@ impl TokenData {
         }
     }
 
-    pub(crate) fn new_missing(hint_location: SourceLocation) -> Self {
+    pub(crate) fn new_missing(hint_location: Location) -> Self {
         TokenData::new(Token::Other, "???".to_string(), hint_location)
     }
 
