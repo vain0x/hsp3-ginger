@@ -1,101 +1,7 @@
+use crate::ast::*;
 use crate::syntax::*;
-use std::collections::HashMap;
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
-#[derive(Default)]
-pub(crate) struct IdProvider {
-    last_id: AtomicUsize,
-}
-
-impl IdProvider {
-    pub(crate) fn new() -> Self {
-        IdProvider::default()
-    }
-
-    pub(crate) fn fresh(&self) -> usize {
-        self.last_id.fetch_add(1, Ordering::Relaxed)
-    }
-}
-
-pub(crate) type SourceId = usize;
-
-pub(crate) struct Source {
-    pub(crate) source_id: SourceId,
-    pub(crate) source_path: Rc<PathBuf>,
-    pub(crate) source_code: Rc<String>,
-}
-
-#[derive(Default)]
-pub(crate) struct SourceArena {
-    sources: HashMap<SourceId, Source>,
-    path_to_ids: HashMap<PathBuf, SourceId>,
-}
-
-impl SourceArena {
-    pub(crate) fn get(&self, source_id: SourceId) -> Option<&Source> {
-        self.sources.get(&source_id)
-    }
-
-    pub(crate) fn path_to_id(&self, source_path: &Path) -> Option<SourceId> {
-        self.path_to_ids.get(source_path).cloned()
-    }
-}
-
-#[derive(Default)]
-pub(crate) struct Project {
-    pub(crate) sources: SourceArena,
-}
-
-impl Project {
-    pub(crate) fn new() -> Self {
-        Project::default()
-    }
-}
-
-pub(crate) fn load_source(
-    source_path: Rc<PathBuf>,
-    id_provider: &IdProvider,
-    sources: &mut SourceArena,
-) -> io::Result<()> {
-    let source_code = fs::read_to_string(source_path.as_ref())?;
-    let source_id = id_provider.fresh();
-    let source = Source {
-        source_id,
-        source_path: Rc::clone(&source_path),
-        source_code: Rc::new(source_code),
-    };
-
-    sources.sources.insert(source_id, source);
-    sources
-        .path_to_ids
-        .insert(PathBuf::clone(&*source_path), source_id);
-
-    Ok(())
-}
-
-pub(crate) fn get_completion_list(
-    source_id: SourceId,
-    position: Position,
-    project: &mut Project,
-) -> Vec<String> {
-    let source = match project.sources.get(source_id) {
-        None => return vec![],
-        Some(source) => source,
-    };
-
-    let tokens = crate::syntax::tokenize::tokenize(
-        source_id,
-        Rc::clone(&source.source_path),
-        Rc::clone(&source.source_code),
-    );
-    let ast_root = crate::ast::parse::parse(&tokens);
-
-    use crate::ast::*;
-
+pub(crate) fn get_completion_list(ast_root: &ANodeData, position: Position) -> Vec<String> {
     fn on_stmt(a: &AStmtNode, idents: &mut Vec<String>) {
         match a {
             AStmtNode::Assign(stmt) => {
@@ -124,7 +30,7 @@ pub(crate) fn get_completion_list(
     }
 
     let mut symbols = vec![];
-    go_node(&ast_root, &mut symbols);
+    go_node(ast_root, &mut symbols);
     symbols.sort();
     symbols.dedup();
 
@@ -136,22 +42,7 @@ pub(crate) struct SignatureHelp {
     pub(crate) active_param_index: usize,
 }
 
-pub(crate) fn signature_help(
-    source_id: SourceId,
-    position: Position,
-    project: &mut Project,
-) -> Option<SignatureHelp> {
-    let source = project.sources.get(source_id)?;
-
-    let tokens = crate::syntax::tokenize::tokenize(
-        source_id,
-        Rc::clone(&source.source_path),
-        Rc::clone(&source.source_code),
-    );
-    let ast_root = crate::ast::parse::parse(&tokens);
-
-    use crate::ast::*;
-
+pub(crate) fn signature_help(ast_root: &ANodeData, position: Position) -> Option<SignatureHelp> {
     fn on_expr(
         a: &AExpr,
         p: Position,
