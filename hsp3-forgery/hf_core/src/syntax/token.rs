@@ -1,5 +1,6 @@
 use super::*;
-use std::fmt::{self, Write};
+use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Token {

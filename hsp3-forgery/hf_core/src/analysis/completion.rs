@@ -92,7 +92,7 @@ pub(crate) fn get_completion_list(
         Rc::clone(&source.source_path),
         Rc::clone(&source.source_code),
     );
-    let ast_root = crate::ast::parse::parse(tokens);
+    let ast_root = crate::ast::parse::parse(&tokens);
 
     use crate::ast::*;
 
@@ -148,7 +148,7 @@ pub(crate) fn signature_help(
         Rc::clone(&source.source_path),
         Rc::clone(&source.source_code),
     );
-    let ast_root = crate::ast::parse::parse(tokens);
+    let ast_root = crate::ast::parse::parse(&tokens);
 
     use crate::ast::*;
 

@@ -17,6 +17,7 @@ pub(crate) use range::Range;
 pub(crate) use source::*;
 pub(crate) use text_cursor::TextCursor;
 pub(crate) use token::{Token, TokenData};
+pub(crate) use tokenize::TokensComponent;
 
 #[cfg(test)]
 mod tests {

@@ -13,7 +13,7 @@ mod tests {
     use super::*;
     use crate::syntax::*;
     use std::fs;
-    use std::io::{self, Write};
+    use std::io::Write;
     use std::path::{Path, PathBuf};
     use std::rc::Rc;
 
@@ -24,8 +24,6 @@ mod tests {
         let file_path = tests_dir.join(format!("{}/{}_snapshot_{}", name, name, suffix));
         fs::write(&file_path, out).unwrap();
     }
-
-    fn snapshot_test(name: &str, tests_dir: &Path) {}
 
     #[test]
     fn snapshot_tests() {
@@ -42,20 +40,28 @@ mod tests {
             let (workspace, source) =
                 Workspace::new_with_file(source_path.clone(), &mut sources, &mut ids);
             let mut source_codes = SourceCodeComponent::default();
+            let mut tokenss = TokensComponent::default();
 
             syntax::source_loader::load_sources(
                 &sources.get(&workspace).unwrap_or(&vec![]),
                 &mut source_codes,
             );
 
-            let source_code = source_codes
-                .get(&source)
-                .map(|s| s.as_str())
-                .unwrap_or("")
-                .to_string();
+            {
+                let mut ss = vec![];
+                for source in sources.get(&workspace).into_iter().flatten() {
+                    let source_code = match source_codes.get(&source) {
+                        None => continue,
+                        Some(source_code) => source_code,
+                    };
 
-            let tokens =
-                syntax::tokenize::tokenize(source.source_id, source_path, Rc::new(source_code));
+                    ss.push((source, source_code));
+                }
+                syntax::tokenize::tokenize_sources(&ss, &mut tokenss);
+            }
+
+            let tokens = tokenss.get(&source).unwrap();
+
             let ast_root = ast::parse::parse(tokens);
 
             write_snapshot(name, "ast.txt", &tests_dir, |out| {

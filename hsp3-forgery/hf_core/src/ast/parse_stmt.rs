@@ -314,8 +314,12 @@ fn parse_root(p: &mut Px) -> ARoot {
     }
 }
 
-pub(crate) fn parse_tokens(mut tokens: Vec<TokenData>) -> ARoot {
-    tokens.retain(|t| t.token() != Token::Space);
+pub(crate) fn parse_tokens(tokens: &[TokenData]) -> ARoot {
+    let tokens = tokens
+        .into_iter()
+        .filter(|t| t.token() != Token::Space)
+        .cloned()
+        .collect::<Vec<_>>();
 
     let mut p = ParseContext::new(tokens);
     let mut root = parse_root(&mut p);
