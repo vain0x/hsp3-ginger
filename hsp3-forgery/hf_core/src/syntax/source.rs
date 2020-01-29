@@ -29,3 +29,5 @@ impl fmt::Display for Source {
         write!(f, "{}", self.source_path.to_string_lossy())
     }
 }
+
+pub(crate) type SourceCodeComponent = HashMap<Source, Rc<String>>;

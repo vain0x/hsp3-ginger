@@ -1,11 +1,17 @@
 pub(crate) mod analysis;
 pub(crate) mod ast;
+pub(crate) mod id_provider;
 pub(crate) mod kir;
 pub(crate) mod syntax;
+pub(crate) mod workspace;
+
+pub(crate) use id_provider::IdProvider;
+pub(crate) use workspace::{SourceComponent, Workspace};
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::syntax::*;
     use std::fs;
     use std::io::{self, Write};
     use std::path::{Path, PathBuf};
@@ -19,32 +25,48 @@ mod tests {
         fs::write(&file_path, out).unwrap();
     }
 
-    fn snapshot_test(name: &str, tests_dir: &Path) {
-        let source_id = 1;
-        let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
-
-        let tokens = syntax::tokenize::tokenize(source_id, source_path, Rc::new(source_code));
-        let ast_root = ast::parse::parse(tokens);
-
-        write_snapshot(name, "ast.txt", tests_dir, |out| {
-            write!(out, "{:#?}\n", ast_root).unwrap();
-        });
-
-        let kir_root = kir::gen::gen(ast_root);
-        write_snapshot(name, "kir.txt", tests_dir, |out| {
-            write!(out, "{:#?}\n", kir_root).unwrap();
-        });
-    }
+    fn snapshot_test(name: &str, tests_dir: &Path) {}
 
     #[test]
     fn snapshot_tests() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
+        let mut ids = IdProvider::new();
+        let mut sources = SourceComponent::default();
 
-        snapshot_test("assign", &tests_dir);
-        snapshot_test("command", &tests_dir);
-        snapshot_test("exit_42", &tests_dir);
+        let test_names = vec!["assign", "command", "exit_42"];
+
+        for name in test_names {
+            let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
+
+            let (workspace, source) =
+                Workspace::new_with_file(source_path.clone(), &mut sources, &mut ids);
+            let mut source_codes = SourceCodeComponent::default();
+
+            syntax::source_loader::load_sources(
+                &sources.get(&workspace).unwrap_or(&vec![]),
+                &mut source_codes,
+            );
+
+            let source_code = source_codes
+                .get(&source)
+                .map(|s| s.as_str())
+                .unwrap_or("")
+                .to_string();
+
+            let tokens =
+                syntax::tokenize::tokenize(source.source_id, source_path, Rc::new(source_code));
+            let ast_root = ast::parse::parse(tokens);
+
+            write_snapshot(name, "ast.txt", &tests_dir, |out| {
+                write!(out, "{:#?}\n", ast_root).unwrap();
+            });
+
+            let kir_root = kir::gen::gen(ast_root);
+            write_snapshot(name, "kir.txt", &tests_dir, |out| {
+                write!(out, "{:#?}\n", kir_root).unwrap();
+            });
+        }
     }
 
     #[test]

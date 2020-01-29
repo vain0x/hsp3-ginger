@@ -4,6 +4,7 @@ pub(crate) mod position;
 pub(crate) mod pun;
 pub(crate) mod range;
 pub(crate) mod source;
+pub(crate) mod source_loader;
 pub(crate) mod text_cursor;
 pub(crate) mod token;
 pub(crate) mod tokenize;
