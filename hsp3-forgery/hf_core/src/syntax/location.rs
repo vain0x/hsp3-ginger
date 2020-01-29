@@ -11,6 +11,10 @@ pub(crate) struct SourceLocation {
 }
 
 impl SourceLocation {
+    pub(crate) fn start(&self) -> Position {
+        self.range.start
+    }
+
     pub(crate) fn unite(self, other: &SourceLocation) -> SourceLocation {
         SourceLocation {
             range: self.range.unite(other.range),

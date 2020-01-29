@@ -70,4 +70,47 @@ mod tests {
             crate::analysis::completion::get_completion_list(source_id, position, &mut project);
         assert_eq!(completion_items.len(), 1);
     }
+
+    #[test]
+    fn signature_help_tests() {
+        let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let tests_dir = root_dir.join("../tests");
+        let name = "command";
+
+        let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
+
+        use crate::analysis::completion::*;
+        let id_provider = IdProvider::new();
+        let mut project = Project::new();
+
+        load_source(source_path.clone(), &id_provider, &mut project.sources).unwrap();
+        let source_id = project.sources.path_to_id(source_path.as_ref()).unwrap();
+
+        // first
+        let position = syntax::Position {
+            line: 0,
+            character: 7,
+        };
+        let signature_help_opt =
+            crate::analysis::completion::signature_help(source_id, position, &mut project);
+        assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(0));
+
+        // second
+        let position = syntax::Position {
+            line: 0,
+            character: 13,
+        };
+        let signature_help_opt =
+            crate::analysis::completion::signature_help(source_id, position, &mut project);
+        assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(1));
+
+        // 範囲外
+        let position = syntax::Position {
+            line: 0,
+            character: 1,
+        };
+        let signature_help_opt =
+            crate::analysis::completion::signature_help(source_id, position, &mut project);
+        assert!(signature_help_opt.is_none());
+    }
 }

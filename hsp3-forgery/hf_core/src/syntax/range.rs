@@ -8,6 +8,10 @@ pub(crate) struct Range {
 }
 
 impl Range {
+    pub(crate) fn contains_loosely(self, position: Position) -> bool {
+        self.start <= position && position <= self.end
+    }
+
     pub(crate) fn unite(self, other: Range) -> Range {
         Range {
             start: self.start.min(other.start),
