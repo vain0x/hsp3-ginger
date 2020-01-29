@@ -16,17 +16,17 @@ pub(crate) enum KNode {
 
 #[derive(Clone, Debug)]
 pub(crate) struct KFn {
-    pub name: String,
-    pub body: KNode,
+    pub(crate) name: String,
+    pub(crate) body: KNode,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct KModule {
-    pub name: String,
-    pub fns: Vec<KFn>,
+    pub(crate) name: String,
+    pub(crate) fns: Vec<KFn>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct KRoot {
-    pub modules: Vec<KModule>,
+    pub(crate) modules: Vec<KModule>,
 }

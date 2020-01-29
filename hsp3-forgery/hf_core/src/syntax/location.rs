@@ -5,9 +5,9 @@ use std::rc::Rc;
 
 #[derive(Clone)]
 pub(crate) struct SourceLocation {
-    pub source_id: usize,
-    pub source_path: Rc<PathBuf>,
-    pub range: Range,
+    pub(crate) source_id: usize,
+    pub(crate) source_path: Rc<PathBuf>,
+    pub(crate) range: Range,
 }
 
 impl SourceLocation {

@@ -3,7 +3,7 @@ use crate::syntax::*;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AIntExpr {
-    pub token: TokenData,
+    pub(crate) token: TokenData,
 }
 
 #[derive(Clone, Debug)]

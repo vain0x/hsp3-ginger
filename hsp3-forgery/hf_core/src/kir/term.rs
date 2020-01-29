@@ -4,7 +4,7 @@ use std::fmt;
 
 #[derive(Clone)]
 pub(crate) struct KInt {
-    pub token: TokenData,
+    pub(crate) token: TokenData,
 }
 
 impl fmt::Debug for KInt {
@@ -15,7 +15,7 @@ impl fmt::Debug for KInt {
 
 #[derive(Clone)]
 pub(crate) struct KName {
-    pub token: TokenData,
+    pub(crate) token: TokenData,
 }
 
 impl fmt::Debug for KName {

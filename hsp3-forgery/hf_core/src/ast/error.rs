@@ -3,8 +3,8 @@ use crate::syntax::*;
 
 #[derive(Clone, Debug)]
 pub(crate) struct SyntaxError {
-    pub msg: String,
-    pub location: SourceLocation,
+    pub(crate) msg: String,
+    pub(crate) location: SourceLocation,
 }
 
 impl SyntaxError {

@@ -9,18 +9,18 @@ pub(crate) enum AStmtNode {
 
 #[derive(Clone, Debug)]
 pub(crate) struct AFnNode {
-    pub deffunc_stmt: ADeffuncStmt,
+    pub(crate) deffunc_stmt: ADeffuncStmt,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct AModuleNode {
-    pub module_stmt: AModuleStmt,
-    pub global_stmt_opt: Option<AGlobalStmt>,
+    pub(crate) module_stmt: AModuleStmt,
+    pub(crate) global_stmt_opt: Option<AGlobalStmt>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct ARootNode {
-    pub errors: Vec<SyntaxError>,
+    pub(crate) errors: Vec<SyntaxError>,
 }
 
 #[derive(Clone, Debug)]
@@ -42,8 +42,8 @@ impl ANode {
 
 #[derive(Clone, Debug)]
 pub(crate) struct ANodeData {
-    pub node: ANode,
-    pub children: Vec<ANodeData>,
+    pub(crate) node: ANode,
+    pub(crate) children: Vec<ANodeData>,
 }
 
 impl From<AAssignStmt> for ANodeData {

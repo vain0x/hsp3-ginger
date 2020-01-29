@@ -3,9 +3,9 @@ use crate::syntax::*;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AAssignStmt {
-    pub left: TokenData,
-    pub equal: TokenData,
-    pub right_opt: Option<AExpr>,
+    pub(crate) left: TokenData,
+    pub(crate) equal: TokenData,
+    pub(crate) right_opt: Option<AExpr>,
 }
 
 impl AAssignStmt {
@@ -16,8 +16,8 @@ impl AAssignStmt {
 
 #[derive(Clone, Debug)]
 pub(crate) struct ACommandStmt {
-    pub command: TokenData,
-    pub args: Vec<AArg>,
+    pub(crate) command: TokenData,
+    pub(crate) args: Vec<AArg>,
 }
 
 impl ACommandStmt {
@@ -28,8 +28,8 @@ impl ACommandStmt {
 
 #[derive(Clone, Debug)]
 pub(crate) struct AReturnStmt {
-    pub keyword: TokenData,
-    pub result_opt: Option<AExpr>,
+    pub(crate) keyword: TokenData,
+    pub(crate) result_opt: Option<AExpr>,
 }
 
 impl AReturnStmt {
@@ -40,9 +40,9 @@ impl AReturnStmt {
 
 #[derive(Clone, Debug)]
 pub(crate) struct ADeffuncStmt {
-    pub hash: TokenData,
-    pub keyword: TokenData,
-    pub name_opt: Option<TokenData>,
+    pub(crate) hash: TokenData,
+    pub(crate) keyword: TokenData,
+    pub(crate) name_opt: Option<TokenData>,
 }
 
 impl ADeffuncStmt {
@@ -60,9 +60,9 @@ impl ADeffuncStmt {
 
 #[derive(Clone, Debug)]
 pub(crate) struct AModuleStmt {
-    pub hash: TokenData,
-    pub keyword: TokenData,
-    pub name_opt: Option<TokenData>,
+    pub(crate) hash: TokenData,
+    pub(crate) keyword: TokenData,
+    pub(crate) name_opt: Option<TokenData>,
 }
 
 impl AModuleStmt {

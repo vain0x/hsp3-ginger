@@ -3,8 +3,8 @@ use std::fmt;
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct Range {
-    pub start: Position,
-    pub end: Position,
+    pub(crate) start: Position,
+    pub(crate) end: Position,
 }
 
 impl Range {

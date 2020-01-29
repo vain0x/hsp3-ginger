@@ -2,8 +2,8 @@ use std::fmt;
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Position {
-    pub line: usize,
-    pub character: usize,
+    pub(crate) line: usize,
+    pub(crate) character: usize,
 }
 
 impl fmt::Debug for Position {
