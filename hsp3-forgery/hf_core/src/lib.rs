@@ -61,7 +61,7 @@ mod tests {
         let mut ids = IdProvider::new();
         let mut sources = SourceComponent::default();
 
-        let test_names = vec!["assign", "command", "exit_42"];
+        let test_names = vec!["assign", "command", "exit_42", "syntax_error"];
 
         for name in test_names {
             let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));

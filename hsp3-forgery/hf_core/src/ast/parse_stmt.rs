@@ -129,7 +129,9 @@ fn parse_call_expr(p: &mut Px) -> AExpr {
     };
 
     let mut args = vec![];
-    parse_args(&mut args, p);
+    if p.next().is_arg_first() {
+        parse_args(&mut args, p);
+    }
 
     let right_paren_opt = p.eat(Token::RightParen);
     if right_paren_opt.is_none() {

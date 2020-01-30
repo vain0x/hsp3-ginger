@@ -1,0 +1,109 @@
+ANodeData {
+    node: Root(
+        ARootNode {
+            errors: [
+                SyntaxError {
+                    msg: "カッコの中は空にできません",
+                    location: "syntax_error.hsp":1.9-1.10,
+                },
+                SyntaxError {
+                    msg: "カッコの中は空にできません",
+                    location: "syntax_error.hsp":2.9-2.10,
+                },
+            ],
+        },
+    ),
+    children: [
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Call(
+                                        ACallExpr {
+                                            cal: ANameExpr {
+                                                token: "a",
+                                            },
+                                            left_paren_opt: Some(
+                                                "(",
+                                            ),
+                                            args: [],
+                                            right_paren_opt: Some(
+                                                ")",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                            AArg {
+                                expr_opt: Some(
+                                    Group(
+                                        AGroupExpr {
+                                            left_paren: "(",
+                                            body_opt: None,
+                                            right_paren_opt: Some(
+                                                ")",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Group(
+                                        AGroupExpr {
+                                            left_paren: "(",
+                                            body_opt: Some(
+                                                Name(
+                                                    ANameExpr {
+                                                        token: "a",
+                                                    },
+                                                ),
+                                            ),
+                                            right_paren_opt: Some(
+                                                ")",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                            AArg {
+                                expr_opt: Some(
+                                    Group(
+                                        AGroupExpr {
+                                            left_paren: "(",
+                                            body_opt: None,
+                                            right_paren_opt: Some(
+                                                ")",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+    ],
+}
