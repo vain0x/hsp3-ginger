@@ -116,12 +116,12 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
 fn parse_stmt(p: &mut Px) -> AStmt {
     match p.next() {
         Token::Ident => parse_assign_or_command_stmt(p),
-        Token::Return => parse_command_stmt(p),
         Token::Hash => {
             let hash = p.bump();
             parse_pp_stmt(hash, p)
         }
         Token::Star => AStmt::Label(parse_label_stmt(p)),
+        _ if p.next().is_command_first() => parse_command_stmt(p),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

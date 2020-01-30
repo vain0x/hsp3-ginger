@@ -14,6 +14,7 @@
 	second
 	"}, 3
 
+	goto *l_dest
 	onexit *l_dest
 	l = *@f
 

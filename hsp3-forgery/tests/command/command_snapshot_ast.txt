@@ -377,6 +377,32 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
+                        command: "goto",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Label(
+                                        Name {
+                                            star: "*",
+                                            ident: "l_dest",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
                         command: "onexit",
                         args: [
                             AArg {
