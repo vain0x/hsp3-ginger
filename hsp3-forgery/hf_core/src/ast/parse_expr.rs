@@ -14,18 +14,24 @@ impl Token {
     }
 
     pub(crate) fn at_end_of_multiline_str(self) -> bool {
-        self == Token::Eof || self == Token::RightQuote
+        match self {
+            Token::Eof | Token::RightQuote => true,
+            _ => false,
+        }
     }
 
     pub(crate) fn is_expr_first(self) -> bool {
-        self == Token::Digit
-            || self == Token::SingleQuote
-            || self == Token::DoubleQuote
-            || self == Token::LeftQuote
-            || self == Token::Ident
-            || self == Token::LeftParen
-            || self == Token::Minus
-            || self == Token::Star
+        match self {
+            Token::Digit
+            | Token::SingleQuote
+            | Token::DoubleQuote
+            | Token::LeftQuote
+            | Token::Ident
+            | Token::LeftParen
+            | Token::Minus
+            | Token::Star => true,
+            _ => false,
+        }
     }
 
     pub(crate) fn at_end_of_expr(self) -> bool {

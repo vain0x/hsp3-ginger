@@ -8,10 +8,11 @@ type Px = ParseContext;
 
 impl Token {
     pub(crate) fn is_stmt_first(self, line_head: bool) -> bool {
-        (line_head && self == Token::Hash)
-            || self == Token::Ident
-            || self == Token::Star
-            || self.is_control_keyword()
+        match self {
+            Token::Hash if line_head => true,
+            Token::Ident | Token::Star => true,
+            _ => self.is_control_keyword(),
+        }
     }
 
     pub(crate) fn is_stmt_follow(self) -> bool {
