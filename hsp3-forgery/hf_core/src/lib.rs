@@ -1,7 +1,6 @@
 pub(crate) mod analysis;
 pub(crate) mod ast;
 pub(crate) mod id_provider;
-pub(crate) mod kir;
 pub(crate) mod syntax;
 pub(crate) mod workspace;
 
@@ -79,11 +78,6 @@ mod tests {
 
             write_snapshot(name, "ast.txt", &tests_dir, |out| {
                 write!(out, "{:#?}\n", ast_root).unwrap();
-            });
-
-            let kir_root = kir::gen::gen(ast_root);
-            write_snapshot(name, "kir.txt", &tests_dir, |out| {
-                write!(out, "{:#?}\n", kir_root).unwrap();
             });
         }
     }
