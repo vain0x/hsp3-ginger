@@ -1,7 +1,16 @@
 ANodeData {
     node: Root(
         ARootNode {
-            errors: [],
+            errors: [
+                SyntaxError {
+                    msg: "文が必要です",
+                    location: command.hsp:23.6-23.7,
+                },
+                SyntaxError {
+                    msg: "文が必要です",
+                    location: command.hsp:23.11-24.1,
+                },
+            ],
         },
     ),
     children: [
@@ -406,6 +415,28 @@ ANodeData {
                         star: "*",
                         at_sign: "@",
                         ident_opt: None,
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [],
                     },
                 ),
             ),

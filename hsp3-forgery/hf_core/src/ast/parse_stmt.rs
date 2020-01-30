@@ -3,6 +3,7 @@ use super::parse_pp::*;
 use super::*;
 use crate::syntax::*;
 use parse_context::ParseContext;
+
 type Px = ParseContext;
 
 impl Token {
@@ -101,6 +102,10 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
                 args,
             })
         }
+        _ if p.next().at_end_of_stmt() => AStmt::Command(ACommandStmt {
+            command: head,
+            args: vec![],
+        }),
         _ => {
             unimplemented!("{:?}", p.next_data());
         }
