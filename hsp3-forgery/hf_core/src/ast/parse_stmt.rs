@@ -5,14 +5,23 @@ use parse_context::ParseContext;
 type Px = ParseContext;
 
 impl Token {
+    fn is_str_content(self) -> bool {
+        self == Token::StrVerbatim
+    }
+
     fn at_end_of_str(self) -> bool {
         self.at_end_of_stmt() || self == Token::DoubleQuote
+    }
+
+    fn at_end_of_multiline_str(self) -> bool {
+        self == Token::Eof || self == Token::RightQuote
     }
 
     fn is_expr_first(self) -> bool {
         self == Token::Digit
             || self == Token::SingleQuote
             || self == Token::DoubleQuote
+            || self == Token::LeftQuote
             || self == Token::Ident
             || self == Token::LeftParen
             || self == Token::Minus
@@ -95,10 +104,31 @@ fn parse_str_expr(p: &mut Px) -> AStrExpr {
 
     let mut segments = vec![];
     while !p.at_eof() && !p.next().at_end_of_str() {
+        assert!(p.next().is_str_content());
         segments.push(p.bump());
     }
 
     let end_quote_opt = p.eat(Token::DoubleQuote);
+
+    AStrExpr {
+        start_quote,
+        segments,
+        end_quote_opt,
+    }
+}
+
+fn parse_multiline_str_expr(p: &mut Px) -> AStrExpr {
+    assert_eq!(p.next(), Token::LeftQuote);
+
+    let start_quote = p.bump();
+
+    let mut segments = vec![];
+    while !p.at_eof() && !p.next().at_end_of_multiline_str() {
+        assert!(p.next().is_str_content());
+        segments.push(p.bump());
+    }
+
+    let end_quote_opt = p.eat(Token::RightQuote);
 
     AStrExpr {
         start_quote,
@@ -177,6 +207,7 @@ fn parse_expr(p: &mut Px) -> AExpr {
         Token::Ident => parse_call_expr(p),
         Token::LeftParen => AExpr::Group(parse_group_expr(p)),
         Token::DoubleQuote => AExpr::Str(parse_str_expr(p)),
+        Token::LeftQuote => AExpr::Str(parse_multiline_str_expr(p)),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

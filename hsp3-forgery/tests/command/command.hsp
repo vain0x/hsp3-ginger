@@ -9,3 +9,7 @@
 	mes b((0))
 	mes "hello"
 	mes "world
+
+	mes {"first
+	second
+	"}, 3

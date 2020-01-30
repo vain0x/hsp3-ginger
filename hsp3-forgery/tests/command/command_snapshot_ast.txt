@@ -303,5 +303,45 @@ ANodeData {
             ),
             children: [],
         },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Str(
+                                        AStrExpr {
+                                            start_quote: "{\"",
+                                            segments: [
+                                                "first\n\tsecond\n\t",
+                                            ],
+                                            end_quote_opt: Some(
+                                                "\"}",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: Some(
+                                    ",",
+                                ),
+                            },
+                            AArg {
+                                expr_opt: Some(
+                                    Int(
+                                        AIntExpr {
+                                            token: "3",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
     ],
 }
