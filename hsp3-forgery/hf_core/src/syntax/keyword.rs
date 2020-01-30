@@ -20,26 +20,33 @@ pub(crate) static KEYWORD_TABLE: &[(Token, &str)] = &[
 ];
 
 impl Token {
+    pub(crate) fn is_jump_keyword(self) -> bool {
+        match self {
+            Token::Break
+            | Token::Continue
+            | Token::End
+            | Token::Gosub
+            | Token::Goto
+            | Token::Loop
+            | Token::Repeat
+            | Token::Return
+            | Token::Stop => true,
+            _ => false,
+        }
+    }
+
     pub(crate) fn is_control_keyword(self) -> bool {
-        self == Token::Break
-            || self == Token::Continue
-            || self == Token::Else
-            || self == Token::End
-            || self == Token::Gosub
-            || self == Token::Goto
-            || self == Token::If
-            || self == Token::Loop
-            || self == Token::Repeat
-            || self == Token::Return
-            || self == Token::Stop
+        match self {
+            Token::Else | Token::If => true,
+            _ => self.is_jump_keyword(),
+        }
     }
 
     pub(crate) fn is_system_var_keyword(self) -> bool {
-        self == Token::Cnt
-            || self == Token::Refdval
-            || self == Token::Refstr
-            || self == Token::Stat
-            || self == Token::Strsize
+        match self {
+            Token::Cnt | Token::Refdval | Token::Refstr | Token::Stat | Token::Strsize => true,
+            _ => false,
+        }
     }
 
     pub(crate) fn is_keyword(self) -> bool {
