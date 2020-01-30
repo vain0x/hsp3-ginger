@@ -11,8 +11,12 @@ ANodeData {
                     location: syntax_error.hsp:2.9-2.10,
                 },
                 SyntaxError {
-                    msg: "ラベルが期待されました",
-                    location: syntax_error.hsp:4.14-5.1,
+                    msg: "ラベルの名前がありません",
+                    location: syntax_error.hsp:4.13-4.14,
+                },
+                SyntaxError {
+                    msg: "ラベルの名前がありません",
+                    location: syntax_error.hsp:5.1-5.2,
                 },
             ],
         },
@@ -142,6 +146,16 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Label(
+                    StarOnly {
+                        star: "*",
                     },
                 ),
             ),

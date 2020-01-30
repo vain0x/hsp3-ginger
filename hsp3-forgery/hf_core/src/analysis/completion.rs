@@ -4,6 +4,9 @@ use crate::syntax::*;
 pub(crate) fn get_completion_list(ast_root: &ANodeData, position: Position) -> Vec<String> {
     fn on_stmt(a: &AStmtNode, idents: &mut Vec<String>) {
         match a {
+            AStmtNode::Label(..) => {
+                // FIXME: 実装
+            }
             AStmtNode::Assign(stmt) => {
                 idents.push(stmt.left.text().to_string());
             }
@@ -117,7 +120,14 @@ pub(crate) fn signature_help(ast_root: &ANodeData, position: Position) -> Option
     fn on_stmt(a: &AStmtNode, p: Position, out: &mut Option<SignatureHelp>) -> bool {
         // FIXME: assign/return も関数の引数のシグネチャヘルプを表示できる可能性があるので内部に入るべき
         match a {
-            AStmtNode::Assign(stmt) => false,
+            AStmtNode::Label(..) => {
+                // FIXME: 実装
+                false
+            }
+            AStmtNode::Assign(stmt) => {
+                // FIXME: 実装
+                false
+            }
             AStmtNode::Command(stmt) => {
                 for (i, arg) in stmt.args.iter().enumerate() {
                     if on_arg(arg, p, out, &|out| {

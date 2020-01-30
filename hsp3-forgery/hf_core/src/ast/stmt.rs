@@ -85,6 +85,7 @@ impl AGlobalStmt {
 
 #[derive(Clone, Debug)]
 pub(crate) enum AStmt {
+    Label(ALabel),
     Assign(AAssignStmt),
     Command(ACommandStmt),
     Return(AReturnStmt),
@@ -97,6 +98,7 @@ pub(crate) enum AStmt {
 impl AStmt {
     pub(crate) fn main_location(&self) -> Location {
         match self {
+            AStmt::Label(label) => label.location(),
             AStmt::Assign(stmt) => stmt.main_location(),
             AStmt::Command(stmt) => stmt.main_location(),
             AStmt::Return(stmt) => stmt.main_location(),

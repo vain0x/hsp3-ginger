@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Clone, Debug)]
 pub(crate) enum AStmtNode {
+    Label(ALabel),
     Assign(AAssignStmt),
     Command(ACommandStmt),
     Return(AReturnStmt),
@@ -44,6 +45,15 @@ impl ANode {
 pub(crate) struct ANodeData {
     pub(crate) node: ANode,
     pub(crate) children: Vec<ANodeData>,
+}
+
+impl From<ALabel> for ANodeData {
+    fn from(label: ALabel) -> ANodeData {
+        ANodeData {
+            node: ANode::Stmt(AStmtNode::Label(label)),
+            children: vec![],
+        }
+    }
 }
 
 impl From<AAssignStmt> for ANodeData {

@@ -388,5 +388,28 @@ ANodeData {
             ),
             children: [],
         },
+        ANodeData {
+            node: Stmt(
+                Label(
+                    Name {
+                        star: "*",
+                        ident: "l_dest",
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Label(
+                    Anonymous {
+                        star: "*",
+                        at_sign: "@",
+                        ident_opt: None,
+                    },
+                ),
+            ),
+            children: [],
+        },
     ],
 }

@@ -17,6 +17,21 @@ pub(crate) enum ALabel {
 }
 
 impl ALabel {
+    pub(crate) fn location(&self) -> Location {
+        match self {
+            ALabel::Name { star, ident } => star.location.clone().unite(&ident.location),
+            ALabel::Anonymous {
+                star,
+                ident_opt: Some(ident),
+                ..
+            } => star.location.clone().unite(&ident.location),
+            ALabel::Anonymous { star, at_sign, .. } => {
+                star.location.clone().unite(&at_sign.location)
+            }
+            ALabel::StarOnly { star } => star.location.clone(),
+        }
+    }
+
     pub(crate) fn star(&self) -> &TokenData {
         match self {
             ALabel::Name { star, .. }

@@ -16,3 +16,6 @@
 
 	onexit *l_dest
 	l = *@f
+
+*l_dest
+*@

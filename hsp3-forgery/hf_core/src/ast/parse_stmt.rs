@@ -39,6 +39,15 @@ fn parse_end_of_stmt(p: &mut Px) {
     }
 }
 
+fn parse_label_stmt(p: &mut Px) -> ALabel {
+    assert_eq!(p.next(), Token::Star);
+
+    let label = parse_label(p);
+    parse_end_of_stmt(p);
+
+    label
+}
+
 fn parse_return_stmt(p: &mut Px) -> AReturnStmt {
     assert_eq!(p.next(), Token::Return);
 
@@ -100,12 +109,13 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
 
 fn parse_stmt(p: &mut Px) -> AStmt {
     match p.next() {
+        Token::Ident => parse_assign_or_command_stmt(p),
+        Token::Return => AStmt::Return(parse_return_stmt(p)),
         Token::Hash => {
             let hash = p.bump();
             parse_pp_stmt(hash, p)
         }
-        Token::Ident => parse_assign_or_command_stmt(p),
-        Token::Return => AStmt::Return(parse_return_stmt(p)),
+        Token::Star => AStmt::Label(parse_label_stmt(p)),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

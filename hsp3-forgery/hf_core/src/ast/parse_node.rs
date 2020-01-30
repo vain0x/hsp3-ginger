@@ -90,6 +90,7 @@ fn gen_fn(deffunc_stmt: ADeffuncStmt, context: &mut Context) -> ANodeData {
 
     while let Some(stmt) = context.pop_stmt() {
         match stmt {
+            AStmt::Label(stmt) => children.push(stmt.into()),
             AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Command(command_stmt) => children.push(command_stmt.into()),
             AStmt::Return(return_stmt) => children.push(return_stmt.into()),
@@ -127,6 +128,7 @@ fn gen_module(module_stmt: AModuleStmt, context: &mut Context) -> ANodeData {
 
     while let Some(stmt) = context.pop_stmt() {
         match stmt {
+            AStmt::Label(stmt) => children.push(stmt.into()),
             AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Command(command_stmt) => children.push(command_stmt.into()),
             AStmt::Return(return_stmt) => children.push(return_stmt.into()),
@@ -156,6 +158,7 @@ fn gen_module(module_stmt: AModuleStmt, context: &mut Context) -> ANodeData {
 fn gen_root(children: &mut Vec<ANodeData>, context: &mut Context) {
     while let Some(stmt) = context.pop_stmt() {
         match stmt {
+            AStmt::Label(stmt) => children.push(stmt.into()),
             AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Command(command_stmt) => children.push(command_stmt.into()),
             AStmt::Return(return_stmt) => children.push(return_stmt.into()),
