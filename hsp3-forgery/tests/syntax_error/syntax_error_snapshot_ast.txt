@@ -4,11 +4,11 @@ ANodeData {
             errors: [
                 SyntaxError {
                     msg: "カッコの中は空にできません",
-                    location: "syntax_error.hsp":1.9-1.10,
+                    location: syntax_error.hsp:1.9-1.10,
                 },
                 SyntaxError {
                     msg: "カッコの中は空にできません",
-                    location: "syntax_error.hsp":2.9-2.10,
+                    location: syntax_error.hsp:2.9-2.10,
                 },
             ],
         },
