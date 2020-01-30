@@ -51,6 +51,9 @@ fn gen_expr(expr: AExpr, codes: &mut Vec<KCode>) {
         AExpr::Int(int_expr) => codes.push(KCode::Term(KTerm::Int(KInt {
             token: int_expr.token,
         }))),
+        AExpr::Name(name_expr) => codes.push(KCode::Term(KTerm::Name(KName {
+            token: name_expr.token,
+        }))),
     }
 }
 

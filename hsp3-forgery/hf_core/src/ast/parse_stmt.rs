@@ -84,11 +84,20 @@ fn parse_int_expr(p: &mut Px) -> AIntExpr {
     AIntExpr { token }
 }
 
+fn parse_name_expr(p: &mut Px) -> ANameExpr {
+    assert_eq!(p.next(), Token::Ident);
+
+    let token = p.bump();
+
+    ANameExpr { token }
+}
+
 fn parse_expr(p: &mut Px) -> AExpr {
     assert!(p.next().is_expr_first());
 
     match p.next() {
         Token::Digit => AExpr::Int(parse_int_expr(p)),
+        Token::Ident => AExpr::Name(parse_name_expr(p)),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

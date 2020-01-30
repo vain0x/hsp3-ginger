@@ -59,6 +59,15 @@ pub(crate) fn signature_help(ast_root: &ANodeData, position: Position) -> Option
 
                 false
             }
+            AExpr::Name(expr) => {
+                // FIXME: トークンに接触していなくても引数領域の範囲内ならシグネチャヘルプは反応するべき
+                if expr.token.location.range.contains_loosely(p) {
+                    accept(out);
+                    return true;
+                }
+
+                false
+            }
         }
     }
 

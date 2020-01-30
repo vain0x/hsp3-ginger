@@ -57,5 +57,27 @@ ANodeData {
             ),
             children: [],
         },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "dim",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Name(
+                                        ANameExpr {
+                                            token: "a",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
     ],
 }

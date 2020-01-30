@@ -1,2 +1,4 @@
 	width 800, 512
 	width = 1
+
+	dim a

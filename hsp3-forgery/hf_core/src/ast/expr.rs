@@ -7,8 +7,14 @@ pub(crate) struct AIntExpr {
 }
 
 #[derive(Clone, Debug)]
+pub(crate) struct ANameExpr {
+    pub(crate) token: TokenData,
+}
+
+#[derive(Clone, Debug)]
 pub(crate) enum AExpr {
     Int(AIntExpr),
+    Name(ANameExpr),
 }
 
 #[derive(Clone, Debug)]

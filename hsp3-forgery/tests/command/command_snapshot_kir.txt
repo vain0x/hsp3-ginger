@@ -32,7 +32,21 @@ KRoot {
                                 ],
                                 results: [],
                                 nexts: [
-                                    Abort,
+                                    Prim {
+                                        prim: Command,
+                                        args: [
+                                            Name(
+                                                dim,
+                                            ),
+                                            Name(
+                                                a,
+                                            ),
+                                        ],
+                                        results: [],
+                                        nexts: [
+                                            Abort,
+                                        ],
+                                    },
                                 ],
                             },
                         ],
