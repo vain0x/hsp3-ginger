@@ -79,5 +79,123 @@ ANodeData {
             ),
             children: [],
         },
+        ANodeData {
+            node: Stmt(
+                Assign(
+                    AAssignStmt {
+                        left: "n",
+                        equal: "=",
+                        right_opt: Some(
+                            Int(
+                                AIntExpr {
+                                    token: "4",
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "dim",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Name(
+                                        ANameExpr {
+                                            token: "b",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: Some(
+                                    ",",
+                                ),
+                            },
+                            AArg {
+                                expr_opt: Some(
+                                    Name(
+                                        ANameExpr {
+                                            token: "n",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: Some(
+                                    ",",
+                                ),
+                            },
+                            AArg {
+                                expr_opt: Some(
+                                    Name(
+                                        ANameExpr {
+                                            token: "n",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Call(
+                                        ACallExpr {
+                                            cal: ANameExpr {
+                                                token: "b",
+                                            },
+                                            left_paren_opt: Some(
+                                                "(",
+                                            ),
+                                            args: [
+                                                AArg {
+                                                    expr_opt: Some(
+                                                        Int(
+                                                            AIntExpr {
+                                                                token: "1",
+                                                            },
+                                                        ),
+                                                    ),
+                                                    comma_opt: Some(
+                                                        ",",
+                                                    ),
+                                                },
+                                                AArg {
+                                                    expr_opt: Some(
+                                                        Int(
+                                                            AIntExpr {
+                                                                token: "1",
+                                                            },
+                                                        ),
+                                                    ),
+                                                    comma_opt: None,
+                                                },
+                                            ],
+                                            right_paren_opt: Some(
+                                                ")",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
     ],
 }

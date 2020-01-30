@@ -92,12 +92,40 @@ fn parse_name_expr(p: &mut Px) -> ANameExpr {
     ANameExpr { token }
 }
 
+fn parse_call_expr(p: &mut Px) -> AExpr {
+    assert_eq!(p.next(), Token::Ident);
+
+    let name_expr = parse_name_expr(p);
+
+    // FIXME: . 記法
+
+    let left_paren = match p.eat(Token::LeftParen) {
+        None => return AExpr::Name(name_expr),
+        Some(left_paren) => left_paren,
+    };
+
+    let mut args = vec![];
+    parse_args(&mut args, p);
+
+    let right_paren_opt = p.eat(Token::RightParen);
+    if right_paren_opt.is_none() {
+        p.error("対応する右カッコがありません", &left_paren);
+    }
+
+    AExpr::Call(ACallExpr {
+        cal: name_expr,
+        left_paren_opt: Some(left_paren),
+        args,
+        right_paren_opt,
+    })
+}
+
 fn parse_expr(p: &mut Px) -> AExpr {
     assert!(p.next().is_expr_first());
 
     match p.next() {
         Token::Digit => AExpr::Int(parse_int_expr(p)),
-        Token::Ident => AExpr::Name(parse_name_expr(p)),
+        Token::Ident => parse_call_expr(p),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

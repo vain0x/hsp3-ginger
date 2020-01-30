@@ -44,7 +44,55 @@ KRoot {
                                         ],
                                         results: [],
                                         nexts: [
-                                            Abort,
+                                            Prim {
+                                                prim: Assign,
+                                                args: [
+                                                    Name(
+                                                        n,
+                                                    ),
+                                                    Int(
+                                                        4,
+                                                    ),
+                                                ],
+                                                results: [],
+                                                nexts: [
+                                                    Prim {
+                                                        prim: Command,
+                                                        args: [
+                                                            Name(
+                                                                dim,
+                                                            ),
+                                                            Name(
+                                                                n,
+                                                            ),
+                                                            Name(
+                                                                n,
+                                                            ),
+                                                            Name(
+                                                                b,
+                                                            ),
+                                                        ],
+                                                        results: [],
+                                                        nexts: [
+                                                            Prim {
+                                                                prim: Command,
+                                                                args: [
+                                                                    Name(
+                                                                        mes,
+                                                                    ),
+                                                                    Name(
+                                                                        b,
+                                                                    ),
+                                                                ],
+                                                                results: [],
+                                                                nexts: [
+                                                                    Abort,
+                                                                ],
+                                                            },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
                                         ],
                                     },
                                 ],

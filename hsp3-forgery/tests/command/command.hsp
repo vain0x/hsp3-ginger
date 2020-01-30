@@ -2,3 +2,7 @@
 	width = 1
 
 	dim a
+	n = 4
+
+	dim b, n, n
+	mes b(1, 1)

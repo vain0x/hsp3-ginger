@@ -68,6 +68,10 @@ pub(crate) fn signature_help(ast_root: &ANodeData, position: Position) -> Option
 
                 false
             }
+            AExpr::Call(ACallExpr { cal, .. }) => {
+                // FIXME: 引数の中を解析する
+                on_expr(&AExpr::Name(cal.clone()), p, out, accept)
+            }
         }
     }
 
