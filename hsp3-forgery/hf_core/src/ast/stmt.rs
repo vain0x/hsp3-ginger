@@ -53,23 +53,6 @@ impl ACommandStmt {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct AReturnStmt {
-    pub(crate) keyword: TokenData,
-    pub(crate) result_opt: Option<AExpr>,
-    pub(crate) sep_opt: Option<TokenData>,
-}
-
-impl AReturnStmt {
-    pub(crate) fn main_location(&self) -> Location {
-        self.keyword.location.clone()
-    }
-
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
-    }
-}
-
-#[derive(Clone, Debug)]
 pub(crate) struct ADeffuncStmt {
     pub(crate) hash: TokenData,
     pub(crate) keyword: TokenData,
@@ -150,7 +133,6 @@ pub(crate) enum AStmt {
     Label(ALabelStmt),
     Assign(AAssignStmt),
     Command(ACommandStmt),
-    Return(AReturnStmt),
     Module(AModuleStmt),
     Global(AGlobalStmt),
     Deffunc(ADeffuncStmt),
@@ -163,7 +145,6 @@ impl AStmt {
             AStmt::Label(stmt) => stmt.main_location(),
             AStmt::Assign(stmt) => stmt.main_location(),
             AStmt::Command(stmt) => stmt.main_location(),
-            AStmt::Return(stmt) => stmt.main_location(),
             AStmt::Module(stmt) => stmt.main_location(),
             AStmt::Global(stmt) => stmt.main_location(),
             AStmt::Deffunc(stmt) => stmt.main_location(),
@@ -176,7 +157,6 @@ impl AStmt {
             AStmt::Label(stmt) => stmt.sep_opt(),
             AStmt::Assign(stmt) => stmt.sep_opt(),
             AStmt::Command(stmt) => stmt.sep_opt(),
-            AStmt::Return(stmt) => stmt.sep_opt(),
             AStmt::Module(stmt) => stmt.sep_opt(),
             AStmt::Global(stmt) => stmt.sep_opt(),
             AStmt::Deffunc(stmt) => stmt.sep_opt(),

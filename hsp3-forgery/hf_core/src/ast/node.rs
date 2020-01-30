@@ -5,7 +5,6 @@ pub(crate) enum AStmtNode {
     Label(ALabelStmt),
     Assign(AAssignStmt),
     Command(ACommandStmt),
-    Return(AReturnStmt),
 }
 
 #[derive(Clone, Debug)]
@@ -69,15 +68,6 @@ impl From<ACommandStmt> for ANodeData {
     fn from(stmt: ACommandStmt) -> ANodeData {
         ANodeData {
             node: ANode::Stmt(AStmtNode::Command(stmt)),
-            children: vec![],
-        }
-    }
-}
-
-impl From<AReturnStmt> for ANodeData {
-    fn from(return_stmt: AReturnStmt) -> ANodeData {
-        ANodeData {
-            node: ANode::Stmt(AStmtNode::Return(return_stmt)),
             children: vec![],
         }
     }

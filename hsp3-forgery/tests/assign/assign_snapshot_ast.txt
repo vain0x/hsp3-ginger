@@ -67,10 +67,10 @@ ANodeData {
                         },
                         ANodeData {
                             node: Stmt(
-                                Return(
-                                    AReturnStmt {
-                                        keyword: "return",
-                                        result_opt: None,
+                                Command(
+                                    ACommandStmt {
+                                        command: "return",
+                                        args: [],
                                         sep_opt: Some(
                                             "\n\n",
                                         ),

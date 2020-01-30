@@ -19,6 +19,10 @@ impl Token {
         self.at_end_of_stmt()
     }
 
+    pub(crate) fn is_command_first(self) -> bool {
+        self.is_jump_keyword()
+    }
+
     pub(crate) fn at_end_of_stmt(self) -> bool {
         self == Token::Eof
             || self == Token::Eol
@@ -52,24 +56,28 @@ fn parse_label_stmt(p: &mut Px) -> ALabelStmt {
     ALabelStmt { label, sep_opt }
 }
 
-fn parse_return_stmt(p: &mut Px) -> AReturnStmt {
-    assert_eq!(p.next(), Token::Return);
+fn parse_command_contents(head: TokenData, p: &mut Px) -> AStmt {
+    // FIXME: goto/gosub
 
-    let keyword = p.bump();
-
-    let result_opt = if p.next().is_expr_first() {
-        Some(parse_expr(p))
-    } else {
-        None
-    };
+    let mut args = vec![];
+    if p.next().is_arg_first() {
+        parse_args(&mut args, p);
+    }
 
     let sep_opt = parse_end_of_stmt(p);
 
-    AReturnStmt {
-        keyword,
-        result_opt,
+    AStmt::Command(ACommandStmt {
+        command: head,
+        args,
         sep_opt,
-    }
+    })
+}
+
+fn parse_command_stmt(p: &mut Px) -> AStmt {
+    assert!(p.next().is_command_first());
+
+    let head = p.bump();
+    parse_command_contents(head, p)
 }
 
 fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
@@ -96,26 +104,8 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
                 sep_opt,
             })
         }
-        _ if p.next().is_expr_first() => {
-            let mut args = vec![];
-            parse_args(&mut args, p);
-
-            let sep_opt = parse_end_of_stmt(p);
-
-            AStmt::Command(ACommandStmt {
-                command: head,
-                args,
-                sep_opt,
-            })
-        }
-        _ if p.next().at_end_of_stmt() => {
-            let sep_opt = parse_end_of_stmt(p);
-
-            AStmt::Command(ACommandStmt {
-                command: head,
-                args: vec![],
-                sep_opt,
-            })
+        _ if p.next().is_arg_first() || p.next().at_end_of_stmt() => {
+            parse_command_contents(head, p)
         }
         _ => {
             unimplemented!("{:?}", p.next_data());
@@ -126,7 +116,7 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
 fn parse_stmt(p: &mut Px) -> AStmt {
     match p.next() {
         Token::Ident => parse_assign_or_command_stmt(p),
-        Token::Return => AStmt::Return(parse_return_stmt(p)),
+        Token::Return => parse_command_stmt(p),
         Token::Hash => {
             let hash = p.bump();
             parse_pp_stmt(hash, p)

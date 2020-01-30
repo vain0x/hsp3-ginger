@@ -46,16 +46,21 @@ ANodeData {
                     children: [
                         ANodeData {
                             node: Stmt(
-                                Return(
-                                    AReturnStmt {
-                                        keyword: "return",
-                                        result_opt: Some(
-                                            Int(
-                                                AIntExpr {
-                                                    token: "42",
-                                                },
-                                            ),
-                                        ),
+                                Command(
+                                    ACommandStmt {
+                                        command: "return",
+                                        args: [
+                                            AArg {
+                                                expr_opt: Some(
+                                                    Int(
+                                                        AIntExpr {
+                                                            token: "42",
+                                                        },
+                                                    ),
+                                                ),
+                                                comma_opt: None,
+                                            },
+                                        ],
                                         sep_opt: Some(
                                             "\n\n",
                                         ),

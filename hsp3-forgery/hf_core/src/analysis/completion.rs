@@ -13,7 +13,6 @@ pub(crate) fn get_completion_list(ast_root: &ANodeData, position: Position) -> V
             AStmtNode::Command(stmt) => {
                 // FIXME: 実装
             }
-            AStmtNode::Return(..) => {}
         }
     }
 
@@ -141,7 +140,6 @@ pub(crate) fn signature_help(ast_root: &ANodeData, position: Position) -> Option
                 }
                 false
             }
-            AStmtNode::Return(..) => false,
         }
     }
 

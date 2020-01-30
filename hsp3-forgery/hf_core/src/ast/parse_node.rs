@@ -93,7 +93,6 @@ fn gen_fn(deffunc_stmt: ADeffuncStmt, context: &mut Context) -> ANodeData {
             AStmt::Label(stmt) => children.push(stmt.into()),
             AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Command(command_stmt) => children.push(command_stmt.into()),
-            AStmt::Return(return_stmt) => children.push(return_stmt.into()),
             AStmt::Module(module_stmt) => {
                 if context.in_module() {
                     nested_module_error(module_stmt, context);
@@ -131,7 +130,6 @@ fn gen_module(module_stmt: AModuleStmt, context: &mut Context) -> ANodeData {
             AStmt::Label(stmt) => children.push(stmt.into()),
             AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Command(command_stmt) => children.push(command_stmt.into()),
-            AStmt::Return(return_stmt) => children.push(return_stmt.into()),
             AStmt::Module(module_stmt) => {
                 nested_module_error(module_stmt, context);
             }
@@ -161,7 +159,6 @@ fn gen_root(children: &mut Vec<ANodeData>, context: &mut Context) {
             AStmt::Label(stmt) => children.push(stmt.into()),
             AStmt::Assign(assign_stmt) => children.push(assign_stmt.into()),
             AStmt::Command(command_stmt) => children.push(command_stmt.into()),
-            AStmt::Return(return_stmt) => children.push(return_stmt.into()),
             AStmt::Module(module_stmt) => {
                 children.push(gen_module(module_stmt, context));
             }
