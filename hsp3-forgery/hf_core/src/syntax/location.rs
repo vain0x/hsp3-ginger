@@ -32,7 +32,7 @@ impl fmt::Debug for Location {
             .map(|name| name.to_string_lossy().to_string())
             .unwrap_or("???".to_string());
 
-        write!(f, "{:?}:{}", short_path, self.range)
+        write!(f, "{}:{}", short_path, self.range)
     }
 }
 
