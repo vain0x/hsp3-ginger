@@ -5,6 +5,10 @@ use parse_context::ParseContext;
 type Px = ParseContext;
 
 impl Token {
+    fn at_end_of_str(self) -> bool {
+        self.at_end_of_stmt() || self == Token::DoubleQuote
+    }
+
     fn is_expr_first(self) -> bool {
         self == Token::Digit
             || self == Token::SingleQuote
@@ -84,6 +88,25 @@ fn parse_int_expr(p: &mut Px) -> AIntExpr {
     AIntExpr { token }
 }
 
+fn parse_str_expr(p: &mut Px) -> AStrExpr {
+    assert_eq!(p.next(), Token::DoubleQuote);
+
+    let start_quote = p.bump();
+
+    let mut segments = vec![];
+    while !p.at_eof() && !p.next().at_end_of_str() {
+        segments.push(p.bump());
+    }
+
+    let end_quote_opt = p.eat(Token::DoubleQuote);
+
+    AStrExpr {
+        start_quote,
+        segments,
+        end_quote_opt,
+    }
+}
+
 fn parse_name_expr(p: &mut Px) -> ANameExpr {
     assert_eq!(p.next(), Token::Ident);
 
@@ -153,6 +176,7 @@ fn parse_expr(p: &mut Px) -> AExpr {
         Token::Digit => AExpr::Int(parse_int_expr(p)),
         Token::Ident => parse_call_expr(p),
         Token::LeftParen => AExpr::Group(parse_group_expr(p)),
+        Token::DoubleQuote => AExpr::Str(parse_str_expr(p)),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

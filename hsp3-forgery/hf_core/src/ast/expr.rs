@@ -7,6 +7,13 @@ pub(crate) struct AIntExpr {
 }
 
 #[derive(Clone, Debug)]
+pub(crate) struct AStrExpr {
+    pub(crate) start_quote: TokenData,
+    pub(crate) segments: Vec<TokenData>,
+    pub(crate) end_quote_opt: Option<TokenData>,
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct ANameExpr {
     pub(crate) token: TokenData,
 }
@@ -29,6 +36,7 @@ pub(crate) struct ACallExpr {
 #[derive(Clone, Debug)]
 pub(crate) enum AExpr {
     Int(AIntExpr),
+    Str(AStrExpr),
     Name(ANameExpr),
     Group(AGroupExpr),
     Call(ACallExpr),

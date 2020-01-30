@@ -249,5 +249,59 @@ ANodeData {
             ),
             children: [],
         },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Str(
+                                        AStrExpr {
+                                            start_quote: "\"",
+                                            segments: [
+                                                "hello",
+                                            ],
+                                            end_quote_opt: Some(
+                                                "\"",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Str(
+                                        AStrExpr {
+                                            start_quote: "\"",
+                                            segments: [
+                                                "world",
+                                            ],
+                                            end_quote_opt: None,
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
     ],
 }
