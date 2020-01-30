@@ -110,7 +110,7 @@ fn gen_fn(deffunc_stmt: ADeffuncStmt, context: &mut Context) -> ANodeData {
                 context.set_deffunc_stmt(deffunc_stmt);
                 break;
             }
-            AStmt::UnknownPreprocessor { .. } => {}
+            AStmt::UnknownPp(..) => {}
         }
     }
 
@@ -140,7 +140,7 @@ fn gen_module(module_stmt: AModuleStmt, context: &mut Context) -> ANodeData {
                 break;
             }
             AStmt::Deffunc(deffunc_stmt) => children.push(gen_fn(deffunc_stmt, context)),
-            AStmt::UnknownPreprocessor { .. } => {}
+            AStmt::UnknownPp(..) => {}
         }
     }
 
@@ -171,7 +171,7 @@ fn gen_root(children: &mut Vec<ANodeData>, context: &mut Context) {
             AStmt::Deffunc(deffunc_stmt) => {
                 children.push(gen_fn(deffunc_stmt, context));
             }
-            AStmt::UnknownPreprocessor { .. } => {}
+            AStmt::UnknownPp(..) => {}
         }
     }
 }

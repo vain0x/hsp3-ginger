@@ -12,11 +12,17 @@ ANodeData {
                         hash: "#",
                         keyword: "module",
                         name_opt: None,
+                        sep_opt: Some(
+                            "\n\n",
+                        ),
                     },
                     global_stmt_opt: Some(
                         AGlobalStmt {
                             hash: "#",
                             keyword: "global",
+                            sep_opt: Some(
+                                "\n",
+                            ),
                         },
                     ),
                 },
@@ -30,6 +36,9 @@ ANodeData {
                                 keyword: "deffunc",
                                 name_opt: Some(
                                     "main",
+                                ),
+                                sep_opt: Some(
+                                    "\n\n\t",
                                 ),
                             },
                         },
@@ -48,6 +57,9 @@ ANodeData {
                                                 },
                                             ),
                                         ),
+                                        sep_opt: Some(
+                                            "\n\t",
+                                        ),
                                     },
                                 ),
                             ),
@@ -59,6 +71,9 @@ ANodeData {
                                     AReturnStmt {
                                         keyword: "return",
                                         result_opt: None,
+                                        sep_opt: Some(
+                                            "\n\n",
+                                        ),
                                     },
                                 ),
                             ),

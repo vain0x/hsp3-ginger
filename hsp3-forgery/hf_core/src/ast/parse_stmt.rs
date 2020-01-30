@@ -26,7 +26,7 @@ impl Token {
     }
 }
 
-fn parse_end_of_stmt(p: &mut Px) {
+fn parse_end_of_stmt(p: &mut Px) -> Option<TokenData> {
     if !p.next().at_end_of_stmt() {
         p.error_next("解釈できない字句です");
 
@@ -35,18 +35,20 @@ fn parse_end_of_stmt(p: &mut Px) {
         }
     }
 
-    if !p.at_eof() && p.next().at_end_of_stmt() {
-        p.bump();
+    if p.next().at_end_of_stmt() {
+        Some(p.bump())
+    } else {
+        None
     }
 }
 
-fn parse_label_stmt(p: &mut Px) -> ALabel {
+fn parse_label_stmt(p: &mut Px) -> ALabelStmt {
     assert_eq!(p.next(), Token::Star);
 
     let label = parse_label(p);
-    parse_end_of_stmt(p);
+    let sep_opt = parse_end_of_stmt(p);
 
-    label
+    ALabelStmt { label, sep_opt }
 }
 
 fn parse_return_stmt(p: &mut Px) -> AReturnStmt {
@@ -60,11 +62,12 @@ fn parse_return_stmt(p: &mut Px) -> AReturnStmt {
         None
     };
 
-    parse_end_of_stmt(p);
+    let sep_opt = parse_end_of_stmt(p);
 
     AReturnStmt {
         keyword,
         result_opt,
+        sep_opt,
     }
 }
 
@@ -83,29 +86,36 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
                 None
             };
 
-            parse_end_of_stmt(p);
+            let sep_opt = parse_end_of_stmt(p);
 
             AStmt::Assign(AAssignStmt {
                 left: head,
                 equal,
                 right_opt,
+                sep_opt,
             })
         }
         _ if p.next().is_expr_first() => {
             let mut args = vec![];
-
             parse_args(&mut args, p);
-            parse_end_of_stmt(p);
+
+            let sep_opt = parse_end_of_stmt(p);
 
             AStmt::Command(ACommandStmt {
                 command: head,
                 args,
+                sep_opt,
             })
         }
-        _ if p.next().at_end_of_stmt() => AStmt::Command(ACommandStmt {
-            command: head,
-            args: vec![],
-        }),
+        _ if p.next().at_end_of_stmt() => {
+            let sep_opt = parse_end_of_stmt(p);
+
+            AStmt::Command(ACommandStmt {
+                command: head,
+                args: vec![],
+                sep_opt,
+            })
+        }
         _ => {
             unimplemented!("{:?}", p.next_data());
         }
@@ -129,6 +139,11 @@ fn parse_root(p: &mut Px) -> ARoot {
     let mut children = vec![];
 
     while !p.at_eof() {
+        if p.next() == Token::Eol || p.next() == Token::Colon {
+            p.bump();
+            continue;
+        }
+
         if !p.next().is_stmt_first(p.at_head()) {
             p.error_next("文が必要です");
 

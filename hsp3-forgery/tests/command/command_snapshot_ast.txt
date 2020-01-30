@@ -1,16 +1,7 @@
 ANodeData {
     node: Root(
         ARootNode {
-            errors: [
-                SyntaxError {
-                    msg: "文が必要です",
-                    location: command.hsp:23.6-23.7,
-                },
-                SyntaxError {
-                    msg: "文が必要です",
-                    location: command.hsp:23.11-24.1,
-                },
-            ],
+            errors: [],
         },
     ),
     children: [
@@ -43,6 +34,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
                     },
                 ),
             ),
@@ -60,6 +54,9 @@ ANodeData {
                                     token: "1",
                                 },
                             ),
+                        ),
+                        sep_opt: Some(
+                            "\n\n\t",
                         ),
                     },
                 ),
@@ -83,6 +80,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
                     },
                 ),
             ),
@@ -100,6 +100,9 @@ ANodeData {
                                     token: "4",
                                 },
                             ),
+                        ),
+                        sep_opt: Some(
+                            "\n\n\t",
                         ),
                     },
                 ),
@@ -147,6 +150,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
                     },
                 ),
             ),
@@ -201,6 +207,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
                     },
                 ),
             ),
@@ -253,6 +262,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
                     },
                 ),
             ),
@@ -281,6 +293,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
                     },
                 ),
             ),
@@ -307,6 +322,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\n\t",
+                        ),
                     },
                 ),
             ),
@@ -347,6 +365,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\n\t",
+                        ),
                     },
                 ),
             ),
@@ -370,6 +391,9 @@ ANodeData {
                                 comma_opt: None,
                             },
                         ],
+                        sep_opt: Some(
+                            "\n\t",
+                        ),
                     },
                 ),
             ),
@@ -392,6 +416,9 @@ ANodeData {
                                 },
                             ),
                         ),
+                        sep_opt: Some(
+                            "\n\n",
+                        ),
                     },
                 ),
             ),
@@ -400,9 +427,14 @@ ANodeData {
         ANodeData {
             node: Stmt(
                 Label(
-                    Name {
-                        star: "*",
-                        ident: "l_dest",
+                    ALabelStmt {
+                        label: Name {
+                            star: "*",
+                            ident: "l_dest",
+                        },
+                        sep_opt: Some(
+                            "\n",
+                        ),
                     },
                 ),
             ),
@@ -411,10 +443,15 @@ ANodeData {
         ANodeData {
             node: Stmt(
                 Label(
-                    Anonymous {
-                        star: "*",
-                        at_sign: "@",
-                        ident_opt: None,
+                    ALabelStmt {
+                        label: Anonymous {
+                            star: "*",
+                            at_sign: "@",
+                            ident_opt: None,
+                        },
+                        sep_opt: Some(
+                            "\n\n\t",
+                        ),
                     },
                 ),
             ),
@@ -426,6 +463,9 @@ ANodeData {
                     ACommandStmt {
                         command: "mes",
                         args: [],
+                        sep_opt: Some(
+                            ":",
+                        ),
                     },
                 ),
             ),
@@ -437,6 +477,9 @@ ANodeData {
                     ACommandStmt {
                         command: "mes",
                         args: [],
+                        sep_opt: Some(
+                            "\n",
+                        ),
                     },
                 ),
             ),

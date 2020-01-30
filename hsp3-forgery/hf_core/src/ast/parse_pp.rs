@@ -9,7 +9,7 @@ impl Token {
     }
 }
 
-fn parse_end_of_pp(p: &mut Px) {
+fn parse_end_of_pp(p: &mut Px) -> Option<TokenData> {
     if !p.next().at_end_of_pp() {
         p.error_next("余分な字句です");
 
@@ -18,7 +18,7 @@ fn parse_end_of_pp(p: &mut Px) {
         }
     }
 
-    p.eat(Token::Eol);
+    p.eat(Token::Eol)
 }
 
 fn at_deffunc_like_keyword(p: &Px) -> bool {
@@ -54,12 +54,13 @@ fn parse_deffunc_like_stmt(hash: TokenData, p: &mut Px) -> ADeffuncStmt {
 
     // params
 
-    parse_end_of_pp(p);
+    let sep_opt = parse_end_of_pp(p);
 
     ADeffuncStmt {
         hash,
         keyword,
         name_opt,
+        sep_opt,
     }
 }
 
@@ -71,12 +72,13 @@ fn parse_module_stmt(hash: TokenData, p: &mut Px) -> AModuleStmt {
     // FIXME: or string
     let name_opt = p.eat(Token::Ident);
 
-    parse_end_of_pp(p);
+    let sep_opt = parse_end_of_pp(p);
 
     AModuleStmt {
         hash,
         keyword,
         name_opt,
+        sep_opt,
     }
 }
 
@@ -84,22 +86,24 @@ fn parse_global_stmt(hash: TokenData, p: &mut Px) -> AGlobalStmt {
     assert!(p.next_data().text() == "global");
 
     let keyword = p.bump();
-    parse_end_of_pp(p);
+    let sep_opt = parse_end_of_pp(p);
 
-    AGlobalStmt { hash, keyword }
+    AGlobalStmt {
+        hash,
+        keyword,
+        sep_opt,
+    }
 }
 
-fn parse_unknown_pp_stmt(hash: TokenData, p: &mut Px) -> AStmt {
-    while !p.at_eof() && !p.next().at_end_of_pp() {
-        p.bump();
-    }
+fn parse_unknown_pp_stmt(hash: TokenData, p: &mut Px) -> AUnknownPpStmt {
+    let sep_opt = parse_end_of_pp(p);
 
-    AStmt::UnknownPreprocessor { hash }
+    AUnknownPpStmt { hash, sep_opt }
 }
 
 pub(crate) fn parse_pp_stmt(hash: TokenData, p: &mut Px) -> AStmt {
     if p.next() != Token::Ident {
-        return parse_unknown_pp_stmt(hash, p);
+        return AStmt::UnknownPp(parse_unknown_pp_stmt(hash, p));
     }
 
     match p.next_data().text() {

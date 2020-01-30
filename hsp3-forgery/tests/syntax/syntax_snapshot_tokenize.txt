@@ -82,4 +82,5 @@ Eol `
 Ident `main`
 Eol `
 `
+Eol ``
 Eof ``

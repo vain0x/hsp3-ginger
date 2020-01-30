@@ -242,4 +242,6 @@ pub(crate) fn tokenize_all(t: &mut TokenizeContext) {
 
         assert!(ok, "無限ループ {}", t.current_index());
     }
+
+    t.commit(Token::Eol);
 }

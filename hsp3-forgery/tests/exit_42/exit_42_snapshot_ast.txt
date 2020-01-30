@@ -12,11 +12,17 @@ ANodeData {
                         hash: "#",
                         keyword: "module",
                         name_opt: None,
+                        sep_opt: Some(
+                            "\n\n",
+                        ),
                     },
                     global_stmt_opt: Some(
                         AGlobalStmt {
                             hash: "#",
                             keyword: "global",
+                            sep_opt: Some(
+                                "\n",
+                            ),
                         },
                     ),
                 },
@@ -30,6 +36,9 @@ ANodeData {
                                 keyword: "deffunc",
                                 name_opt: Some(
                                     "main",
+                                ),
+                                sep_opt: Some(
+                                    "\n\t",
                                 ),
                             },
                         },
@@ -46,6 +55,9 @@ ANodeData {
                                                     token: "42",
                                                 },
                                             ),
+                                        ),
+                                        sep_opt: Some(
+                                            "\n\n",
                                         ),
                                     },
                                 ),

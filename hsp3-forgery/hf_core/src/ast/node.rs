@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Clone, Debug)]
 pub(crate) enum AStmtNode {
-    Label(ALabel),
+    Label(ALabelStmt),
     Assign(AAssignStmt),
     Command(ACommandStmt),
     Return(AReturnStmt),
@@ -47,10 +47,10 @@ pub(crate) struct ANodeData {
     pub(crate) children: Vec<ANodeData>,
 }
 
-impl From<ALabel> for ANodeData {
-    fn from(label: ALabel) -> ANodeData {
+impl From<ALabelStmt> for ANodeData {
+    fn from(stmt: ALabelStmt) -> ANodeData {
         ANodeData {
-            node: ANode::Stmt(AStmtNode::Label(label)),
+            node: ANode::Stmt(AStmtNode::Label(stmt)),
             children: vec![],
         }
     }
