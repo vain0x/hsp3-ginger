@@ -12,6 +12,13 @@ pub(crate) struct ANameExpr {
 }
 
 #[derive(Clone, Debug)]
+pub(crate) struct AGroupExpr {
+    pub(crate) left_paren: TokenData,
+    pub(crate) body_opt: Option<Box<AExpr>>,
+    pub(crate) right_paren_opt: Option<TokenData>,
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct ACallExpr {
     pub(crate) cal: ANameExpr,
     pub(crate) left_paren_opt: Option<TokenData>,
@@ -23,6 +30,7 @@ pub(crate) struct ACallExpr {
 pub(crate) enum AExpr {
     Int(AIntExpr),
     Name(ANameExpr),
+    Group(AGroupExpr),
     Call(ACallExpr),
 }
 

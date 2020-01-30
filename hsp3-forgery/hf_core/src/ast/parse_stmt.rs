@@ -92,6 +92,30 @@ fn parse_name_expr(p: &mut Px) -> ANameExpr {
     ANameExpr { token }
 }
 
+fn parse_group_expr(p: &mut Px) -> AGroupExpr {
+    assert_eq!(p.next(), Token::LeftParen);
+
+    let left_paren = p.bump();
+
+    let body_opt = if p.next().is_expr_first() {
+        Some(Box::new(parse_expr(p)))
+    } else {
+        p.error("カッコの中は空にできません", &left_paren);
+        None
+    };
+
+    let right_paren_opt = p.eat(Token::RightParen);
+    if right_paren_opt.is_none() {
+        p.error("対応する右カッコがありません", &left_paren);
+    }
+
+    AGroupExpr {
+        left_paren,
+        body_opt,
+        right_paren_opt,
+    }
+}
+
 fn parse_call_expr(p: &mut Px) -> AExpr {
     assert_eq!(p.next(), Token::Ident);
 
@@ -126,6 +150,7 @@ fn parse_expr(p: &mut Px) -> AExpr {
     match p.next() {
         Token::Digit => AExpr::Int(parse_int_expr(p)),
         Token::Ident => parse_call_expr(p),
+        Token::LeftParen => AExpr::Group(parse_group_expr(p)),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

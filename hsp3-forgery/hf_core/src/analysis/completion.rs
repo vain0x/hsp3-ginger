@@ -68,6 +68,15 @@ pub(crate) fn signature_help(ast_root: &ANodeData, position: Position) -> Option
 
                 false
             }
+            AExpr::Group(AGroupExpr { body_opt, .. }) => {
+                if let Some(body) = body_opt {
+                    if on_expr(&body, p, out, accept) {
+                        return true;
+                    }
+                }
+
+                false
+            }
             AExpr::Call(ACallExpr { cal, .. }) => {
                 // FIXME: 引数の中を解析する
                 on_expr(&AExpr::Name(cal.clone()), p, out, accept)

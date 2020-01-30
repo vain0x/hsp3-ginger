@@ -54,6 +54,13 @@ fn gen_expr(expr: AExpr, codes: &mut Vec<KCode>) {
         AExpr::Name(name_expr) => codes.push(KCode::Term(KTerm::Name(KName {
             token: name_expr.token,
         }))),
+        AExpr::Group(AGroupExpr { body_opt, .. }) => {
+            if let Some(body) = body_opt {
+                gen_expr(*body, codes);
+            } else {
+                codes.push(KCode::Term(KTerm::Omit));
+            }
+        }
         AExpr::Call(ACallExpr { cal, .. }) => {
             // FIXME: 実装
             codes.push(KCode::Term(KTerm::Name(KName { token: cal.token })))

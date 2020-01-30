@@ -6,3 +6,4 @@
 
 	dim b, n, n
 	mes b(1, 1)
+	mes b((0))

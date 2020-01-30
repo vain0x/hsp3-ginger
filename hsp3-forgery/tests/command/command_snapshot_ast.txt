@@ -197,5 +197,57 @@ ANodeData {
             ),
             children: [],
         },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "mes",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Call(
+                                        ACallExpr {
+                                            cal: ANameExpr {
+                                                token: "b",
+                                            },
+                                            left_paren_opt: Some(
+                                                "(",
+                                            ),
+                                            args: [
+                                                AArg {
+                                                    expr_opt: Some(
+                                                        Group(
+                                                            AGroupExpr {
+                                                                left_paren: "(",
+                                                                body_opt: Some(
+                                                                    Int(
+                                                                        AIntExpr {
+                                                                            token: "0",
+                                                                        },
+                                                                    ),
+                                                                ),
+                                                                right_paren_opt: Some(
+                                                                    ")",
+                                                                ),
+                                                            },
+                                                        ),
+                                                    ),
+                                                    comma_opt: None,
+                                                },
+                                            ],
+                                            right_paren_opt: Some(
+                                                ")",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
     ],
 }

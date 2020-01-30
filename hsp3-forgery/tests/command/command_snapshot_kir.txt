@@ -86,7 +86,21 @@ KRoot {
                                                                 ],
                                                                 results: [],
                                                                 nexts: [
-                                                                    Abort,
+                                                                    Prim {
+                                                                        prim: Command,
+                                                                        args: [
+                                                                            Name(
+                                                                                mes,
+                                                                            ),
+                                                                            Name(
+                                                                                b,
+                                                                            ),
+                                                                        ],
+                                                                        results: [],
+                                                                        nexts: [
+                                                                            Abort,
+                                                                        ],
+                                                                    },
                                                                 ],
                                                             },
                                                         ],
