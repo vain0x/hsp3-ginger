@@ -1,2 +1,4 @@
 	mes a()()
 	mes (a)()
+
+	button "", *

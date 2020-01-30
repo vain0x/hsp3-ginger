@@ -343,5 +343,50 @@ ANodeData {
             ),
             children: [],
         },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "onexit",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Label(
+                                        Name {
+                                            star: "*",
+                                            ident: "l_dest",
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Assign(
+                    AAssignStmt {
+                        left: "l",
+                        equal: "=",
+                        right_opt: Some(
+                            Label(
+                                Anonymous {
+                                    star: "*",
+                                    at_sign: "@",
+                                    ident_opt: Some(
+                                        "f",
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            ),
+            children: [],
+        },
     ],
 }

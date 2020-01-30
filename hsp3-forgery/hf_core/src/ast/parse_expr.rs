@@ -41,6 +41,33 @@ impl Token {
     }
 }
 
+pub(crate) fn parse_label(p: &mut Px) -> ALabel {
+    assert_eq!(p.next(), Token::Star);
+
+    let star = p.bump();
+
+    // FIXME: 前後の空白を検査する。
+    match p.next() {
+        Token::Ident => {
+            let ident = p.bump();
+            ALabel::Name { star, ident }
+        }
+        Token::AtSign => {
+            let at_sign = p.bump();
+            let ident_opt = p.eat(Token::Ident);
+            ALabel::Anonymous {
+                star,
+                at_sign,
+                ident_opt,
+            }
+        }
+        _ => {
+            p.error("ラベルの名前がありません", &star);
+            ALabel::StarOnly { star }
+        }
+    }
+}
+
 pub(crate) fn parse_int_expr(p: &mut Px) -> AIntExpr {
     assert_eq!(p.next(), Token::Digit);
 
@@ -160,6 +187,7 @@ pub(crate) fn parse_expr(p: &mut Px) -> AExpr {
         Token::LeftParen => AExpr::Group(parse_group_expr(p)),
         Token::DoubleQuote => AExpr::Str(parse_str_expr(p)),
         Token::LeftQuote => AExpr::Str(parse_multiline_str_expr(p)),
+        Token::Star => AExpr::Label(parse_label(p)),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

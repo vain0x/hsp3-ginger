@@ -2,6 +2,31 @@ use super::*;
 use crate::syntax::*;
 
 #[derive(Clone, Debug)]
+pub(crate) enum ALabel {
+    /// `*foo`, etc.
+    Name { star: TokenData, ident: TokenData },
+    /// `*@f`, etc.
+    Anonymous {
+        star: TokenData,
+        at_sign: TokenData,
+        ident_opt: Option<TokenData>,
+    },
+    /// ラベルしか出現しない文脈で `*` が見えたらとりあえずラベルとして扱う。
+    /// その後ろに名前も `@` も出てこないケースがこれ。
+    StarOnly { star: TokenData },
+}
+
+impl ALabel {
+    pub(crate) fn star(&self) -> &TokenData {
+        match self {
+            ALabel::Name { star, .. }
+            | ALabel::Anonymous { star, .. }
+            | ALabel::StarOnly { star, .. } => star,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct AIntExpr {
     pub(crate) token: TokenData,
 }
@@ -35,6 +60,7 @@ pub(crate) struct ACallExpr {
 
 #[derive(Clone, Debug)]
 pub(crate) enum AExpr {
+    Label(ALabel),
     Int(AIntExpr),
     Str(AStrExpr),
     Name(ANameExpr),

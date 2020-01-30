@@ -50,6 +50,10 @@ pub(crate) fn signature_help(ast_root: &ANodeData, position: Position) -> Option
         accept: &impl Fn(&mut Option<SignatureHelp>),
     ) -> bool {
         match a {
+            AExpr::Label(..) => {
+                // FIXME: 実装
+                false
+            }
             AExpr::Int(expr) => {
                 // FIXME: トークンに接触していなくても引数領域の範囲内ならシグネチャヘルプは反応するべき
                 if expr.token.location.range.contains_loosely(p) {

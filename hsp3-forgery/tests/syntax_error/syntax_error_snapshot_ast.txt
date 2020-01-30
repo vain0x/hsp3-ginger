@@ -10,6 +10,10 @@ ANodeData {
                     msg: "カッコの中は空にできません",
                     location: syntax_error.hsp:2.9-2.10,
                 },
+                SyntaxError {
+                    msg: "ラベルが期待されました",
+                    location: syntax_error.hsp:4.14-5.1,
+                },
             ],
         },
     ),
@@ -94,6 +98,44 @@ ANodeData {
                                             right_paren_opt: Some(
                                                 ")",
                                             ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: None,
+                            },
+                        ],
+                    },
+                ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Stmt(
+                Command(
+                    ACommandStmt {
+                        command: "button",
+                        args: [
+                            AArg {
+                                expr_opt: Some(
+                                    Str(
+                                        AStrExpr {
+                                            start_quote: "\"",
+                                            segments: [],
+                                            end_quote_opt: Some(
+                                                "\"",
+                                            ),
+                                        },
+                                    ),
+                                ),
+                                comma_opt: Some(
+                                    ",",
+                                ),
+                            },
+                            AArg {
+                                expr_opt: Some(
+                                    Label(
+                                        StarOnly {
+                                            star: "*",
                                         },
                                     ),
                                 ),

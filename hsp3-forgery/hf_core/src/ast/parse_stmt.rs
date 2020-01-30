@@ -104,8 +104,8 @@ fn parse_stmt(p: &mut Px) -> AStmt {
             let hash = p.bump();
             parse_pp_stmt(hash, p)
         }
-        Token::Return => AStmt::Return(parse_return_stmt(p)),
         Token::Ident => parse_assign_or_command_stmt(p),
+        Token::Return => AStmt::Return(parse_return_stmt(p)),
         _ => unimplemented!("{:?}", p.next_data()),
     }
 }

@@ -13,3 +13,6 @@
 	mes {"first
 	second
 	"}, 3
+
+	onexit *l_dest
+	l = *@f
