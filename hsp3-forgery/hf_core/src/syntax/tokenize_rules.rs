@@ -12,6 +12,10 @@ fn char_is_space(c: char) -> bool {
     c == ' ' || c == '\t' || c == '　'
 }
 
+fn char_is_comment_first(c: char) -> bool {
+    c == ';' || c == '/'
+}
+
 /// 文字が識別子の一部になるか？
 fn char_is_ident(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
@@ -31,7 +35,7 @@ fn char_is_pun_first(c: char) -> bool {
 fn char_is_other_first(c: char) -> bool {
     !char_is_eol(c)
         && !char_is_space(c)
-        && c != ';'
+        && !char_is_comment_first(c)
         && !c.is_ascii_digit()
         && !char_is_ident_first(c)
         && !char_is_pun_first(c)
@@ -43,15 +47,6 @@ fn tokenize_eol(t: &mut TokenizeContext) -> bool {
     loop {
         while ok && char_is_space(t.next()) {
             t.bump();
-        }
-
-        if t.eat(";") || t.eat("//") {
-            while !t.at_eof() && !char_is_eol(t.next()) {
-                t.bump();
-            }
-
-            ok = true;
-            continue;
         }
 
         if t.eat("\r\n") || t.eat("\n") {
@@ -95,6 +90,26 @@ fn tokenize_space(t: &mut TokenizeContext) -> bool {
     } else {
         false
     }
+}
+
+fn tokenize_comment(t: &mut TokenizeContext) -> bool {
+    if t.eat(";") || t.eat("//") {
+        while !t.at_eof() && !char_is_eol(t.next()) {
+            t.bump();
+        }
+        t.commit(Token::Comment);
+        return true;
+    }
+
+    if t.eat("/*") {
+        while !t.at_eof() && !t.eat("*/") {
+            t.bump();
+        }
+        t.commit(Token::Comment);
+        return true;
+    }
+
+    false
 }
 
 fn tokenize_number(t: &mut TokenizeContext) -> bool {
@@ -232,6 +247,7 @@ pub(crate) fn tokenize_all(t: &mut TokenizeContext) {
     while !t.at_eof() {
         let ok = tokenize_eol(t)
             || tokenize_space(t)
+            || tokenize_comment(t)
             || tokenize_number(t)
             || tokenize_char(t)
             || tokenize_str(t)

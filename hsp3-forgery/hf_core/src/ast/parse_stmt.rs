@@ -163,7 +163,7 @@ fn parse_root(p: &mut Px) -> ARoot {
 pub(crate) fn parse_tokens(tokens: &[TokenData]) -> ARoot {
     let tokens = tokens
         .into_iter()
-        .filter(|t| t.token() != Token::Space)
+        .filter(|t| t.token() != Token::Space && t.token() != Token::Comment)
         .cloned()
         .collect::<Vec<_>>();
 

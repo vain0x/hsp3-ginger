@@ -23,3 +23,8 @@
 
 	; トップレベルコード
 	main
+
+	/***
+		multiline
+		comment
+	***/ */

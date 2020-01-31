@@ -7,6 +7,7 @@ pub(crate) enum Token {
     Eof,
     Eol,
     Space,
+    Comment,
     Digit,
     StrVerbatim,
     StrEscape,
@@ -38,7 +39,9 @@ pub(crate) enum Token {
     RightAngle,
     LeftBrace,
     RightBrace,
+    /// `{"`
     LeftQuote,
+    /// `"}`
     RightQuote,
     AndAnd,
     And,

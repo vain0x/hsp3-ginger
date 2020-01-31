@@ -6,7 +6,9 @@ Space ` `
 Ident `m_main`
 Eol `
 
-// メイン関数
+`
+Comment `// メイン関数`
+Eol `
 `
 Hash `#`
 Ident `deffunc`
@@ -77,9 +79,21 @@ Hash `#`
 Ident `global`
 Eol `
 
-	; トップレベルコード
+	`
+Comment `; トップレベルコード`
+Eol `
 	`
 Ident `main`
+Eol `
+
+	`
+Comment `/***
+		multiline
+		comment
+	***/`
+Space ` `
+Star `*`
+Slash `/`
 Eol `
 `
 Eol ``
