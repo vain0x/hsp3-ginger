@@ -16,6 +16,10 @@ fn char_is_comment_first(c: char) -> bool {
     c == ';' || c == '/'
 }
 
+fn char_is_binary(c: char) -> bool {
+    c == '0' || c == '1'
+}
+
 /// 文字が識別子の一部になるか？
 fn char_is_ident(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
@@ -112,7 +116,26 @@ fn tokenize_comment(t: &mut TokenizeContext) -> bool {
     false
 }
 
+fn tokenize_hex(t: &mut TokenizeContext) {
+    while t.next().is_ascii_hexdigit() {
+        t.bump();
+    }
+    t.commit(Token::Hex);
+}
+
 fn tokenize_number(t: &mut TokenizeContext) -> bool {
+    if t.eat("0x") {
+        t.commit(Token::ZeroX);
+        tokenize_hex(t);
+        return true;
+    }
+
+    if t.eat("$") {
+        t.commit(Token::Dollar);
+        tokenize_hex(t);
+        return true;
+    }
+
     let mut ok = false;
 
     while t.next().is_ascii_digit() {

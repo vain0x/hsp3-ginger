@@ -8,9 +8,17 @@ pub(crate) enum Token {
     Eol,
     Space,
     Comment,
+    /// "0x"
+    ZeroX,
+    /// 0-9 の並び
     Digit,
+    /// 0-9/a-f/A-F の並び
+    Hex,
+    /// 文字・文字列リテラル内部のエスケープされない文字の並び
     StrVerbatim,
+    /// 文字・文字列リテラル内部のエスケープ1個
     StrEscape,
+    /// キーワードではない識別子
     Ident,
     Other,
 

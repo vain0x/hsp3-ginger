@@ -95,6 +95,30 @@ Space ` `
 Star `*`
 Slash `/`
 Eol `
+
+	`
+Ident `h`
+Space ` `
+Equal `=`
+Space ` `
+ZeroX `0x`
+Hex `abcdef01`
+Space ` `
+Pipe `|`
+Space ` `
+ZeroX `0x`
+Hex `ABCDEF01`
+Space ` `
+Pipe `|`
+Space ` `
+ZeroX `0x`
+Hex `23456789`
+Space ` `
+Pipe `|`
+Space ` `
+Dollar `$`
+Hex `deadbeef`
+Eol `
 `
 Eol ``
 Eof ``
