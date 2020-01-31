@@ -119,6 +119,22 @@ Space ` `
 Dollar `$`
 Hex `deadbeef`
 Eol `
+
+	`
+Comment `// プリプロセッサ命令の外では改行をエスケープできない。`
+Eol `
+	`
+Backslash `\`
+Eol `
+
+	`
+Comment `// 行頭にない # は解釈できない。`
+Eol `
+	`
+Plus `+`
+Other `#`
+Ident `define`
+Eol `
 `
 Eol ``
 Eof ``

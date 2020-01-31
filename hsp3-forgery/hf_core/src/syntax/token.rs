@@ -1,5 +1,4 @@
 use super::*;
-use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -8,6 +7,8 @@ pub(crate) enum Token {
     Eol,
     Space,
     Comment,
+    /// 文字列やコメントの外では解釈できない文字
+    Other,
     /// "0x"
     ZeroX,
     /// 0-9 の並び
@@ -20,7 +21,6 @@ pub(crate) enum Token {
     StrEscape,
     /// キーワードではない識別子
     Ident,
-    Other,
 
     // キーワード
     Break,
@@ -54,9 +54,9 @@ pub(crate) enum Token {
     AndAnd,
     And,
     AtSign,
+    Backslash,
     BangEqual,
     Bang,
-    Backslash,
     Colon,
     Comma,
     Dollar,
@@ -64,6 +64,8 @@ pub(crate) enum Token {
     DoubleQuote,
     EqualEqual,
     Equal,
+    /// 行頭にある `#`
+    /// 行頭にない場合は Other になる。
     Hash,
     Hat,
     LeftShift,

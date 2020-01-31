@@ -36,7 +36,11 @@ fn char_is_pun_first(c: char) -> bool {
 }
 
 /// 文字が解釈不能か？
-fn char_is_other_first(c: char) -> bool {
+fn char_is_other_first(pp: bool, c: char) -> bool {
+    if !pp && c == '#' {
+        return true;
+    }
+
     !char_is_eol(c)
         && !char_is_space(c)
         && !char_is_comment_first(c)
@@ -69,9 +73,9 @@ fn tokenize_eol(t: &mut TokenizeContext) -> bool {
     }
 }
 
-fn tokenize_space(t: &mut TokenizeContext) -> bool {
+fn tokenize_space(pp: bool, t: &mut TokenizeContext) -> bool {
     // 改行エスケープ
-    if t.next() == '\\' && char_is_eol(t.nth(1)) {
+    if pp && t.next() == '\\' && char_is_eol(t.nth(1)) {
         t.eat("\\");
         if !t.eat("\r\n") {
             t.eat("\n");
@@ -123,7 +127,7 @@ fn tokenize_hex(t: &mut TokenizeContext) {
     t.commit(Token::Hex);
 }
 
-fn tokenize_number(t: &mut TokenizeContext) -> bool {
+fn tokenize_number(pp: bool, t: &mut TokenizeContext) -> bool {
     if t.eat("0x") {
         t.commit(Token::ZeroX);
         tokenize_hex(t);
@@ -253,9 +257,9 @@ fn tokenize_pun(t: &mut TokenizeContext) -> bool {
     false
 }
 
-fn tokenize_other(t: &mut TokenizeContext) -> bool {
-    if !t.at_eof() && char_is_other_first(t.next()) {
-        while !t.at_eof() && char_is_other_first(t.next()) {
+fn tokenize_other(pp: bool, t: &mut TokenizeContext) -> bool {
+    if !t.at_eof() && char_is_other_first(pp, t.next()) {
+        while !t.at_eof() && char_is_other_first(pp, t.next()) {
             t.bump();
         }
 
@@ -266,20 +270,44 @@ fn tokenize_other(t: &mut TokenizeContext) -> bool {
     false
 }
 
-pub(crate) fn tokenize_all(t: &mut TokenizeContext) {
-    while !t.at_eof() {
-        let ok = tokenize_eol(t)
-            || tokenize_space(t)
+fn tokenize_spaces_comments(pp: bool, t: &mut TokenizeContext) {
+    while tokenize_space(pp, t) || tokenize_comment(t) {
+        // Pass.
+    }
+}
+
+/// プリプロセッサ命令における改行のエスケープや、
+/// 複数行コメントや複数行文字列リテラルの中に改行を
+fn tokenize_segment(t: &mut TokenizeContext) {
+    // この時点で t は行頭に位置する。
+    // 行頭のスペースやコメントを除去する。(複数行コメントの中に改行があっても1行とみなす。)
+    tokenize_spaces_comments(false, t);
+
+    let pp = if t.eat("#") {
+        t.commit(Token::Hash);
+        true
+    } else {
+        false
+    };
+
+    while !tokenize_eol(t) {
+        let ok = tokenize_space(pp, t)
             || tokenize_comment(t)
-            || tokenize_number(t)
+            || tokenize_number(pp, t)
             || tokenize_char(t)
             || tokenize_str(t)
             || tokenize_multiline_str(t)
             || tokenize_ident(t)
             || tokenize_pun(t)
-            || tokenize_other(t);
+            || tokenize_other(pp, t);
 
         assert!(ok, "無限ループ {}", t.current_index());
+    }
+}
+
+pub(crate) fn tokenize_all(t: &mut TokenizeContext) {
+    while !t.at_eof() {
+        tokenize_segment(t);
     }
 
     t.commit(Token::Eol);
