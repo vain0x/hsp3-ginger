@@ -27,6 +27,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -75,6 +76,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -124,6 +126,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "button",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(

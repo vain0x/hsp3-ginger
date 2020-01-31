@@ -10,6 +10,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "width",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -68,6 +69,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "dim",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -114,6 +116,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "dim",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -163,6 +166,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -220,6 +224,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -275,6 +280,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -306,6 +312,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -335,6 +342,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -378,6 +386,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "goto",
+                        jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -404,6 +413,9 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "onexit",
+                        jump_keyword_opt: Some(
+                            "gosub",
+                        ),
                         args: [
                             AArg {
                                 expr_opt: Some(
@@ -488,6 +500,7 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [],
                         sep_opt: Some(
                             ":",
@@ -502,9 +515,10 @@ ANodeData {
                 Command(
                     ACommandStmt {
                         command: "mes",
+                        jump_keyword_opt: None,
                         args: [],
                         sep_opt: Some(
-                            "\n",
+                            "\n\n",
                         ),
                     },
                 ),

@@ -70,6 +70,7 @@ ANodeData {
                                 Command(
                                     ACommandStmt {
                                         command: "return",
+                                        jump_keyword_opt: None,
                                         args: [],
                                         sep_opt: Some(
                                             "\n\n",

@@ -49,6 +49,7 @@ ANodeData {
                                 Command(
                                     ACommandStmt {
                                         command: "return",
+                                        jump_keyword_opt: None,
                                         args: [
                                             AArg {
                                                 expr_opt: Some(

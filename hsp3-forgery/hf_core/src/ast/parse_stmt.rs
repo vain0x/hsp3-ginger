@@ -57,7 +57,8 @@ fn parse_label_stmt(p: &mut Px) -> ALabelStmt {
 }
 
 fn parse_command_contents(head: TokenData, p: &mut Px) -> AStmt {
-    // FIXME: goto/gosub
+    // button/onexit などの goto/gosub キーワード
+    let jump_keyword_opt = p.eat(Token::Gosub).or_else(|| p.eat(Token::Goto));
 
     let mut args = vec![];
     if p.next().is_arg_first() {
@@ -68,6 +69,7 @@ fn parse_command_contents(head: TokenData, p: &mut Px) -> AStmt {
 
     AStmt::Command(ACommandStmt {
         command: head,
+        jump_keyword_opt,
         args,
         sep_opt,
     })
@@ -104,7 +106,10 @@ fn parse_assign_or_command_stmt(p: &mut Px) -> AStmt {
                 sep_opt,
             })
         }
-        _ if p.next().is_arg_first() || p.next().at_end_of_stmt() => {
+        _ if p.next().is_jump_modifier()
+            || p.next().is_arg_first()
+            || p.next().at_end_of_stmt() =>
+        {
             parse_command_contents(head, p)
         }
         _ => {

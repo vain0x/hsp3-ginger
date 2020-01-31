@@ -15,10 +15,11 @@
 	"}, 3
 
 	goto *l_dest
-	onexit *l_dest
+	onexit gosub *l_dest
 	l = *@f
 
 *l_dest
 *@
 
 	mes : mes
+

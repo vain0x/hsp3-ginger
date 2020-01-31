@@ -38,6 +38,8 @@ impl AAssignStmt {
 #[derive(Clone, Debug)]
 pub(crate) struct ACommandStmt {
     pub(crate) command: TokenData,
+    /// button/onexit などの goto/gosub キーワード
+    pub(crate) jump_keyword_opt: Option<TokenData>,
     pub(crate) args: Vec<AArg>,
     pub(crate) sep_opt: Option<TokenData>,
 }

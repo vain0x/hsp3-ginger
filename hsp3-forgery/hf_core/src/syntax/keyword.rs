@@ -20,6 +20,13 @@ pub(crate) static KEYWORD_TABLE: &[(Token, &str)] = &[
 ];
 
 impl Token {
+    pub(crate) fn is_jump_modifier(self) -> bool {
+        match self {
+            Token::Gosub | Token::Goto => true,
+            _ => false,
+        }
+    }
+
     pub(crate) fn is_jump_keyword(self) -> bool {
         match self {
             Token::Break
