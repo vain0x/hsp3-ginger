@@ -120,6 +120,13 @@ fn tokenize_comment(t: &mut TokenizeContext) -> bool {
     false
 }
 
+fn tokenize_binary(t: &mut TokenizeContext) {
+    while char_is_binary(t.next()) {
+        t.bump();
+    }
+    t.commit(Token::Binary);
+}
+
 fn tokenize_hex(t: &mut TokenizeContext) {
     while t.next().is_ascii_hexdigit() {
         t.bump();
@@ -128,6 +135,18 @@ fn tokenize_hex(t: &mut TokenizeContext) {
 }
 
 fn tokenize_number(pp: bool, t: &mut TokenizeContext) -> bool {
+    if t.eat("0b") {
+        t.commit(Token::ZeroB);
+        tokenize_binary(t);
+        return true;
+    }
+
+    if (pp && t.eat("%%")) || (!pp && t.eat("%")) {
+        t.commit(Token::Percent);
+        tokenize_binary(t);
+        return true;
+    }
+
     if t.eat("0x") {
         t.commit(Token::ZeroX);
         tokenize_hex(t);

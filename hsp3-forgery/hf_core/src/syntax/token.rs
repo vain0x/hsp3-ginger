@@ -9,10 +9,14 @@ pub(crate) enum Token {
     Comment,
     /// 文字列やコメントの外では解釈できない文字
     Other,
+    /// "0b"
+    ZeroB,
     /// "0x"
     ZeroX,
     /// 0-9 の並び
     Digit,
+    /// 0-1 の並び
+    Binary,
     /// 0-9/a-f/A-F の並び
     Hex,
     /// 文字・文字列リテラル内部のエスケープされない文字の並び

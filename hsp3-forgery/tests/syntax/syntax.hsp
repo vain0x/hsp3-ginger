@@ -29,7 +29,12 @@
 		comment
 	***/ */
 
+#define zero %%0
+
+	b = 0b11111111 | %00110101
+	bad_b = 0b1234 | %12
 	h = 0xabcdef01 | 0xABCDEF01 | 0x23456789 | $deadbeef
+	bad_h = 0xf0rd
 
 	// プリプロセッサ命令の外では改行をエスケープできない。
 	\

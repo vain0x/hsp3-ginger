@@ -96,6 +96,44 @@ Star `*`
 Slash `/`
 Eol `
 
+`
+Hash `#`
+Ident `define`
+Space ` `
+Ident `zero`
+Space ` `
+Percent `%%`
+Binary `0`
+Eol `
+
+	`
+Ident `b`
+Space ` `
+Equal `=`
+Space ` `
+ZeroB `0b`
+Binary `11111111`
+Space ` `
+Pipe `|`
+Space ` `
+Percent `%`
+Binary `00110101`
+Eol `
+	`
+Ident `bad_b`
+Space ` `
+Equal `=`
+Space ` `
+ZeroB `0b`
+Binary `1`
+Digit `234`
+Space ` `
+Pipe `|`
+Space ` `
+Percent `%`
+Binary `1`
+Digit `2`
+Eol `
 	`
 Ident `h`
 Space ` `
@@ -118,6 +156,15 @@ Pipe `|`
 Space ` `
 Dollar `$`
 Hex `deadbeef`
+Eol `
+	`
+Ident `bad_h`
+Space ` `
+Equal `=`
+Space ` `
+ZeroX `0x`
+Hex `f0`
+Ident `rd`
 Eol `
 
 	`
