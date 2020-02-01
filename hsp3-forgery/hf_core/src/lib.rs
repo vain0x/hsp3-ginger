@@ -1,6 +1,7 @@
 pub(crate) mod analysis;
 pub(crate) mod ast;
 pub(crate) mod framework;
+pub(crate) mod source;
 pub(crate) mod syntax;
 pub(crate) mod workspace;
 
