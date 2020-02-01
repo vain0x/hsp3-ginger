@@ -13,6 +13,7 @@ pub(crate) mod tokenize_context;
 pub(crate) mod tokenize_rules;
 
 pub(crate) use crate::framework::*;
+pub(crate) use crate::source::*;
 pub(crate) use location::Location;
 pub(crate) use position::Position;
 pub(crate) use range::Range;
@@ -35,14 +36,21 @@ mod tests {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
 
-        let source_id = Id::new(1);
+        let source_file_id = Id::new(1);
         let source_path = Rc::new(tests_dir.join("syntax/syntax.hsp"));
+
+        let mut source_files = SourceFileComponent::new();
+        source_files.insert(
+            source_file_id,
+            SourceFile {
+                source_path: source_path.clone(),
+            },
+        );
+
         let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
         let source = SyntaxSource {
-            source: Source {
-                source_id,
-                source_path,
-            },
+            source_file_id,
+            source_files: &source_files as *const SourceFileComponent,
         };
 
         let tokens = tokenize::tokenize(source, Rc::new(source_code));
