@@ -1,3 +1,4 @@
+use crate::framework::*;
 use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
@@ -5,12 +6,12 @@ use std::rc::Rc;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Source {
-    pub(crate) source_id: usize,
+    pub(crate) source_id: Id<Source>,
     pub(crate) source_path: Rc<PathBuf>,
 }
 
 impl Source {
-    pub(crate) fn new(source_id: usize, source_path: Rc<PathBuf>) -> Self {
+    pub(crate) fn new(source_id: Id<Source>, source_path: Rc<PathBuf>) -> Self {
         Source {
             source_id,
             source_path,

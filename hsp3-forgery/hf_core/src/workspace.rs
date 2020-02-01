@@ -1,12 +1,12 @@
+use crate::framework::*;
 use crate::syntax::*;
-use crate::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Workspace {
-    workspace_id: usize,
+    workspace_id: Id<Workspace>,
 }
 
 pub(crate) type SourceComponent = HashMap<Workspace, Vec<Source>>;

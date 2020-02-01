@@ -1,3 +1,5 @@
+use super::*;
+
 #[derive(Default)]
 pub(crate) struct IdProvider {
     last_id: usize,
@@ -8,8 +10,8 @@ impl IdProvider {
         IdProvider::default()
     }
 
-    pub(crate) fn fresh(&mut self) -> usize {
+    pub(crate) fn fresh<T>(&mut self) -> Id<T> {
         self.last_id += 1;
-        self.last_id
+        Id::new(self.last_id)
     }
 }

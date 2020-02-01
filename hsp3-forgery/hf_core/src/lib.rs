@@ -1,11 +1,9 @@
 pub(crate) mod analysis;
 pub(crate) mod ast;
 pub(crate) mod framework;
-pub(crate) mod id_provider;
 pub(crate) mod syntax;
 pub(crate) mod workspace;
 
-pub(crate) use id_provider::IdProvider;
 pub(crate) use workspace::{SourceComponent, Workspace};
 
 #[cfg(test)]

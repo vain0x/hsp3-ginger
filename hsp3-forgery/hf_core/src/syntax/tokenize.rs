@@ -1,11 +1,12 @@
 use super::tokenize_context::TokenizeContext;
 use super::*;
+use crate::framework::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 
 pub(crate) fn tokenize(
-    source_id: usize,
+    source_id: Id<Source>,
     source_path: Rc<PathBuf>,
     source_code: Rc<String>,
 ) -> Vec<TokenData> {

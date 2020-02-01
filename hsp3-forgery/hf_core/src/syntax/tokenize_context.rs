@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 pub(crate) struct TokenizeContext {
-    source_id: usize,
+    source_id: Id<Source>,
 
     source_code: Rc<String>,
     source_path: Rc<PathBuf>,
@@ -23,7 +23,11 @@ pub(crate) struct TokenizeContext {
 }
 
 impl TokenizeContext {
-    pub(crate) fn new(source_id: usize, source_path: Rc<PathBuf>, source_code: Rc<String>) -> Self {
+    pub(crate) fn new(
+        source_id: Id<Source>,
+        source_path: Rc<PathBuf>,
+        source_code: Rc<String>,
+    ) -> Self {
         TokenizeContext {
             source_id,
             source_path,

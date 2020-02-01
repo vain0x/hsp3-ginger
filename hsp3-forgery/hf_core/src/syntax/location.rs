@@ -1,11 +1,12 @@
 use super::*;
+use crate::framework::*;
 use std::fmt;
 use std::path::PathBuf;
 use std::rc::Rc;
 
 #[derive(Clone)]
 pub(crate) struct Location {
-    pub(crate) source_id: usize,
+    pub(crate) source_id: Id<Source>,
     pub(crate) source_path: Rc<PathBuf>,
     pub(crate) range: Range,
 }
