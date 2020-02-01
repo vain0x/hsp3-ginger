@@ -9,7 +9,7 @@ pub(crate) struct Workspace {
     workspace_id: Id<Workspace>,
 }
 
-pub(crate) type SourceComponent = HashMap<Workspace, Vec<Source>>;
+pub(crate) type SourceComponent = HashMap<Workspace, Vec<SyntaxSource>>;
 
 impl Workspace {
     /// 1つのファイルだけからなるワークスペースを生成し、
@@ -18,14 +18,16 @@ impl Workspace {
         source_path: Rc<PathBuf>,
         sources: &mut SourceComponent,
         ids: &mut IdProvider,
-    ) -> (Workspace, Source) {
+    ) -> (Workspace, SyntaxSource) {
         let workspace_id = ids.fresh();
         let workspace = Workspace { workspace_id };
 
         let source_id = ids.fresh();
-        let source = Source {
-            source_id,
-            source_path,
+        let source = SyntaxSource {
+            source: Source {
+                source_id,
+                source_path,
+            },
         };
 
         sources

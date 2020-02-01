@@ -1,13 +1,11 @@
 use super::*;
 use std::cmp::min;
-use std::path::PathBuf;
 use std::rc::Rc;
 
 pub(crate) struct TokenizeContext {
-    source_id: Id<Source>,
+    source: SyntaxSource,
 
     source_code: Rc<String>,
-    source_path: Rc<PathBuf>,
 
     cursor: TextCursor,
 
@@ -23,14 +21,9 @@ pub(crate) struct TokenizeContext {
 }
 
 impl TokenizeContext {
-    pub(crate) fn new(
-        source_id: Id<Source>,
-        source_path: Rc<PathBuf>,
-        source_code: Rc<String>,
-    ) -> Self {
+    pub(crate) fn new(source: SyntaxSource, source_code: Rc<String>) -> Self {
         TokenizeContext {
-            source_id,
-            source_path,
+            source,
             source_code,
             cursor: TextCursor::default(),
             current_index: 0,
@@ -108,8 +101,7 @@ impl TokenizeContext {
         self.cursor.advance(&text);
         let end = self.cursor.current();
         let location = Location {
-            source_id: self.source_id,
-            source_path: self.source_path.clone(),
+            source: self.source.clone(),
             range: Range { start, end },
         };
 

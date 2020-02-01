@@ -1,3 +1,4 @@
+use super::*;
 use crate::framework::*;
 use std::collections::HashMap;
 use std::fmt;
@@ -21,7 +22,13 @@ impl Source {
 
 impl fmt::Debug for Source {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        // FIXME: env!("CARGO_MANIFEST_DIR") からの相対パスにしたい
+        let short_path = self
+            .source_path
+            .file_name()
+            .map(|name| name.to_string_lossy().to_string())
+            .unwrap_or("???".to_string());
+        write!(f, "{}", short_path)
     }
 }
 
@@ -31,4 +38,4 @@ impl fmt::Display for Source {
     }
 }
 
-pub(crate) type SourceCodeComponent = HashMap<Source, Rc<String>>;
+pub(crate) type SourceCodeComponent = HashMap<SyntaxSource, Rc<String>>;
