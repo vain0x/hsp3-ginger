@@ -5,7 +5,7 @@ pub(crate) mod source;
 pub(crate) mod syntax;
 pub(crate) mod workspace;
 
-pub(crate) use workspace::{SourceComponent, Workspace};
+pub(crate) use workspace::Workspace;
 
 #[cfg(test)]
 mod tests {
@@ -19,29 +19,20 @@ mod tests {
     fn load_sources(
         workspace: &Workspace,
         source_files: &SourceFileComponent,
-        sources: &SourceComponent,
         source_codes: &mut SourceCodeComponent,
     ) {
-        syntax::source_loader::load_sources(
-            &sources.get(workspace).unwrap_or(&vec![]),
-            &source_files,
-            source_codes,
-        );
+        syntax::source_loader::load_sources(&source_files, source_codes);
     }
 
     fn tokenize_sources(
         workspace: &Workspace,
-        sources: &SourceComponent,
+        source_files: &SourceFileComponent,
         source_codes: &SourceCodeComponent,
         tokenss: &mut TokensComponent,
     ) {
         let mut ss = vec![];
-        for source in sources.get(&workspace).into_iter().flatten() {
-            let source_code = match source_codes.get(&source) {
-                None => continue,
-                Some(source_code) => source_code,
-            };
-
+        for (&source_file_id, source_code) in source_codes {
+            let source = SyntaxSource::from_file(source_file_id, source_files);
             ss.push((source, source_code));
         }
         syntax::tokenize::tokenize_sources(&ss, tokenss);
@@ -61,25 +52,21 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
         let mut ids = IdProvider::new();
         let mut source_files = SourceFileComponent::default();
-        let mut sources = SourceComponent::default();
 
         let test_names = vec!["assign", "command", "exit_42", "syntax_error"];
 
         for name in test_names {
             let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
 
-            let (workspace, source) = Workspace::new_with_file(
-                source_path.clone(),
-                &mut source_files,
-                &mut sources,
-                &mut ids,
-            );
+            let (workspace, source_file_id) =
+                Workspace::new_with_file(source_path.clone(), &mut source_files, &mut ids);
             let mut source_codes = SourceCodeComponent::default();
             let mut tokenss = TokensComponent::default();
 
-            load_sources(&workspace, &source_files, &sources, &mut source_codes);
-            tokenize_sources(&workspace, &sources, &source_codes, &mut tokenss);
+            load_sources(&workspace, &source_files, &mut source_codes);
+            tokenize_sources(&workspace, &source_files, &source_codes, &mut tokenss);
 
+            let source = SyntaxSource::from_file(source_file_id, &source_files);
             let tokens = tokenss.get(&source).unwrap();
             let ast_root = ast::parse::parse(tokens);
 
@@ -97,17 +84,17 @@ mod tests {
 
         let mut ids = IdProvider::new();
         let mut source_files = SourceFileComponent::default();
-        let mut sources = SourceComponent::default();
         let mut source_codes = SourceCodeComponent::default();
         let mut tokenss = TokensComponent::default();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let (workspace, source) =
-            Workspace::new_with_file(source_path, &mut source_files, &mut sources, &mut ids);
+        let (workspace, source_file_id) =
+            Workspace::new_with_file(source_path, &mut source_files, &mut ids);
 
-        load_sources(&workspace, &source_files, &sources, &mut source_codes);
-        tokenize_sources(&workspace, &sources, &source_codes, &mut tokenss);
+        load_sources(&workspace, &source_files, &mut source_codes);
+        tokenize_sources(&workspace, &source_files, &source_codes, &mut tokenss);
 
+        let source = SyntaxSource::from_file(source_file_id, &source_files);
         let tokens = tokenss.get(&source).unwrap();
         let ast_root = ast::parse::parse(tokens);
 
@@ -127,18 +114,18 @@ mod tests {
         let name = "command";
 
         let mut ids = IdProvider::new();
-        let mut sources = SourceComponent::default();
         let mut source_files = SourceFileComponent::default();
         let mut source_codes = SourceCodeComponent::default();
         let mut tokenss = TokensComponent::default();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let (workspace, source) =
-            Workspace::new_with_file(source_path, &mut source_files, &mut sources, &mut ids);
+        let (workspace, source_file_id) =
+            Workspace::new_with_file(source_path, &mut source_files, &mut ids);
 
-        load_sources(&workspace, &source_files, &sources, &mut source_codes);
-        tokenize_sources(&workspace, &sources, &source_codes, &mut tokenss);
+        load_sources(&workspace, &source_files, &mut source_codes);
+        tokenize_sources(&workspace, &source_files, &source_codes, &mut tokenss);
 
+        let source = SyntaxSource::from_file(source_file_id, &source_files);
         let tokens = tokenss.get(&source).unwrap();
         let ast_root = ast::parse::parse(tokens);
 

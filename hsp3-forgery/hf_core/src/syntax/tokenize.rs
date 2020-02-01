@@ -11,11 +11,11 @@ pub(crate) fn tokenize(source: SyntaxSource, source_code: SourceCode) -> Vec<Tok
 pub(crate) type TokensComponent = HashMap<SyntaxSource, Vec<TokenData>>;
 
 pub(crate) fn tokenize_sources(
-    sources: &[(&SyntaxSource, &SourceCode)],
+    sources: &[(SyntaxSource, &SourceCode)],
     tokenss: &mut TokensComponent,
 ) {
-    for &(source, source_code) in sources {
-        let tokens = tokenize(source.clone(), source_code.clone());
+    for (source, source_code) in sources {
+        let tokens = tokenize(source.clone(), (*source_code).clone());
         tokenss.insert(source.clone(), tokens);
     }
 }

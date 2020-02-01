@@ -8,6 +8,18 @@ pub(crate) struct SyntaxSource {
     pub(crate) source_files: *const SourceFileComponent,
 }
 
+impl SyntaxSource {
+    pub(crate) fn from_file(
+        source_file_id: SourceFileId,
+        source_files: &SourceFileComponent,
+    ) -> Self {
+        SyntaxSource {
+            source_file_id,
+            source_files: source_files as *const SourceFileComponent,
+        }
+    }
+}
+
 impl fmt::Debug for SyntaxSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match unsafe { &*self.source_files }.get(&self.source_file_id) {
