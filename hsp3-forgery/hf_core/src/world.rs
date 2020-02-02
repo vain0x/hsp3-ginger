@@ -1,26 +1,11 @@
-use super::*;
 use crate::ast::*;
-use crate::framework::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 use std::rc::Rc;
-
-#[derive(Default)]
-pub(crate) struct World {
-    pub(crate) ids: IdProvider,
-    pub(crate) workspaces: HashSet<Workspace>,
-}
-
-impl World {
-    pub(crate) fn new() -> Self {
-        Self::default()
-    }
-}
 
 pub(crate) fn load_source_codes(
     source_files: impl Iterator<Item = SourceFile>,
     source_codes: &mut HashMap<SourceFile, SourceCode>,
-    w: &mut World,
 ) {
     for source_file in source_files {
         let source_code = match fs::read_to_string(source_file.source_path.as_ref()) {
@@ -34,7 +19,6 @@ pub(crate) fn load_source_codes(
 pub(crate) fn tokenize(
     source_codes: &HashMap<SourceFile, SourceCode>,
     tokenss: &mut HashMap<SyntaxSource, Vec<TokenData>>,
-    w: &mut World,
 ) {
     let mut sources = vec![];
     for (source_file, source_code) in source_codes {
@@ -51,7 +35,6 @@ pub(crate) fn tokenize(
 pub(crate) fn parse(
     tokenss: &HashMap<SyntaxSource, Vec<TokenData>>,
     syntax_roots: &mut HashMap<SyntaxSource, ANodeData>,
-    w: &mut World,
 ) {
     let mut sources = vec![];
     for (source, tokens) in tokenss {

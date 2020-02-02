@@ -7,9 +7,6 @@ pub(crate) mod token;
 pub(crate) mod workspace;
 pub(crate) mod world;
 
-pub(crate) use crate::workspace::Workspace;
-pub(crate) use crate::world::World;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -35,7 +32,6 @@ mod tests {
         let test_names = vec!["assign", "command", "exit_42", "syntax_error"];
 
         for name in test_names {
-            let mut w = World::new();
             let mut source_files = HashSet::new();
             let mut source_codes = HashMap::new();
             let mut tokenss = HashMap::new();
@@ -45,9 +41,9 @@ mod tests {
             let source_file = SourceFile { source_path };
             source_files.insert(source_file.clone());
 
-            world::load_source_codes(source_files.iter().cloned(), &mut source_codes, &mut w);
-            world::tokenize(&source_codes, &mut tokenss, &mut w);
-            world::parse(&tokenss, &mut syntax_roots, &mut w);
+            world::load_source_codes(source_files.iter().cloned(), &mut source_codes);
+            world::tokenize(&source_codes, &mut tokenss);
+            world::parse(&tokenss, &mut syntax_roots);
 
             let source = SyntaxSource::from_file(source_file);
             let ast_root = syntax_roots.get(&source).unwrap();
@@ -64,7 +60,6 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
         let name = "assign";
 
-        let mut w = World::new();
         let mut source_files = HashSet::new();
         let mut source_codes = HashMap::new();
         let mut tokenss = HashMap::new();
@@ -74,9 +69,9 @@ mod tests {
         let source_file = SourceFile { source_path };
         source_files.insert(source_file.clone());
 
-        world::load_source_codes(source_files.iter().cloned(), &mut source_codes, &mut w);
-        world::tokenize(&source_codes, &mut tokenss, &mut w);
-        world::parse(&tokenss, &mut syntax_roots, &mut w);
+        world::load_source_codes(source_files.iter().cloned(), &mut source_codes);
+        world::tokenize(&source_codes, &mut tokenss);
+        world::parse(&tokenss, &mut syntax_roots);
 
         let source = SyntaxSource::from_file(source_file);
         let tokens = tokenss.get(&source).unwrap();
@@ -97,7 +92,6 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
         let name = "command";
 
-        let mut w = World::new();
         let mut source_files = HashSet::new();
         let mut source_codes = HashMap::new();
         let mut tokenss = HashMap::new();
@@ -107,9 +101,9 @@ mod tests {
         let source_file = SourceFile { source_path };
         source_files.insert(source_file.clone());
 
-        world::load_source_codes(source_files.iter().cloned(), &mut source_codes, &mut w);
-        world::tokenize(&source_codes, &mut tokenss, &mut w);
-        world::parse(&tokenss, &mut syntax_roots, &mut w);
+        world::load_source_codes(source_files.iter().cloned(), &mut source_codes);
+        world::tokenize(&source_codes, &mut tokenss);
+        world::parse(&tokenss, &mut syntax_roots);
 
         let source = SyntaxSource::from_file(source_file);
         let ast_root = syntax_roots.get(&source).unwrap();

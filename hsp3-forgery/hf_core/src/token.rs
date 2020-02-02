@@ -7,7 +7,6 @@ pub(crate) mod tokenize;
 pub(crate) mod tokenize_context;
 pub(crate) mod tokenize_rules;
 
-pub(crate) use crate::framework::*;
 pub(crate) use crate::source::*;
 pub(crate) use location::Location;
 pub(crate) use syntax_source::*;
@@ -16,8 +15,7 @@ pub(crate) use token::{Token, TokenData};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::workspace::Workspace;
-    use crate::world::{self, World};
+    use crate::world;
     use std::collections::{HashMap, HashSet};
     use std::fs;
     use std::io::Write;
@@ -29,7 +27,6 @@ mod tests {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
 
-        let mut w = World::new();
         let mut source_files = HashSet::new();
         let mut source_codes = HashMap::new();
         let mut tokenss = HashMap::new();
@@ -38,8 +35,8 @@ mod tests {
         let source_file = SourceFile { source_path };
         source_files.insert(source_file.clone());
 
-        world::load_source_codes(source_files.iter().cloned(), &mut source_codes, &mut w);
-        world::tokenize(&source_codes, &mut tokenss, &mut w);
+        world::load_source_codes(source_files.iter().cloned(), &mut source_codes);
+        world::tokenize(&source_codes, &mut tokenss);
 
         let tokens = tokenss.get(&SyntaxSource::from_file(source_file)).unwrap();
 
