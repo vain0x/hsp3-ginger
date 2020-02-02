@@ -9,6 +9,7 @@ pub(crate) mod parse_pp;
 pub(crate) mod parse_stmt;
 pub(crate) mod stmt;
 
+pub(crate) use crate::token::*;
 pub(crate) use error::*;
 pub(crate) use expr::*;
 pub(crate) use node::*;

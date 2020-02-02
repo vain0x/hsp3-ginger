@@ -1,5 +1,4 @@
 use super::*;
-use crate::syntax::*;
 
 #[derive(Clone, Debug)]
 pub(crate) enum ALabel {

@@ -1,7 +1,7 @@
 use super::*;
 use crate::ast::*;
 use crate::framework::*;
-use crate::syntax::*;
+use crate::token::*;
 use std::collections::HashSet;
 
 #[derive(Default)]
@@ -31,7 +31,7 @@ pub(crate) fn tokenize(w: &mut World) {
         sources.push((source, source_code));
     }
 
-    crate::syntax::tokenize::tokenize_sources(&sources, &mut w.tokenss);
+    crate::token::tokenize::tokenize_sources(&sources, &mut w.tokenss);
 }
 
 pub(crate) fn parse(w: &mut World) {

@@ -1,5 +1,4 @@
 use super::*;
-use crate::syntax::*;
 
 struct Context {
     in_module: bool,

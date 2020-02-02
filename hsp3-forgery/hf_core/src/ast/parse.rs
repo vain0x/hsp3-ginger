@@ -1,5 +1,4 @@
 use super::*;
-use crate::syntax::*;
 use std::collections::HashMap;
 
 pub(crate) type SyntaxRootComponent = HashMap<SyntaxSource, ANodeData>;

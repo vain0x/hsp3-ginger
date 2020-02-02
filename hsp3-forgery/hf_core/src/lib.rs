@@ -2,7 +2,7 @@ pub(crate) mod analysis;
 pub(crate) mod ast;
 pub(crate) mod framework;
 pub(crate) mod source;
-pub(crate) mod syntax;
+pub(crate) mod token;
 pub(crate) mod workspace;
 pub(crate) mod world;
 
@@ -12,7 +12,7 @@ pub(crate) use crate::world::World;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::syntax::*;
+    use crate::token::*;
     use std::fs;
     use std::io::Write;
     use std::path::{Path, PathBuf};
@@ -73,7 +73,7 @@ mod tests {
         let tokens = w.tokenss.get(&source).unwrap();
         let ast_root = ast::parse::parse(tokens);
 
-        let position = syntax::Position {
+        let position = Position {
             line: 4,
             character: 1,
         };
@@ -102,7 +102,7 @@ mod tests {
         let ast_root = w.syntax_roots.get(&source).unwrap();
 
         // first
-        let position = syntax::Position {
+        let position = Position {
             line: 0,
             character: 7,
         };
@@ -110,7 +110,7 @@ mod tests {
         assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(0));
 
         // second
-        let position = syntax::Position {
+        let position = Position {
             line: 0,
             character: 13,
         };
@@ -118,7 +118,7 @@ mod tests {
         assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(1));
 
         // 範囲外
-        let position = syntax::Position {
+        let position = Position {
             line: 0,
             character: 1,
         };

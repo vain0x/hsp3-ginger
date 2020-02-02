@@ -1,7 +1,6 @@
 use super::parse_expr::*;
 use super::parse_pp::*;
 use super::*;
-use crate::syntax::*;
 use parse_context::ParseContext;
 
 type Px = ParseContext;

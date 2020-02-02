@@ -1,5 +1,4 @@
 use super::*;
-use crate::syntax::*;
 use parse_context::ParseContext;
 
 type Px = ParseContext;

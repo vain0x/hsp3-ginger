@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::syntax::*;
+use crate::token::*;
 
 pub(crate) fn get_completion_list(ast_root: &ANodeData, position: Position) -> Vec<String> {
     fn on_stmt(a: &AStmtNode, idents: &mut Vec<String>) {

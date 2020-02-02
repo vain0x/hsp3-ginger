@@ -1,5 +1,5 @@
 use crate::framework::*;
-use crate::syntax::*;
+use crate::token::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
