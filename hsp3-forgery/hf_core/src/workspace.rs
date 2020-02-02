@@ -14,15 +14,13 @@ impl Workspace {
     /// そのワークスペースと、その唯一のソースファイルを返す。
     pub(crate) fn new_with_file(
         source_path: Rc<PathBuf>,
-        source_files: &mut SourceFileComponent,
         ids: &mut IdProvider,
-    ) -> (Workspace, SourceFileId) {
+    ) -> (Workspace, SourceFile) {
         let workspace_id = ids.fresh();
         let workspace = Workspace { workspace_id };
 
-        let source_file_id = ids.fresh();
-        source_files.insert(source_file_id, SourceFile { source_path });
+        let source_file = SourceFile { source_path };
 
-        (workspace, source_file_id)
+        (workspace, source_file)
     }
 }

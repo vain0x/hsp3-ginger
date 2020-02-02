@@ -1,11 +1,8 @@
-use super::*;
-use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-pub(crate) type SourceFileId = Id<SourceFile>;
-
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct SourceFile {
     pub(crate) source_path: Rc<PathBuf>,
 }
@@ -27,5 +24,3 @@ impl fmt::Display for SourceFile {
         write!(f, "{}", self.source_path.to_string_lossy())
     }
 }
-
-pub(crate) type SourceFileComponent = HashMap<SourceFileId, SourceFile>;

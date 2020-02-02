@@ -14,7 +14,7 @@ pub(crate) use crate::world::World;
 mod tests {
     use super::*;
     use crate::token::*;
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
     use std::fs;
     use std::io::Write;
     use std::path::{Path, PathBuf};
@@ -36,20 +36,20 @@ mod tests {
 
         for name in test_names {
             let mut w = World::new();
+            let mut source_files = HashSet::new();
             let mut source_codes = HashMap::new();
             let mut tokenss = HashMap::new();
             let mut syntax_roots = HashMap::new();
 
             let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
+            let source_file = SourceFile { source_path };
+            source_files.insert(source_file.clone());
 
-            let (_workspace, source_file_id) =
-                Workspace::new_with_file(source_path.clone(), &mut w.source_files, &mut w.ids);
-
-            world::load_source_codes(&mut source_codes, &mut w);
+            world::load_source_codes(source_files.iter().cloned(), &mut source_codes, &mut w);
             world::tokenize(&source_codes, &mut tokenss, &mut w);
             world::parse(&tokenss, &mut syntax_roots, &mut w);
 
-            let source = SyntaxSource::from_file(source_file_id, &w.source_files);
+            let source = SyntaxSource::from_file(source_file);
             let ast_root = syntax_roots.get(&source).unwrap();
 
             write_snapshot(name, "ast.txt", &tests_dir, |out| {
@@ -65,19 +65,20 @@ mod tests {
         let name = "assign";
 
         let mut w = World::new();
+        let mut source_files = HashSet::new();
         let mut source_codes = HashMap::new();
         let mut tokenss = HashMap::new();
         let mut syntax_roots = HashMap::new();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let (_workspace, source_file_id) =
-            Workspace::new_with_file(source_path, &mut w.source_files, &mut w.ids);
+        let source_file = SourceFile { source_path };
+        source_files.insert(source_file.clone());
 
-        world::load_source_codes(&mut source_codes, &mut w);
+        world::load_source_codes(source_files.iter().cloned(), &mut source_codes, &mut w);
         world::tokenize(&source_codes, &mut tokenss, &mut w);
         world::parse(&tokenss, &mut syntax_roots, &mut w);
 
-        let source = SyntaxSource::from_file(source_file_id, &w.source_files);
+        let source = SyntaxSource::from_file(source_file);
         let tokens = tokenss.get(&source).unwrap();
         let ast_root = ast::parse::parse(tokens);
 
@@ -97,19 +98,20 @@ mod tests {
         let name = "command";
 
         let mut w = World::new();
+        let mut source_files = HashSet::new();
         let mut source_codes = HashMap::new();
         let mut tokenss = HashMap::new();
         let mut syntax_roots = HashMap::new();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let (_workspace, source_file_id) =
-            Workspace::new_with_file(source_path, &mut w.source_files, &mut w.ids);
+        let source_file = SourceFile { source_path };
+        source_files.insert(source_file.clone());
 
-        world::load_source_codes(&mut source_codes, &mut w);
+        world::load_source_codes(source_files.iter().cloned(), &mut source_codes, &mut w);
         world::tokenize(&source_codes, &mut tokenss, &mut w);
         world::parse(&tokenss, &mut syntax_roots, &mut w);
 
-        let source = SyntaxSource::from_file(source_file_id, &w.source_files);
+        let source = SyntaxSource::from_file(source_file);
         let ast_root = syntax_roots.get(&source).unwrap();
 
         // first
