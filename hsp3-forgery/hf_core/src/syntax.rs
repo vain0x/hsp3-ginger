@@ -1,7 +1,6 @@
 pub(crate) mod keyword;
 pub(crate) mod location;
 pub(crate) mod pun;
-pub(crate) mod source_loader;
 pub(crate) mod syntax_source;
 pub(crate) mod token;
 pub(crate) mod tokenize;
@@ -11,7 +10,6 @@ pub(crate) mod tokenize_rules;
 pub(crate) use crate::framework::*;
 pub(crate) use crate::source::*;
 pub(crate) use location::Location;
-pub(crate) use source_loader::*;
 pub(crate) use syntax_source::*;
 pub(crate) use token::{Token, TokenData};
 pub(crate) use tokenize::TokensComponent;

@@ -10,6 +10,7 @@ pub(crate) use workspace::Workspace;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source::*;
     use crate::syntax::*;
     use std::fs;
     use std::io::Write;
