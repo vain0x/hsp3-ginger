@@ -30,14 +30,15 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
 
         let mut w = World::new();
+        let mut source_codes = HashMap::new();
         let mut tokenss = HashMap::new();
         let source_path = Rc::new(tests_dir.join("syntax/syntax.hsp"));
 
         let (_workspace, source_file_id) =
             Workspace::new_with_file(source_path, &mut w.source_files, &mut w.ids);
 
-        world::load_source_codes(&mut w);
-        world::tokenize(&mut tokenss, &mut w);
+        world::load_source_codes(&mut source_codes, &mut w);
+        world::tokenize(&source_codes, &mut tokenss, &mut w);
 
         let tokens = tokenss
             .get(&SyntaxSource::from_file(source_file_id, &w.source_files))

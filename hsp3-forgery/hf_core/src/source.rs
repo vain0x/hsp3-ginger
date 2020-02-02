@@ -2,7 +2,6 @@ pub(crate) mod position;
 pub(crate) mod range;
 pub(crate) mod source_code;
 pub(crate) mod source_file;
-pub(crate) mod source_loader;
 pub(crate) mod text_cursor;
 
 pub(crate) use crate::framework::*;
