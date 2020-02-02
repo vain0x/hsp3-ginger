@@ -12,13 +12,13 @@ pub(crate) use crate::source::*;
 pub(crate) use location::Location;
 pub(crate) use syntax_source::*;
 pub(crate) use token::{Token, TokenData};
-pub(crate) use tokenize::TokensComponent;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::workspace::Workspace;
     use crate::world::{self, World};
+    use std::collections::HashMap;
     use std::fs;
     use std::io::Write;
     use std::path::PathBuf;
@@ -30,16 +30,16 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
 
         let mut w = World::new();
+        let mut tokenss = HashMap::new();
         let source_path = Rc::new(tests_dir.join("syntax/syntax.hsp"));
 
         let (_workspace, source_file_id) =
             Workspace::new_with_file(source_path, &mut w.source_files, &mut w.ids);
 
         world::load_source_codes(&mut w);
-        world::tokenize(&mut w);
+        world::tokenize(&mut tokenss, &mut w);
 
-        let tokens = w
-            .tokenss
+        let tokens = tokenss
             .get(&SyntaxSource::from_file(source_file_id, &w.source_files))
             .unwrap();
 
