@@ -1,7 +1,7 @@
 use super::*;
 use std::fmt;
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub(crate) struct Range {
     pub(crate) start: Position,
     pub(crate) end: Position,

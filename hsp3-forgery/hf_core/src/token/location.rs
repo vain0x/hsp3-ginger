@@ -1,7 +1,7 @@
 use super::*;
 use std::fmt;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Location {
     pub(crate) source: SyntaxSource,
     pub(crate) range: Range,

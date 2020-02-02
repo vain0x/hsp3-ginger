@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Position {
     pub(crate) line: usize,
     pub(crate) character: usize,
