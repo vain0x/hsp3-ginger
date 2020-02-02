@@ -4,40 +4,19 @@ pub(crate) mod framework;
 pub(crate) mod source;
 pub(crate) mod syntax;
 pub(crate) mod workspace;
+pub(crate) mod world;
 
-pub(crate) use workspace::Workspace;
+pub(crate) use crate::workspace::Workspace;
+pub(crate) use crate::world::World;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::source::*;
     use crate::syntax::*;
     use std::fs;
     use std::io::Write;
     use std::path::{Path, PathBuf};
     use std::rc::Rc;
-
-    fn load_sources(
-        workspace: &Workspace,
-        source_files: &SourceFileComponent,
-        source_codes: &mut SourceCodeComponent,
-    ) {
-        syntax::source_loader::load_sources(&source_files, source_codes);
-    }
-
-    fn tokenize_sources(
-        workspace: &Workspace,
-        source_files: &SourceFileComponent,
-        source_codes: &SourceCodeComponent,
-        tokenss: &mut TokensComponent,
-    ) {
-        let mut ss = vec![];
-        for (&source_file_id, source_code) in source_codes {
-            let source = SyntaxSource::from_file(source_file_id, source_files);
-            ss.push((source, source_code));
-        }
-        syntax::tokenize::tokenize_sources(&ss, tokenss);
-    }
 
     fn write_snapshot(name: &str, suffix: &str, tests_dir: &Path, f: impl Fn(&mut Vec<u8>)) {
         let mut out = vec![];
@@ -51,24 +30,21 @@ mod tests {
     fn snapshot_tests() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
-        let mut ids = IdProvider::new();
-        let mut source_files = SourceFileComponent::default();
-
         let test_names = vec!["assign", "command", "exit_42", "syntax_error"];
 
         for name in test_names {
+            let mut w = World::new();
+
             let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
 
-            let (workspace, source_file_id) =
-                Workspace::new_with_file(source_path.clone(), &mut source_files, &mut ids);
-            let mut source_codes = SourceCodeComponent::default();
-            let mut tokenss = TokensComponent::default();
+            let (_workspace, source_file_id) =
+                Workspace::new_with_file(source_path.clone(), &mut w.source_files, &mut w.ids);
 
-            load_sources(&workspace, &source_files, &mut source_codes);
-            tokenize_sources(&workspace, &source_files, &source_codes, &mut tokenss);
+            world::load_source_codes(&mut w);
+            world::tokenize(&mut w);
 
-            let source = SyntaxSource::from_file(source_file_id, &source_files);
-            let tokens = tokenss.get(&source).unwrap();
+            let source = SyntaxSource::from_file(source_file_id, &w.source_files);
+            let tokens = w.tokenss.get(&source).unwrap();
             let ast_root = ast::parse::parse(tokens);
 
             write_snapshot(name, "ast.txt", &tests_dir, |out| {
@@ -83,20 +59,17 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
         let name = "assign";
 
-        let mut ids = IdProvider::new();
-        let mut source_files = SourceFileComponent::default();
-        let mut source_codes = SourceCodeComponent::default();
-        let mut tokenss = TokensComponent::default();
+        let mut w = World::new();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let (workspace, source_file_id) =
-            Workspace::new_with_file(source_path, &mut source_files, &mut ids);
+        let (_workspace, source_file_id) =
+            Workspace::new_with_file(source_path, &mut w.source_files, &mut w.ids);
 
-        load_sources(&workspace, &source_files, &mut source_codes);
-        tokenize_sources(&workspace, &source_files, &source_codes, &mut tokenss);
+        world::load_source_codes(&mut w);
+        world::tokenize(&mut w);
 
-        let source = SyntaxSource::from_file(source_file_id, &source_files);
-        let tokens = tokenss.get(&source).unwrap();
+        let source = SyntaxSource::from_file(source_file_id, &w.source_files);
+        let tokens = w.tokenss.get(&source).unwrap();
         let ast_root = ast::parse::parse(tokens);
 
         let position = syntax::Position {
@@ -114,20 +87,17 @@ mod tests {
         let tests_dir = root_dir.join("../tests");
         let name = "command";
 
-        let mut ids = IdProvider::new();
-        let mut source_files = SourceFileComponent::default();
-        let mut source_codes = SourceCodeComponent::default();
-        let mut tokenss = TokensComponent::default();
+        let mut w = World::new();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let (workspace, source_file_id) =
-            Workspace::new_with_file(source_path, &mut source_files, &mut ids);
+        let (_workspace, source_file_id) =
+            Workspace::new_with_file(source_path, &mut w.source_files, &mut w.ids);
 
-        load_sources(&workspace, &source_files, &mut source_codes);
-        tokenize_sources(&workspace, &source_files, &source_codes, &mut tokenss);
+        world::load_source_codes(&mut w);
+        world::tokenize(&mut w);
 
-        let source = SyntaxSource::from_file(source_file_id, &source_files);
-        let tokens = tokenss.get(&source).unwrap();
+        let source = SyntaxSource::from_file(source_file_id, &w.source_files);
+        let tokens = w.tokenss.get(&source).unwrap();
         let ast_root = ast::parse::parse(tokens);
 
         // first

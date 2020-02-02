@@ -17,6 +17,8 @@ pub(crate) use tokenize::TokensComponent;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::workspace::Workspace;
+    use crate::world::{self, World};
     use std::fs;
     use std::io::Write;
     use std::path::PathBuf;
@@ -27,24 +29,19 @@ mod tests {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
 
-        let source_file_id = Id::new(1);
+        let mut w = World::new();
         let source_path = Rc::new(tests_dir.join("syntax/syntax.hsp"));
 
-        let mut source_files = SourceFileComponent::new();
-        source_files.insert(
-            source_file_id,
-            SourceFile {
-                source_path: source_path.clone(),
-            },
-        );
+        let (_workspace, source_file_id) =
+            Workspace::new_with_file(source_path, &mut w.source_files, &mut w.ids);
 
-        let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
-        let source = SyntaxSource {
-            source_file_id,
-            source_files: &source_files as *const SourceFileComponent,
-        };
+        world::load_source_codes(&mut w);
+        world::tokenize(&mut w);
 
-        let tokens = tokenize::tokenize(source, Rc::new(source_code));
+        let tokens = w
+            .tokenss
+            .get(&SyntaxSource::from_file(source_file_id, &w.source_files))
+            .unwrap();
 
         let mut snapshot = vec![];
 

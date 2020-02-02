@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::rc::Rc;
 
-pub(crate) type SourceCodeComponent = HashMap<SourceFileId, SourceCode>;
-
 pub(crate) fn load_sources(
     source_files: &SourceFileComponent,
     source_codes: &mut SourceCodeComponent,
