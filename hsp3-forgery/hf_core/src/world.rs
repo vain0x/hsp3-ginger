@@ -1,4 +1,5 @@
 use super::*;
+use crate::ast::*;
 use crate::framework::*;
 use crate::syntax::*;
 use std::collections::HashSet;
@@ -10,6 +11,7 @@ pub(crate) struct World {
     pub(crate) source_files: SourceFileComponent,
     pub(crate) source_codes: SourceCodeComponent,
     pub(crate) tokenss: TokensComponent,
+    pub(crate) syntax_roots: SyntaxRootComponent,
 }
 
 impl World {
@@ -30,4 +32,13 @@ pub(crate) fn tokenize(w: &mut World) {
     }
 
     crate::syntax::tokenize::tokenize_sources(&sources, &mut w.tokenss);
+}
+
+pub(crate) fn parse(w: &mut World) {
+    let mut sources = vec![];
+    for (source, tokens) in &w.tokenss {
+        sources.push((source.clone(), tokens.as_slice()));
+    }
+
+    crate::ast::parse::parse_sources(&sources, &mut w.syntax_roots);
 }
