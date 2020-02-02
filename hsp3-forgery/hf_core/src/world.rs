@@ -2,7 +2,7 @@ use super::*;
 use crate::ast::*;
 use crate::framework::*;
 use crate::token::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub(crate) struct World {
@@ -11,7 +11,6 @@ pub(crate) struct World {
     pub(crate) source_files: SourceFileComponent,
     pub(crate) source_codes: SourceCodeComponent,
     pub(crate) tokenss: TokensComponent,
-    pub(crate) syntax_roots: SyntaxRootComponent,
 }
 
 impl World {
@@ -34,11 +33,14 @@ pub(crate) fn tokenize(w: &mut World) {
     crate::token::tokenize::tokenize_sources(&sources, &mut w.tokenss);
 }
 
-pub(crate) fn parse(w: &mut World) {
+pub(crate) fn parse(syntax_roots: &mut HashMap<SyntaxSource, ANodeData>, w: &mut World) {
     let mut sources = vec![];
     for (source, tokens) in &w.tokenss {
         sources.push((source.clone(), tokens.as_slice()));
     }
 
-    crate::ast::parse::parse_sources(&sources, &mut w.syntax_roots);
+    for (source, tokens) in sources {
+        let root = crate::ast::parse::parse(tokens);
+        syntax_roots.insert(source.clone(), root);
+    }
 }

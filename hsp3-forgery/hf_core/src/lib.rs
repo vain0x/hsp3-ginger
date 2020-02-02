@@ -14,6 +14,7 @@ pub(crate) use crate::world::World;
 mod tests {
     use super::*;
     use crate::token::*;
+    use std::collections::HashMap;
     use std::fs;
     use std::io::Write;
     use std::path::{Path, PathBuf};
@@ -35,6 +36,7 @@ mod tests {
 
         for name in test_names {
             let mut w = World::new();
+            let mut syntax_roots = HashMap::new();
 
             let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
 
@@ -43,10 +45,10 @@ mod tests {
 
             world::load_source_codes(&mut w);
             world::tokenize(&mut w);
-            world::parse(&mut w);
+            world::parse(&mut syntax_roots, &mut w);
 
             let source = SyntaxSource::from_file(source_file_id, &w.source_files);
-            let ast_root = w.syntax_roots.get(&source).unwrap();
+            let ast_root = syntax_roots.get(&source).unwrap();
 
             write_snapshot(name, "ast.txt", &tests_dir, |out| {
                 write!(out, "{:#?}\n", ast_root).unwrap();
@@ -61,6 +63,7 @@ mod tests {
         let name = "assign";
 
         let mut w = World::new();
+        let mut syntax_roots = HashMap::new();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
         let (_workspace, source_file_id) =
@@ -68,7 +71,7 @@ mod tests {
 
         world::load_source_codes(&mut w);
         world::tokenize(&mut w);
-        world::parse(&mut w);
+        world::parse(&mut syntax_roots, &mut w);
 
         let source = SyntaxSource::from_file(source_file_id, &w.source_files);
         let tokens = w.tokenss.get(&source).unwrap();
@@ -90,6 +93,7 @@ mod tests {
         let name = "command";
 
         let mut w = World::new();
+        let mut syntax_roots = HashMap::new();
 
         let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
         let (_workspace, source_file_id) =
@@ -97,10 +101,10 @@ mod tests {
 
         world::load_source_codes(&mut w);
         world::tokenize(&mut w);
-        world::parse(&mut w);
+        world::parse(&mut syntax_roots, &mut w);
 
         let source = SyntaxSource::from_file(source_file_id, &w.source_files);
-        let ast_root = w.syntax_roots.get(&source).unwrap();
+        let ast_root = syntax_roots.get(&source).unwrap();
 
         // first
         let position = Position {

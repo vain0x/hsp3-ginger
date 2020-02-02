@@ -13,6 +13,5 @@ pub(crate) use crate::token::*;
 pub(crate) use error::*;
 pub(crate) use expr::*;
 pub(crate) use node::*;
-pub(crate) use parse::SyntaxRootComponent;
 pub(crate) use parse_context::ParseContext;
 pub(crate) use stmt::*;
