@@ -9,7 +9,7 @@ use crate::source::{Position, Range};
 use crate::token::*;
 
 pub(crate) use crate::ast::error::SyntaxError;
-pub(crate) use crate::token::syntax_source::*;
+pub(crate) use crate::token::token_source::*;
 pub(crate) use green_element::*;
 pub(crate) use green_node::*;
 pub(crate) use syntax_node::*;

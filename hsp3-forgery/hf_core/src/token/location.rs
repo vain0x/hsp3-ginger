@@ -3,7 +3,7 @@ use std::fmt;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Location {
-    pub(crate) source: SyntaxSource,
+    pub(crate) source: TokenSource,
     pub(crate) range: Range,
 }
 

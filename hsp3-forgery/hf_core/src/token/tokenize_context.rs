@@ -3,7 +3,7 @@ use std::cmp::min;
 use std::rc::Rc;
 
 pub(crate) struct TokenizeContext {
-    source: SyntaxSource,
+    source: TokenSource,
 
     source_code: Rc<SourceCode>,
 
@@ -21,7 +21,7 @@ pub(crate) struct TokenizeContext {
 }
 
 impl TokenizeContext {
-    pub(crate) fn new(source: SyntaxSource, source_code: Rc<SourceCode>) -> Self {
+    pub(crate) fn new(source: TokenSource, source_code: Rc<SourceCode>) -> Self {
         TokenizeContext {
             source,
             source_code,

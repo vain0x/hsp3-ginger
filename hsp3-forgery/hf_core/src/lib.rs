@@ -45,7 +45,7 @@ mod tests {
             world::tokenize(&source_codes, &mut tokenss);
             world::parse(&tokenss, &mut syntax_roots);
 
-            let source = SyntaxSource::from_file(source_file);
+            let source = TokenSource::from_file(source_file);
             let ast_root = syntax_roots.get(&source).unwrap();
 
             write_snapshot(name, "ast.txt", &tests_dir, |out| {
@@ -73,7 +73,7 @@ mod tests {
         world::tokenize(&source_codes, &mut tokenss);
         world::parse(&tokenss, &mut syntax_roots);
 
-        let source = SyntaxSource::from_file(source_file);
+        let source = TokenSource::from_file(source_file);
         let tokens = tokenss.get(&source).unwrap();
         let ast_root = ast::parse::parse(tokens);
 
@@ -105,7 +105,7 @@ mod tests {
         world::tokenize(&source_codes, &mut tokenss);
         world::parse(&tokenss, &mut syntax_roots);
 
-        let source = SyntaxSource::from_file(source_file);
+        let source = TokenSource::from_file(source_file);
         let ast_root = syntax_roots.get(&source).unwrap();
 
         // first

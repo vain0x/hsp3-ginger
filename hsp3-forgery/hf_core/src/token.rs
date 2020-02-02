@@ -1,16 +1,16 @@
 pub(crate) mod keyword;
 pub(crate) mod location;
 pub(crate) mod pun;
-pub(crate) mod syntax_source;
 pub(crate) mod token;
+pub(crate) mod token_source;
 pub(crate) mod tokenize;
 pub(crate) mod tokenize_context;
 pub(crate) mod tokenize_rules;
 
 pub(crate) use crate::source::*;
 pub(crate) use location::Location;
-pub(crate) use syntax_source::*;
 pub(crate) use token::{Token, TokenData};
+pub(crate) use token_source::*;
 
 #[cfg(test)]
 mod tests {
@@ -38,7 +38,7 @@ mod tests {
         world::load_source_codes(source_files.iter().cloned(), &mut source_codes);
         world::tokenize(&source_codes, &mut tokenss);
 
-        let tokens = tokenss.get(&SyntaxSource::from_file(source_file)).unwrap();
+        let tokens = tokenss.get(&TokenSource::from_file(source_file)).unwrap();
 
         let mut snapshot = vec![];
 

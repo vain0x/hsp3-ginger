@@ -18,11 +18,11 @@ pub(crate) fn load_source_codes(
 
 pub(crate) fn tokenize(
     source_codes: &HashMap<SourceFile, Rc<SourceCode>>,
-    tokenss: &mut HashMap<SyntaxSource, Vec<TokenData>>,
+    tokenss: &mut HashMap<TokenSource, Vec<TokenData>>,
 ) {
     let mut sources = vec![];
     for (source_file, source_code) in source_codes {
-        let source = SyntaxSource::from_file(source_file.clone());
+        let source = TokenSource::from_file(source_file.clone());
         sources.push((source, source_code));
     }
 
@@ -33,8 +33,8 @@ pub(crate) fn tokenize(
 }
 
 pub(crate) fn parse(
-    tokenss: &HashMap<SyntaxSource, Vec<TokenData>>,
-    syntax_roots: &mut HashMap<SyntaxSource, ANodeData>,
+    tokenss: &HashMap<TokenSource, Vec<TokenData>>,
+    syntax_roots: &mut HashMap<TokenSource, ANodeData>,
 ) {
     let mut sources = vec![];
     for (source, tokens) in tokenss {
