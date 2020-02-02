@@ -1,10 +1,11 @@
 use super::*;
 use std::cmp::min;
+use std::rc::Rc;
 
 pub(crate) struct TokenizeContext {
     source: SyntaxSource,
 
-    source_code: SourceCode,
+    source_code: Rc<SourceCode>,
 
     cursor: TextCursor,
 
@@ -20,7 +21,7 @@ pub(crate) struct TokenizeContext {
 }
 
 impl TokenizeContext {
-    pub(crate) fn new(source: SyntaxSource, source_code: SourceCode) -> Self {
+    pub(crate) fn new(source: SyntaxSource, source_code: Rc<SourceCode>) -> Self {
         TokenizeContext {
             source,
             source_code,

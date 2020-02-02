@@ -9,4 +9,4 @@ pub(crate) use range::Range;
 pub(crate) use source_file::*;
 pub(crate) use text_cursor::TextCursor;
 
-pub(crate) type SourceCode = std::rc::Rc<String>;
+pub(crate) type SourceCode = String;

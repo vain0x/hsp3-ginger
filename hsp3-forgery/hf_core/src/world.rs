@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 pub(crate) fn load_source_codes(
     source_files: impl Iterator<Item = SourceFile>,
-    source_codes: &mut HashMap<SourceFile, SourceCode>,
+    source_codes: &mut HashMap<SourceFile, Rc<SourceCode>>,
 ) {
     for source_file in source_files {
         let source_code = match fs::read_to_string(source_file.source_path.as_ref()) {
@@ -17,7 +17,7 @@ pub(crate) fn load_source_codes(
 }
 
 pub(crate) fn tokenize(
-    source_codes: &HashMap<SourceFile, SourceCode>,
+    source_codes: &HashMap<SourceFile, Rc<SourceCode>>,
     tokenss: &mut HashMap<SyntaxSource, Vec<TokenData>>,
 ) {
     let mut sources = vec![];
