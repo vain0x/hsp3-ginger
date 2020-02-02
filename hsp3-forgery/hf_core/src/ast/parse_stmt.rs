@@ -6,10 +6,9 @@ use parse_context::ParseContext;
 type Px = ParseContext;
 
 impl Token {
-    pub(crate) fn is_stmt_first(self, line_head: bool) -> bool {
+    pub(crate) fn is_stmt_first(self) -> bool {
         match self {
-            Token::Hash if line_head => true,
-            Token::Ident | Token::Star => true,
+            Token::Ident | Token::Hash | Token::Star => true,
             _ => self.is_control_keyword(),
         }
     }
@@ -139,11 +138,11 @@ fn parse_root(p: &mut Px) -> ARoot {
             continue;
         }
 
-        if !p.next().is_stmt_first(p.at_head()) {
+        if !p.next().is_stmt_first() {
             p.error_next("文が必要です");
 
             // エラー回復
-            while !p.at_eof() && !p.next().is_stmt_first(p.at_head()) {
+            while !p.at_eof() && !p.next().is_stmt_first() {
                 p.bump();
             }
             continue;

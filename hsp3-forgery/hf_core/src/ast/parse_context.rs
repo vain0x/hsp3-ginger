@@ -5,7 +5,6 @@ type TokenIndex = usize;
 pub(crate) struct ParseContext {
     tokens: Vec<TokenData>,
     errors: Vec<SyntaxError>,
-    line_head: bool,
 }
 
 impl ParseContext {
@@ -15,7 +14,6 @@ impl ParseContext {
         ParseContext {
             tokens,
             errors: vec![],
-            line_head: true,
         }
     }
 
@@ -25,10 +23,6 @@ impl ParseContext {
 
     pub(crate) fn at_eof(&self) -> bool {
         self.next() == Token::Eof
-    }
-
-    pub(crate) fn at_head(&self) -> bool {
-        self.line_head
     }
 
     fn nth(&self, offset: usize) -> Option<&TokenData> {
@@ -52,12 +46,7 @@ impl ParseContext {
     pub(crate) fn bump(&mut self) -> TokenData {
         assert!(!self.tokens.is_empty());
 
-        let token = self.tokens.pop().unwrap();
-
-        // 直前のトークンが EOL なら行頭
-        self.line_head = token.token() == Token::Eol;
-
-        token
+        self.tokens.pop().unwrap()
     }
 
     pub(crate) fn eat(&mut self, token: Token) -> Option<TokenData> {

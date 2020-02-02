@@ -93,9 +93,6 @@ pub(crate) struct TokenData {
 
     pub(crate) location: Location,
 
-    /// 行頭？
-    pub(crate) line_head: bool,
-
     /// 前にスペースや改行がある？
     pub(crate) leading: bool,
 
@@ -109,7 +106,6 @@ impl TokenData {
             token,
             text,
             location,
-            line_head: false,
             leading: false,
             trailing: false,
         }
