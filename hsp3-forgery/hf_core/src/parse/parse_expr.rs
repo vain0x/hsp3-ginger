@@ -6,6 +6,7 @@ pub(crate) fn parse_expr(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_name(p),
         Token::Star => parse_label_literal(p),
+        _ if p.next().is_str_literal_first() => parse_str_literal(p),
         _ => {
             // unimplemented
             p.bump();
