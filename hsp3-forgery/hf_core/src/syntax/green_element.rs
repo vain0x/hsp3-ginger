@@ -18,6 +18,15 @@ impl From<GreenNode> for GreenElement {
     }
 }
 
+impl GreenElement {
+    pub(crate) fn position(&self) -> Position {
+        match self {
+            GreenElement::Token(token) => token.position(),
+            GreenElement::Node(node) => node.position(),
+        }
+    }
+}
+
 impl fmt::Debug for GreenElement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

@@ -27,6 +27,7 @@ pub(crate) enum NodeKind {
 pub(crate) struct GreenNode {
     kind: NodeKind,
     children: Vec<GreenElement>,
+    position: Position,
 }
 
 impl GreenNode {
@@ -34,6 +35,7 @@ impl GreenNode {
         GreenNode {
             kind: NodeKind::Other,
             children: vec![],
+            position: Position::default(),
         }
     }
 
@@ -45,13 +47,23 @@ impl GreenNode {
         &self.children
     }
 
+    pub(crate) fn position(&self) -> Position {
+        self.position
+    }
+
     pub(crate) fn is_frozen(&self) -> bool {
         self.kind() != NodeKind::Other
     }
 
     pub(crate) fn set_kind(&mut self, kind: NodeKind) {
         assert!(!self.is_frozen());
+
         self.kind = kind;
+        self.position = self
+            .children()
+            .iter()
+            .map(GreenElement::position)
+            .sum::<Position>();
     }
 
     pub(crate) fn push_token(&mut self, token: TokenData) {

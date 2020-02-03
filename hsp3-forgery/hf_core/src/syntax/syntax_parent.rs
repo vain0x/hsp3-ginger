@@ -2,6 +2,7 @@ use super::*;
 use std::rc::Rc;
 
 /// 親ノードの参照。
+#[derive(Clone)]
 pub(crate) enum SyntaxParent {
     /// 親ノードを持たないノードは、代わりにルートへの参照を持つことにしておく。
     Root { root: Rc<SyntaxRoot> },

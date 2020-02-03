@@ -8,6 +8,10 @@ pub(crate) struct Range {
 }
 
 impl Range {
+    pub(crate) fn new(start: Position, end: Position) -> Range {
+        Range { start, end }
+    }
+
     pub(crate) fn contains_loosely(self, position: Position) -> bool {
         self.start <= position && position <= self.end
     }

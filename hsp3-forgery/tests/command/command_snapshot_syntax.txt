@@ -1,211 +1,211 @@
-Root[
-    CommandStmt[
-        Ident("width"),
-        Arg[
-            IntLiteral[
-                Digit("800"),
+Root(1.1-28.1)[
+    CommandStmt(1.1-2.2)[
+        Ident(1.1-1.6) "width",
+        Arg(1.6-1.10)[
+            IntLiteral(1.6-1.9)[
+                Digit(1.6-1.9) "800",
             ],
-            Comma(","),
+            Comma(1.9-1.10) ",",
         ],
-        Arg[
-            IntLiteral[
-                Digit("512"),
+        Arg(1.10-1.13)[
+            IntLiteral(1.10-1.13)[
+                Digit(1.10-1.13) "512",
             ],
         ],
-        Eol("\n\t"),
+        Eol(1.13-2.2) "\n\t",
     ],
-    AssignStmt[
-        Ident("width"),
-        Equal("="),
-        IntLiteral[
-            Digit("1"),
+    AssignStmt(2.2-4.2)[
+        Ident(2.2-2.7) "width",
+        Equal(2.7-2.8) "=",
+        IntLiteral(2.8-2.9)[
+            Digit(2.8-2.9) "1",
         ],
-        Eol("\n\n\t"),
+        Eol(2.9-4.2) "\n\n\t",
     ],
-    CommandStmt[
-        Ident("dim"),
-        Arg[
-            Ident[
-                Ident("a"),
+    CommandStmt(4.2-5.2)[
+        Ident(4.2-4.5) "dim",
+        Arg(4.5-4.6)[
+            Ident(4.5-4.6)[
+                Ident(4.5-4.6) "a",
             ],
         ],
-        Eol("\n\t"),
+        Eol(4.6-5.2) "\n\t",
     ],
-    AssignStmt[
-        Ident("n"),
-        Equal("="),
-        IntLiteral[
-            Digit("4"),
+    AssignStmt(5.2-7.2)[
+        Ident(5.2-5.3) "n",
+        Equal(5.3-5.4) "=",
+        IntLiteral(5.4-5.5)[
+            Digit(5.4-5.5) "4",
         ],
-        Eol("\n\n\t"),
+        Eol(5.5-7.2) "\n\n\t",
     ],
-    CommandStmt[
-        Ident("dim"),
-        Arg[
-            Ident[
-                Ident("b"),
+    CommandStmt(7.2-8.2)[
+        Ident(7.2-7.5) "dim",
+        Arg(7.5-7.7)[
+            Ident(7.5-7.6)[
+                Ident(7.5-7.6) "b",
             ],
-            Comma(","),
+            Comma(7.6-7.7) ",",
         ],
-        Arg[
-            Ident[
-                Ident("n"),
+        Arg(7.7-7.9)[
+            Ident(7.7-7.8)[
+                Ident(7.7-7.8) "n",
             ],
-            Comma(","),
+            Comma(7.8-7.9) ",",
         ],
-        Arg[
-            Ident[
-                Ident("n"),
+        Arg(7.9-7.10)[
+            Ident(7.9-7.10)[
+                Ident(7.9-7.10) "n",
             ],
         ],
-        Eol("\n\t"),
+        Eol(7.10-8.2) "\n\t",
     ],
-    CommandStmt[
-        Ident("mes"),
-        Arg[
-            CallExpr[
-                Ident[
-                    Ident("b"),
+    CommandStmt(8.2-9.2)[
+        Ident(8.2-8.5) "mes",
+        Arg(8.5-8.11)[
+            CallExpr(8.5-8.11)[
+                Ident(8.5-8.6)[
+                    Ident(8.5-8.6) "b",
                 ],
-                LeftParen("("),
-                Arg[
-                    IntLiteral[
-                        Digit("1"),
+                LeftParen(8.6-8.7) "(",
+                Arg(8.7-8.9)[
+                    IntLiteral(8.7-8.8)[
+                        Digit(8.7-8.8) "1",
                     ],
-                    Comma(","),
+                    Comma(8.8-8.9) ",",
                 ],
-                Arg[
-                    IntLiteral[
-                        Digit("1"),
+                Arg(8.9-8.10)[
+                    IntLiteral(8.9-8.10)[
+                        Digit(8.9-8.10) "1",
                     ],
                 ],
-                RightParen(")"),
+                RightParen(8.10-8.11) ")",
             ],
         ],
-        Eol("\n\t"),
+        Eol(8.11-9.2) "\n\t",
     ],
-    CommandStmt[
-        Ident("mes"),
-        Arg[
-            CallExpr[
-                Ident[
-                    Ident("b"),
+    CommandStmt(9.2-10.2)[
+        Ident(9.2-9.5) "mes",
+        Arg(9.5-9.11)[
+            CallExpr(9.5-9.11)[
+                Ident(9.5-9.6)[
+                    Ident(9.5-9.6) "b",
                 ],
-                LeftParen("("),
-                Arg[
-                    LeftParen("("),
-                    IntLiteral[
-                        Digit("0"),
+                LeftParen(9.6-9.7) "(",
+                Arg(9.7-9.10)[
+                    LeftParen(9.7-9.8) "(",
+                    IntLiteral(9.8-9.9)[
+                        Digit(9.8-9.9) "0",
                     ],
-                    RightParen(")"),
+                    RightParen(9.9-9.10) ")",
                 ],
-                RightParen(")"),
+                RightParen(9.10-9.11) ")",
             ],
         ],
-        Eol("\n\t"),
+        Eol(9.11-10.2) "\n\t",
     ],
-    CommandStmt[
-        Ident("mes"),
-        Arg[
-            StrLiteral[
-                DoubleQuote("\""),
-                StrVerbatim("hello"),
-                DoubleQuote("\""),
+    CommandStmt(10.2-11.2)[
+        Ident(10.2-10.5) "mes",
+        Arg(10.5-10.12)[
+            StrLiteral(10.5-10.12)[
+                DoubleQuote(10.5-10.6) "\"",
+                StrVerbatim(10.6-10.11) "hello",
+                DoubleQuote(10.11-10.12) "\"",
             ],
         ],
-        Eol("\n\t"),
+        Eol(10.12-11.2) "\n\t",
     ],
-    CommandStmt[
-        Ident("mes"),
-        Arg[
-            StrLiteral[
-                DoubleQuote("\""),
-                StrVerbatim("world"),
+    CommandStmt(11.2-13.2)[
+        Ident(11.2-11.5) "mes",
+        Arg(11.5-11.11)[
+            StrLiteral(11.5-11.11)[
+                DoubleQuote(11.5-11.6) "\"",
+                StrVerbatim(11.6-11.11) "world",
             ],
         ],
-        Eol("\n\n\t"),
+        Eol(11.11-13.2) "\n\n\t",
     ],
-    CommandStmt[
-        Ident("mes"),
-        Arg[
-            StrLiteral[
-                LeftQuote("{\""),
-                StrVerbatim("first\n\tsecond\n\t"),
-                RightQuote("\"}"),
+    CommandStmt(13.2-17.2)[
+        Ident(13.2-13.5) "mes",
+        Arg(13.5-15.5)[
+            StrLiteral(13.5-15.4)[
+                LeftQuote(13.5-13.7) "{\"",
+                StrVerbatim(13.7-15.2) "first\n\tsecond\n\t",
+                RightQuote(15.2-15.4) "\"}",
             ],
-            Comma(","),
+            Comma(15.4-15.5) ",",
         ],
-        Arg[
-            IntLiteral[
-                Digit("3"),
-            ],
-        ],
-        Eol("\n\n\t"),
-    ],
-    Other[
-        Goto("goto"),
-        Star("*"),
-        Ident("l_dest"),
-    ],
-    Eol("\n\t"),
-    CommandStmt[
-        Ident("onexit"),
-        Gosub("gosub"),
-        Arg[
-            LabelLiteral[
-                Star("*"),
-                Ident("l_dest"),
+        Arg(15.5-15.6)[
+            IntLiteral(15.5-15.6)[
+                Digit(15.5-15.6) "3",
             ],
         ],
-        Eol("\n\t"),
+        Eol(15.6-17.2) "\n\n\t",
     ],
-    AssignStmt[
-        Ident("l"),
-        Equal("="),
-        LabelLiteral[
-            Star("*"),
-            AtSign("@"),
-            Ident("f"),
+    Other(17.2-17.13)[
+        Goto(17.2-17.6) "goto",
+        Star(17.6-17.7) "*",
+        Ident(17.7-17.13) "l_dest",
+    ],
+    Eol(17.13-18.2) "\n\t",
+    CommandStmt(18.2-19.2)[
+        Ident(18.2-18.8) "onexit",
+        Gosub(18.8-18.13) "gosub",
+        Arg(18.13-18.20)[
+            LabelLiteral(18.13-18.20)[
+                Star(18.13-18.14) "*",
+                Ident(18.14-18.20) "l_dest",
+            ],
         ],
-        Eol("\n\n"),
+        Eol(18.20-19.2) "\n\t",
     ],
-    LabelStmt[
-        LabelLiteral[
-            Star("*"),
-            Ident("l_dest"),
+    AssignStmt(19.2-21.1)[
+        Ident(19.2-19.3) "l",
+        Equal(19.3-19.4) "=",
+        LabelLiteral(19.4-19.7)[
+            Star(19.4-19.5) "*",
+            AtSign(19.5-19.6) "@",
+            Ident(19.6-19.7) "f",
         ],
-        Eol("\n"),
+        Eol(19.7-21.1) "\n\n",
     ],
-    LabelStmt[
-        LabelLiteral[
-            Star("*"),
-            AtSign("@"),
+    LabelStmt(21.1-22.1)[
+        LabelLiteral(21.1-21.8)[
+            Star(21.1-21.2) "*",
+            Ident(21.2-21.8) "l_dest",
         ],
-        Eol("\n\n\t"),
+        Eol(21.8-22.1) "\n",
     ],
-    CommandStmt[
-        Ident("mes"),
-        Colon(":"),
-    ],
-    CommandStmt[
-        Ident("mes"),
-        Eol("\n\n"),
-    ],
-    ModulePp[
-        Hash("#"),
-        Ident("module"),
-        StrLiteral[
-            DoubleQuote("\""),
-            StrVerbatim("m_with_quoted_name"),
-            DoubleQuote("\""),
+    LabelStmt(22.1-24.2)[
+        LabelLiteral(22.1-22.3)[
+            Star(22.1-22.2) "*",
+            AtSign(22.2-22.3) "@",
         ],
-        Eol("\n"),
+        Eol(22.3-24.2) "\n\n\t",
     ],
-    GlobalPp[
-        Hash("#"),
-        Ident("global"),
-        Eol("\n"),
+    CommandStmt(24.2-24.6)[
+        Ident(24.2-24.5) "mes",
+        Colon(24.5-24.6) ":",
     ],
-    Eol(""),
-    Eof(""),
+    CommandStmt(24.6-26.1)[
+        Ident(24.6-24.9) "mes",
+        Eol(24.9-26.1) "\n\n",
+    ],
+    ModulePp(26.1-27.1)[
+        Hash(26.1-26.2) "#",
+        Ident(26.2-26.8) "module",
+        StrLiteral(26.8-26.28)[
+            DoubleQuote(26.8-26.9) "\"",
+            StrVerbatim(26.9-26.27) "m_with_quoted_name",
+            DoubleQuote(26.27-26.28) "\"",
+        ],
+        Eol(26.28-27.1) "\n",
+    ],
+    GlobalPp(27.1-28.1)[
+        Hash(27.1-27.2) "#",
+        Ident(27.2-27.8) "global",
+        Eol(27.8-28.1) "\n",
+    ],
+    Eol(28.1-28.1) "",
+    Eof(28.1-28.1) "",
 ]

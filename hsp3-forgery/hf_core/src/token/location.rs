@@ -8,6 +8,14 @@ pub(crate) struct Location {
 }
 
 impl Location {
+    pub(crate) fn new(source: TokenSource, range: Range) -> Location {
+        Location { source, range }
+    }
+
+    pub(crate) fn range(&self) -> Range {
+        self.range
+    }
+
     pub(crate) fn start(&self) -> Position {
         self.range.start
     }

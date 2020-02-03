@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt;
 
 pub(crate) struct SyntaxToken {
     pub(crate) kind: Token,
@@ -15,6 +16,10 @@ impl SyntaxToken {
         self.green().text()
     }
 
+    pub(crate) fn location(&self) -> &Location {
+        &self.location
+    }
+
     pub(crate) fn green(&self) -> &TokenData {
         match &self.parent {
             SyntaxParent::Root { .. } => unreachable!("SyntaxParent::Root bug"),
@@ -27,5 +32,17 @@ impl SyntaxToken {
                 }
             }
         }
+    }
+}
+
+impl fmt::Debug for SyntaxToken {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{:?}({}) {:?}",
+            self.kind(),
+            self.location().range(),
+            self.text()
+        )
     }
 }

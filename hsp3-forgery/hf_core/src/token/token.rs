@@ -126,6 +126,10 @@ impl TokenData {
     pub(crate) fn len(&self) -> usize {
         self.text.len()
     }
+
+    pub(crate) fn position(&self) -> Position {
+        self.text().into()
+    }
 }
 
 impl fmt::Debug for TokenData {

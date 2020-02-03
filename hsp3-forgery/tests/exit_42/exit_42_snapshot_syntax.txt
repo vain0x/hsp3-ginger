@@ -1,25 +1,25 @@
-Root[
-    ModulePp[
-        Hash("#"),
-        Ident("module"),
-        Eol("\n\n"),
+Root(1.1-7.1)[
+    ModulePp(1.1-3.1)[
+        Hash(1.1-1.2) "#",
+        Ident(1.2-1.8) "module",
+        Eol(1.8-3.1) "\n\n",
     ],
-    DeffuncPp[
-        Hash("#"),
-        Ident("deffunc"),
-        Ident("main"),
-        Eol("\n\t"),
+    DeffuncPp(3.1-4.2)[
+        Hash(3.1-3.2) "#",
+        Ident(3.2-3.9) "deffunc",
+        Ident(3.9-3.13) "main",
+        Eol(3.13-4.2) "\n\t",
     ],
-    Other[
-        Return("return"),
-        Digit("42"),
+    Other(4.2-4.10)[
+        Return(4.2-4.8) "return",
+        Digit(4.8-4.10) "42",
     ],
-    Eol("\n\n"),
-    GlobalPp[
-        Hash("#"),
-        Ident("global"),
-        Eol("\n"),
+    Eol(4.10-6.1) "\n\n",
+    GlobalPp(6.1-7.1)[
+        Hash(6.1-6.2) "#",
+        Ident(6.2-6.8) "global",
+        Eol(6.8-7.1) "\n",
     ],
-    Eol(""),
-    Eof(""),
+    Eol(7.1-7.1) "",
+    Eof(7.1-7.1) "",
 ]
