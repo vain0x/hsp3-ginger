@@ -1,8 +1,58 @@
 Root[
-    CommandStmt[Ident("mes"), Arg[Ident[Ident("a")]], Arg[LeftParen("("), RightParen(")")], Arg[LeftParen("("), RightParen(")")], Eol("\n\t")],
-    CommandStmt[Ident("mes"), Arg[LeftParen("("), Ident[Ident("a")], RightParen(")")], Arg[LeftParen("("), RightParen(")")], Eol("\n\n\t")],
-    CommandStmt[Ident("button"), Arg[StrLiteral[DoubleQuote("\""), DoubleQuote("\"")], Comma(",")], Arg[LabelLiteral[Star("*")]], Eol("\n")],
-    LabelStmt[LabelLiteral[Star("*")], Eol("\n")],
+    CommandStmt[
+        Ident("mes"),
+        Arg[
+            Ident[
+                Ident("a"),
+            ],
+        ],
+        Arg[
+            LeftParen("("),
+            RightParen(")"),
+        ],
+        Arg[
+            LeftParen("("),
+            RightParen(")"),
+        ],
+        Eol("\n\t"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Arg[
+            LeftParen("("),
+            Ident[
+                Ident("a"),
+            ],
+            RightParen(")"),
+        ],
+        Arg[
+            LeftParen("("),
+            RightParen(")"),
+        ],
+        Eol("\n\n\t"),
+    ],
+    CommandStmt[
+        Ident("button"),
+        Arg[
+            StrLiteral[
+                DoubleQuote("\""),
+                DoubleQuote("\""),
+            ],
+            Comma(","),
+        ],
+        Arg[
+            LabelLiteral[
+                Star("*"),
+            ],
+        ],
+        Eol("\n"),
+    ],
+    LabelStmt[
+        LabelLiteral[
+            Star("*"),
+        ],
+        Eol("\n"),
+    ],
     Eol(""),
     Eof(""),
 ]

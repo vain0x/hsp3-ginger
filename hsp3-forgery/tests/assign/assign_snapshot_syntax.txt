@@ -1,12 +1,31 @@
 Root[
-    Other[Hash("#"), Ident("module")],
+    Other[
+        Hash("#"),
+        Ident("module"),
+    ],
     Eol("\n\n"),
-    Other[Hash("#"), Ident("deffunc"), Ident("main")],
+    Other[
+        Hash("#"),
+        Ident("deffunc"),
+        Ident("main"),
+    ],
     Eol("\n\n\t"),
-    AssignStmt[Ident("a"), Equal("="), IntLiteral[Digit("1")], Eol("\n\t")],
-    Other[Return("return")],
+    AssignStmt[
+        Ident("a"),
+        Equal("="),
+        IntLiteral[
+            Digit("1"),
+        ],
+        Eol("\n\t"),
+    ],
+    Other[
+        Return("return"),
+    ],
     Eol("\n\n"),
-    Other[Hash("#"), Ident("global")],
+    Other[
+        Hash("#"),
+        Ident("global"),
+    ],
     Eol("\n"),
     Eol(""),
     Eof(""),

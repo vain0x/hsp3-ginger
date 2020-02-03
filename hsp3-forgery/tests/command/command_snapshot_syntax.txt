@@ -1,22 +1,194 @@
 Root[
-    CommandStmt[Ident("width"), Arg[IntLiteral[Digit("800")], Comma(",")], Arg[IntLiteral[Digit("512")]], Eol("\n\t")],
-    AssignStmt[Ident("width"), Equal("="), IntLiteral[Digit("1")], Eol("\n\n\t")],
-    CommandStmt[Ident("dim"), Arg[Ident[Ident("a")]], Eol("\n\t")],
-    AssignStmt[Ident("n"), Equal("="), IntLiteral[Digit("4")], Eol("\n\n\t")],
-    CommandStmt[Ident("dim"), Arg[Ident[Ident("b")], Comma(",")], Arg[Ident[Ident("n")], Comma(",")], Arg[Ident[Ident("n")]], Eol("\n\t")],
-    CommandStmt[Ident("mes"), Arg[Ident[Ident("b")]], Arg[LeftParen("("), IntLiteral[Digit("1")], Comma(",")], Arg[IntLiteral[Digit("1")]], Other[RightParen(")")], Eol("\n\t")],
-    CommandStmt[Ident("mes"), Arg[Ident[Ident("b")]], Arg[LeftParen("("), LeftParen("("), IntLiteral[Digit("0")], RightParen(")"), RightParen(")")], Eol("\n\t")],
-    CommandStmt[Ident("mes"), Arg[StrLiteral[DoubleQuote("\""), StrVerbatim("hello"), DoubleQuote("\"")]], Eol("\n\t")],
-    CommandStmt[Ident("mes"), Arg[StrLiteral[DoubleQuote("\""), StrVerbatim("world")]], Eol("\n\n\t")],
-    CommandStmt[Ident("mes"), Arg[StrLiteral[LeftQuote("{\""), StrVerbatim("first\n\tsecond\n\t"), RightQuote("\"}")], Comma(",")], Arg[IntLiteral[Digit("3")]], Eol("\n\n\t")],
-    Other[Goto("goto"), Star("*"), Ident("l_dest")],
+    CommandStmt[
+        Ident("width"),
+        Arg[
+            IntLiteral[
+                Digit("800"),
+            ],
+            Comma(","),
+        ],
+        Arg[
+            IntLiteral[
+                Digit("512"),
+            ],
+        ],
+        Eol("\n\t"),
+    ],
+    AssignStmt[
+        Ident("width"),
+        Equal("="),
+        IntLiteral[
+            Digit("1"),
+        ],
+        Eol("\n\n\t"),
+    ],
+    CommandStmt[
+        Ident("dim"),
+        Arg[
+            Ident[
+                Ident("a"),
+            ],
+        ],
+        Eol("\n\t"),
+    ],
+    AssignStmt[
+        Ident("n"),
+        Equal("="),
+        IntLiteral[
+            Digit("4"),
+        ],
+        Eol("\n\n\t"),
+    ],
+    CommandStmt[
+        Ident("dim"),
+        Arg[
+            Ident[
+                Ident("b"),
+            ],
+            Comma(","),
+        ],
+        Arg[
+            Ident[
+                Ident("n"),
+            ],
+            Comma(","),
+        ],
+        Arg[
+            Ident[
+                Ident("n"),
+            ],
+        ],
+        Eol("\n\t"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Arg[
+            Ident[
+                Ident("b"),
+            ],
+        ],
+        Arg[
+            LeftParen("("),
+            IntLiteral[
+                Digit("1"),
+            ],
+            Comma(","),
+        ],
+        Arg[
+            IntLiteral[
+                Digit("1"),
+            ],
+        ],
+        Other[
+            RightParen(")"),
+        ],
+        Eol("\n\t"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Arg[
+            Ident[
+                Ident("b"),
+            ],
+        ],
+        Arg[
+            LeftParen("("),
+            LeftParen("("),
+            IntLiteral[
+                Digit("0"),
+            ],
+            RightParen(")"),
+            RightParen(")"),
+        ],
+        Eol("\n\t"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Arg[
+            StrLiteral[
+                DoubleQuote("\""),
+                StrVerbatim("hello"),
+                DoubleQuote("\""),
+            ],
+        ],
+        Eol("\n\t"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Arg[
+            StrLiteral[
+                DoubleQuote("\""),
+                StrVerbatim("world"),
+            ],
+        ],
+        Eol("\n\n\t"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Arg[
+            StrLiteral[
+                LeftQuote("{\""),
+                StrVerbatim("first\n\tsecond\n\t"),
+                RightQuote("\"}"),
+            ],
+            Comma(","),
+        ],
+        Arg[
+            IntLiteral[
+                Digit("3"),
+            ],
+        ],
+        Eol("\n\n\t"),
+    ],
+    Other[
+        Goto("goto"),
+        Star("*"),
+        Ident("l_dest"),
+    ],
     Eol("\n\t"),
-    CommandStmt[Ident("onexit"), Gosub("gosub"), Arg[LabelLiteral[Star("*"), Ident("l_dest")]], Eol("\n\t")],
-    AssignStmt[Ident("l"), Equal("="), LabelLiteral[Star("*"), AtSign("@"), Ident("f")], Eol("\n\n")],
-    LabelStmt[LabelLiteral[Star("*"), Ident("l_dest")], Eol("\n")],
-    LabelStmt[LabelLiteral[Star("*"), AtSign("@")], Eol("\n\n\t")],
-    CommandStmt[Ident("mes"), Colon(":")],
-    CommandStmt[Ident("mes"), Eol("\n")],
+    CommandStmt[
+        Ident("onexit"),
+        Gosub("gosub"),
+        Arg[
+            LabelLiteral[
+                Star("*"),
+                Ident("l_dest"),
+            ],
+        ],
+        Eol("\n\t"),
+    ],
+    AssignStmt[
+        Ident("l"),
+        Equal("="),
+        LabelLiteral[
+            Star("*"),
+            AtSign("@"),
+            Ident("f"),
+        ],
+        Eol("\n\n"),
+    ],
+    LabelStmt[
+        LabelLiteral[
+            Star("*"),
+            Ident("l_dest"),
+        ],
+        Eol("\n"),
+    ],
+    LabelStmt[
+        LabelLiteral[
+            Star("*"),
+            AtSign("@"),
+        ],
+        Eol("\n\n\t"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Colon(":"),
+    ],
+    CommandStmt[
+        Ident("mes"),
+        Eol("\n"),
+    ],
     Eol(""),
     Eof(""),
 ]

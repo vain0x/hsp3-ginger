@@ -69,11 +69,6 @@ impl GreenNode {
 impl fmt::Debug for GreenNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.kind)?;
-
-        let mut debug_list = f.debug_list();
-        for element in &self.children {
-            debug_list.entry(element);
-        }
-        debug_list.finish()
+        self.children.fmt(f)
     }
 }
