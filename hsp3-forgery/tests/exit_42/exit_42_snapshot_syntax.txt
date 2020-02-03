@@ -1,25 +1,31 @@
 Root[
-    Other[
+    UnknownPp[
         Hash("#"),
-        Ident("module"),
+        Other[
+            Ident("module"),
+        ],
+        Eol("\n\n"),
     ],
-    Eol("\n\n"),
-    Other[
+    UnknownPp[
         Hash("#"),
-        Ident("deffunc"),
-        Ident("main"),
+        Other[
+            Ident("deffunc"),
+            Ident("main"),
+        ],
+        Eol("\n\t"),
     ],
-    Eol("\n\t"),
     Other[
         Return("return"),
         Digit("42"),
     ],
     Eol("\n\n"),
-    Other[
+    UnknownPp[
         Hash("#"),
-        Ident("global"),
+        Other[
+            Ident("global"),
+        ],
+        Eol("\n"),
     ],
-    Eol("\n"),
     Eol(""),
     Eof(""),
 ]

@@ -84,6 +84,7 @@ fn parse_stmt(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_assign_or_command_stmt(p),
         Token::Star => parse_label_stmt(p),
+        Token::Hash => parse_pp_stmt(p),
         _ => {
             // assert!(p.next().at_end_of_stmt(), "is_stmt_first/at_end_of_stmt bug");
             parse_end_of_stmt(p);
