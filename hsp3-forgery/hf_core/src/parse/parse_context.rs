@@ -4,7 +4,6 @@ pub(crate) struct ParseContext {
     current: GreenNode,
     stack: Vec<GreenNode>,
     tokens: Vec<TokenData>,
-    errors: Vec<SyntaxError>,
 }
 
 impl ParseContext {
@@ -15,7 +14,6 @@ impl ParseContext {
             current: GreenNode::new_root(),
             stack: vec![],
             tokens,
-            errors: vec![],
         }
     }
 
@@ -114,22 +112,6 @@ impl ParseContext {
         self.current.push_node(node);
     }
 
-    pub(crate) fn error(&mut self, msg: &str, token: &TokenData) {
-        self.errors.push(SyntaxError {
-            msg: msg.to_string(),
-            location: token.location.clone(),
-        })
-    }
-
-    pub(crate) fn error_next(&mut self, msg: &str) {
-        let location = self.nth(0).unwrap().location.clone();
-
-        self.errors.push(SyntaxError {
-            msg: msg.to_string(),
-            location,
-        })
-    }
-
     pub(crate) fn finish(mut self) -> SyntaxRoot {
         assert_eq!(self.tokens.len(), 1);
         assert_eq!(self.next(), Token::Eof);
@@ -138,11 +120,10 @@ impl ParseContext {
         assert_eq!(self.current.kind, NodeKind::Root);
 
         self.bump();
-        let errors = std::mem::take(&mut self.errors);
 
         SyntaxRoot {
             green: self.current,
-            errors,
+            errors: vec![],
         }
     }
 }
