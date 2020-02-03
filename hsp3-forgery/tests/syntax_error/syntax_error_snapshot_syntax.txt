@@ -1,10 +1,7 @@
 Root[
-    Other[Ident("mes"), Ident("a"), LeftParen("("), RightParen(")"), LeftParen("("), RightParen(")")],
-    Eol("\n\t"),
-    Other[Ident("mes"), LeftParen("("), Ident("a"), RightParen(")"), LeftParen("("), RightParen(")")],
-    Eol("\n\n\t"),
-    Other[Ident("button"), DoubleQuote("\""), DoubleQuote("\""), Comma(","), Star("*")],
-    Eol("\n"),
+    Other[Ident("mes"), Other[Ident("a"), LeftParen("("), RightParen(")"), LeftParen("("), RightParen(")")], Eol("\n\t")],
+    Other[Ident("mes"), Other[LeftParen("("), Ident("a"), RightParen(")"), LeftParen("("), RightParen(")")], Eol("\n\n\t")],
+    Other[Ident("button"), Other[DoubleQuote("\""), DoubleQuote("\""), Comma(","), Star("*")], Eol("\n")],
     Other[Star("*")],
     Eol("\n"),
     Eol(""),
