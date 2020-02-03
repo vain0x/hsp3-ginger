@@ -1,173 +1,82 @@
 use super::*;
+use std::rc::Rc;
 
-#[derive(Clone, Debug)]
-pub(crate) struct ALabelStmt {
-    pub(crate) label: ALabel,
-    pub(crate) sep_opt: Option<TokenData>,
-}
+pub(crate) struct AAssignStmt(Rc<SyntaxNode>);
 
-impl ALabelStmt {
-    pub(crate) fn main_location(&self) -> Location {
-        self.label.location()
+impl Ast for AAssignStmt {
+    fn into_syntax(self) -> Rc<SyntaxNode> {
+        self.0
     }
 
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct AAssignStmt {
-    pub(crate) left: TokenData,
-    pub(crate) equal: TokenData,
-    pub(crate) right_opt: Option<AExpr>,
-    pub(crate) sep_opt: Option<TokenData>,
-}
-
-impl AAssignStmt {
-    pub(crate) fn main_location(&self) -> Location {
-        self.equal.location.clone()
-    }
-
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
+    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+        if syntax_node.kind() == NodeKind::AssignStmt {
+            Some(AAssignStmt(syntax_node))
+        } else {
+            None
+        }
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct ACommandStmt {
-    pub(crate) command: TokenData,
-    /// button/onexit などの goto/gosub キーワード
-    pub(crate) jump_keyword_opt: Option<TokenData>,
-    pub(crate) args: Vec<AArg>,
-    pub(crate) sep_opt: Option<TokenData>,
-}
+pub(crate) struct ACommandStmt(Rc<SyntaxNode>);
 
-impl ACommandStmt {
-    pub(crate) fn main_location(&self) -> Location {
-        self.command.location.clone()
+impl Ast for ACommandStmt {
+    fn into_syntax(self) -> Rc<SyntaxNode> {
+        self.0
     }
 
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
+    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+        if syntax_node.kind() == NodeKind::CommandStmt {
+            Some(ACommandStmt(syntax_node))
+        } else {
+            None
+        }
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct ADeffuncStmt {
-    pub(crate) hash: TokenData,
-    pub(crate) keyword: TokenData,
-    pub(crate) name_opt: Option<TokenData>,
-    pub(crate) sep_opt: Option<TokenData>,
-}
+pub(crate) struct ALabelStmt(Rc<SyntaxNode>);
 
-impl ADeffuncStmt {
-    pub(crate) fn name(&self) -> &str {
-        self.name_opt
-            .as_ref()
-            .map(|token| token.text())
-            .unwrap_or("_")
+impl Ast for ALabelStmt {
+    fn into_syntax(self) -> Rc<SyntaxNode> {
+        self.0
     }
 
-    pub(crate) fn main_location(&self) -> Location {
-        self.hash.location.clone().unite(&self.keyword.location)
-    }
-
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
+    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+        if syntax_node.kind() == NodeKind::LabelStmt {
+            Some(ALabelStmt(syntax_node))
+        } else {
+            None
+        }
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct AModuleStmt {
-    pub(crate) hash: TokenData,
-    pub(crate) keyword: TokenData,
-    pub(crate) name_opt: Option<TokenData>,
-    pub(crate) sep_opt: Option<TokenData>,
-}
-
-impl AModuleStmt {
-    pub(crate) fn main_location(&self) -> Location {
-        self.hash.location.clone().unite(&self.keyword.location)
-    }
-
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct AGlobalStmt {
-    pub(crate) hash: TokenData,
-    pub(crate) keyword: TokenData,
-    pub(crate) sep_opt: Option<TokenData>,
-}
-
-impl AGlobalStmt {
-    pub(crate) fn main_location(&self) -> Location {
-        self.hash.location.clone().unite(&self.keyword.location)
-    }
-
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct AUnknownPpStmt {
-    pub(crate) hash: TokenData,
-    pub(crate) sep_opt: Option<TokenData>,
-}
-
-impl AUnknownPpStmt {
-    pub(crate) fn main_location(&self) -> Location {
-        self.hash.location.clone()
-    }
-
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        self.sep_opt.as_ref()
-    }
-}
-
-#[derive(Clone, Debug)]
 pub(crate) enum AStmt {
-    Label(ALabelStmt),
     Assign(AAssignStmt),
     Command(ACommandStmt),
-    Module(AModuleStmt),
-    Global(AGlobalStmt),
-    Deffunc(ADeffuncStmt),
-    UnknownPp(AUnknownPpStmt),
+    Label(ALabelStmt),
 }
 
-impl AStmt {
-    pub(crate) fn main_location(&self) -> Location {
+impl Ast for AStmt {
+    fn into_syntax(self) -> Rc<SyntaxNode> {
         match self {
-            AStmt::Label(stmt) => stmt.main_location(),
-            AStmt::Assign(stmt) => stmt.main_location(),
-            AStmt::Command(stmt) => stmt.main_location(),
-            AStmt::Module(stmt) => stmt.main_location(),
-            AStmt::Global(stmt) => stmt.main_location(),
-            AStmt::Deffunc(stmt) => stmt.main_location(),
-            AStmt::UnknownPp(stmt) => stmt.main_location(),
+            AStmt::Assign(a) => a.into_syntax(),
+            AStmt::Command(a) => a.into_syntax(),
+            AStmt::Label(a) => a.into_syntax(),
         }
     }
 
-    pub(crate) fn sep_opt(&self) -> Option<&TokenData> {
-        match self {
-            AStmt::Label(stmt) => stmt.sep_opt(),
-            AStmt::Assign(stmt) => stmt.sep_opt(),
-            AStmt::Command(stmt) => stmt.sep_opt(),
-            AStmt::Module(stmt) => stmt.sep_opt(),
-            AStmt::Global(stmt) => stmt.sep_opt(),
-            AStmt::Deffunc(stmt) => stmt.sep_opt(),
-            AStmt::UnknownPp(stmt) => stmt.sep_opt(),
+    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+        if let Some(a) = AAssignStmt::cast(syntax_node.clone()) {
+            return Some(AStmt::Assign(a));
         }
-    }
-}
 
-#[derive(Clone, Debug)]
-pub(crate) struct ARoot {
-    pub(crate) children: Vec<AStmt>,
-    pub(crate) errors: Vec<SyntaxError>,
+        if let Some(a) = ACommandStmt::cast(syntax_node.clone()) {
+            return Some(AStmt::Command(a));
+        }
+
+        if let Some(a) = ALabelStmt::cast(syntax_node.clone()) {
+            return Some(AStmt::Label(a));
+        }
+
+        None
+    }
 }

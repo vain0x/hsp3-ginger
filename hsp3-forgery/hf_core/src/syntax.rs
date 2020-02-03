@@ -8,7 +8,6 @@ pub(crate) mod syntax_token;
 use crate::source::{Position, Range};
 use crate::token::*;
 
-pub(crate) use crate::ast::error::SyntaxError;
 pub(crate) use crate::token::token_source::*;
 pub(crate) use green_element::*;
 pub(crate) use green_node::*;

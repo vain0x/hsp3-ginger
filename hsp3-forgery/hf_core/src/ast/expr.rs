@@ -1,89 +1,108 @@
 use super::*;
+use std::rc::Rc;
 
-#[derive(Clone, Debug)]
-pub(crate) enum ALabel {
-    /// `*foo`, etc.
-    Name { star: TokenData, ident: TokenData },
-    /// `*@f`, etc.
-    Anonymous {
-        star: TokenData,
-        at_sign: TokenData,
-        ident_opt: Option<TokenData>,
-    },
-    /// ラベルしか出現しない文脈で `*` が見えたらとりあえずラベルとして扱う。
-    /// その後ろに名前も `@` も出てこないケースがこれ。
-    StarOnly { star: TokenData },
-}
+pub(crate) struct ACallExpr(Rc<SyntaxNode>);
 
-impl ALabel {
-    pub(crate) fn location(&self) -> Location {
-        match self {
-            ALabel::Name { star, ident } => star.location.clone().unite(&ident.location),
-            ALabel::Anonymous {
-                star,
-                ident_opt: Some(ident),
-                ..
-            } => star.location.clone().unite(&ident.location),
-            ALabel::Anonymous { star, at_sign, .. } => {
-                star.location.clone().unite(&at_sign.location)
-            }
-            ALabel::StarOnly { star } => star.location.clone(),
-        }
+impl Ast for ACallExpr {
+    fn into_syntax(self) -> Rc<SyntaxNode> {
+        self.0
     }
 
-    pub(crate) fn star(&self) -> &TokenData {
-        match self {
-            ALabel::Name { star, .. }
-            | ALabel::Anonymous { star, .. }
-            | ALabel::StarOnly { star, .. } => star,
+    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+        if syntax_node.kind() == NodeKind::CallExpr {
+            Some(ACallExpr(syntax_node))
+        } else {
+            None
         }
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct AIntExpr {
-    pub(crate) token: TokenData,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct AStrExpr {
-    pub(crate) start_quote: TokenData,
-    pub(crate) segments: Vec<TokenData>,
-    pub(crate) end_quote_opt: Option<TokenData>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct ANameExpr {
-    pub(crate) token: TokenData,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct AGroupExpr {
-    pub(crate) left_paren: TokenData,
-    pub(crate) body_opt: Option<Box<AExpr>>,
-    pub(crate) right_paren_opt: Option<TokenData>,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct ACallExpr {
-    pub(crate) cal: ANameExpr,
-    pub(crate) left_paren_opt: Option<TokenData>,
-    pub(crate) args: Vec<AArg>,
-    pub(crate) right_paren_opt: Option<TokenData>,
-}
-
-#[derive(Clone, Debug)]
 pub(crate) enum AExpr {
     Label(ALabel),
-    Int(AIntExpr),
-    Str(AStrExpr),
-    Name(ANameExpr),
-    Group(AGroupExpr),
+    Str(AStr),
+    Int(AInt),
+    Ident(AIdent),
     Call(ACallExpr),
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct AArg {
-    pub(crate) expr_opt: Option<AExpr>,
-    pub(crate) comma_opt: Option<TokenData>,
+impl From<ALabel> for AExpr {
+    fn from(it: ALabel) -> Self {
+        AExpr::Label(it)
+    }
+}
+
+impl From<AStr> for AExpr {
+    fn from(it: AStr) -> Self {
+        AExpr::Str(it)
+    }
+}
+
+impl From<AInt> for AExpr {
+    fn from(it: AInt) -> Self {
+        AExpr::Int(it)
+    }
+}
+
+impl From<AIdent> for AExpr {
+    fn from(it: AIdent) -> Self {
+        AExpr::Ident(it)
+    }
+}
+
+impl From<ACallExpr> for AExpr {
+    fn from(it: ACallExpr) -> Self {
+        AExpr::Call(it)
+    }
+}
+
+impl Ast for AExpr {
+    fn into_syntax(self) -> Rc<SyntaxNode> {
+        match self {
+            AExpr::Label(a) => a.into_syntax(),
+            AExpr::Str(a) => a.into_syntax(),
+            AExpr::Int(a) => a.into_syntax(),
+            AExpr::Ident(a) => a.into_syntax(),
+            AExpr::Call(a) => a.into_syntax(),
+        }
+    }
+
+    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+        if let Some(a) = ALabel::cast(syntax_node.clone()) {
+            return Some(AExpr::Label(a));
+        }
+
+        if let Some(a) = AStr::cast(syntax_node.clone()) {
+            return Some(AExpr::Str(a));
+        }
+
+        if let Some(a) = AInt::cast(syntax_node.clone()) {
+            return Some(AExpr::Int(a));
+        }
+
+        if let Some(a) = AIdent::cast(syntax_node.clone()) {
+            return Some(AExpr::Ident(a));
+        }
+
+        if let Some(a) = ACallExpr::cast(syntax_node.clone()) {
+            return Some(AExpr::Call(a));
+        }
+
+        None
+    }
+}
+
+pub(crate) struct AArg(Rc<SyntaxNode>);
+
+impl Ast for AArg {
+    fn into_syntax(self) -> Rc<SyntaxNode> {
+        self.0
+    }
+
+    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+        if syntax_node.kind() == NodeKind::Arg {
+            Some(AArg(syntax_node))
+        } else {
+            None
+        }
+    }
 }

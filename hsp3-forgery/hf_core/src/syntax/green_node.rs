@@ -51,6 +51,14 @@ impl GreenNode {
         }
     }
 
+    pub(crate) fn kind(&self) -> NodeKind {
+        self.kind
+    }
+
+    pub(crate) fn children(&self) -> &[GreenElement] {
+        &self.children
+    }
+
     pub(crate) fn set_kind(&mut self, kind: NodeKind) {
         assert_eq!(self.kind, NodeKind::Other);
 

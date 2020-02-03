@@ -1,4 +1,5 @@
 use super::*;
+use std::rc::Rc;
 
 pub(crate) struct ParseContext {
     current: GreenNode,
@@ -112,7 +113,7 @@ impl ParseContext {
         self.current.push_node(node);
     }
 
-    pub(crate) fn finish(mut self) -> SyntaxRoot {
+    pub(crate) fn finish(mut self) -> Rc<SyntaxRoot> {
         assert_eq!(self.tokens.len(), 1);
         assert_eq!(self.next(), Token::Eof);
 
@@ -121,9 +122,6 @@ impl ParseContext {
 
         self.bump();
 
-        SyntaxRoot {
-            green: self.current,
-            errors: vec![],
-        }
+        SyntaxRoot::new(self.current)
     }
 }

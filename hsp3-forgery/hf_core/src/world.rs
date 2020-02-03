@@ -1,4 +1,6 @@
-use crate::ast::*;
+use crate::source::*;
+use crate::syntax::*;
+use crate::token::*;
 use std::collections::HashMap;
 use std::fs;
 use std::rc::Rc;
@@ -34,15 +36,15 @@ pub(crate) fn tokenize(
 
 pub(crate) fn parse(
     tokenss: &HashMap<TokenSource, Vec<TokenData>>,
-    syntax_roots: &mut HashMap<TokenSource, ANodeData>,
+    syntax_roots: &mut HashMap<TokenSource, Rc<SyntaxRoot>>,
 ) {
     let mut sources = vec![];
     for (source, tokens) in tokenss {
         sources.push((source, tokens.as_slice()));
     }
 
-    for (source, tokens) in sources {
-        let root = crate::ast::parse::parse(tokens);
-        syntax_roots.insert(source.clone(), root);
-    }
+    // for (source, tokens) in sources {
+    //     let root = crate::ast_old::parse::parse(tokens);
+    //     syntax_roots.insert(source.clone(), root);
+    // }
 }
