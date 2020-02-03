@@ -16,6 +16,32 @@ fn parse_end_of_pp(p: &mut Px) {
     }
 }
 
+fn at_deffunc_like_keyword(p: &Px) -> bool {
+    p.next() == Token::Ident && {
+        match p.next_data().text() {
+            "deffunc" => true,
+            _ => false,
+        }
+    }
+}
+
+fn parse_deffunc_like_stmt_contents(p: &mut Px) {
+    assert!(at_deffunc_like_keyword(p));
+
+    p.bump();
+
+    if !p.eat_ident("global") {
+        p.eat_ident("local");
+    }
+
+    // modinit/modterm でなければ
+    p.eat(Token::Ident);
+
+    if !p.eat_ident("onexit") {
+        // params
+    }
+}
+
 fn parse_module_stmt_contents(p: &mut Px) {
     assert!(p.next_data().text() == "module");
 
@@ -42,6 +68,10 @@ pub(crate) fn parse_pp_stmt(p: &mut Px) {
     p.bump();
 
     let kind = match p.next_data().text() {
+        "deffunc" => {
+            parse_deffunc_like_stmt_contents(p);
+            NodeKind::DeffuncPp
+        }
         "module" => {
             parse_module_stmt_contents(p);
             NodeKind::ModulePp

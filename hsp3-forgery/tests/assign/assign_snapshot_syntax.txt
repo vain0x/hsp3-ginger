@@ -4,12 +4,10 @@ Root[
         Ident("module"),
         Eol("\n\n"),
     ],
-    UnknownPp[
+    DeffuncPp[
         Hash("#"),
-        Other[
-            Ident("deffunc"),
-            Ident("main"),
-        ],
+        Ident("deffunc"),
+        Ident("main"),
         Eol("\n\n\t"),
     ],
     AssignStmt[
