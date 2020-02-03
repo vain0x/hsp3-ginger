@@ -2,10 +2,23 @@ use super::*;
 
 type Px = ParseContext;
 
+fn parse_group_expr(p: &mut Px) {
+    assert_eq!(p.next(), Token::LeftParen);
+
+    p.bump();
+
+    if p.next().is_expr_first() {
+        parse_expr(p);
+    }
+
+    p.eat(Token::RightParen);
+}
+
 pub(crate) fn parse_expr(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_name(p),
         Token::Star => parse_label_literal(p),
+        Token::LeftParen => parse_group_expr(p),
         _ if p.next().is_str_literal_first() => parse_str_literal(p),
         _ if p.next().is_int_literal_first() => parse_int_literal(p),
         _ => {
