@@ -1,9 +1,7 @@
 Root[
-    UnknownPp[
+    ModulePp[
         Hash("#"),
-        Other[
-            Ident("module"),
-        ],
+        Ident("module"),
         Eol("\n\n"),
     ],
     UnknownPp[
@@ -26,11 +24,9 @@ Root[
         Return("return"),
     ],
     Eol("\n\n"),
-    UnknownPp[
+    GlobalPp[
         Hash("#"),
-        Other[
-            Ident("global"),
-        ],
+        Ident("global"),
         Eol("\n"),
     ],
     Eol(""),

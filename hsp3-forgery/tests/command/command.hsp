@@ -22,3 +22,6 @@
 *@
 
 	mes : mes
+
+#module "m_with_quoted_name"
+#global

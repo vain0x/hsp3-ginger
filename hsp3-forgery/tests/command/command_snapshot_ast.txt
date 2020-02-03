@@ -1,7 +1,12 @@
 ANodeData {
     node: Root(
         ARootNode {
-            errors: [],
+            errors: [
+                SyntaxError {
+                    msg: "余分な字句です",
+                    location: command.hsp:26.9-26.10,
+                },
+            ],
         },
     ),
     children: [
@@ -518,10 +523,34 @@ ANodeData {
                         jump_keyword_opt: None,
                         args: [],
                         sep_opt: Some(
-                            Eol("\n"),
+                            Eol("\n\n"),
                         ),
                     },
                 ),
+            ),
+            children: [],
+        },
+        ANodeData {
+            node: Module(
+                AModuleNode {
+                    module_stmt: AModuleStmt {
+                        hash: Hash("#"),
+                        keyword: Ident("module"),
+                        name_opt: None,
+                        sep_opt: Some(
+                            Eol("\n"),
+                        ),
+                    },
+                    global_stmt_opt: Some(
+                        AGlobalStmt {
+                            hash: Hash("#"),
+                            keyword: Ident("global"),
+                            sep_opt: Some(
+                                Eol("\n"),
+                            ),
+                        },
+                    ),
+                },
             ),
             children: [],
         },

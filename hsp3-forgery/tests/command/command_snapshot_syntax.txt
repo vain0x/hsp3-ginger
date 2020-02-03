@@ -189,6 +189,21 @@ Root[
     ],
     CommandStmt[
         Ident("mes"),
+        Eol("\n\n"),
+    ],
+    ModulePp[
+        Hash("#"),
+        Ident("module"),
+        StrLiteral[
+            DoubleQuote("\""),
+            StrVerbatim("m_with_quoted_name"),
+            DoubleQuote("\""),
+        ],
+        Eol("\n"),
+    ],
+    GlobalPp[
+        Hash("#"),
+        Ident("global"),
         Eol("\n"),
     ],
     Eol(""),
