@@ -45,9 +45,21 @@ fn parse_assign_or_command_stmt(p: &mut Px) {
     p.end_node(kind);
 }
 
+fn parse_label_stmt(p: &mut Px) {
+    assert_eq!(p.next(), Token::Star);
+
+    p.start_node();
+
+    parse_label_literal(p);
+    parse_end_of_stmt(p);
+
+    p.end_node(NodeKind::LabelStmt);
+}
+
 fn parse_stmt(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_assign_or_command_stmt(p),
+        Token::Star => parse_label_stmt(p),
         _ => {
             // assert!(p.next().at_end_of_stmt(), "is_stmt_first/at_end_of_stmt bug");
             parse_end_of_stmt(p);
