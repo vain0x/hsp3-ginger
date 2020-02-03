@@ -19,6 +19,23 @@ fn parse_end_of_stmt(p: &mut Px) {
     }
 }
 
+fn parse_command_stmt_contents(p: &mut Px) {
+    // button/onexit などの goto/gosub キーワード
+    if !p.eat(Token::Gosub) {
+        p.eat(Token::Goto);
+    }
+
+    if p.next().is_arg_first() {
+        parse_args(p);
+    }
+}
+
+fn parse_command_stmt(p: &mut Px) {
+    assert!(p.next().is_command_first());
+
+    parse_command_stmt_contents(p)
+}
+
 fn parse_assign_or_command_stmt(p: &mut Px) {
     assert_eq!(p.next(), Token::Ident);
 
@@ -35,6 +52,13 @@ fn parse_assign_or_command_stmt(p: &mut Px) {
             }
 
             kind = NodeKind::AssignStmt;
+        }
+        _ if p.next().is_jump_modifier()
+            || p.next().is_arg_first()
+            || p.next().at_end_of_stmt() =>
+        {
+            parse_command_stmt_contents(p);
+            kind = NodeKind::CommandStmt;
         }
         _ => {
             kind = NodeKind::Other;
