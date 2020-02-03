@@ -52,6 +52,14 @@ mod tests {
             write_snapshot(name, "ast.txt", &tests_dir, |out| {
                 write!(out, "{:#?}\n", ast_root).unwrap();
             });
+
+            // 新しいパーサのスナップショットテスト。
+            let tokens = tokenss.get(&source).unwrap();
+            let root = crate::parse::parse_tokens(&tokens);
+
+            write_snapshot(name, "syntax.txt", &tests_dir, |out| {
+                write!(out, "{:#?}", root).unwrap();
+            })
         }
     }
 

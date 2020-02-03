@@ -1,0 +1,17 @@
+Root[
+    Hash("#"),
+    Ident("module"),
+    Eol("\n\n"),
+    Hash("#"),
+    Ident("deffunc"),
+    Ident("main"),
+    Eol("\n\t"),
+    Return("return"),
+    Digit("42"),
+    Eol("\n\n"),
+    Hash("#"),
+    Ident("global"),
+    Eol("\n"),
+    Eol(""),
+    Eof(""),
+]

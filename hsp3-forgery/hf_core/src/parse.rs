@@ -13,3 +13,15 @@ pub(crate) use parse_term::*;
 use crate::source::*;
 use crate::syntax::*;
 use crate::token::*;
+
+pub(crate) fn parse_tokens(tokens: &[TokenData]) -> SyntaxRoot {
+    let tokens = tokens
+        .into_iter()
+        .filter(|t| t.token() != Token::Space && t.token() != Token::Comment)
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let mut p = ParseContext::new(tokens);
+    parse_root(&mut p);
+    p.finish()
+}

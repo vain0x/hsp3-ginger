@@ -26,7 +26,7 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
@@ -34,14 +34,14 @@ ANodeData {
                                     Call(
                                         ACallExpr {
                                             cal: ANameExpr {
-                                                token: "a",
+                                                token: Ident("a"),
                                             },
                                             left_paren_opt: Some(
-                                                "(",
+                                                LeftParen("("),
                                             ),
                                             args: [],
                                             right_paren_opt: Some(
-                                                ")",
+                                                RightParen(")"),
                                             ),
                                         },
                                     ),
@@ -52,10 +52,10 @@ ANodeData {
                                 expr_opt: Some(
                                     Group(
                                         AGroupExpr {
-                                            left_paren: "(",
+                                            left_paren: LeftParen("("),
                                             body_opt: None,
                                             right_paren_opt: Some(
-                                                ")",
+                                                RightParen(")"),
                                             ),
                                         },
                                     ),
@@ -64,7 +64,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -75,23 +75,23 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Group(
                                         AGroupExpr {
-                                            left_paren: "(",
+                                            left_paren: LeftParen("("),
                                             body_opt: Some(
                                                 Name(
                                                     ANameExpr {
-                                                        token: "a",
+                                                        token: Ident("a"),
                                                     },
                                                 ),
                                             ),
                                             right_paren_opt: Some(
-                                                ")",
+                                                RightParen(")"),
                                             ),
                                         },
                                     ),
@@ -102,10 +102,10 @@ ANodeData {
                                 expr_opt: Some(
                                     Group(
                                         AGroupExpr {
-                                            left_paren: "(",
+                                            left_paren: LeftParen("("),
                                             body_opt: None,
                                             right_paren_opt: Some(
-                                                ")",
+                                                RightParen(")"),
                                             ),
                                         },
                                     ),
@@ -114,7 +114,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\n\t",
+                            Eol("\n\n\t"),
                         ),
                     },
                 ),
@@ -125,30 +125,30 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "button",
+                        command: Ident("button"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Str(
                                         AStrExpr {
-                                            start_quote: "\"",
+                                            start_quote: DoubleQuote("\""),
                                             segments: [],
                                             end_quote_opt: Some(
-                                                "\"",
+                                                DoubleQuote("\""),
                                             ),
                                         },
                                     ),
                                 ),
                                 comma_opt: Some(
-                                    ",",
+                                    Comma(","),
                                 ),
                             },
                             AArg {
                                 expr_opt: Some(
                                     Label(
                                         StarOnly {
-                                            star: "*",
+                                            star: Star("*"),
                                         },
                                     ),
                                 ),
@@ -156,7 +156,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n",
+                            Eol("\n"),
                         ),
                     },
                 ),
@@ -168,10 +168,10 @@ ANodeData {
                 Label(
                     ALabelStmt {
                         label: StarOnly {
-                            star: "*",
+                            star: Star("*"),
                         },
                         sep_opt: Some(
-                            "\n",
+                            Eol("\n"),
                         ),
                     },
                 ),

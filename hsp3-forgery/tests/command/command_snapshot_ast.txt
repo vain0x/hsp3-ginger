@@ -9,26 +9,26 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "width",
+                        command: Ident("width"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Int(
                                         AIntExpr {
-                                            token: "800",
+                                            token: Digit("800"),
                                         },
                                     ),
                                 ),
                                 comma_opt: Some(
-                                    ",",
+                                    Comma(","),
                                 ),
                             },
                             AArg {
                                 expr_opt: Some(
                                     Int(
                                         AIntExpr {
-                                            token: "512",
+                                            token: Digit("512"),
                                         },
                                     ),
                                 ),
@@ -36,7 +36,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -47,17 +47,17 @@ ANodeData {
             node: Stmt(
                 Assign(
                     AAssignStmt {
-                        left: "width",
-                        equal: "=",
+                        left: Ident("width"),
+                        equal: Equal("="),
                         right_opt: Some(
                             Int(
                                 AIntExpr {
-                                    token: "1",
+                                    token: Digit("1"),
                                 },
                             ),
                         ),
                         sep_opt: Some(
-                            "\n\n\t",
+                            Eol("\n\n\t"),
                         ),
                     },
                 ),
@@ -68,14 +68,14 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "dim",
+                        command: Ident("dim"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Name(
                                         ANameExpr {
-                                            token: "a",
+                                            token: Ident("a"),
                                         },
                                     ),
                                 ),
@@ -83,7 +83,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -94,17 +94,17 @@ ANodeData {
             node: Stmt(
                 Assign(
                     AAssignStmt {
-                        left: "n",
-                        equal: "=",
+                        left: Ident("n"),
+                        equal: Equal("="),
                         right_opt: Some(
                             Int(
                                 AIntExpr {
-                                    token: "4",
+                                    token: Digit("4"),
                                 },
                             ),
                         ),
                         sep_opt: Some(
-                            "\n\n\t",
+                            Eol("\n\n\t"),
                         ),
                     },
                 ),
@@ -115,38 +115,38 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "dim",
+                        command: Ident("dim"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Name(
                                         ANameExpr {
-                                            token: "b",
+                                            token: Ident("b"),
                                         },
                                     ),
                                 ),
                                 comma_opt: Some(
-                                    ",",
+                                    Comma(","),
                                 ),
                             },
                             AArg {
                                 expr_opt: Some(
                                     Name(
                                         ANameExpr {
-                                            token: "n",
+                                            token: Ident("n"),
                                         },
                                     ),
                                 ),
                                 comma_opt: Some(
-                                    ",",
+                                    Comma(","),
                                 ),
                             },
                             AArg {
                                 expr_opt: Some(
                                     Name(
                                         ANameExpr {
-                                            token: "n",
+                                            token: Ident("n"),
                                         },
                                     ),
                                 ),
@@ -154,7 +154,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -165,7 +165,7 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
@@ -173,29 +173,29 @@ ANodeData {
                                     Call(
                                         ACallExpr {
                                             cal: ANameExpr {
-                                                token: "b",
+                                                token: Ident("b"),
                                             },
                                             left_paren_opt: Some(
-                                                "(",
+                                                LeftParen("("),
                                             ),
                                             args: [
                                                 AArg {
                                                     expr_opt: Some(
                                                         Int(
                                                             AIntExpr {
-                                                                token: "1",
+                                                                token: Digit("1"),
                                                             },
                                                         ),
                                                     ),
                                                     comma_opt: Some(
-                                                        ",",
+                                                        Comma(","),
                                                     ),
                                                 },
                                                 AArg {
                                                     expr_opt: Some(
                                                         Int(
                                                             AIntExpr {
-                                                                token: "1",
+                                                                token: Digit("1"),
                                                             },
                                                         ),
                                                     ),
@@ -203,7 +203,7 @@ ANodeData {
                                                 },
                                             ],
                                             right_paren_opt: Some(
-                                                ")",
+                                                RightParen(")"),
                                             ),
                                         },
                                     ),
@@ -212,7 +212,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -223,7 +223,7 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
@@ -231,26 +231,26 @@ ANodeData {
                                     Call(
                                         ACallExpr {
                                             cal: ANameExpr {
-                                                token: "b",
+                                                token: Ident("b"),
                                             },
                                             left_paren_opt: Some(
-                                                "(",
+                                                LeftParen("("),
                                             ),
                                             args: [
                                                 AArg {
                                                     expr_opt: Some(
                                                         Group(
                                                             AGroupExpr {
-                                                                left_paren: "(",
+                                                                left_paren: LeftParen("("),
                                                                 body_opt: Some(
                                                                     Int(
                                                                         AIntExpr {
-                                                                            token: "0",
+                                                                            token: Digit("0"),
                                                                         },
                                                                     ),
                                                                 ),
                                                                 right_paren_opt: Some(
-                                                                    ")",
+                                                                    RightParen(")"),
                                                                 ),
                                                             },
                                                         ),
@@ -259,7 +259,7 @@ ANodeData {
                                                 },
                                             ],
                                             right_paren_opt: Some(
-                                                ")",
+                                                RightParen(")"),
                                             ),
                                         },
                                     ),
@@ -268,7 +268,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -279,19 +279,19 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Str(
                                         AStrExpr {
-                                            start_quote: "\"",
+                                            start_quote: DoubleQuote("\""),
                                             segments: [
-                                                "hello",
+                                                StrVerbatim("hello"),
                                             ],
                                             end_quote_opt: Some(
-                                                "\"",
+                                                DoubleQuote("\""),
                                             ),
                                         },
                                     ),
@@ -300,7 +300,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -311,16 +311,16 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Str(
                                         AStrExpr {
-                                            start_quote: "\"",
+                                            start_quote: DoubleQuote("\""),
                                             segments: [
-                                                "world",
+                                                StrVerbatim("world"),
                                             ],
                                             end_quote_opt: None,
                                         },
@@ -330,7 +330,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\n\t",
+                            Eol("\n\n\t"),
                         ),
                     },
                 ),
@@ -341,32 +341,32 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Str(
                                         AStrExpr {
-                                            start_quote: "{\"",
+                                            start_quote: LeftQuote("{\""),
                                             segments: [
-                                                "first\n\tsecond\n\t",
+                                                StrVerbatim("first\n\tsecond\n\t"),
                                             ],
                                             end_quote_opt: Some(
-                                                "\"}",
+                                                RightQuote("\"}"),
                                             ),
                                         },
                                     ),
                                 ),
                                 comma_opt: Some(
-                                    ",",
+                                    Comma(","),
                                 ),
                             },
                             AArg {
                                 expr_opt: Some(
                                     Int(
                                         AIntExpr {
-                                            token: "3",
+                                            token: Digit("3"),
                                         },
                                     ),
                                 ),
@@ -374,7 +374,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\n\t",
+                            Eol("\n\n\t"),
                         ),
                     },
                 ),
@@ -385,15 +385,15 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "goto",
+                        command: Goto("goto"),
                         jump_keyword_opt: None,
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Label(
                                         Name {
-                                            star: "*",
-                                            ident: "l_dest",
+                                            star: Star("*"),
+                                            ident: Ident("l_dest"),
                                         },
                                     ),
                                 ),
@@ -401,7 +401,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -412,17 +412,17 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "onexit",
+                        command: Ident("onexit"),
                         jump_keyword_opt: Some(
-                            "gosub",
+                            Gosub("gosub"),
                         ),
                         args: [
                             AArg {
                                 expr_opt: Some(
                                     Label(
                                         Name {
-                                            star: "*",
-                                            ident: "l_dest",
+                                            star: Star("*"),
+                                            ident: Ident("l_dest"),
                                         },
                                     ),
                                 ),
@@ -430,7 +430,7 @@ ANodeData {
                             },
                         ],
                         sep_opt: Some(
-                            "\n\t",
+                            Eol("\n\t"),
                         ),
                     },
                 ),
@@ -441,21 +441,21 @@ ANodeData {
             node: Stmt(
                 Assign(
                     AAssignStmt {
-                        left: "l",
-                        equal: "=",
+                        left: Ident("l"),
+                        equal: Equal("="),
                         right_opt: Some(
                             Label(
                                 Anonymous {
-                                    star: "*",
-                                    at_sign: "@",
+                                    star: Star("*"),
+                                    at_sign: AtSign("@"),
                                     ident_opt: Some(
-                                        "f",
+                                        Ident("f"),
                                     ),
                                 },
                             ),
                         ),
                         sep_opt: Some(
-                            "\n\n",
+                            Eol("\n\n"),
                         ),
                     },
                 ),
@@ -467,11 +467,11 @@ ANodeData {
                 Label(
                     ALabelStmt {
                         label: Name {
-                            star: "*",
-                            ident: "l_dest",
+                            star: Star("*"),
+                            ident: Ident("l_dest"),
                         },
                         sep_opt: Some(
-                            "\n",
+                            Eol("\n"),
                         ),
                     },
                 ),
@@ -483,12 +483,12 @@ ANodeData {
                 Label(
                     ALabelStmt {
                         label: Anonymous {
-                            star: "*",
-                            at_sign: "@",
+                            star: Star("*"),
+                            at_sign: AtSign("@"),
                             ident_opt: None,
                         },
                         sep_opt: Some(
-                            "\n\n\t",
+                            Eol("\n\n\t"),
                         ),
                     },
                 ),
@@ -499,11 +499,11 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [],
                         sep_opt: Some(
-                            ":",
+                            Colon(":"),
                         ),
                     },
                 ),
@@ -514,11 +514,11 @@ ANodeData {
             node: Stmt(
                 Command(
                     ACommandStmt {
-                        command: "mes",
+                        command: Ident("mes"),
                         jump_keyword_opt: None,
                         args: [],
                         sep_opt: Some(
-                            "\n",
+                            Eol("\n"),
                         ),
                     },
                 ),

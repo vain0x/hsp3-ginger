@@ -9,19 +9,19 @@ ANodeData {
             node: Module(
                 AModuleNode {
                     module_stmt: AModuleStmt {
-                        hash: "#",
-                        keyword: "module",
+                        hash: Hash("#"),
+                        keyword: Ident("module"),
                         name_opt: None,
                         sep_opt: Some(
-                            "\n\n",
+                            Eol("\n\n"),
                         ),
                     },
                     global_stmt_opt: Some(
                         AGlobalStmt {
-                            hash: "#",
-                            keyword: "global",
+                            hash: Hash("#"),
+                            keyword: Ident("global"),
                             sep_opt: Some(
-                                "\n",
+                                Eol("\n"),
                             ),
                         },
                     ),
@@ -32,13 +32,13 @@ ANodeData {
                     node: Fn(
                         AFnNode {
                             deffunc_stmt: ADeffuncStmt {
-                                hash: "#",
-                                keyword: "deffunc",
+                                hash: Hash("#"),
+                                keyword: Ident("deffunc"),
                                 name_opt: Some(
-                                    "main",
+                                    Ident("main"),
                                 ),
                                 sep_opt: Some(
-                                    "\n\n\t",
+                                    Eol("\n\n\t"),
                                 ),
                             },
                         },
@@ -48,17 +48,17 @@ ANodeData {
                             node: Stmt(
                                 Assign(
                                     AAssignStmt {
-                                        left: "a",
-                                        equal: "=",
+                                        left: Ident("a"),
+                                        equal: Equal("="),
                                         right_opt: Some(
                                             Int(
                                                 AIntExpr {
-                                                    token: "1",
+                                                    token: Digit("1"),
                                                 },
                                             ),
                                         ),
                                         sep_opt: Some(
-                                            "\n\t",
+                                            Eol("\n\t"),
                                         ),
                                     },
                                 ),
@@ -69,11 +69,11 @@ ANodeData {
                             node: Stmt(
                                 Command(
                                     ACommandStmt {
-                                        command: "return",
+                                        command: Return("return"),
                                         jump_keyword_opt: None,
                                         args: [],
                                         sep_opt: Some(
-                                            "\n\n",
+                                            Eol("\n\n"),
                                         ),
                                     },
                                 ),

@@ -1,4 +1,5 @@
 use super::*;
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum NodeKind {
@@ -62,5 +63,17 @@ impl GreenNode {
 
     pub(crate) fn push_node(&mut self, node: GreenNode) {
         self.children.push(GreenElement::Node(node))
+    }
+}
+
+impl fmt::Debug for GreenNode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.kind)?;
+
+        let mut debug_list = f.debug_list();
+        for element in &self.children {
+            debug_list.entry(element);
+        }
+        debug_list.finish()
     }
 }
