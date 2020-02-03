@@ -97,6 +97,7 @@ impl ParseContext {
         }
 
         self.current.children.extend(node.children.drain(i..));
+        self.stack.push(node);
     }
 
     pub(crate) fn end_node(&mut self, kind: NodeKind) {
