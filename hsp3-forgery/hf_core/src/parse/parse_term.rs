@@ -3,6 +3,13 @@ use super::*;
 type Px = ParseContext;
 
 impl Token {
+    pub(crate) fn is_int_literal_first(self) -> bool {
+        match self {
+            Token::Digit | Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => true,
+            _ => false,
+        }
+    }
+
     pub(crate) fn is_str_literal_first(self) -> bool {
         match self {
             Token::DoubleQuote | Token::LeftQuote => true,
@@ -61,6 +68,23 @@ pub(crate) fn parse_str_literal(p: &mut Px) {
     }
 
     p.end_node(NodeKind::StrLiteral);
+}
+
+pub(crate) fn parse_int_literal(p: &mut Px) {
+    assert!(p.next().is_int_literal_first());
+
+    p.start_node();
+
+    match p.next() {
+        Token::Digit => p.bump(),
+        Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => {
+            // FIXME: impl
+            p.bump();
+        }
+        _ => unreachable!("is_int_literal_first bug {:?}", p.next()),
+    }
+
+    p.end_node(NodeKind::IntLiteral);
 }
 
 pub(crate) fn parse_name(p: &mut Px) {
