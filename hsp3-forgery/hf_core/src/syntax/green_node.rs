@@ -25,28 +25,14 @@ pub(crate) enum NodeKind {
 }
 
 pub(crate) struct GreenNode {
-    pub(crate) kind: NodeKind,
-    pub(crate) children: Vec<GreenElement>,
+    kind: NodeKind,
+    children: Vec<GreenElement>,
 }
 
 impl GreenNode {
-    pub(crate) fn new(kind: NodeKind) -> Self {
-        GreenNode {
-            kind,
-            children: vec![],
-        }
-    }
-
-    pub(crate) fn new_dummy() -> Self {
+    pub(crate) fn new() -> Self {
         GreenNode {
             kind: NodeKind::Other,
-            children: vec![],
-        }
-    }
-
-    pub(crate) fn new_root() -> Self {
-        GreenNode {
-            kind: NodeKind::Root,
             children: vec![],
         }
     }
@@ -59,24 +45,45 @@ impl GreenNode {
         &self.children
     }
 
-    pub(crate) fn set_kind(&mut self, kind: NodeKind) {
-        assert_eq!(self.kind, NodeKind::Other);
+    pub(crate) fn is_frozen(&self) -> bool {
+        self.kind() != NodeKind::Other
+    }
 
+    pub(crate) fn set_kind(&mut self, kind: NodeKind) {
+        assert!(!self.is_frozen());
         self.kind = kind;
     }
 
     pub(crate) fn push_token(&mut self, token: TokenData) {
+        assert!(!self.is_frozen());
         self.children.push(GreenElement::Token(token))
     }
 
     pub(crate) fn push_node(&mut self, node: GreenNode) {
+        assert!(!self.is_frozen());
         self.children.push(GreenElement::Node(node))
+    }
+
+    pub(crate) fn drain_last_node_from(&mut self, other: &mut GreenNode) {
+        assert!(!self.is_frozen());
+
+        // 最後のノードの位置を計算する。
+        let mut i = other.children().len();
+        while i >= 1 {
+            i -= 1;
+            match other.children()[i] {
+                GreenElement::Node(..) => break,
+                GreenElement::Token(..) => continue,
+            }
+        }
+
+        self.children.extend(other.children.drain(i..));
     }
 }
 
 impl fmt::Debug for GreenNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.kind)?;
-        self.children.fmt(f)
+        self.children().fmt(f)
     }
 }

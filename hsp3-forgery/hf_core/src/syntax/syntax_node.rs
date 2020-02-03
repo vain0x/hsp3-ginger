@@ -24,7 +24,7 @@ impl SyntaxNode {
         match &self.parent {
             SyntaxParent::Root { root } => root.green(),
             SyntaxParent::NonRoot { node, child_index } => {
-                match &node.green().children.get(*child_index) {
+                match &node.green().children().get(*child_index) {
                     Some(GreenElement::Node(node)) => node,
                     Some(GreenElement::Token(..)) | None => {
                         unreachable!("SyntaxParent::NonRoot bug")

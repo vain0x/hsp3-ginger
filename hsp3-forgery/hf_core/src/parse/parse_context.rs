@@ -12,7 +12,7 @@ impl ParseContext {
         tokens.reverse();
 
         ParseContext {
-            current: GreenNode::new_root(),
+            current: GreenNode::new(),
             stack: vec![],
             tokens,
         }
@@ -71,7 +71,7 @@ impl ParseContext {
 
     pub(crate) fn start_node(&mut self) {
         // 現在のノードをスタックに積み、新しいノードを current にする。
-        let mut node = GreenNode::new_dummy();
+        let mut node = GreenNode::new();
         std::mem::swap(&mut node, &mut self.current);
         self.stack.push(node);
     }
@@ -82,20 +82,9 @@ impl ParseContext {
         // `+` を読んだ段階で、`x` を本来なら `+` の子要素にしなければならなかったことになるので、
         // この関数を使って `f(` → `x +` という構造に変える。
 
-        let mut node = GreenNode::new_dummy();
+        let mut node = GreenNode::new();
         std::mem::swap(&mut node, &mut self.current);
-
-        // 最後のノードの位置を計算する。
-        let mut i = node.children.len();
-        while i >= 1 {
-            i -= 1;
-            match node.children[i] {
-                GreenElement::Node(..) => break,
-                GreenElement::Token(..) => continue,
-            }
-        }
-
-        self.current.children.extend(node.children.drain(i..));
+        self.current.drain_last_node_from(&mut node);
         self.stack.push(node);
     }
 
@@ -116,11 +105,10 @@ impl ParseContext {
     pub(crate) fn finish(mut self) -> Rc<SyntaxRoot> {
         assert_eq!(self.tokens.len(), 1);
         assert_eq!(self.next(), Token::Eof);
+        self.bump();
 
         assert_eq!(self.stack.len(), 0);
-        assert_eq!(self.current.kind, NodeKind::Root);
-
-        self.bump();
+        self.current.set_kind(NodeKind::Root);
 
         SyntaxRoot::new(self.current)
     }
