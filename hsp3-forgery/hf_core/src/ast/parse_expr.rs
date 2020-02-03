@@ -3,49 +3,6 @@ use parse_context::ParseContext;
 
 type Px = ParseContext;
 
-impl Token {
-    pub(crate) fn is_str_content(self) -> bool {
-        self == Token::StrVerbatim
-    }
-
-    pub(crate) fn at_end_of_str(self) -> bool {
-        self.at_end_of_stmt() || self == Token::DoubleQuote
-    }
-
-    pub(crate) fn at_end_of_multiline_str(self) -> bool {
-        match self {
-            Token::Eof | Token::RightQuote => true,
-            _ => false,
-        }
-    }
-
-    pub(crate) fn is_expr_first(self) -> bool {
-        match self {
-            Token::Digit
-            | Token::SingleQuote
-            | Token::DoubleQuote
-            | Token::LeftQuote
-            | Token::Ident
-            | Token::LeftParen
-            | Token::Minus
-            | Token::Star => true,
-            _ => false,
-        }
-    }
-
-    pub(crate) fn at_end_of_expr(self) -> bool {
-        self.at_end_of_stmt() || self == Token::RightParen
-    }
-
-    pub(crate) fn is_arg_first(self) -> bool {
-        self.is_expr_first() || self == Token::Comma
-    }
-
-    pub(crate) fn at_end_of_args(self) -> bool {
-        self.at_end_of_expr() || self.at_end_of_stmt()
-    }
-}
-
 pub(crate) fn parse_label(p: &mut Px) -> ALabel {
     assert_eq!(p.next(), Token::Star);
 

@@ -2,6 +2,12 @@ use super::*;
 
 type Px = ParseContext;
 
+impl Token {
+    pub(crate) fn at_end_of_pp(self) -> bool {
+        self == Token::Eof || self == Token::Eol
+    }
+}
+
 fn parse_end_of_pp(p: &mut Px) {
     if !p.at_eof() && !p.next().at_end_of_pp() {
         p.start_node();

@@ -2,6 +2,30 @@ use super::*;
 
 type Px = ParseContext;
 
+impl Token {
+    pub(crate) fn is_stmt_first(self) -> bool {
+        match self {
+            Token::Ident | Token::Hash | Token::Star => true,
+            _ => self.is_control_keyword(),
+        }
+    }
+
+    pub(crate) fn is_stmt_follow(self) -> bool {
+        self.at_end_of_stmt()
+    }
+
+    pub(crate) fn is_command_first(self) -> bool {
+        self.is_jump_keyword()
+    }
+
+    pub(crate) fn at_end_of_stmt(self) -> bool {
+        self == Token::Eof
+            || self == Token::Eol
+            || self == Token::RightBrace
+            || self == Token::Colon
+    }
+}
+
 fn parse_end_of_stmt(p: &mut Px) {
     if !p.at_eof() && !p.next().at_end_of_stmt() {
         p.start_node();

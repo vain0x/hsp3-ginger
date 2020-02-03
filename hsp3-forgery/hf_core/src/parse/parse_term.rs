@@ -3,16 +3,31 @@ use super::*;
 type Px = ParseContext;
 
 impl Token {
-    pub(crate) fn is_int_literal_first(self) -> bool {
+    pub(crate) fn is_str_literal_first(self) -> bool {
         match self {
-            Token::Digit | Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => true,
+            Token::DoubleQuote | Token::LeftQuote => true,
             _ => false,
         }
     }
 
-    pub(crate) fn is_str_literal_first(self) -> bool {
+    pub(crate) fn is_str_content(self) -> bool {
+        self == Token::StrVerbatim
+    }
+
+    pub(crate) fn at_end_of_str(self) -> bool {
+        self.at_end_of_stmt() || self == Token::DoubleQuote
+    }
+
+    pub(crate) fn at_end_of_multiline_str(self) -> bool {
         match self {
-            Token::DoubleQuote | Token::LeftQuote => true,
+            Token::Eof | Token::RightQuote => true,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_int_literal_first(self) -> bool {
+        match self {
+            Token::Digit | Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => true,
             _ => false,
         }
     }
