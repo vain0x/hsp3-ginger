@@ -2,13 +2,13 @@ Root[
     CommandStmt[
         Ident("mes"),
         Arg[
-            Ident[
-                Ident("a"),
+            CallExpr[
+                Ident[
+                    Ident("a"),
+                ],
+                LeftParen("("),
+                RightParen(")"),
             ],
-        ],
-        Arg[
-            LeftParen("("),
-            RightParen(")"),
         ],
         Arg[
             LeftParen("("),

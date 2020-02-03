@@ -63,42 +63,44 @@ Root[
     CommandStmt[
         Ident("mes"),
         Arg[
-            Ident[
-                Ident("b"),
+            CallExpr[
+                Ident[
+                    Ident("b"),
+                ],
+                LeftParen("("),
+                Arg[
+                    IntLiteral[
+                        Digit("1"),
+                    ],
+                    Comma(","),
+                ],
+                Arg[
+                    IntLiteral[
+                        Digit("1"),
+                    ],
+                ],
+                RightParen(")"),
             ],
-        ],
-        Arg[
-            LeftParen("("),
-            IntLiteral[
-                Digit("1"),
-            ],
-            Comma(","),
-        ],
-        Arg[
-            IntLiteral[
-                Digit("1"),
-            ],
-        ],
-        Other[
-            RightParen(")"),
         ],
         Eol("\n\t"),
     ],
     CommandStmt[
         Ident("mes"),
         Arg[
-            Ident[
-                Ident("b"),
+            CallExpr[
+                Ident[
+                    Ident("b"),
+                ],
+                LeftParen("("),
+                Arg[
+                    LeftParen("("),
+                    IntLiteral[
+                        Digit("0"),
+                    ],
+                    RightParen(")"),
+                ],
+                RightParen(")"),
             ],
-        ],
-        Arg[
-            LeftParen("("),
-            LeftParen("("),
-            IntLiteral[
-                Digit("0"),
-            ],
-            RightParen(")"),
-            RightParen(")"),
         ],
         Eol("\n\t"),
     ],

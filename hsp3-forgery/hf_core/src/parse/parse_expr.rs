@@ -14,9 +14,29 @@ fn parse_group_expr(p: &mut Px) {
     p.eat(Token::RightParen);
 }
 
+fn parse_call_expr(p: &mut Px) {
+    assert_eq!(p.next(), Token::Ident);
+
+    parse_name(p);
+
+    // FIXME: . 記法
+
+    if !p.eat(Token::LeftParen) {
+        return;
+    }
+
+    p.restart_node();
+
+    parse_args(p);
+
+    p.eat(Token::RightParen);
+
+    p.end_node(NodeKind::CallExpr);
+}
+
 pub(crate) fn parse_expr(p: &mut Px) {
     match p.next() {
-        Token::Ident => parse_name(p),
+        Token::Ident => parse_call_expr(p),
         Token::Star => parse_label_literal(p),
         Token::LeftParen => parse_group_expr(p),
         _ if p.next().is_str_literal_first() => parse_str_literal(p),
