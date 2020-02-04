@@ -16,13 +16,31 @@ use crate::token::*;
 use std::rc::Rc;
 
 pub(crate) fn parse_tokens(tokens: &[TokenData]) -> Rc<SyntaxRoot> {
-    let tokens = tokens
-        .into_iter()
-        .filter(|t| t.token() != Token::Space && t.token() != Token::Comment)
-        .cloned()
-        .collect::<Vec<_>>();
+    let mut leading = vec![];
+    let mut fat_tokens: Vec<FatToken> = vec![];
 
-    let mut p = ParseContext::new(tokens);
+    for token in tokens.iter().cloned() {
+        if token.token().is_trailing_trivia() && !fat_tokens.is_empty() && leading.is_empty() {
+            fat_tokens.last_mut().unwrap().push_trailing(token);
+            continue;
+        }
+
+        if token.token().is_leading_trivia() {
+            leading.push(token);
+            continue;
+        }
+
+        let mut fat_token = FatToken::new(token);
+        for trivia in leading.drain(..) {
+            fat_token.push_leading(trivia);
+        }
+        fat_tokens.push(fat_token);
+    }
+
+    // 最後のトークンは EOF なため。
+    assert!(leading.is_empty());
+
+    let mut p = ParseContext::new(fat_tokens);
     parse_root(&mut p);
     p.finish()
 }

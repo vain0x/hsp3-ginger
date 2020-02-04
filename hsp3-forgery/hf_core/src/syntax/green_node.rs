@@ -71,6 +71,20 @@ impl GreenNode {
         self.children.push(GreenElement::Token(token))
     }
 
+    pub(crate) fn push_fat_token(&mut self, token: FatToken) {
+        let (leading, body, trailing) = token.decompose();
+
+        for trivia in leading {
+            self.push_token(trivia.into());
+        }
+
+        self.push_token(body);
+
+        for trivia in trailing {
+            self.push_token(trivia.into());
+        }
+    }
+
     pub(crate) fn push_node(&mut self, node: GreenNode) {
         assert!(!self.is_frozen());
         self.children.push(GreenElement::Node(node))

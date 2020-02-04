@@ -1,3 +1,4 @@
+pub(crate) mod fat_token;
 pub(crate) mod keyword;
 pub(crate) mod location;
 pub(crate) mod pun;
@@ -9,6 +10,7 @@ pub(crate) mod tokenize_rules;
 pub(crate) mod trivia;
 
 pub(crate) use crate::source::*;
+pub(crate) use fat_token::*;
 pub(crate) use location::Location;
 pub(crate) use token::{Token, TokenData};
 pub(crate) use token_source::*;

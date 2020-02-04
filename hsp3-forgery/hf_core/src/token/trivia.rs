@@ -2,15 +2,15 @@ use super::*;
 
 impl Token {
     pub(crate) fn is_leading_trivia(self) -> bool {
-        self == Token::Eol || self.is_trailing_trivia()
+        self.is_trivia()
     }
 
     pub(crate) fn is_trailing_trivia(self) -> bool {
-        self == Token::Space || self == Token::Comment || self == Token::Other
+        self.is_trivia()
     }
 
     pub(crate) fn is_trivia(self) -> bool {
-        self.is_leading_trivia()
+        self == Token::Space || self == Token::Comment || self == Token::Other
     }
 }
 

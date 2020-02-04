@@ -4,11 +4,11 @@ use std::rc::Rc;
 pub(crate) struct ParseContext {
     current: GreenNode,
     stack: Vec<GreenNode>,
-    tokens: Vec<TokenData>,
+    tokens: Vec<FatToken>,
 }
 
 impl ParseContext {
-    pub(crate) fn new(mut tokens: Vec<TokenData>) -> Self {
+    pub(crate) fn new(mut tokens: Vec<FatToken>) -> Self {
         tokens.reverse();
 
         ParseContext {
@@ -26,7 +26,7 @@ impl ParseContext {
         self.next() == Token::Eof
     }
 
-    fn nth(&self, offset: usize) -> Option<&TokenData> {
+    fn nth(&self, offset: usize) -> Option<&FatToken> {
         assert!(offset < self.tokens.len());
 
         self.tokens.get(self.tokens.len() - offset - 1)
@@ -36,11 +36,11 @@ impl ParseContext {
         self.nth(0).map_or(Token::Eof, |token| token.token())
     }
 
-    pub(crate) fn nth_data(&self, offset: usize) -> Option<&TokenData> {
+    pub(crate) fn nth_data(&self, offset: usize) -> Option<&FatToken> {
         self.nth(offset)
     }
 
-    pub(crate) fn next_data(&self) -> &TokenData {
+    pub(crate) fn next_data(&self) -> &FatToken {
         self.nth(0).unwrap()
     }
 
@@ -48,7 +48,7 @@ impl ParseContext {
         assert!(!self.tokens.is_empty());
 
         let token = self.tokens.pop().unwrap();
-        self.current.push_token(token);
+        self.current.push_fat_token(token);
     }
 
     pub(crate) fn eat(&mut self, token: Token) -> bool {

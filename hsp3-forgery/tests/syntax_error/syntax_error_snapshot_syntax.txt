@@ -1,51 +1,56 @@
 Root(1.1-6.1)[
     CommandStmt(1.1-2.2)[
-        Ident(1.1-1.4) "mes",
-        Arg(1.4-1.7)[
-            CallExpr(1.4-1.7)[
-                Ident(1.4-1.5)[
-                    Ident(1.4-1.5) "a",
+        Space(1.1-1.2) "\t",
+        Ident(1.2-1.5) "mes",
+        Space(1.5-1.6) " ",
+        Arg(1.6-1.9)[
+            CallExpr(1.6-1.9)[
+                Ident(1.6-1.7)[
+                    Ident(1.6-1.7) "a",
                 ],
-                LeftParen(1.5-1.6) "(",
-                RightParen(1.6-1.7) ")",
+                LeftParen(1.7-1.8) "(",
+                RightParen(1.8-1.9) ")",
             ],
         ],
-        Arg(1.7-1.9)[
-            LeftParen(1.7-1.8) "(",
-            RightParen(1.8-1.9) ")",
+        Arg(1.9-1.11)[
+            LeftParen(1.9-1.10) "(",
+            RightParen(1.10-1.11) ")",
         ],
-        Eol(1.9-2.2) "\n\t",
+        Eol(1.11-2.2) "\n\t",
     ],
     CommandStmt(2.2-4.2)[
         Ident(2.2-2.5) "mes",
-        Arg(2.5-2.8)[
-            LeftParen(2.5-2.6) "(",
-            Ident(2.6-2.7)[
-                Ident(2.6-2.7) "a",
+        Space(2.5-2.6) " ",
+        Arg(2.6-2.9)[
+            LeftParen(2.6-2.7) "(",
+            Ident(2.7-2.8)[
+                Ident(2.7-2.8) "a",
             ],
-            RightParen(2.7-2.8) ")",
+            RightParen(2.8-2.9) ")",
         ],
-        Arg(2.8-2.10)[
-            LeftParen(2.8-2.9) "(",
-            RightParen(2.9-2.10) ")",
+        Arg(2.9-2.11)[
+            LeftParen(2.9-2.10) "(",
+            RightParen(2.10-2.11) ")",
         ],
-        Eol(2.10-4.2) "\n\n\t",
+        Eol(2.11-4.2) "\n\n\t",
     ],
     CommandStmt(4.2-5.1)[
         Ident(4.2-4.8) "button",
-        Arg(4.8-4.11)[
-            StrLiteral(4.8-4.10)[
-                DoubleQuote(4.8-4.9) "\"",
+        Space(4.8-4.9) " ",
+        Arg(4.9-4.13)[
+            StrLiteral(4.9-4.11)[
                 DoubleQuote(4.9-4.10) "\"",
+                DoubleQuote(4.10-4.11) "\"",
             ],
-            Comma(4.10-4.11) ",",
+            Comma(4.11-4.12) ",",
+            Space(4.12-4.13) " ",
         ],
-        Arg(4.11-4.12)[
-            LabelLiteral(4.11-4.12)[
-                Star(4.11-4.12) "*",
+        Arg(4.13-4.14)[
+            LabelLiteral(4.13-4.14)[
+                Star(4.13-4.14) "*",
             ],
         ],
-        Eol(4.12-5.1) "\n",
+        Eol(4.14-5.1) "\n",
     ],
     LabelStmt(5.1-6.1)[
         LabelLiteral(5.1-5.2)[
