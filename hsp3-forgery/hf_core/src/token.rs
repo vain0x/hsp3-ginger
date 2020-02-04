@@ -6,11 +6,13 @@ pub(crate) mod token_source;
 pub(crate) mod tokenize;
 pub(crate) mod tokenize_context;
 pub(crate) mod tokenize_rules;
+pub(crate) mod trivia;
 
 pub(crate) use crate::source::*;
 pub(crate) use location::Location;
 pub(crate) use token::{Token, TokenData};
 pub(crate) use token_source::*;
+pub(crate) use trivia::*;
 
 #[cfg(test)]
 mod tests {
