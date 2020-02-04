@@ -4,7 +4,7 @@ type Px = ParseContext;
 
 impl Token {
     pub(crate) fn at_end_of_pp(self) -> bool {
-        self == Token::Eof || self == Token::Eol
+        self == Token::Eof || self == Token::Semi
     }
 }
 

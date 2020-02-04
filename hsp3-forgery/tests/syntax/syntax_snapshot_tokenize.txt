@@ -1,13 +1,16 @@
+Semi ``
 Eol `
 `
 Hash `#`
 Ident `module`
 Space ` `
 Ident `m_main`
+Semi ``
 Eol `
 
 `
 Comment `// メイン関数`
+Semi ``
 Eol `
 `
 Hash `#`
@@ -21,12 +24,14 @@ Space `	`
 Ident `local`
 Space ` `
 Ident `a`
+Semi ``
 Eol `
 
 	`
 Ident `a`
 Plus `+`
 Plus `+`
+Semi ``
 Eol `
 	`
 If `if`
@@ -38,12 +43,15 @@ Space ` `
 Digit `1`
 Space ` `
 LeftBrace `{`
+Semi ``
 Eol `
 		`
 Break `break`
+Semi ``
 Eol `
 	`
 RightBrace `}`
+Semi ``
 Eol `
 
 	`
@@ -52,12 +60,14 @@ Space ` `
 DoubleQuote `"`
 StrVerbatim `hello, world!`
 DoubleQuote `"`
+Semi ``
 Eol `
 	`
 Ident `mes`
 Space ` `
 DoubleQuote `"`
 StrVerbatim `good bye ->`
+Semi ``
 Eol `
 
 	`
@@ -69,21 +79,26 @@ StrVerbatim `
 		text
 	`
 RightQuote `"}`
+Semi ``
 Eol `
 	`
 Return `return`
+Semi ``
 Eol `
 
 `
 Hash `#`
 Ident `global`
+Semi ``
 Eol `
 
 	`
 Comment `; トップレベルコード`
+Semi ``
 Eol `
 	`
 Ident `main`
+Semi ``
 Eol `
 
 	`
@@ -94,6 +109,7 @@ Comment `/***
 Space ` `
 Star `*`
 Slash `/`
+Semi ``
 Eol `
 
 `
@@ -104,6 +120,7 @@ Ident `zero`
 Space ` `
 Percent `%%`
 Binary `0`
+Semi ``
 Eol `
 
 	`
@@ -118,6 +135,7 @@ Pipe `|`
 Space ` `
 Percent `%`
 Binary `00110101`
+Semi ``
 Eol `
 	`
 Ident `bad_b`
@@ -133,6 +151,7 @@ Space ` `
 Percent `%`
 Binary `1`
 Digit `2`
+Semi ``
 Eol `
 	`
 Ident `h`
@@ -156,6 +175,7 @@ Pipe `|`
 Space ` `
 Dollar `$`
 Hex `deadbeef`
+Semi ``
 Eol `
 	`
 Ident `bad_h`
@@ -165,23 +185,28 @@ Space ` `
 ZeroX `0x`
 Hex `f0`
 Ident `rd`
+Semi ``
 Eol `
 
 	`
 Comment `// プリプロセッサ命令の外では改行をエスケープできない。`
+Semi ``
 Eol `
 	`
 Backslash `\`
+Semi ``
 Eol `
 
 	`
 Comment `// 行頭にない # は解釈できない。`
+Semi ``
 Eol `
 	`
 Plus `+`
 Other `#`
 Ident `define`
+Semi ``
 Eol `
 `
-Eol ``
+Semi ``
 Eof ``

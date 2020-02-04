@@ -4,11 +4,18 @@ use std::fmt;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum Token {
     Eof,
+    /// 改行。
+    /// トークン数を減らすために、改行の直後にある改行やスペースもこれに含む。
     Eol,
+    /// 改行は含まないスペース、またはエスケープされた改行。
     Space,
     Comment,
     /// 文字列やコメントの外では解釈できない文字
     Other,
+    /// 終端。
+    /// 字句解析時に、改行やファイルの終端の直前に自動で挿入される。
+    /// 構文解析時に、文の終わりを表す。(他の言語のセミコロンの役割。)
+    Semi,
     /// "0b"
     ZeroB,
     /// "0x"

@@ -1,27 +1,31 @@
 Root(1.1-7.1)[
-    ModulePp(1.1-3.1)[
+    ModulePp(1.1-1.8)[
         Hash(1.1-1.2) "#",
         Ident(1.2-1.8) "module",
-        Eol(1.8-3.1) "\n\n",
+        Semi(1.8-1.8) "",
     ],
-    DeffuncPp(3.1-4.2)[
+    DeffuncPp(1.8-3.14)[
+        Eol(1.8-3.1) "\n\n",
         Hash(3.1-3.2) "#",
         Ident(3.2-3.9) "deffunc",
         Space(3.9-3.10) " ",
         Ident(3.10-3.14) "main",
-        Eol(3.14-4.2) "\n\t",
+        Semi(3.14-3.14) "",
     ],
-    Other(4.2-4.11)[
+    Other(3.14-4.11)[
+        Eol(3.14-4.2) "\n\t",
         Return(4.2-4.8) "return",
         Space(4.8-4.9) " ",
         Digit(4.9-4.11) "42",
     ],
-    Eol(4.11-6.1) "\n\n",
-    GlobalPp(6.1-7.1)[
+    Semi(4.11-4.11) "",
+    GlobalPp(4.11-6.8)[
+        Eol(4.11-6.1) "\n\n",
         Hash(6.1-6.2) "#",
         Ident(6.2-6.8) "global",
-        Eol(6.8-7.1) "\n",
+        Semi(6.8-6.8) "",
     ],
-    Eol(7.1-7.1) "",
+    Eol(6.8-7.1) "\n",
+    Semi(7.1-7.1) "",
     Eof(7.1-7.1) "",
 ]

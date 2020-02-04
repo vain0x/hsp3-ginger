@@ -50,27 +50,26 @@ fn char_is_other_first(pp: bool, c: char) -> bool {
 }
 
 fn tokenize_eol(t: &mut TokenizeContext) -> bool {
-    let mut ok = false;
+    if t.is_followed_by("\r\n") || t.next() == '\n' {
+        t.commit(Token::Semi);
 
-    loop {
-        while ok && char_is_space(t.next()) {
-            t.bump();
+        loop {
+            while char_is_space(t.next()) {
+                t.bump();
+            }
+
+            if t.eat("\r\n") || t.eat("\n") {
+                continue;
+            }
+
+            break;
         }
 
-        if t.eat("\r\n") || t.eat("\n") {
-            ok = true;
-            continue;
-        }
-
-        break;
-    }
-
-    if ok {
         t.commit(Token::Eol);
-        true
-    } else {
-        false
+        return true;
     }
+
+    false
 }
 
 fn tokenize_space(pp: bool, t: &mut TokenizeContext) -> bool {
@@ -329,5 +328,5 @@ pub(crate) fn tokenize_all(t: &mut TokenizeContext) {
         tokenize_segment(t);
     }
 
-    t.commit(Token::Eol);
+    t.commit(Token::Semi);
 }

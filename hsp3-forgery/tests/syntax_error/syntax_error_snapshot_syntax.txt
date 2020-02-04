@@ -1,5 +1,5 @@
 Root(1.1-6.1)[
-    CommandStmt(1.1-2.2)[
+    CommandStmt(1.1-1.11)[
         Space(1.1-1.2) "\t",
         Ident(1.2-1.5) "mes",
         Space(1.5-1.6) " ",
@@ -16,9 +16,10 @@ Root(1.1-6.1)[
             LeftParen(1.9-1.10) "(",
             RightParen(1.10-1.11) ")",
         ],
-        Eol(1.11-2.2) "\n\t",
+        Semi(1.11-1.11) "",
     ],
-    CommandStmt(2.2-4.2)[
+    CommandStmt(1.11-2.11)[
+        Eol(1.11-2.2) "\n\t",
         Ident(2.2-2.5) "mes",
         Space(2.5-2.6) " ",
         Arg(2.6-2.9)[
@@ -32,9 +33,10 @@ Root(1.1-6.1)[
             LeftParen(2.9-2.10) "(",
             RightParen(2.10-2.11) ")",
         ],
-        Eol(2.11-4.2) "\n\n\t",
+        Semi(2.11-2.11) "",
     ],
-    CommandStmt(4.2-5.1)[
+    CommandStmt(2.11-4.14)[
+        Eol(2.11-4.2) "\n\n\t",
         Ident(4.2-4.8) "button",
         Space(4.8-4.9) " ",
         Arg(4.9-4.13)[
@@ -50,14 +52,16 @@ Root(1.1-6.1)[
                 Star(4.13-4.14) "*",
             ],
         ],
-        Eol(4.14-5.1) "\n",
+        Semi(4.14-4.14) "",
     ],
-    LabelStmt(5.1-6.1)[
-        LabelLiteral(5.1-5.2)[
+    LabelStmt(4.14-5.2)[
+        LabelLiteral(4.14-5.2)[
+            Eol(4.14-5.1) "\n",
             Star(5.1-5.2) "*",
         ],
-        Eol(5.2-6.1) "\n",
+        Semi(5.2-5.2) "",
     ],
-    Eol(6.1-6.1) "",
+    Eol(5.2-6.1) "\n",
+    Semi(6.1-6.1) "",
     Eof(6.1-6.1) "",
 ]

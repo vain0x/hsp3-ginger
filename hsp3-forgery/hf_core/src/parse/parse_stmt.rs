@@ -20,7 +20,7 @@ impl Token {
 
     pub(crate) fn at_end_of_stmt(self) -> bool {
         self == Token::Eof
-            || self == Token::Eol
+            || self == Token::Semi
             || self == Token::RightBrace
             || self == Token::Colon
     }
