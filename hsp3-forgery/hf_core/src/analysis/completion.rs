@@ -34,9 +34,69 @@ pub(crate) struct SignatureHelp {
     pub(crate) active_param_index: usize,
 }
 
-pub(crate) fn signature_help(
+pub(crate) fn get_signature_help(
     syntax_root: Rc<SyntaxRoot>,
     position: Position,
 ) -> Option<SignatureHelp> {
-    None
+    fn go_node(node: Rc<SyntaxNode>, p: Position, out: &mut Option<SignatureHelp>) -> bool {
+        for child in node.child_nodes() {
+            if !child.range().contains_loosely(p) {
+                continue;
+            }
+
+            if go_node(child.clone(), p, out) {
+                return true;
+            }
+
+            let command_stmt = match ACommandStmt::cast(child) {
+                None => continue,
+                Some(x) => x,
+            };
+
+            let mut arg_index = 0;
+
+            for element in command_stmt.into_syntax().child_elements() {
+                match element {
+                    SyntaxElement::Token(token) => {
+                        if token.kind() == Token::Ident {
+                            // コマンド
+                        } else {
+                            continue;
+                        }
+                    }
+                    SyntaxElement::Node(node) => match AArg::cast(Rc::new(node)) {
+                        None => continue,
+                        Some(arg) => {
+                            arg_index += 1;
+
+                            let syntax = arg.into_syntax();
+                            if !syntax.range().contains_loosely(p) {
+                                continue;
+                            }
+
+                            // 引数
+                            if go_node(syntax.clone(), p, out) {
+                                return true;
+                            }
+
+                            *out = Some(SignatureHelp {
+                                params: vec!["x", "y"]
+                                    .into_iter()
+                                    .map(ToString::to_string)
+                                    .collect(),
+                                active_param_index: arg_index - 1,
+                            });
+                            return true;
+                        }
+                    },
+                }
+            }
+        }
+
+        false
+    }
+
+    let mut help = None;
+    go_node(syntax_root.into_node(), position, &mut help);
+    help
 }

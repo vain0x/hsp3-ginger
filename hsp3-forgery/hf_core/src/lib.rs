@@ -86,7 +86,6 @@ mod tests {
         assert_eq!(completion_items.len(), 1);
     }
 
-    #[cfg(skip)]
     #[test]
     fn signature_help_tests() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -105,13 +104,16 @@ mod tests {
         world::tokenize(&source_codes, &mut tokenss);
 
         let source = TokenSource::from_file(source_file);
+        let tokens = tokenss.get(&source).unwrap();
+        let syntax_root = crate::parse::parse_tokens(tokens);
 
         // first
         let position = Position {
             line: 0,
             character: 7,
         };
-        let signature_help_opt = crate::analysis::completion::signature_help(&ast_root, position);
+        let signature_help_opt =
+            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
         assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(0));
 
         // second
@@ -119,7 +121,8 @@ mod tests {
             line: 0,
             character: 13,
         };
-        let signature_help_opt = crate::analysis::completion::signature_help(&ast_root, position);
+        let signature_help_opt =
+            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
         assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(1));
 
         // 範囲外
@@ -127,7 +130,8 @@ mod tests {
             line: 0,
             character: 1,
         };
-        let signature_help_opt = crate::analysis::completion::signature_help(&ast_root, position);
+        let signature_help_opt =
+            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
         assert!(signature_help_opt.is_none());
     }
 }
