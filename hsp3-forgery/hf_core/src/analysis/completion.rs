@@ -42,46 +42,34 @@ pub(crate) fn get_signature_help(
                 Some(x) => x,
             };
 
-            let mut arg_index = 0;
+            let command_opt = command_stmt
+                .syntax()
+                .child_tokens()
+                .filter(|t| t.kind() == Token::Ident)
+                .next();
 
-            for element in command_stmt.syntax().child_elements() {
-                match element {
-                    SyntaxElement::Token(token) => {
-                        if token.kind() == Token::Ident {
-                            // コマンド
-                        } else {
-                            continue;
-                        }
-                    }
-                    SyntaxElement::Node(node) => match AArg::cast(&node) {
-                        None => continue,
-                        Some(arg) => {
-                            arg_index += 1;
-
-                            let syntax = arg.syntax();
-                            if !syntax.range().contains_loosely(p) {
-                                continue;
-                            }
-
-                            // 引数
-                            if go_node(syntax, p, out) {
-                                return true;
-                            }
-
-                            *out = Some(SignatureHelp {
-                                params: vec!["x", "y"]
-                                    .into_iter()
-                                    .map(ToString::to_string)
-                                    .collect(),
-                                active_param_index: arg_index - 1,
-                            });
-                            return true;
-                        }
-                    },
+            for (arg_index, arg) in command_stmt
+                .syntax()
+                .child_nodes()
+                .filter_map(|node| AArg::cast(&node))
+                .enumerate()
+                .filter(|(_, arg)| arg.syntax().range().contains_loosely(p))
+            {
+                // 引数
+                if go_node(arg.syntax(), p, out) {
+                    return true;
                 }
+
+                *out = Some(SignatureHelp {
+                    params: vec!["x", "y"]
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                    active_param_index: arg_index,
+                });
+                return true;
             }
         }
-
         false
     }
 
