@@ -29,14 +29,14 @@ impl SyntaxRoot {
         Range::new(start, end)
     }
 
-    pub(crate) fn into_node(self: Rc<Self>) -> SyntaxNode {
-        SyntaxNode::from_root(self)
+    pub(crate) fn node(&self) -> SyntaxNode {
+        SyntaxNode::from_root(Rc::new(self.clone()))
     }
 }
 
 impl fmt::Debug for SyntaxRoot {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Rc::new(self.clone()).into_node().fmt(f)?;
+        self.node().fmt(f)?;
         write!(f, "\n")?;
 
         // for error in &self.errors {

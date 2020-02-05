@@ -22,7 +22,7 @@ pub(crate) fn get_completion_list(syntax_root: Rc<SyntaxRoot>, position: Positio
     }
 
     let mut symbols = vec![];
-    go_node(&syntax_root.into_node(), &mut symbols);
+    go_node(&syntax_root.node(), &mut symbols);
     symbols.sort();
     symbols.dedup();
 
@@ -97,6 +97,6 @@ pub(crate) fn get_signature_help(
     }
 
     let mut help = None;
-    go_node(&syntax_root.into_node(), position, &mut help);
+    go_node(&syntax_root.node(), position, &mut help);
     help
 }
