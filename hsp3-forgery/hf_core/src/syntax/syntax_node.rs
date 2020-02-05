@@ -10,14 +10,14 @@ pub(crate) struct SyntaxNode {
 }
 
 impl SyntaxNode {
-    pub(crate) fn from_root(root: Rc<SyntaxRoot>) -> Rc<SyntaxNode> {
+    pub(crate) fn from_root(root: Rc<SyntaxRoot>) -> SyntaxNode {
         let range = root.range();
 
-        Rc::new(SyntaxNode {
+        SyntaxNode {
             kind: NodeKind::Root,
             parent: SyntaxParent::Root { root },
             range,
-        })
+        }
     }
 
     pub(crate) fn kind(&self) -> NodeKind {
@@ -42,7 +42,8 @@ impl SyntaxNode {
         }
     }
 
-    pub(crate) fn child_elements(self: Rc<Self>) -> impl Iterator<Item = SyntaxElement> {
+    pub(crate) fn child_elements(&self) -> impl Iterator<Item = SyntaxElement> {
+        let it = Rc::new(self.clone());
         let mut start = self.range.start;
 
         // この move は self の所有権をクロージャに渡す。
@@ -50,7 +51,7 @@ impl SyntaxNode {
             // self → SyntaxRoot → GreenNode (Root) → self.green() のように、
             // 間接的にイミュータブルな参照を握っているので child_index が無効になることはない。
             // そのため unwrap は失敗しないはず。
-            match self.green().children().get(child_index).unwrap() {
+            match it.green().children().get(child_index).unwrap() {
                 GreenElement::Node(node) => {
                     let end = start + node.position();
                     let range = Range::new(start, end);
@@ -59,7 +60,7 @@ impl SyntaxNode {
                     Some(SyntaxElement::Node(SyntaxNode {
                         kind: node.kind(),
                         parent: SyntaxParent::NonRoot {
-                            node: Rc::clone(&self),
+                            node: Rc::clone(&it),
                             child_index,
                         },
                         range,
@@ -73,7 +74,7 @@ impl SyntaxNode {
                     Some(SyntaxElement::Token(SyntaxToken {
                         kind: token.token(),
                         parent: SyntaxParent::NonRoot {
-                            node: Rc::clone(&self),
+                            node: Rc::clone(&it),
                             child_index,
                         },
                         location: Location::new(token.location.source.clone(), range),
@@ -83,16 +84,16 @@ impl SyntaxNode {
         })
     }
 
-    pub(crate) fn child_nodes(self: Rc<Self>) -> impl Iterator<Item = Rc<SyntaxNode>> {
+    pub(crate) fn child_nodes(&self) -> impl Iterator<Item = SyntaxNode> {
         self.child_elements().filter_map(|element| match element {
-            SyntaxElement::Node(node) => Some(Rc::new(node)),
+            SyntaxElement::Node(node) => Some(node),
             SyntaxElement::Token(..) => None,
         })
     }
 
-    pub(crate) fn child_tokens(self: Rc<Self>) -> impl Iterator<Item = Rc<SyntaxToken>> {
+    pub(crate) fn child_tokens(&self) -> impl Iterator<Item = SyntaxToken> {
         self.child_elements().filter_map(|element| match element {
-            SyntaxElement::Token(token) => Some(Rc::new(token)),
+            SyntaxElement::Token(token) => Some(token),
             SyntaxElement::Node(..) => None,
         })
     }
@@ -101,9 +102,6 @@ impl SyntaxNode {
 impl fmt::Debug for SyntaxNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}({:?})", self.kind(), self.range())?;
-        Rc::new(self.clone())
-            .child_elements()
-            .collect::<Vec<_>>()
-            .fmt(f)
+        self.child_elements().collect::<Vec<_>>().fmt(f)
     }
 }

@@ -4,7 +4,7 @@ use crate::token::*;
 use std::rc::Rc;
 
 pub(crate) fn get_completion_list(syntax_root: Rc<SyntaxRoot>, position: Position) -> Vec<String> {
-    fn go_node(node: Rc<SyntaxNode>, idents: &mut Vec<String>) {
+    fn go_node(node: SyntaxNode, idents: &mut Vec<String>) {
         for child in node.child_nodes() {
             if let Some(assign_stmt) = AAssignStmt::cast(child.clone()) {
                 if let Some(token) = assign_stmt
@@ -38,7 +38,7 @@ pub(crate) fn get_signature_help(
     syntax_root: Rc<SyntaxRoot>,
     position: Position,
 ) -> Option<SignatureHelp> {
-    fn go_node(node: Rc<SyntaxNode>, p: Position, out: &mut Option<SignatureHelp>) -> bool {
+    fn go_node(node: SyntaxNode, p: Position, out: &mut Option<SignatureHelp>) -> bool {
         for child in node.child_nodes() {
             if !child.range().contains_loosely(p) {
                 continue;
@@ -64,7 +64,7 @@ pub(crate) fn get_signature_help(
                             continue;
                         }
                     }
-                    SyntaxElement::Node(node) => match AArg::cast(Rc::new(node)) {
+                    SyntaxElement::Node(node) => match AArg::cast(node.clone()) {
                         None => continue,
                         Some(arg) => {
                             arg_index += 1;
@@ -75,7 +75,7 @@ pub(crate) fn get_signature_help(
                             }
 
                             // 引数
-                            if go_node(syntax.clone(), p, out) {
+                            if go_node(syntax, p, out) {
                                 return true;
                             }
 

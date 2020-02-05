@@ -29,7 +29,7 @@ impl SyntaxRoot {
         Range::new(start, end)
     }
 
-    pub(crate) fn into_node(self: Rc<Self>) -> Rc<SyntaxNode> {
+    pub(crate) fn into_node(self: Rc<Self>) -> SyntaxNode {
         SyntaxNode::from_root(self)
     }
 }

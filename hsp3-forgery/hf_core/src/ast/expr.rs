@@ -1,14 +1,13 @@
 use super::*;
-use std::rc::Rc;
 
-pub(crate) struct ACallExpr(Rc<SyntaxNode>);
+pub(crate) struct ACallExpr(SyntaxNode);
 
 impl Ast for ACallExpr {
-    fn into_syntax(self) -> Rc<SyntaxNode> {
+    fn into_syntax(self) -> SyntaxNode {
         self.0
     }
 
-    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::CallExpr {
             Some(ACallExpr(syntax_node))
         } else {
@@ -56,7 +55,7 @@ impl From<ACallExpr> for AExpr {
 }
 
 impl Ast for AExpr {
-    fn into_syntax(self) -> Rc<SyntaxNode> {
+    fn into_syntax(self) -> SyntaxNode {
         match self {
             AExpr::Label(a) => a.into_syntax(),
             AExpr::Str(a) => a.into_syntax(),
@@ -66,7 +65,7 @@ impl Ast for AExpr {
         }
     }
 
-    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
         if let Some(a) = ALabel::cast(syntax_node.clone()) {
             return Some(AExpr::Label(a));
         }
@@ -91,14 +90,14 @@ impl Ast for AExpr {
     }
 }
 
-pub(crate) struct AArg(Rc<SyntaxNode>);
+pub(crate) struct AArg(SyntaxNode);
 
 impl Ast for AArg {
-    fn into_syntax(self) -> Rc<SyntaxNode> {
+    fn into_syntax(self) -> SyntaxNode {
         self.0
     }
 
-    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::Arg {
             Some(AArg(syntax_node))
         } else {

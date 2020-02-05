@@ -1,14 +1,13 @@
 use super::*;
-use std::rc::Rc;
 
-pub(crate) struct AAssignStmt(Rc<SyntaxNode>);
+pub(crate) struct AAssignStmt(SyntaxNode);
 
 impl Ast for AAssignStmt {
-    fn into_syntax(self) -> Rc<SyntaxNode> {
+    fn into_syntax(self) -> SyntaxNode {
         self.0
     }
 
-    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::AssignStmt {
             Some(AAssignStmt(syntax_node))
         } else {
@@ -17,14 +16,14 @@ impl Ast for AAssignStmt {
     }
 }
 
-pub(crate) struct ACommandStmt(Rc<SyntaxNode>);
+pub(crate) struct ACommandStmt(SyntaxNode);
 
 impl Ast for ACommandStmt {
-    fn into_syntax(self) -> Rc<SyntaxNode> {
+    fn into_syntax(self) -> SyntaxNode {
         self.0
     }
 
-    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::CommandStmt {
             Some(ACommandStmt(syntax_node))
         } else {
@@ -33,14 +32,14 @@ impl Ast for ACommandStmt {
     }
 }
 
-pub(crate) struct ALabelStmt(Rc<SyntaxNode>);
+pub(crate) struct ALabelStmt(SyntaxNode);
 
 impl Ast for ALabelStmt {
-    fn into_syntax(self) -> Rc<SyntaxNode> {
+    fn into_syntax(self) -> SyntaxNode {
         self.0
     }
 
-    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::LabelStmt {
             Some(ALabelStmt(syntax_node))
         } else {
@@ -56,7 +55,7 @@ pub(crate) enum AStmt {
 }
 
 impl Ast for AStmt {
-    fn into_syntax(self) -> Rc<SyntaxNode> {
+    fn into_syntax(self) -> SyntaxNode {
         match self {
             AStmt::Assign(a) => a.into_syntax(),
             AStmt::Command(a) => a.into_syntax(),
@@ -64,7 +63,7 @@ impl Ast for AStmt {
         }
     }
 
-    fn cast(syntax_node: Rc<SyntaxNode>) -> Option<Self> {
+    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
         if let Some(a) = AAssignStmt::cast(syntax_node.clone()) {
             return Some(AStmt::Assign(a));
         }
