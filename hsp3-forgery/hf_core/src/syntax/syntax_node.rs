@@ -42,12 +42,12 @@ impl SyntaxNode {
         }
     }
 
-    pub(crate) fn child_elements(&self) -> impl Iterator<Item = SyntaxElement> {
+    pub(crate) fn child_elements(&self) -> impl DoubleEndedIterator<Item = SyntaxElement> {
         let it = Rc::new(self.clone());
         let mut start = self.range.start;
 
         // この move は self の所有権をクロージャに渡す。
-        (0..self.green().children().len()).filter_map(move |child_index| {
+        (0..self.green().children().len()).map(move |child_index| {
             // self → SyntaxRoot → GreenNode (Root) → self.green() のように、
             // 間接的にイミュータブルな参照を握っているので child_index が無効になることはない。
             // そのため unwrap は失敗しないはず。
@@ -57,28 +57,28 @@ impl SyntaxNode {
                     let range = Range::new(start, end);
                     start = end;
 
-                    Some(SyntaxElement::Node(SyntaxNode {
+                    SyntaxElement::Node(SyntaxNode {
                         kind: node.kind(),
                         parent: SyntaxParent::NonRoot {
                             node: Rc::clone(&it),
                             child_index,
                         },
                         range,
-                    }))
+                    })
                 }
                 GreenElement::Token(token) => {
                     let end = start + token.position();
                     let range = Range::new(start, end);
                     start = end;
 
-                    Some(SyntaxElement::Token(SyntaxToken {
+                    SyntaxElement::Token(SyntaxToken {
                         kind: token.token(),
                         parent: SyntaxParent::NonRoot {
                             node: Rc::clone(&it),
                             child_index,
                         },
                         location: Location::new(token.location.source.clone(), range),
-                    }))
+                    })
                 }
             }
         })
@@ -97,11 +97,46 @@ impl SyntaxNode {
             SyntaxElement::Node(..) => None,
         })
     }
+
+    pub(crate) fn descendant_elements(&self) -> impl Iterator<Item = SyntaxElement> {
+        iter::DescendantElementsIter::new(self.clone().into())
+    }
 }
 
 impl fmt::Debug for SyntaxNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}({:?})", self.kind(), self.range())?;
         self.child_elements().collect::<Vec<_>>().fmt(f)
+    }
+}
+
+mod iter {
+    use super::*;
+
+    pub(super) struct DescendantElementsIter {
+        stack: Vec<SyntaxElement>,
+    }
+
+    impl DescendantElementsIter {
+        pub(super) fn new(element: SyntaxElement) -> Self {
+            DescendantElementsIter {
+                stack: vec![element],
+            }
+        }
+    }
+
+    impl Iterator for DescendantElementsIter {
+        type Item = SyntaxElement;
+
+        fn next(&mut self) -> Option<SyntaxElement> {
+            let element = self.stack.pop()?;
+            match &element {
+                SyntaxElement::Token(_) => {}
+                SyntaxElement::Node(node) => {
+                    self.stack.extend(node.child_elements().rev());
+                }
+            }
+            Some(element)
+        }
     }
 }

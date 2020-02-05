@@ -20,6 +20,10 @@ impl SyntaxToken {
         &self.location
     }
 
+    pub(crate) fn range(&self) -> Range {
+        self.location().range()
+    }
+
     pub(crate) fn green(&self) -> &TokenData {
         match &self.parent {
             SyntaxParent::Root { .. } => unreachable!("SyntaxParent::Root bug"),

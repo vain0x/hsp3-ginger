@@ -4,29 +4,18 @@ use crate::token::*;
 use std::rc::Rc;
 
 pub(crate) fn get_completion_list(syntax_root: Rc<SyntaxRoot>, position: Position) -> Vec<String> {
-    fn go_node(node: &SyntaxNode, idents: &mut Vec<String>) {
-        for child in node.child_nodes() {
-            if let Some(assign_stmt) = AAssignStmt::cast(&child) {
-                if let Some(token) = assign_stmt
-                    .syntax()
-                    .child_tokens()
-                    .filter(|t| t.kind() == Token::Ident)
-                    .next()
-                {
-                    idents.push(token.text().to_string());
-                }
-            }
-
-            go_node(&child, idents);
-        }
-    }
-
-    let mut symbols = vec![];
-    go_node(&syntax_root.node(), &mut symbols);
-    symbols.sort();
-    symbols.dedup();
-
-    symbols
+    syntax_root
+        .node()
+        .descendant_elements()
+        .filter_map(|e| AAssignStmt::cast(&SyntaxElement::cast_node(e)?))
+        .flat_map(|assign_stmt| {
+            assign_stmt
+                .syntax()
+                .child_tokens()
+                .filter(|t| t.kind() == Token::Ident)
+        })
+        .map(|token| token.text().to_string())
+        .collect()
 }
 
 pub(crate) struct SignatureHelp {
