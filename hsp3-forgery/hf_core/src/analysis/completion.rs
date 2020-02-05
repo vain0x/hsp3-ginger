@@ -37,37 +37,60 @@ pub(crate) fn get_signature_help(
                 return true;
             }
 
-            let command_stmt = match ACommandStmt::cast(&child) {
-                None => continue,
-                Some(x) => x,
-            };
-
-            let command_opt = command_stmt
-                .syntax()
-                .child_tokens()
-                .filter(|t| t.kind() == Token::Ident)
-                .next();
-
-            for (arg_index, arg) in command_stmt
-                .syntax()
-                .child_nodes()
-                .filter_map(|node| AArg::cast(&node))
-                .enumerate()
-                .filter(|(_, arg)| arg.syntax().range().contains_loosely(p))
+            if let Some(stmt) = ACommandStmt::cast(&child)
+                .map(|s| s.syntax().clone())
+                .or_else(|| ACallExpr::cast(&child).map(|s| s.syntax().clone()))
             {
-                // 引数
-                if go_node(arg.syntax(), p, out) {
+                for (arg_index, arg) in stmt
+                    .child_nodes()
+                    .filter_map(|node| AArg::cast(&node))
+                    .enumerate()
+                    .filter(|(_, arg)| arg.syntax().range().contains_loosely(p))
+                {
+                    if go_node(arg.syntax(), p, out) {
+                        return true;
+                    }
+
+                    let params = loop {
+                        if let Some(command_token) = stmt
+                            .child_tokens()
+                            .filter(|t| t.kind() == Token::Ident)
+                            .next()
+                        {
+                            if command_token.text() == "width" {
+                                break vec!["x".to_string(), "y".to_string()];
+                            }
+                        }
+
+                        if let Some(func_token) = stmt
+                            .child_nodes()
+                            .filter_map(|node| AIdent::cast(&node))
+                            .flat_map(|ident| {
+                                ident
+                                    .syntax()
+                                    .child_tokens()
+                                    .filter(|t| t.kind() == Token::Ident)
+                            })
+                            .next()
+                        {
+                            if func_token.text() == "instr" {
+                                break vec![
+                                    "text".to_string(),
+                                    "offset".to_string(),
+                                    "search_word".to_string(),
+                                ];
+                            }
+                        }
+
+                        break vec![];
+                    };
+
+                    *out = Some(SignatureHelp {
+                        params,
+                        active_param_index: arg_index,
+                    });
                     return true;
                 }
-
-                *out = Some(SignatureHelp {
-                    params: vec!["x", "y"]
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .collect(),
-                    active_param_index: arg_index,
-                });
-                return true;
             }
         }
         false

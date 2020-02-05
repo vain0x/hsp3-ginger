@@ -1,4 +1,6 @@
 	width 800, 512
+	width instr(s, , t)
+
 	width = 1
 
 	dim a

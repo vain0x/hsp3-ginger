@@ -133,5 +133,35 @@ mod tests {
         let signature_help_opt =
             crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
         assert!(signature_help_opt.is_none());
+
+        // width
+        let position = Position {
+            line: 0,
+            character: 7,
+        };
+        let signature_help_opt =
+            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
+        assert_eq!(
+            signature_help_opt
+                .as_ref()
+                .map(|sh| sh.params.join(","))
+                .unwrap_or(String::new()),
+            "x,y"
+        );
+
+        // instr
+        let position = Position {
+            line: 1,
+            character: 18,
+        };
+        let signature_help_opt =
+            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
+        assert_eq!(
+            signature_help_opt
+                .as_ref()
+                .map(|sh| sh.params.join(","))
+                .unwrap_or(String::new()),
+            "text,offset,search_word"
+        );
     }
 }

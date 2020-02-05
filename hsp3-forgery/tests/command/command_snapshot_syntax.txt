@@ -1,4 +1,4 @@
-Root(1.1-28.1)[
+Root(1.1-30.1)[
     CommandStmt(1.1-1.16)[
         Space(1.1-1.2) "\t",
         Ident(1.2-1.7) "width",
@@ -17,122 +17,118 @@ Root(1.1-28.1)[
         ],
         Semi(1.16-1.16) "",
     ],
-    AssignStmt(1.16-2.11)[
+    CommandStmt(1.16-2.21)[
         Eol(1.16-2.2) "\n\t",
         Ident(2.2-2.7) "width",
         Space(2.7-2.8) " ",
-        Equal(2.8-2.9) "=",
-        Space(2.9-2.10) " ",
-        IntLiteral(2.10-2.11)[
-            Digit(2.10-2.11) "1",
-        ],
-        Semi(2.11-2.11) "",
-    ],
-    CommandStmt(2.11-4.7)[
-        Eol(2.11-4.2) "\n\n\t",
-        Ident(4.2-4.5) "dim",
-        Space(4.5-4.6) " ",
-        Arg(4.6-4.7)[
-            Ident(4.6-4.7)[
-                Ident(4.6-4.7) "a",
+        Arg(2.8-2.21)[
+            CallExpr(2.8-2.21)[
+                Ident(2.8-2.13)[
+                    Ident(2.8-2.13) "instr",
+                ],
+                LeftParen(2.13-2.14) "(",
+                Arg(2.14-2.17)[
+                    Ident(2.14-2.15)[
+                        Ident(2.14-2.15) "s",
+                    ],
+                    Comma(2.15-2.16) ",",
+                    Space(2.16-2.17) " ",
+                ],
+                Arg(2.17-2.19)[
+                    Comma(2.17-2.18) ",",
+                    Space(2.18-2.19) " ",
+                ],
+                Arg(2.19-2.20)[
+                    Ident(2.19-2.20)[
+                        Ident(2.19-2.20) "t",
+                    ],
+                ],
+                RightParen(2.20-2.21) ")",
             ],
         ],
-        Semi(4.7-4.7) "",
+        Semi(2.21-2.21) "",
     ],
-    AssignStmt(4.7-5.7)[
-        Eol(4.7-5.2) "\n\t",
-        Ident(5.2-5.3) "n",
-        Space(5.3-5.4) " ",
-        Equal(5.4-5.5) "=",
-        Space(5.5-5.6) " ",
-        IntLiteral(5.6-5.7)[
-            Digit(5.6-5.7) "4",
+    AssignStmt(2.21-4.11)[
+        Eol(2.21-4.2) "\n\n\t",
+        Ident(4.2-4.7) "width",
+        Space(4.7-4.8) " ",
+        Equal(4.8-4.9) "=",
+        Space(4.9-4.10) " ",
+        IntLiteral(4.10-4.11)[
+            Digit(4.10-4.11) "1",
         ],
-        Semi(5.7-5.7) "",
+        Semi(4.11-4.11) "",
     ],
-    CommandStmt(5.7-7.13)[
-        Eol(5.7-7.2) "\n\n\t",
-        Ident(7.2-7.5) "dim",
+    CommandStmt(4.11-6.7)[
+        Eol(4.11-6.2) "\n\n\t",
+        Ident(6.2-6.5) "dim",
+        Space(6.5-6.6) " ",
+        Arg(6.6-6.7)[
+            Ident(6.6-6.7)[
+                Ident(6.6-6.7) "a",
+            ],
+        ],
+        Semi(6.7-6.7) "",
+    ],
+    AssignStmt(6.7-7.7)[
+        Eol(6.7-7.2) "\n\t",
+        Ident(7.2-7.3) "n",
+        Space(7.3-7.4) " ",
+        Equal(7.4-7.5) "=",
         Space(7.5-7.6) " ",
-        Arg(7.6-7.9)[
-            Ident(7.6-7.7)[
-                Ident(7.6-7.7) "b",
-            ],
-            Comma(7.7-7.8) ",",
-            Space(7.8-7.9) " ",
+        IntLiteral(7.6-7.7)[
+            Digit(7.6-7.7) "4",
         ],
-        Arg(7.9-7.12)[
-            Ident(7.9-7.10)[
-                Ident(7.9-7.10) "n",
-            ],
-            Comma(7.10-7.11) ",",
-            Space(7.11-7.12) " ",
-        ],
-        Arg(7.12-7.13)[
-            Ident(7.12-7.13)[
-                Ident(7.12-7.13) "n",
-            ],
-        ],
-        Semi(7.13-7.13) "",
+        Semi(7.7-7.7) "",
     ],
-    CommandStmt(7.13-8.13)[
-        Eol(7.13-8.2) "\n\t",
-        Ident(8.2-8.5) "mes",
-        Space(8.5-8.6) " ",
-        Arg(8.6-8.13)[
-            CallExpr(8.6-8.13)[
-                Ident(8.6-8.7)[
-                    Ident(8.6-8.7) "b",
-                ],
-                LeftParen(8.7-8.8) "(",
-                Arg(8.8-8.11)[
-                    IntLiteral(8.8-8.9)[
-                        Digit(8.8-8.9) "1",
-                    ],
-                    Comma(8.9-8.10) ",",
-                    Space(8.10-8.11) " ",
-                ],
-                Arg(8.11-8.12)[
-                    IntLiteral(8.11-8.12)[
-                        Digit(8.11-8.12) "1",
-                    ],
-                ],
-                RightParen(8.12-8.13) ")",
-            ],
-        ],
-        Semi(8.13-8.13) "",
-    ],
-    CommandStmt(8.13-9.12)[
-        Eol(8.13-9.2) "\n\t",
-        Ident(9.2-9.5) "mes",
+    CommandStmt(7.7-9.13)[
+        Eol(7.7-9.2) "\n\n\t",
+        Ident(9.2-9.5) "dim",
         Space(9.5-9.6) " ",
-        Arg(9.6-9.12)[
-            CallExpr(9.6-9.12)[
-                Ident(9.6-9.7)[
-                    Ident(9.6-9.7) "b",
-                ],
-                LeftParen(9.7-9.8) "(",
-                Arg(9.8-9.11)[
-                    LeftParen(9.8-9.9) "(",
-                    IntLiteral(9.9-9.10)[
-                        Digit(9.9-9.10) "0",
-                    ],
-                    RightParen(9.10-9.11) ")",
-                ],
-                RightParen(9.11-9.12) ")",
+        Arg(9.6-9.9)[
+            Ident(9.6-9.7)[
+                Ident(9.6-9.7) "b",
+            ],
+            Comma(9.7-9.8) ",",
+            Space(9.8-9.9) " ",
+        ],
+        Arg(9.9-9.12)[
+            Ident(9.9-9.10)[
+                Ident(9.9-9.10) "n",
+            ],
+            Comma(9.10-9.11) ",",
+            Space(9.11-9.12) " ",
+        ],
+        Arg(9.12-9.13)[
+            Ident(9.12-9.13)[
+                Ident(9.12-9.13) "n",
             ],
         ],
-        Semi(9.12-9.12) "",
+        Semi(9.13-9.13) "",
     ],
-    CommandStmt(9.12-10.13)[
-        Eol(9.12-10.2) "\n\t",
+    CommandStmt(9.13-10.13)[
+        Eol(9.13-10.2) "\n\t",
         Ident(10.2-10.5) "mes",
         Space(10.5-10.6) " ",
         Arg(10.6-10.13)[
-            StrLiteral(10.6-10.13)[
-                DoubleQuote(10.6-10.7) "\"",
-                StrVerbatim(10.7-10.12) "hello",
-                DoubleQuote(10.12-10.13) "\"",
+            CallExpr(10.6-10.13)[
+                Ident(10.6-10.7)[
+                    Ident(10.6-10.7) "b",
+                ],
+                LeftParen(10.7-10.8) "(",
+                Arg(10.8-10.11)[
+                    IntLiteral(10.8-10.9)[
+                        Digit(10.8-10.9) "1",
+                    ],
+                    Comma(10.9-10.10) ",",
+                    Space(10.10-10.11) " ",
+                ],
+                Arg(10.11-10.12)[
+                    IntLiteral(10.11-10.12)[
+                        Digit(10.11-10.12) "1",
+                    ],
+                ],
+                RightParen(10.12-10.13) ")",
             ],
         ],
         Semi(10.13-10.13) "",
@@ -142,114 +138,149 @@ Root(1.1-28.1)[
         Ident(11.2-11.5) "mes",
         Space(11.5-11.6) " ",
         Arg(11.6-11.12)[
-            StrLiteral(11.6-11.12)[
-                DoubleQuote(11.6-11.7) "\"",
-                StrVerbatim(11.7-11.12) "world",
+            CallExpr(11.6-11.12)[
+                Ident(11.6-11.7)[
+                    Ident(11.6-11.7) "b",
+                ],
+                LeftParen(11.7-11.8) "(",
+                Arg(11.8-11.11)[
+                    LeftParen(11.8-11.9) "(",
+                    IntLiteral(11.9-11.10)[
+                        Digit(11.9-11.10) "0",
+                    ],
+                    RightParen(11.10-11.11) ")",
+                ],
+                RightParen(11.11-11.12) ")",
             ],
         ],
         Semi(11.12-11.12) "",
     ],
-    CommandStmt(11.12-15.7)[
-        Eol(11.12-13.2) "\n\n\t",
+    CommandStmt(11.12-12.13)[
+        Eol(11.12-12.2) "\n\t",
+        Ident(12.2-12.5) "mes",
+        Space(12.5-12.6) " ",
+        Arg(12.6-12.13)[
+            StrLiteral(12.6-12.13)[
+                DoubleQuote(12.6-12.7) "\"",
+                StrVerbatim(12.7-12.12) "hello",
+                DoubleQuote(12.12-12.13) "\"",
+            ],
+        ],
+        Semi(12.13-12.13) "",
+    ],
+    CommandStmt(12.13-13.12)[
+        Eol(12.13-13.2) "\n\t",
         Ident(13.2-13.5) "mes",
         Space(13.5-13.6) " ",
-        Arg(13.6-15.6)[
-            StrLiteral(13.6-15.4)[
-                LeftQuote(13.6-13.8) "{\"",
-                StrVerbatim(13.8-15.2) "first\n\tsecond\n\t",
-                RightQuote(15.2-15.4) "\"}",
-            ],
-            Comma(15.4-15.5) ",",
-            Space(15.5-15.6) " ",
-        ],
-        Arg(15.6-15.7)[
-            IntLiteral(15.6-15.7)[
-                Digit(15.6-15.7) "3",
+        Arg(13.6-13.12)[
+            StrLiteral(13.6-13.12)[
+                DoubleQuote(13.6-13.7) "\"",
+                StrVerbatim(13.7-13.12) "world",
             ],
         ],
-        Semi(15.7-15.7) "",
+        Semi(13.12-13.12) "",
     ],
-    Other(15.7-17.14)[
-        Eol(15.7-17.2) "\n\n\t",
-        Goto(17.2-17.6) "goto",
-        Space(17.6-17.7) " ",
-        Star(17.7-17.8) "*",
-        Ident(17.8-17.14) "l_dest",
-    ],
-    Semi(17.14-17.14) "",
-    CommandStmt(17.14-18.22)[
-        Eol(17.14-18.2) "\n\t",
-        Ident(18.2-18.8) "onexit",
-        Space(18.8-18.9) " ",
-        Gosub(18.9-18.14) "gosub",
-        Space(18.14-18.15) " ",
-        Arg(18.15-18.22)[
-            LabelLiteral(18.15-18.22)[
-                Star(18.15-18.16) "*",
-                Ident(18.16-18.22) "l_dest",
+    CommandStmt(13.12-17.7)[
+        Eol(13.12-15.2) "\n\n\t",
+        Ident(15.2-15.5) "mes",
+        Space(15.5-15.6) " ",
+        Arg(15.6-17.6)[
+            StrLiteral(15.6-17.4)[
+                LeftQuote(15.6-15.8) "{\"",
+                StrVerbatim(15.8-17.2) "first\n\tsecond\n\t",
+                RightQuote(17.2-17.4) "\"}",
+            ],
+            Comma(17.4-17.5) ",",
+            Space(17.5-17.6) " ",
+        ],
+        Arg(17.6-17.7)[
+            IntLiteral(17.6-17.7)[
+                Digit(17.6-17.7) "3",
             ],
         ],
-        Semi(18.22-18.22) "",
+        Semi(17.7-17.7) "",
     ],
-    AssignStmt(18.22-19.9)[
-        Eol(18.22-19.2) "\n\t",
-        Ident(19.2-19.3) "l",
-        Space(19.3-19.4) " ",
-        Equal(19.4-19.5) "=",
-        Space(19.5-19.6) " ",
-        LabelLiteral(19.6-19.9)[
-            Star(19.6-19.7) "*",
-            AtSign(19.7-19.8) "@",
-            Ident(19.8-19.9) "f",
+    Other(17.7-19.14)[
+        Eol(17.7-19.2) "\n\n\t",
+        Goto(19.2-19.6) "goto",
+        Space(19.6-19.7) " ",
+        Star(19.7-19.8) "*",
+        Ident(19.8-19.14) "l_dest",
+    ],
+    Semi(19.14-19.14) "",
+    CommandStmt(19.14-20.22)[
+        Eol(19.14-20.2) "\n\t",
+        Ident(20.2-20.8) "onexit",
+        Space(20.8-20.9) " ",
+        Gosub(20.9-20.14) "gosub",
+        Space(20.14-20.15) " ",
+        Arg(20.15-20.22)[
+            LabelLiteral(20.15-20.22)[
+                Star(20.15-20.16) "*",
+                Ident(20.16-20.22) "l_dest",
+            ],
         ],
-        Semi(19.9-19.9) "",
+        Semi(20.22-20.22) "",
     ],
-    LabelStmt(19.9-21.8)[
-        LabelLiteral(19.9-21.8)[
-            Eol(19.9-21.1) "\n\n",
-            Star(21.1-21.2) "*",
-            Ident(21.2-21.8) "l_dest",
+    AssignStmt(20.22-21.9)[
+        Eol(20.22-21.2) "\n\t",
+        Ident(21.2-21.3) "l",
+        Space(21.3-21.4) " ",
+        Equal(21.4-21.5) "=",
+        Space(21.5-21.6) " ",
+        LabelLiteral(21.6-21.9)[
+            Star(21.6-21.7) "*",
+            AtSign(21.7-21.8) "@",
+            Ident(21.8-21.9) "f",
         ],
-        Semi(21.8-21.8) "",
+        Semi(21.9-21.9) "",
     ],
-    LabelStmt(21.8-22.3)[
-        LabelLiteral(21.8-22.3)[
-            Eol(21.8-22.1) "\n",
-            Star(22.1-22.2) "*",
-            AtSign(22.2-22.3) "@",
+    LabelStmt(21.9-23.8)[
+        LabelLiteral(21.9-23.8)[
+            Eol(21.9-23.1) "\n\n",
+            Star(23.1-23.2) "*",
+            Ident(23.2-23.8) "l_dest",
         ],
-        Semi(22.3-22.3) "",
+        Semi(23.8-23.8) "",
     ],
-    CommandStmt(22.3-24.8)[
-        Eol(22.3-24.2) "\n\n\t",
-        Ident(24.2-24.5) "mes",
-        Space(24.5-24.6) " ",
-        Colon(24.6-24.7) ":",
-        Space(24.7-24.8) " ",
-    ],
-    CommandStmt(24.8-24.11)[
-        Ident(24.8-24.11) "mes",
-        Semi(24.11-24.11) "",
-    ],
-    ModulePp(24.11-26.29)[
-        Eol(24.11-26.1) "\n\n",
-        Hash(26.1-26.2) "#",
-        Ident(26.2-26.8) "module",
-        Space(26.8-26.9) " ",
-        StrLiteral(26.9-26.29)[
-            DoubleQuote(26.9-26.10) "\"",
-            StrVerbatim(26.10-26.28) "m_with_quoted_name",
-            DoubleQuote(26.28-26.29) "\"",
+    LabelStmt(23.8-24.3)[
+        LabelLiteral(23.8-24.3)[
+            Eol(23.8-24.1) "\n",
+            Star(24.1-24.2) "*",
+            AtSign(24.2-24.3) "@",
         ],
-        Semi(26.29-26.29) "",
+        Semi(24.3-24.3) "",
     ],
-    GlobalPp(26.29-27.8)[
-        Eol(26.29-27.1) "\n",
-        Hash(27.1-27.2) "#",
-        Ident(27.2-27.8) "global",
-        Semi(27.8-27.8) "",
+    CommandStmt(24.3-26.8)[
+        Eol(24.3-26.2) "\n\n\t",
+        Ident(26.2-26.5) "mes",
+        Space(26.5-26.6) " ",
+        Colon(26.6-26.7) ":",
+        Space(26.7-26.8) " ",
     ],
-    Eol(27.8-28.1) "\n",
-    Semi(28.1-28.1) "",
-    Eof(28.1-28.1) "",
+    CommandStmt(26.8-26.11)[
+        Ident(26.8-26.11) "mes",
+        Semi(26.11-26.11) "",
+    ],
+    ModulePp(26.11-28.29)[
+        Eol(26.11-28.1) "\n\n",
+        Hash(28.1-28.2) "#",
+        Ident(28.2-28.8) "module",
+        Space(28.8-28.9) " ",
+        StrLiteral(28.9-28.29)[
+            DoubleQuote(28.9-28.10) "\"",
+            StrVerbatim(28.10-28.28) "m_with_quoted_name",
+            DoubleQuote(28.28-28.29) "\"",
+        ],
+        Semi(28.29-28.29) "",
+    ],
+    GlobalPp(28.29-29.8)[
+        Eol(28.29-29.1) "\n",
+        Hash(29.1-29.2) "#",
+        Ident(29.2-29.8) "global",
+        Semi(29.8-29.8) "",
+    ],
+    Eol(29.8-30.1) "\n",
+    Semi(30.1-30.1) "",
+    Eof(30.1-30.1) "",
 ]
