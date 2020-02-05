@@ -3,13 +3,13 @@ use super::*;
 pub(crate) struct ACallExpr(SyntaxNode);
 
 impl Ast for ACallExpr {
-    fn into_syntax(self) -> SyntaxNode {
-        self.0
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
     }
 
-    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::CallExpr {
-            Some(ACallExpr(syntax_node))
+            Some(ACallExpr(syntax_node.clone()))
         } else {
             None
         }
@@ -55,34 +55,34 @@ impl From<ACallExpr> for AExpr {
 }
 
 impl Ast for AExpr {
-    fn into_syntax(self) -> SyntaxNode {
+    fn syntax(&self) -> &SyntaxNode {
         match self {
-            AExpr::Label(a) => a.into_syntax(),
-            AExpr::Str(a) => a.into_syntax(),
-            AExpr::Int(a) => a.into_syntax(),
-            AExpr::Ident(a) => a.into_syntax(),
-            AExpr::Call(a) => a.into_syntax(),
+            AExpr::Label(a) => a.syntax(),
+            AExpr::Str(a) => a.syntax(),
+            AExpr::Int(a) => a.syntax(),
+            AExpr::Ident(a) => a.syntax(),
+            AExpr::Call(a) => a.syntax(),
         }
     }
 
-    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
-        if let Some(a) = ALabel::cast(syntax_node.clone()) {
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
+        if let Some(a) = ALabel::cast(syntax_node) {
             return Some(AExpr::Label(a));
         }
 
-        if let Some(a) = AStr::cast(syntax_node.clone()) {
+        if let Some(a) = AStr::cast(syntax_node) {
             return Some(AExpr::Str(a));
         }
 
-        if let Some(a) = AInt::cast(syntax_node.clone()) {
+        if let Some(a) = AInt::cast(syntax_node) {
             return Some(AExpr::Int(a));
         }
 
-        if let Some(a) = AIdent::cast(syntax_node.clone()) {
+        if let Some(a) = AIdent::cast(syntax_node) {
             return Some(AExpr::Ident(a));
         }
 
-        if let Some(a) = ACallExpr::cast(syntax_node.clone()) {
+        if let Some(a) = ACallExpr::cast(syntax_node) {
             return Some(AExpr::Call(a));
         }
 
@@ -93,13 +93,13 @@ impl Ast for AExpr {
 pub(crate) struct AArg(SyntaxNode);
 
 impl Ast for AArg {
-    fn into_syntax(self) -> SyntaxNode {
-        self.0
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
     }
 
-    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::Arg {
-            Some(AArg(syntax_node))
+            Some(AArg(syntax_node.clone()))
         } else {
             None
         }

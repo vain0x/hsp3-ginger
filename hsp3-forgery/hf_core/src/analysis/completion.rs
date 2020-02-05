@@ -4,11 +4,11 @@ use crate::token::*;
 use std::rc::Rc;
 
 pub(crate) fn get_completion_list(syntax_root: Rc<SyntaxRoot>, position: Position) -> Vec<String> {
-    fn go_node(node: SyntaxNode, idents: &mut Vec<String>) {
+    fn go_node(node: &SyntaxNode, idents: &mut Vec<String>) {
         for child in node.child_nodes() {
-            if let Some(assign_stmt) = AAssignStmt::cast(child.clone()) {
+            if let Some(assign_stmt) = AAssignStmt::cast(&child) {
                 if let Some(token) = assign_stmt
-                    .into_syntax()
+                    .syntax()
                     .child_tokens()
                     .filter(|t| t.kind() == Token::Ident)
                     .next()
@@ -17,12 +17,12 @@ pub(crate) fn get_completion_list(syntax_root: Rc<SyntaxRoot>, position: Positio
                 }
             }
 
-            go_node(child, idents);
+            go_node(&child, idents);
         }
     }
 
     let mut symbols = vec![];
-    go_node(syntax_root.into_node(), &mut symbols);
+    go_node(&syntax_root.into_node(), &mut symbols);
     symbols.sort();
     symbols.dedup();
 
@@ -38,24 +38,24 @@ pub(crate) fn get_signature_help(
     syntax_root: Rc<SyntaxRoot>,
     position: Position,
 ) -> Option<SignatureHelp> {
-    fn go_node(node: SyntaxNode, p: Position, out: &mut Option<SignatureHelp>) -> bool {
+    fn go_node(node: &SyntaxNode, p: Position, out: &mut Option<SignatureHelp>) -> bool {
         for child in node.child_nodes() {
             if !child.range().contains_loosely(p) {
                 continue;
             }
 
-            if go_node(child.clone(), p, out) {
+            if go_node(&child, p, out) {
                 return true;
             }
 
-            let command_stmt = match ACommandStmt::cast(child) {
+            let command_stmt = match ACommandStmt::cast(&child) {
                 None => continue,
                 Some(x) => x,
             };
 
             let mut arg_index = 0;
 
-            for element in command_stmt.into_syntax().child_elements() {
+            for element in command_stmt.syntax().child_elements() {
                 match element {
                     SyntaxElement::Token(token) => {
                         if token.kind() == Token::Ident {
@@ -64,12 +64,12 @@ pub(crate) fn get_signature_help(
                             continue;
                         }
                     }
-                    SyntaxElement::Node(node) => match AArg::cast(node.clone()) {
+                    SyntaxElement::Node(node) => match AArg::cast(&node) {
                         None => continue,
                         Some(arg) => {
                             arg_index += 1;
 
-                            let syntax = arg.into_syntax();
+                            let syntax = arg.syntax();
                             if !syntax.range().contains_loosely(p) {
                                 continue;
                             }
@@ -97,6 +97,6 @@ pub(crate) fn get_signature_help(
     }
 
     let mut help = None;
-    go_node(syntax_root.into_node(), position, &mut help);
+    go_node(&syntax_root.into_node(), position, &mut help);
     help
 }

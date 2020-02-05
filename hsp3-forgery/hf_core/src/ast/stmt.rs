@@ -3,13 +3,13 @@ use super::*;
 pub(crate) struct AAssignStmt(SyntaxNode);
 
 impl Ast for AAssignStmt {
-    fn into_syntax(self) -> SyntaxNode {
-        self.0
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
     }
 
-    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::AssignStmt {
-            Some(AAssignStmt(syntax_node))
+            Some(AAssignStmt(syntax_node.clone()))
         } else {
             None
         }
@@ -19,13 +19,13 @@ impl Ast for AAssignStmt {
 pub(crate) struct ACommandStmt(SyntaxNode);
 
 impl Ast for ACommandStmt {
-    fn into_syntax(self) -> SyntaxNode {
-        self.0
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
     }
 
-    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::CommandStmt {
-            Some(ACommandStmt(syntax_node))
+            Some(ACommandStmt(syntax_node.clone()))
         } else {
             None
         }
@@ -35,13 +35,13 @@ impl Ast for ACommandStmt {
 pub(crate) struct ALabelStmt(SyntaxNode);
 
 impl Ast for ALabelStmt {
-    fn into_syntax(self) -> SyntaxNode {
-        self.0
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
     }
 
-    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::LabelStmt {
-            Some(ALabelStmt(syntax_node))
+            Some(ALabelStmt(syntax_node.clone()))
         } else {
             None
         }
@@ -55,24 +55,24 @@ pub(crate) enum AStmt {
 }
 
 impl Ast for AStmt {
-    fn into_syntax(self) -> SyntaxNode {
+    fn syntax(&self) -> &SyntaxNode {
         match self {
-            AStmt::Assign(a) => a.into_syntax(),
-            AStmt::Command(a) => a.into_syntax(),
-            AStmt::Label(a) => a.into_syntax(),
+            AStmt::Assign(a) => a.syntax(),
+            AStmt::Command(a) => a.syntax(),
+            AStmt::Label(a) => a.syntax(),
         }
     }
 
-    fn cast(syntax_node: SyntaxNode) -> Option<Self> {
-        if let Some(a) = AAssignStmt::cast(syntax_node.clone()) {
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
+        if let Some(a) = AAssignStmt::cast(syntax_node) {
             return Some(AStmt::Assign(a));
         }
 
-        if let Some(a) = ACommandStmt::cast(syntax_node.clone()) {
+        if let Some(a) = ACommandStmt::cast(syntax_node) {
             return Some(AStmt::Command(a));
         }
 
-        if let Some(a) = ALabelStmt::cast(syntax_node.clone()) {
+        if let Some(a) = ALabelStmt::cast(syntax_node) {
             return Some(AStmt::Label(a));
         }
 
