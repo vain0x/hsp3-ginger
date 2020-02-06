@@ -11,7 +11,7 @@ impl Token {
     }
 
     pub(crate) fn is_str_content(self) -> bool {
-        self == Token::StrVerbatim
+        self == Token::StrVerbatim || self == Token::StrEscape
     }
 
     pub(crate) fn at_end_of_char(self) -> bool {

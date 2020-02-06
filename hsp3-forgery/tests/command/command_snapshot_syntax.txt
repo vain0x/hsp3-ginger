@@ -1,4 +1,4 @@
-Root(1.1-32.1)[
+Root(1.1-34.1)[
     CommandStmt(1.1-1.16)[
         Space(1.1-1.2) "\t",
         Ident(1.2-1.7) "width",
@@ -293,7 +293,38 @@ Root(1.1-32.1)[
         ],
         Semi(31.9-31.9) "",
     ],
-    Eol(31.9-32.1) "\n",
-    Semi(32.1-32.1) "",
-    Eof(32.1-32.1) "",
+    CommandStmt(31.9-32.38)[
+        Eol(31.9-32.2) "\n\t",
+        Ident(32.2-32.5) "mes",
+        Space(32.5-32.6) " ",
+        Arg(32.6-32.38)[
+            StrLiteral(32.6-32.38)[
+                DoubleQuote(32.6-32.7) "\"",
+                StrEscape(32.7-32.9) "\\t",
+                StrEscape(32.9-32.11) "\\\"",
+                StrVerbatim(32.11-32.21) "It\'s done!",
+                StrEscape(32.21-32.23) "\\\"",
+                StrVerbatim(32.23-32.35) ", said John.",
+                StrEscape(32.35-32.37) "\\n",
+                DoubleQuote(32.37-32.38) "\"",
+            ],
+        ],
+        Semi(32.38-32.38) "",
+    ],
+    CommandStmt(32.38-33.10)[
+        Eol(32.38-33.2) "\n\t",
+        Ident(33.2-33.5) "mes",
+        Space(33.5-33.6) " ",
+        Arg(33.6-33.10)[
+            CharLiteral(33.6-33.10)[
+                SingleQuote(33.6-33.7) "\'",
+                StrEscape(33.7-33.9) "\\\'",
+                SingleQuote(33.9-33.10) "\'",
+            ],
+        ],
+        Semi(33.10-33.10) "",
+    ],
+    Eol(33.10-34.1) "\n",
+    Semi(34.1-34.1) "",
+    Eof(34.1-34.1) "",
 ]

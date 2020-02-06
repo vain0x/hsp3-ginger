@@ -177,13 +177,14 @@ fn tokenize_char_or_str_content(t: &mut TokenizeContext, quote: char) {
     while !t.at_eof() && !char_is_eol(t.next()) && t.next() != quote {
         // \ の直後が行末やファイル末尾のときはエスケープとみなさない。
         if t.eat("\\") && !t.at_eof() && !char_is_eol(t.next()) {
+            t.bump();
             t.commit(Token::StrEscape);
             continue;
         }
 
         let mut ok = false;
 
-        while !t.at_eof() && !char_is_eol(t.next()) && t.next() != quote && t.next() != '\'' {
+        while !t.at_eof() && !char_is_eol(t.next()) && t.next() != quote && t.next() != '\\' {
             t.bump();
             ok = true;
         }
@@ -233,7 +234,7 @@ fn tokenize_multiline_str(t: &mut TokenizeContext) -> bool {
     if t.eat("{\"") {
         t.commit(Token::LeftQuote);
 
-        // FIXME: 各行の最初のタブ文字はスペース
+        // FIXME: 各行の最初のタブ文字は文字列リテラルの値に含まれないので、Token::Space にする。
         while !t.at_eof() && !t.is_followed_by("\"}") {
             t.bump();
         }

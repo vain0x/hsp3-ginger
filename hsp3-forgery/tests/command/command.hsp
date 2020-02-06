@@ -29,3 +29,5 @@
 #global
 
 	mes 'A'
+	mes "\t\"It's done!\", said John.\n"
+	mes '\''
