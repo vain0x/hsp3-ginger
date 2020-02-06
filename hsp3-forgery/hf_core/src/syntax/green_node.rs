@@ -5,6 +5,7 @@ use std::fmt;
 pub(crate) enum NodeKind {
     Other,
     LabelLiteral,
+    CharLiteral,
     StrLiteral,
     DoubleLiteral,
     IntLiteral,

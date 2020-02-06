@@ -14,6 +14,10 @@ impl Token {
         self == Token::StrVerbatim
     }
 
+    pub(crate) fn at_end_of_char(self) -> bool {
+        self.at_end_of_stmt() || self == Token::SingleQuote
+    }
+
     pub(crate) fn at_end_of_str(self) -> bool {
         self.at_end_of_stmt() || self == Token::DoubleQuote
     }
@@ -51,6 +55,21 @@ pub(crate) fn parse_label_literal(p: &mut Px) {
     }
 
     p.end_node(NodeKind::LabelLiteral);
+}
+
+pub(crate) fn parse_char_literal(p: &mut Px) {
+    assert_eq!(p.next(), Token::SingleQuote);
+
+    p.start_node();
+    p.bump();
+
+    while !p.at_eof() && !p.next().at_end_of_char() {
+        assert!(p.next().is_str_content());
+        p.bump();
+    }
+
+    p.eat(Token::SingleQuote);
+    p.end_node(NodeKind::CharLiteral);
 }
 
 pub(crate) fn parse_str_literal(p: &mut Px) {

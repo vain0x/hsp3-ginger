@@ -65,8 +65,9 @@ fn parse_call_expr(p: &mut Px) {
 pub(crate) fn parse_expr(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_call_expr(p),
-        Token::Star => parse_label_literal(p),
         Token::LeftParen => parse_group_expr(p),
+        Token::SingleQuote => parse_char_literal(p),
+        Token::Star => parse_label_literal(p),
         _ if p.next().is_str_literal_first() => parse_str_literal(p),
         _ if p.next().is_int_literal_first() => parse_int_literal(p),
         _ => {
