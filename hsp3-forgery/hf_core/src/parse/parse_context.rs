@@ -27,22 +27,22 @@ impl ParseContext {
         self.next() == Token::Eof
     }
 
-    fn nth(&self, offset: usize) -> Option<&FatToken> {
+    fn nth_data(&self, offset: usize) -> Option<&FatToken> {
         assert!(offset < self.tokens.len());
 
         self.tokens.get(self.tokens.len() - offset - 1)
     }
 
     pub(crate) fn next(&self) -> Token {
-        self.nth(0).map_or(Token::Eof, |token| token.token())
-    }
-
-    pub(crate) fn nth_data(&self, offset: usize) -> Option<&FatToken> {
-        self.nth(offset)
+        self.nth_data(0).map_or(Token::Eof, |token| token.token())
     }
 
     pub(crate) fn next_data(&self) -> &FatToken {
-        self.nth(0).unwrap()
+        self.nth_data(0).unwrap()
+    }
+
+    pub(crate) fn nth(&self, offset: usize) -> Token {
+        self.nth_data(offset).map_or(Token::Eof, |t| t.token())
     }
 
     pub(crate) fn bump(&mut self) {

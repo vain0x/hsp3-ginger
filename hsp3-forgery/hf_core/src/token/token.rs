@@ -100,8 +100,12 @@ pub(crate) enum Token {
     RightBrace,
     /// `&&`
     AndAnd,
+    /// `&=`
+    AndEqual,
     /// `&`
     And,
+    /// `\=`
+    BackslashEqual,
     /// `\`
     Backslash,
     /// `!=`
@@ -123,28 +127,48 @@ pub(crate) enum Token {
     /// 行頭にある `#`。
     /// 行頭にない `#` は Other になる。
     Hash,
+    /// `^=`
+    HatEqual,
     /// `^`
     Hat,
     /// `<<`
     LeftShift,
     /// `<=`
     LeftEqual,
+    /// `-=`
+    MinusEqual,
+    /// `--`
+    MinusMinus,
     /// `-`
     Minus,
+    /// `%=`
+    PercentEqual,
     /// `%`
     Percent,
-    /// `|`
-    Pipe,
+    /// `|=`
+    PipeEqual,
     /// `||`
     PipePipe,
+    /// `|`
+    Pipe,
+    /// `+=`
+    PlusEqual,
+    /// `++`
+    PlusPlus,
     /// `+`
     Plus,
     /// `>=`
     RightEqual,
     /// `>>`
     RightShift,
+    /// `/=`
+    SlashEqual,
     /// `/`
     Slash,
+    /// `->`
+    SlimArrow,
+    /// `*=`
+    StarEqual,
     /// `*`
     Star,
 }

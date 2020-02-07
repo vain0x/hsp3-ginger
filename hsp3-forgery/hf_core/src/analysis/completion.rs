@@ -11,8 +11,10 @@ pub(crate) fn get_completion_list(syntax_root: Rc<SyntaxRoot>, position: Positio
         .flat_map(|assign_stmt| {
             assign_stmt
                 .syntax()
-                .child_tokens()
-                .filter(|t| t.kind() == Token::Ident)
+                .child_nodes()
+                .filter_map(|node| AExpr::cast(&node))
+                .flat_map(|expr| expr.syntax().child_tokens())
+                .filter(|token| token.kind() == Token::Ident)
         })
         .map(|token| token.text().to_string())
         .collect()

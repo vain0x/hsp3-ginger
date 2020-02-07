@@ -29,8 +29,7 @@ Eol `
 
 	`
 Ident `a`
-Plus `+`
-Plus `+`
+PlusPlus `++`
 Semi ``
 Eol `
 	`

@@ -18,6 +18,7 @@ pub(crate) enum NodeKind {
     BinaryExpr,
     AssignStmt,
     CommandStmt,
+    InvokeStmt,
     LabelStmt,
     DeffuncPp,
     ModulePp,

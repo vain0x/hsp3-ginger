@@ -3,18 +3,23 @@ use super::*;
 type Px = ParseContext;
 
 impl Token {
-    /// このトークンが式の先頭になることがあるか？
-    /// (= expr の FIRST 集合に含まれるか？)
-    pub(crate) fn is_expr_first(self) -> bool {
+    pub(crate) fn is_atom_expr_first(self) -> bool {
         match self {
             Token::CharStart
             | Token::StrStart
             | Token::FloatInt
             | Token::Ident
-            | Token::LeftParen
-            | Token::Minus
-            | Token::Star => true,
+            | Token::LeftParen => true,
             _ => self.is_int_literal_first(),
+        }
+    }
+
+    /// このトークンが式の先頭になることがあるか？
+    /// (= expr の FIRST 集合に含まれるか？)
+    pub(crate) fn is_expr_first(self) -> bool {
+        match self {
+            Token::Minus | Token::Star => true,
+            _ => self.is_atom_expr_first(),
         }
     }
 
@@ -43,7 +48,7 @@ fn parse_group_expr(p: &mut Px) {
     p.eat(Token::RightParen);
 }
 
-fn parse_call_expr(p: &mut Px) {
+pub(crate) fn parse_call_expr(p: &mut Px) {
     assert_eq!(p.next(), Token::Ident);
 
     parse_name(p);
