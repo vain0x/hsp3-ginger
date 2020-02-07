@@ -72,5 +72,6 @@ pub(crate) fn parse_name(p: &mut Px) {
 
     p.start_node();
     p.bump();
+
     p.end_node(NodeKind::Ident);
 }

@@ -284,6 +284,48 @@ Semi ``
 Eol `
 
 	`
+Ident `names`
+Space ` `
+Equal `=`
+Space ` `
+Ident `_`
+Comma `,`
+Space ` `
+Ident `_1`
+Comma `,`
+Space ` `
+Ident `foo_BAR`
+Comma `,`
+Space ` `
+Ident `_`
+IdentAtSign `@`
+Comma `,`
+Space ` `
+Ident `mes`
+IdentAtSign `@`
+IdentScope `hsp3`
+Comma `,`
+Space ` `
+AtSign `@`
+Comma `,`
+Space ` `
+AtSign `@`
+Ident `a`
+Comma `,`
+Space ` `
+AtSign `@`
+AtSign `@`
+Comma `,`
+Space ` `
+Ident `x`
+IdentAtSign `@`
+IdentScope `y`
+IdentAtSign `@`
+IdentScope `z`
+Semi ``
+Eol `
+
+	`
 Comment `// プリプロセッサ命令の外では改行をエスケープできない。`
 Semi ``
 Eol `

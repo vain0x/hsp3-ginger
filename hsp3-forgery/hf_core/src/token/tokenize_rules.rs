@@ -32,7 +32,7 @@ fn char_is_ident_first(c: char) -> bool {
 
 /// 文字が約物の先頭になるか？
 fn char_is_pun_first(c: char) -> bool {
-    "!\"#$%&'()-=^\\|@{}+*:,.<>/".contains(c)
+    "!\"#$%&'()-=^\\|{}+*:,.<>/".contains(c)
 }
 
 /// 文字が解釈不能か？
@@ -319,14 +319,32 @@ fn tokenize_multiline_str(t: &mut TokenizeContext) -> bool {
 }
 
 fn tokenize_ident(t: &mut TokenizeContext) -> bool {
+    // FIXME: 匿名ラベルの挙動を維持するため `@` で始まる変数への対応は後回し。
     if char_is_ident_first(t.next()) {
         while char_is_ident(t.next()) {
             t.bump();
         }
 
         let token = Token::parse_keyword(t.current_text()).unwrap_or(Token::Ident);
-
         t.commit(token);
+
+        // モジュール名を指定する `@` と直後の名前を字句解析する。(念のため `a@b@c` みたいなのも解釈する。)
+        loop {
+            if t.eat("@") {
+                t.commit(Token::IdentAtSign);
+                continue;
+            }
+
+            if char_is_ident_first(t.next()) {
+                while char_is_ident(t.next()) {
+                    t.bump();
+                }
+                t.commit(Token::IdentScope);
+                continue;
+            }
+
+            break;
+        }
         return true;
     }
 

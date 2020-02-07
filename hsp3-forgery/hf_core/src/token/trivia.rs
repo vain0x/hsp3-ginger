@@ -34,7 +34,9 @@ impl Token {
             | Token::ExpSign
             | Token::ExpDigit
             | Token::Binary
-            | Token::Hex => true,
+            | Token::Hex
+            | Token::IdentAtSign
+            | Token::IdentScope => true,
             _ => false,
         }
     }

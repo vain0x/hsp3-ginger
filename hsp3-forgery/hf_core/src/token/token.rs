@@ -61,6 +61,10 @@ pub(crate) enum Token {
     StrEscape,
     /// キーワードではない識別子
     Ident,
+    /// 識別子の直後の `@`
+    IdentAtSign,
+    /// `@` 直後の識別子
+    IdentScope,
 
     // キーワード
     Break,
