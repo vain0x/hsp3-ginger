@@ -59,7 +59,13 @@ fn parse_command_stmt_contents(p: &mut Px) {
 fn parse_command_stmt(p: &mut Px) {
     assert!(p.next().is_command_first());
 
-    parse_command_stmt_contents(p)
+    p.start_node();
+    p.bump();
+
+    parse_command_stmt_contents(p);
+
+    parse_end_of_stmt(p);
+    p.end_node(NodeKind::CommandStmt);
 }
 
 fn parse_assign_or_command_stmt(p: &mut Px) {
@@ -111,6 +117,7 @@ fn parse_stmt(p: &mut Px) {
         Token::Ident => parse_assign_or_command_stmt(p),
         Token::Star => parse_label_stmt(p),
         Token::Hash => parse_pp_stmt(p),
+        _ if p.next().is_command_first() => parse_command_stmt(p),
         _ => {
             // assert!(p.next().at_end_of_stmt(), "is_stmt_first/at_end_of_stmt bug");
             parse_end_of_stmt(p);
