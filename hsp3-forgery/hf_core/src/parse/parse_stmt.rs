@@ -46,9 +46,8 @@ fn parse_end_of_stmt(p: &mut Px) {
 }
 
 fn parse_command_stmt_contents(p: &mut Px) {
-    // button/onexit などの goto/gosub キーワード
-    if !p.eat(Token::Gosub) {
-        p.eat(Token::Goto);
+    if p.next().is_jump_modifier() {
+        p.bump();
     }
 
     if p.next().is_arg_first() {
