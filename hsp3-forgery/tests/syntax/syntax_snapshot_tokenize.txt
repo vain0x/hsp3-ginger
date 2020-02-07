@@ -306,15 +306,18 @@ IdentAtSign `@`
 IdentScope `hsp3`
 Comma `,`
 Space ` `
-AtSign `@`
+Ident ``
+IdentAtSign `@`
 Comma `,`
 Space ` `
-AtSign `@`
-Ident `a`
+Ident ``
+IdentAtSign `@`
+IdentScope `a`
 Comma `,`
 Space ` `
-AtSign `@`
-AtSign `@`
+Ident ``
+IdentAtSign `@`
+IdentAtSign `@`
 Comma `,`
 Space ` `
 Ident `x`

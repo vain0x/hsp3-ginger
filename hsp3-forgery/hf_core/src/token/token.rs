@@ -101,8 +101,6 @@ pub(crate) enum Token {
     AndAnd,
     /// `&`
     And,
-    /// `@`
-    AtSign,
     /// `\`
     Backslash,
     /// `!=`

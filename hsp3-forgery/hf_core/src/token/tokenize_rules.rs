@@ -319,8 +319,7 @@ fn tokenize_multiline_str(t: &mut TokenizeContext) -> bool {
 }
 
 fn tokenize_ident(t: &mut TokenizeContext) -> bool {
-    // FIXME: 匿名ラベルの挙動を維持するため `@` で始まる変数への対応は後回し。
-    if char_is_ident_first(t.next()) {
+    if char_is_ident_first(t.next()) || t.next() == '@' {
         while char_is_ident(t.next()) {
             t.bump();
         }

@@ -11,7 +11,6 @@ pub(crate) static PUN_TABLE: &[(Token, &str)] = &[
     (Token::RightBrace, "}"),
     (Token::AndAnd, "&&"),
     (Token::And, "&"),
-    (Token::AtSign, "@"),
     (Token::Backslash, "\\"),
     (Token::BangEqual, "!="),
     (Token::Bang, "!"),

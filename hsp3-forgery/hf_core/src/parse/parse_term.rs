@@ -16,17 +16,7 @@ pub(crate) fn parse_label_literal(p: &mut Px) {
 
     p.start_node();
     p.bump();
-
-    match p.next() {
-        Token::Ident => {
-            p.bump();
-        }
-        Token::AtSign => {
-            p.bump();
-            p.eat(Token::Ident);
-        }
-        _ => {}
-    }
+    p.eat(Token::Ident);
 
     p.end_node(NodeKind::LabelLiteral);
 }
