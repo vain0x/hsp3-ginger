@@ -1,6 +1,7 @@
 use super::*;
 use std::fmt;
 
+/// トークンの位置。どのファイルのどの位置にあり、どの位置までを占めるのか。
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Location {
     pub(crate) source: TokenSource,

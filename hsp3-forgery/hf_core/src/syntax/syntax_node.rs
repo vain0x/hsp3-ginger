@@ -2,6 +2,8 @@ use super::*;
 use std::fmt;
 use std::rc::Rc;
 
+/// 具象構文木のノード。
+/// 位置情報と、親ノードへの参照を持つ。
 #[derive(Clone)]
 pub(crate) struct SyntaxNode {
     pub(crate) kind: NodeKind,

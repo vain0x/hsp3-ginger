@@ -3,6 +3,8 @@ use super::*;
 type Px = ParseContext;
 
 impl Token {
+    /// このトークンが式の先頭になることがあるか？
+    /// (= expr の FIRST 集合に含まれるか？)
     pub(crate) fn is_expr_first(self) -> bool {
         match self {
             Token::CharStart

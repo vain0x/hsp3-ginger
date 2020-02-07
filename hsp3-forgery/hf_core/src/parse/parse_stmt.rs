@@ -10,6 +10,8 @@ impl Token {
         }
     }
 
+    /// このトークンが文の直後に出現しうるか？
+    /// (= stmt の FOLLOW 集合に含まれるか？)
     pub(crate) fn is_stmt_follow(self) -> bool {
         self.at_end_of_stmt()
     }

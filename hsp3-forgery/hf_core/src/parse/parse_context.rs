@@ -1,6 +1,7 @@
 use super::*;
 use std::rc::Rc;
 
+/// 構文解析の状態を持つもの。
 pub(crate) struct ParseContext {
     current: GreenNode,
     stack: Vec<GreenNode>,

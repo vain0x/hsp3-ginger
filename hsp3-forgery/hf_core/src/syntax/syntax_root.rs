@@ -5,6 +5,7 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub(crate) struct SyntaxError;
 
+/// 具象構文木。
 #[derive(Clone)]
 pub(crate) struct SyntaxRoot {
     pub(crate) green: Rc<GreenNode>,

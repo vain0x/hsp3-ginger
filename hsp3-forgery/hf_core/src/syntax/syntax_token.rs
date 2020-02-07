@@ -1,6 +1,8 @@
 use super::*;
 use std::fmt;
 
+/// 具象構文木のリーフノード。
+/// 位置情報と、親ノードへの参照を持つ。
 pub(crate) struct SyntaxToken {
     pub(crate) kind: Token,
     pub(crate) parent: SyntaxParent,

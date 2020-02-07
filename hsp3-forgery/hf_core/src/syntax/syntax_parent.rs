@@ -1,15 +1,17 @@
 use super::*;
 use std::rc::Rc;
 
-/// 親ノードの参照。
+/// 具象構文木における親ノードの参照。
 #[derive(Clone)]
 pub(crate) enum SyntaxParent {
-    /// 親ノードを持たないノードは、代わりにルートへの参照を持つことにしておく。
+    /// 親ノードを持たないノードには、構文木ルートへの参照を持たせておく。
+    /// これにより、どのノードからも構文木ルートを辿れるようにしている。
     Root { root: Rc<SyntaxRoot> },
     NonRoot {
+        /// 親ノード。
         node: Rc<SyntaxNode>,
 
-        /// 自身が親ノードの何番目の子要素か？
+        /// これを持っているノードは、親ノード (`node`) の何番目の子要素か？
         child_index: usize,
     },
 }

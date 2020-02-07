@@ -45,8 +45,6 @@ mod tests {
             world::tokenize(&source_codes, &mut tokenss);
 
             let source = TokenSource::from_file(source_file);
-
-            // 新しいパーサのスナップショットテスト。
             let tokens = tokenss.get(&source).unwrap();
             let root = crate::parse::parse_tokens(tokens);
 

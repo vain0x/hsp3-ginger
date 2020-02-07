@@ -1,3 +1,8 @@
+//! キーワード
+//!
+//! 厳密には `mes` や `int` など大量のキーワードがあるが、
+//! 列挙するのはめんどうなため、いまのところ重要なものだけをキーワードに指定している。
+
 use super::*;
 
 pub(crate) static KEYWORD_TABLE: &[(Token, &str)] = &[
@@ -20,6 +25,9 @@ pub(crate) static KEYWORD_TABLE: &[(Token, &str)] = &[
 ];
 
 impl Token {
+    /// jump modifier とは:
+    ///     `button gosub "OK", *l_ok` のように、
+    ///     命令の直後に書かれている goto/gosub のこと。
     pub(crate) fn is_jump_modifier(self) -> bool {
         match self {
             Token::Gosub | Token::Goto => true,
@@ -42,6 +50,10 @@ impl Token {
         }
     }
 
+    /// control keyword とは:
+    ///     命令を上から下に実行していくのとは異なる動作をさせる命令。
+    ///     `goto` や `stop` のように、直後の命令に実行が進まないものや、
+    ///     `repeat` のように別の命令から飛んでくる先となる命令。
     pub(crate) fn is_control_keyword(self) -> bool {
         match self {
             Token::Else | Token::If => true,

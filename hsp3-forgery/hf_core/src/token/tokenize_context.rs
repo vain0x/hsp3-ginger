@@ -2,6 +2,7 @@ use super::*;
 use std::cmp::min;
 use std::rc::Rc;
 
+/// 字句解析の状態を持つもの。
 pub(crate) struct TokenizeContext {
     source: TokenSource,
 
@@ -93,7 +94,7 @@ impl TokenizeContext {
         self.tokens.push(token_data);
     }
 
-    /// コミットする。前回のコミット位置から現在位置までの間を1個の字句とみなす。
+    /// コミットする。前回のコミット位置から現在位置までの間を1個のトークンとみなす。
     pub(crate) fn commit(&mut self, token: Token) {
         let text = self.current_text().to_string();
 

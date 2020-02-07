@@ -1,6 +1,7 @@
 use super::*;
 use std::fmt;
 
+/// ソースコード上の範囲。
 #[derive(Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub(crate) struct Range {
     pub(crate) start: Position,
@@ -12,10 +13,12 @@ impl Range {
         Range { start, end }
     }
 
+    /// 指定された位置がこの範囲に含まれるか、あるいは範囲の終端を指しているとき true。
     pub(crate) fn contains_loosely(self, position: Position) -> bool {
         self.start <= position && position <= self.end
     }
 
+    /// 2つの範囲を連結して1つの範囲にする。(2つの範囲を両方とも覆う最小の範囲を求める。)
     pub(crate) fn unite(self, other: Range) -> Range {
         Range {
             start: self.start.min(other.start),

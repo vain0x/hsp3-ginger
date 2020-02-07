@@ -1,6 +1,7 @@
 use super::*;
 use std::fmt;
 
+/// 永続構文木のノード。
 pub(crate) enum GreenElement {
     Token(TokenData),
     Node(GreenNode),

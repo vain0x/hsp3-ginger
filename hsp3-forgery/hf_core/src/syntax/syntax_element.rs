@@ -1,6 +1,7 @@
 use super::*;
 use std::fmt;
 
+/// 具象構文木の要素。
 pub(crate) enum SyntaxElement {
     Token(SyntaxToken),
     Node(SyntaxNode),

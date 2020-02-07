@@ -15,6 +15,7 @@ use crate::syntax::*;
 use crate::token::*;
 use std::rc::Rc;
 
+/// トークン列をパースする。
 pub(crate) fn parse_tokens(tokens: &[TokenData]) -> Rc<SyntaxRoot> {
     let mut leading = vec![];
     let mut fat_tokens: Vec<FatToken> = vec![];

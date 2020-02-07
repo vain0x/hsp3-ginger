@@ -1,4 +1,6 @@
-//! 約物 (punctuations)
+//! 約物 (punctuation)
+//!
+//! 文法上の意味を持つ記号のこと。
 
 use super::*;
 

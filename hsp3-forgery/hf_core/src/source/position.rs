@@ -1,16 +1,25 @@
 use std::fmt;
 use std::ops::{Add, AddAssign};
 
+/// ソースコード上の位置。(改行の個数, 最終行の長さ) と考えると、広がりを表しているともいえる。
+///
+/// (ZERO, +) はモノイドをなす。
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Position {
-    /// 行番号 (0-indexed)。文字列に含まれる改行の個数。
+    /// 行番号。0 から数える。文字列に含まれる改行の個数に一致する。
     pub(crate) line: usize,
 
-    /// 列番号 (0-indexed)。最後の改行より後にある文字数。
+    /// 列番号。0 から数える。最後の改行より後にある文字列の長さに一致する。
+    /// LSP/DAP の都合に合わせて、UTF-16 基準で数える。
     pub(crate) character: usize,
 }
 
 impl Position {
+    pub(crate) const ZERO: Position = Position {
+        line: 0,
+        character: 0,
+    };
+
     pub(crate) fn new(line: usize, character: usize) -> Position {
         Position { line, character }
     }
@@ -24,7 +33,6 @@ impl From<char> for Position {
                 character: 0,
             }
         } else {
-            // LSP/DAP で使うので UTF-16 ベースで数える方が都合がいい。
             Position {
                 line: 0,
                 character: c.len_utf16(),
@@ -39,7 +47,6 @@ impl From<&'_ str> for Position {
     }
 }
 
-// 興味深いことに、この和はモノイドをなす。(単位元は `(0, 0)`)
 impl AddAssign for Position {
     fn add_assign(&mut self, other: Self) {
         // 改行があるなら列番号はリセットする。

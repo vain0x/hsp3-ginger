@@ -1,6 +1,7 @@
 use super::*;
 use std::fmt;
 
+/// 具象構文の要素の種類。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum NodeKind {
     Other,
@@ -25,9 +26,14 @@ pub(crate) enum NodeKind {
     Root,
 }
 
+/// 永続構文木のノード。
+/// 位置情報や親ノードに関する情報は持たない。
 pub(crate) struct GreenNode {
     kind: NodeKind,
     children: Vec<GreenElement>,
+
+    /// 位置ではなく、このノードのソースコード上での広がりを表している。
+    /// (ベクトルが位置ではなく相対的な範囲を表すことがあるのと似ている。)
     position: Position,
 }
 

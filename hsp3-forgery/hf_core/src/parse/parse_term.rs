@@ -5,7 +5,7 @@ type Px = ParseContext;
 impl Token {
     pub(crate) fn is_int_literal_first(self) -> bool {
         match self {
-            Token::Digit | Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => true,
+            Token::Digit | Token::ZeroB | Token::ZeroX | Token::Dollar | Token::Percent => true,
             _ => false,
         }
     }
