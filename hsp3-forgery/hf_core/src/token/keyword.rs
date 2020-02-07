@@ -36,30 +36,25 @@ impl Token {
         }
     }
 
-    pub(crate) fn is_jump_keyword(self) -> bool {
-        match self {
-            Token::Break
-            | Token::Continue
-            | Token::End
-            | Token::Foreach
-            | Token::Gosub
-            | Token::Goto
-            | Token::Loop
-            | Token::Repeat
-            | Token::Return
-            | Token::Stop => true,
-            _ => false,
-        }
-    }
-
     /// control keyword とは:
     ///     命令を上から下に実行していくのとは異なる動作をさせる命令。
     ///     `goto` や `stop` のように、直後の命令に実行が進まないものや、
     ///     `repeat` のように別の命令から飛んでくる先となる命令。
     pub(crate) fn is_control_keyword(self) -> bool {
         match self {
-            Token::Else | Token::If => true,
-            _ => self.is_jump_keyword(),
+            Token::Break
+            | Token::Continue
+            | Token::Else
+            | Token::End
+            | Token::Foreach
+            | Token::Gosub
+            | Token::Goto
+            | Token::If
+            | Token::Loop
+            | Token::Repeat
+            | Token::Return
+            | Token::Stop => true,
+            _ => false,
         }
     }
 

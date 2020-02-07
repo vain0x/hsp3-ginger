@@ -17,7 +17,7 @@ impl Token {
     }
 
     pub(crate) fn is_command_first(self) -> bool {
-        self.is_jump_keyword()
+        self.is_control_keyword()
     }
 
     pub(crate) fn at_end_of_stmt(self) -> bool {
