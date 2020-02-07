@@ -72,6 +72,7 @@ pub(crate) enum Token {
     Continue,
     Else,
     End,
+    Foreach,
     Gosub,
     Goto,
     If,

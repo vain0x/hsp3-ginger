@@ -11,6 +11,7 @@ pub(crate) static KEYWORD_TABLE: &[(Token, &str)] = &[
     (Token::Continue, "continue"),
     (Token::Else, "else"),
     (Token::End, "end"),
+    (Token::Foreach, "foreach"),
     (Token::Gosub, "gosub"),
     (Token::Goto, "goto"),
     (Token::If, "if"),
@@ -40,6 +41,7 @@ impl Token {
             Token::Break
             | Token::Continue
             | Token::End
+            | Token::Foreach
             | Token::Gosub
             | Token::Goto
             | Token::Loop
