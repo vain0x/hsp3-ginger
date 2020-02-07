@@ -57,15 +57,15 @@ Eol `
 	`
 Ident `mes`
 Space ` `
-DoubleQuote `"`
+StrStart `"`
 StrVerbatim `hello, world!`
-DoubleQuote `"`
+StrEnd `"`
 Semi ``
 Eol `
 	`
 Ident `mes`
 Space ` `
-DoubleQuote `"`
+StrStart `"`
 StrVerbatim `good bye ->`
 Semi ``
 Eol `
@@ -73,12 +73,12 @@ Eol `
 	`
 Ident `mes`
 Space ` `
-LeftQuote `{"`
+StrStart `{"`
 StrVerbatim `
 		multiline
 		text
 	`
-RightQuote `"}`
+StrEnd `"}`
 Semi ``
 Eol `
 	`
@@ -198,6 +198,7 @@ FloatPoint `.`
 Fraction `0`
 Comma `,`
 Space ` `
+FloatInt ``
 FloatPoint `.`
 Fraction `0`
 Comma `,`

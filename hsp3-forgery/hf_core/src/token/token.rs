@@ -38,6 +38,14 @@ pub(crate) enum Token {
     ExpSign,
     /// 指数部の数値。([0-9]+)
     ExpDigit,
+    /// 文字リテラルの開始
+    CharStart,
+    /// 文字リテラルの終了
+    CharEnd,
+    /// 文字列リテラルの開始
+    StrStart,
+    /// 文字列リテラルの終了
+    StrEnd,
     /// 文字・文字列リテラル内部のエスケープされない文字の並び
     StrVerbatim,
     /// 文字・文字列リテラル内部のエスケープ1個
@@ -70,10 +78,6 @@ pub(crate) enum Token {
     RightAngle,
     LeftBrace,
     RightBrace,
-    /// `{"`
-    LeftQuote,
-    /// `"}`
-    RightQuote,
     AndAnd,
     And,
     AtSign,
@@ -100,7 +104,6 @@ pub(crate) enum Token {
     Plus,
     RightEqual,
     RightShift,
-    SingleQuote,
     Slash,
     Star,
 }

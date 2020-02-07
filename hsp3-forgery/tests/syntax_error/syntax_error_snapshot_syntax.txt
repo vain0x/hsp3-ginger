@@ -41,8 +41,8 @@ Root(1.1-6.1)[
         Space(4.8-4.9) " ",
         Arg(4.9-4.13)[
             StrLiteral(4.9-4.11)[
-                DoubleQuote(4.9-4.10) "\"",
-                DoubleQuote(4.10-4.11) "\"",
+                StrStart(4.9-4.10) "\"",
+                StrEnd(4.10-4.11) "\"",
             ],
             Comma(4.11-4.12) ",",
             Space(4.12-4.13) " ",

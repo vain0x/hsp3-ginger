@@ -54,7 +54,7 @@ fn parse_module_stmt_contents(p: &mut Px) {
     p.bump();
 
     if !p.eat(Token::Ident) {
-        if p.next().is_str_literal_first() {
+        if p.next() == Token::StrStart {
             parse_str_literal(p);
         }
     }

@@ -3,39 +3,6 @@ use super::*;
 type Px = ParseContext;
 
 impl Token {
-    pub(crate) fn is_str_literal_first(self) -> bool {
-        match self {
-            Token::DoubleQuote | Token::LeftQuote => true,
-            _ => false,
-        }
-    }
-
-    pub(crate) fn is_str_content(self) -> bool {
-        self == Token::StrVerbatim || self == Token::StrEscape
-    }
-
-    pub(crate) fn at_end_of_char(self) -> bool {
-        self.at_end_of_stmt() || self == Token::SingleQuote
-    }
-
-    pub(crate) fn at_end_of_str(self) -> bool {
-        self.at_end_of_stmt() || self == Token::DoubleQuote
-    }
-
-    pub(crate) fn at_end_of_multiline_str(self) -> bool {
-        match self {
-            Token::Eof | Token::RightQuote => true,
-            _ => false,
-        }
-    }
-
-    pub(crate) fn is_double_literal_first(self) -> bool {
-        match self {
-            Token::FloatInt | Token::FloatPoint => true,
-            _ => false,
-        }
-    }
-
     pub(crate) fn is_int_literal_first(self) -> bool {
         match self {
             Token::Digit | Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => true,
@@ -65,69 +32,28 @@ pub(crate) fn parse_label_literal(p: &mut Px) {
 }
 
 pub(crate) fn parse_char_literal(p: &mut Px) {
-    assert_eq!(p.next(), Token::SingleQuote);
+    assert_eq!(p.next(), Token::CharStart);
 
     p.start_node();
     p.bump();
 
-    while !p.at_eof() && !p.next().at_end_of_char() {
-        assert!(p.next().is_str_content());
-        p.bump();
-    }
-
-    p.eat(Token::SingleQuote);
     p.end_node(NodeKind::CharLiteral);
 }
 
 pub(crate) fn parse_str_literal(p: &mut Px) {
-    assert!(p.next().is_str_literal_first());
+    assert_eq!(p.next(), Token::StrStart);
 
     p.start_node();
-
-    match p.next() {
-        Token::DoubleQuote => {
-            p.bump();
-
-            while !p.at_eof() && !p.next().at_end_of_str() {
-                assert!(p.next().is_str_content());
-                p.bump();
-            }
-
-            p.eat(Token::DoubleQuote);
-        }
-        Token::LeftQuote => {
-            p.bump();
-
-            while !p.at_eof() && !p.next().at_end_of_multiline_str() {
-                assert!(p.next().is_str_content());
-                p.bump();
-            }
-
-            p.eat(Token::RightQuote);
-        }
-        _ => unreachable!("is_str_literal_first bug {:?}", p.next()),
-    }
+    p.bump();
 
     p.end_node(NodeKind::StrLiteral);
 }
 
 pub(crate) fn parse_double_literal(p: &mut Px) {
-    assert!(p.next().is_double_literal_first());
+    assert_eq!(p.next(), Token::FloatInt);
 
     p.start_node();
-
-    // 字句解析器が一定の順番でトークンを生成するので、ここで順番を調べる必要はない。
-    loop {
-        match p.next() {
-            Token::FloatInt
-            | Token::FloatPoint
-            | Token::Fraction
-            | Token::ExpChar
-            | Token::ExpSign
-            | Token::ExpDigit => p.bump(),
-            _ => break,
-        }
-    }
+    p.bump();
 
     p.end_node(NodeKind::DoubleLiteral);
 }
@@ -136,15 +62,7 @@ pub(crate) fn parse_int_literal(p: &mut Px) {
     assert!(p.next().is_int_literal_first());
 
     p.start_node();
-
-    match p.next() {
-        Token::Digit => p.bump(),
-        Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => {
-            // FIXME: impl
-            p.bump();
-        }
-        _ => unreachable!("is_int_literal_first bug {:?}", p.next()),
-    }
+    p.bump();
 
     p.end_node(NodeKind::IntLiteral);
 }

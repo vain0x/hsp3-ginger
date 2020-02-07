@@ -161,9 +161,9 @@ Root(1.1-34.1)[
         Space(12.5-12.6) " ",
         Arg(12.6-12.13)[
             StrLiteral(12.6-12.13)[
-                DoubleQuote(12.6-12.7) "\"",
+                StrStart(12.6-12.7) "\"",
                 StrVerbatim(12.7-12.12) "hello",
-                DoubleQuote(12.12-12.13) "\"",
+                StrEnd(12.12-12.13) "\"",
             ],
         ],
         Semi(12.13-12.13) "",
@@ -174,7 +174,7 @@ Root(1.1-34.1)[
         Space(13.5-13.6) " ",
         Arg(13.6-13.12)[
             StrLiteral(13.6-13.12)[
-                DoubleQuote(13.6-13.7) "\"",
+                StrStart(13.6-13.7) "\"",
                 StrVerbatim(13.7-13.12) "world",
             ],
         ],
@@ -186,9 +186,9 @@ Root(1.1-34.1)[
         Space(15.5-15.6) " ",
         Arg(15.6-17.6)[
             StrLiteral(15.6-17.4)[
-                LeftQuote(15.6-15.8) "{\"",
+                StrStart(15.6-15.8) "{\"",
                 StrVerbatim(15.8-17.2) "first\n\tsecond\n\t",
-                RightQuote(17.2-17.4) "\"}",
+                StrEnd(17.2-17.4) "\"}",
             ],
             Comma(17.4-17.5) ",",
             Space(17.5-17.6) " ",
@@ -268,9 +268,9 @@ Root(1.1-34.1)[
         Ident(28.2-28.8) "module",
         Space(28.8-28.9) " ",
         StrLiteral(28.9-28.29)[
-            DoubleQuote(28.9-28.10) "\"",
+            StrStart(28.9-28.10) "\"",
             StrVerbatim(28.10-28.28) "m_with_quoted_name",
-            DoubleQuote(28.28-28.29) "\"",
+            StrEnd(28.28-28.29) "\"",
         ],
         Semi(28.29-28.29) "",
     ],
@@ -286,9 +286,9 @@ Root(1.1-34.1)[
         Space(31.5-31.6) " ",
         Arg(31.6-31.9)[
             CharLiteral(31.6-31.9)[
-                SingleQuote(31.6-31.7) "\'",
+                CharStart(31.6-31.7) "\'",
                 StrVerbatim(31.7-31.8) "A",
-                SingleQuote(31.8-31.9) "\'",
+                CharEnd(31.8-31.9) "\'",
             ],
         ],
         Semi(31.9-31.9) "",
@@ -299,14 +299,14 @@ Root(1.1-34.1)[
         Space(32.5-32.6) " ",
         Arg(32.6-32.38)[
             StrLiteral(32.6-32.38)[
-                DoubleQuote(32.6-32.7) "\"",
+                StrStart(32.6-32.7) "\"",
                 StrEscape(32.7-32.9) "\\t",
                 StrEscape(32.9-32.11) "\\\"",
                 StrVerbatim(32.11-32.21) "It\'s done!",
                 StrEscape(32.21-32.23) "\\\"",
                 StrVerbatim(32.23-32.35) ", said John.",
                 StrEscape(32.35-32.37) "\\n",
-                DoubleQuote(32.37-32.38) "\"",
+                StrEnd(32.37-32.38) "\"",
             ],
         ],
         Semi(32.38-32.38) "",
@@ -317,9 +317,9 @@ Root(1.1-34.1)[
         Space(33.5-33.6) " ",
         Arg(33.6-33.10)[
             CharLiteral(33.6-33.10)[
-                SingleQuote(33.6-33.7) "\'",
+                CharStart(33.6-33.7) "\'",
                 StrEscape(33.7-33.9) "\\\'",
-                SingleQuote(33.9-33.10) "\'",
+                CharEnd(33.9-33.10) "\'",
             ],
         ],
         Semi(33.10-33.10) "",

@@ -5,15 +5,14 @@ type Px = ParseContext;
 impl Token {
     pub(crate) fn is_expr_first(self) -> bool {
         match self {
-            Token::Digit
-            | Token::SingleQuote
-            | Token::DoubleQuote
-            | Token::LeftQuote
+            Token::CharStart
+            | Token::StrStart
+            | Token::FloatInt
             | Token::Ident
             | Token::LeftParen
             | Token::Minus
             | Token::Star => true,
-            _ => false,
+            _ => self.is_int_literal_first(),
         }
     }
 
@@ -66,10 +65,10 @@ pub(crate) fn parse_expr(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_call_expr(p),
         Token::LeftParen => parse_group_expr(p),
-        Token::SingleQuote => parse_char_literal(p),
+        Token::CharStart => parse_char_literal(p),
+        Token::FloatInt => parse_double_literal(p),
         Token::Star => parse_label_literal(p),
-        _ if p.next().is_str_literal_first() => parse_str_literal(p),
-        _ if p.next().is_double_literal_first() => parse_double_literal(p),
+        Token::StrStart => parse_str_literal(p),
         _ if p.next().is_int_literal_first() => parse_int_literal(p),
         _ => {
             // unimplemented

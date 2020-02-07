@@ -219,6 +219,8 @@ fn tokenize_number(pp: bool, t: &mut TokenizeContext) -> bool {
 
     // 整数部を持たない小数リテラルのケース。
     if !ok && t.next() == '.' && t.nth(1).is_ascii_digit() {
+        t.commit(Token::FloatInt);
+
         t.bump();
         t.commit(Token::FloatPoint);
 
@@ -266,12 +268,12 @@ fn tokenize_char_or_str_content(t: &mut TokenizeContext, quote: char) {
 
 fn tokenize_char(t: &mut TokenizeContext) -> bool {
     if t.eat("'") {
-        t.commit(Token::SingleQuote);
+        t.commit(Token::CharStart);
 
         tokenize_char_or_str_content(t, '\'');
 
         if t.eat("'") {
-            t.commit(Token::SingleQuote);
+            t.commit(Token::CharEnd);
         }
 
         return true;
@@ -282,12 +284,12 @@ fn tokenize_char(t: &mut TokenizeContext) -> bool {
 
 fn tokenize_str(t: &mut TokenizeContext) -> bool {
     if t.eat("\"") {
-        t.commit(Token::DoubleQuote);
+        t.commit(Token::StrStart);
 
         tokenize_char_or_str_content(t, '"');
 
         if t.eat("\"") {
-            t.commit(Token::DoubleQuote);
+            t.commit(Token::StrEnd);
         }
 
         return true;
@@ -298,7 +300,7 @@ fn tokenize_str(t: &mut TokenizeContext) -> bool {
 
 fn tokenize_multiline_str(t: &mut TokenizeContext) -> bool {
     if t.eat("{\"") {
-        t.commit(Token::LeftQuote);
+        t.commit(Token::StrStart);
 
         // FIXME: 各行の最初のタブ文字は文字列リテラルの値に含まれないので、Token::Space にする。
         while !t.at_eof() && !t.is_followed_by("\"}") {
@@ -307,7 +309,7 @@ fn tokenize_multiline_str(t: &mut TokenizeContext) -> bool {
         t.commit(Token::StrVerbatim);
 
         if t.eat("\"}") {
-            t.commit(Token::RightQuote);
+            t.commit(Token::StrEnd);
         }
 
         return true;
