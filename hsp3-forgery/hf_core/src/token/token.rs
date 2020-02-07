@@ -113,8 +113,6 @@ pub(crate) enum Token {
     Dollar,
     /// `.`
     Dot,
-    /// `"`
-    DoubleQuote,
     /// `==`
     EqualEqual,
     /// `=`
