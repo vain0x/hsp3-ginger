@@ -133,6 +133,40 @@ fn tokenize_hex(t: &mut TokenizeContext) {
     t.commit(Token::Hex);
 }
 
+/// 小数部を字句解析する。(`3.14` などの `14` の部分)
+fn tokenize_fraction(t: &mut TokenizeContext) {
+    assert!(t.next().is_ascii_digit());
+
+    while t.next().is_ascii_digit() {
+        t.bump();
+    }
+    t.commit(Token::Fraction);
+}
+
+/// 指数部を字句解析する。(`1e+9` などの `e+9` の部分)
+fn tokenize_exponent(t: &mut TokenizeContext) {
+    assert!(t.next() == 'e' || t.next() == 'E');
+
+    t.bump();
+    t.commit(Token::ExpChar);
+
+    // 指数部の符号
+    let exp_sign = t.eat("+") || t.eat("-");
+    if exp_sign {
+        t.commit(Token::ExpSign);
+    }
+
+    // 指数部の数値
+    if !exp_sign && !t.next().is_ascii_digit() {
+        return;
+    }
+
+    while t.next().is_ascii_digit() {
+        t.bump();
+    }
+    t.commit(Token::ExpDigit);
+}
+
 fn tokenize_number(pp: bool, t: &mut TokenizeContext) -> bool {
     if t.eat("0b") {
         t.commit(Token::ZeroB);
@@ -165,12 +199,44 @@ fn tokenize_number(pp: bool, t: &mut TokenizeContext) -> bool {
         ok = true;
     }
 
+    // 整数部を持つ小数リテラルのケース
+    if ok && (t.next() == '.' || t.next() == 'e' || t.next() == 'E') {
+        t.commit(Token::FloatInt);
+
+        if t.eat(".") {
+            t.commit(Token::FloatPoint);
+        }
+
+        if t.next().is_ascii_digit() {
+            tokenize_fraction(t);
+        }
+
+        if t.next() == 'e' || t.next() == 'E' {
+            tokenize_exponent(t);
+        }
+        return true;
+    }
+
+    // 整数部を持たない小数リテラルのケース。
+    if !ok && t.next() == '.' && t.nth(1).is_ascii_digit() {
+        t.bump();
+        t.commit(Token::FloatPoint);
+
+        assert!(t.next().is_ascii_digit());
+        tokenize_fraction(t);
+
+        if t.next() == 'e' || t.next() == 'E' {
+            tokenize_exponent(t);
+        }
+        return true;
+    }
+
     if ok {
         t.commit(Token::Digit);
-        true
-    } else {
-        false
+        return true;
     }
+
+    false
 }
 
 fn tokenize_char_or_str_content(t: &mut TokenizeContext, quote: char) {

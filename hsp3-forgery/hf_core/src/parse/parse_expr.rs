@@ -69,6 +69,7 @@ pub(crate) fn parse_expr(p: &mut Px) {
         Token::SingleQuote => parse_char_literal(p),
         Token::Star => parse_label_literal(p),
         _ if p.next().is_str_literal_first() => parse_str_literal(p),
+        _ if p.next().is_double_literal_first() => parse_double_literal(p),
         _ if p.next().is_int_literal_first() => parse_int_literal(p),
         _ => {
             // unimplemented

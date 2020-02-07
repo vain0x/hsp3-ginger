@@ -189,6 +189,100 @@ Semi ``
 Eol `
 
 	`
+Ident `f1`
+Space ` `
+Equal `=`
+Space ` `
+FloatInt `0`
+FloatPoint `.`
+Fraction `0`
+Comma `,`
+Space ` `
+FloatPoint `.`
+Fraction `0`
+Comma `,`
+Space ` `
+FloatInt `3`
+FloatPoint `.`
+Fraction `14159`
+Comma `,`
+Space ` `
+FloatInt `0`
+FloatPoint `.`
+ExpChar `e`
+Semi ``
+Eol `
+	`
+Ident `f2`
+Space ` `
+Equal `=`
+Space ` `
+FloatInt `1`
+ExpChar `e`
+ExpDigit `9`
+Comma `,`
+Space ` `
+FloatInt `1`
+ExpChar `e`
+ExpSign `+`
+ExpDigit `9`
+Comma `,`
+Space ` `
+FloatInt `1`
+ExpChar `E`
+ExpDigit `9`
+Comma `,`
+Space ` `
+FloatInt `1`
+ExpChar `E`
+ExpSign `+`
+ExpDigit `9`
+Semi ``
+Eol `
+	`
+Ident `f3`
+Space ` `
+Equal `=`
+Space ` `
+FloatInt `6`
+FloatPoint `.`
+Fraction `02`
+ExpChar `e`
+ExpSign `-`
+ExpDigit `23`
+Comma `,`
+Space ` `
+FloatInt `6`
+FloatPoint `.`
+Fraction `02`
+ExpChar `E`
+ExpSign `-`
+ExpDigit `23`
+Semi ``
+Eol `
+	`
+Ident `bad_f`
+Space ` `
+Equal `=`
+Space ` `
+Dot `.`
+Ident `e`
+Comma `,`
+Space ` `
+FloatInt `0`
+ExpChar `e`
+ExpSign `+`
+ExpDigit ``
+Comma `,`
+Space ` `
+FloatInt `0`
+ExpChar `e`
+ExpSign `-`
+ExpDigit ``
+Semi ``
+Eol `
+
+	`
 Comment `// プリプロセッサ命令の外では改行をエスケープできない。`
 Semi ``
 Eol `

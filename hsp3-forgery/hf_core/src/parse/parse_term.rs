@@ -29,6 +29,13 @@ impl Token {
         }
     }
 
+    pub(crate) fn is_double_literal_first(self) -> bool {
+        match self {
+            Token::FloatInt | Token::FloatPoint => true,
+            _ => false,
+        }
+    }
+
     pub(crate) fn is_int_literal_first(self) -> bool {
         match self {
             Token::Digit | Token::ZeroB | Token::ZeroX | Token::Percent | Token::Dollar => true,
@@ -102,6 +109,27 @@ pub(crate) fn parse_str_literal(p: &mut Px) {
     }
 
     p.end_node(NodeKind::StrLiteral);
+}
+
+pub(crate) fn parse_double_literal(p: &mut Px) {
+    assert!(p.next().is_double_literal_first());
+
+    p.start_node();
+
+    // 字句解析器が一定の順番でトークンを生成するので、ここで順番を調べる必要はない。
+    loop {
+        match p.next() {
+            Token::FloatInt
+            | Token::FloatPoint
+            | Token::Fraction
+            | Token::ExpChar
+            | Token::ExpSign
+            | Token::ExpDigit => p.bump(),
+            _ => break,
+        }
+    }
+
+    p.end_node(NodeKind::DoubleLiteral);
 }
 
 pub(crate) fn parse_int_literal(p: &mut Px) {

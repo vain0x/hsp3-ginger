@@ -26,6 +26,18 @@ pub(crate) enum Token {
     Binary,
     /// 0-9/a-f/A-F の並び
     Hex,
+    /// 整数部。小数点より上の数値。([0-9]+)
+    FloatInt,
+    /// 小数点
+    FloatPoint,
+    /// 小数部。小数点以下の数値。([0-9]+)
+    Fraction,
+    /// 指数部の文字。([eE])
+    ExpChar,
+    /// 指数部の符号。([+-])
+    ExpSign,
+    /// 指数部の数値。([0-9]+)
+    ExpDigit,
     /// 文字・文字列リテラル内部のエスケープされない文字の並び
     StrVerbatim,
     /// 文字・文字列リテラル内部のエスケープ1個
