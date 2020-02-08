@@ -68,12 +68,25 @@ pub(crate) fn parse_call_expr(p: &mut Px) {
     p.end_node(NodeKind::CallExpr);
 }
 
+fn parse_unary_expr(p: &mut Px) {
+    assert_eq!(p.next(), Token::Minus);
+
+    p.start_node();
+    p.bump();
+
+    if p.next().is_expr_first() {
+        parse_expr(p);
+    }
+    p.end_node(NodeKind::UnaryExpr);
+}
+
 pub(crate) fn parse_expr(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_call_expr(p),
         Token::LeftParen => parse_group_expr(p),
         Token::CharStart => parse_char_literal(p),
         Token::FloatInt => parse_double_literal(p),
+        Token::Minus => parse_unary_expr(p),
         Token::Star => parse_label_literal(p),
         Token::StrStart => parse_str_literal(p),
         _ if p.next().is_int_literal_first() => parse_int_literal(p),

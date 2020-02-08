@@ -15,6 +15,7 @@ pub(crate) enum NodeKind {
     Param,
     Arg,
     CallExpr,
+    UnaryExpr,
     BinaryExpr,
     AssignStmt,
     CommandStmt,
