@@ -80,7 +80,7 @@ fn parse_unary_expr(p: &mut Px) {
     p.end_node(NodeKind::UnaryExpr);
 }
 
-pub(crate) fn parse_expr(p: &mut Px) {
+fn parse_factor(p: &mut Px) {
     match p.next() {
         Token::Ident => parse_call_expr(p),
         Token::LeftParen => parse_group_expr(p),
@@ -90,11 +90,48 @@ pub(crate) fn parse_expr(p: &mut Px) {
         Token::Star => parse_label_literal(p),
         Token::StrStart => parse_str_literal(p),
         _ if p.next().is_int_literal_first() => parse_int_literal(p),
-        _ => {
-            // unimplemented
-            p.bump();
-        }
+        _ => unreachable!("is_expr_first"),
     }
+}
+
+fn do_parse_binary_expr(level_opt: Option<BinaryOpLevel>, p: &mut Px) {
+    assert!(p.next().is_expr_first());
+
+    let level = match level_opt {
+        None => return parse_factor(p),
+        Some(level) => level,
+    };
+
+    do_parse_binary_expr(level.next(), p);
+
+    loop {
+        let next_is_op = BINARY_OP_TABLE
+            .iter()
+            .filter(|&&(l, _)| l == level)
+            .any(|&(_, token)| p.next() == token);
+        if next_is_op {
+            p.restart_node();
+            p.bump();
+
+            if p.next().is_expr_first() {
+                do_parse_binary_expr(level.next(), p);
+            }
+            p.end_node(NodeKind::BinaryExpr);
+            continue;
+        }
+
+        break;
+    }
+}
+
+fn parse_binary_expr(p: &mut Px) {
+    assert!(p.next().is_expr_first());
+
+    do_parse_binary_expr(Some(BinaryOpLevel::LOWEST), p);
+}
+
+pub(crate) fn parse_expr(p: &mut Px) {
+    parse_binary_expr(p)
 }
 
 /// 引数リスト (カンマ区切りの式の並び) を解析する。

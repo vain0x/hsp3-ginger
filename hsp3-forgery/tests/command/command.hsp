@@ -50,3 +50,6 @@
 	xs(i) = 1, x = 2
 
 	objects(i)->"method" a, b, c
+
+	ok = l <= p && p < r || r > q && q >= l ^ 0
+	x = -b + sqrt(b * b - 4 * a * c) / (2 * a)
