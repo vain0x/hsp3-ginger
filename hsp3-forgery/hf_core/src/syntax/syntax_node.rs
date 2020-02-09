@@ -79,7 +79,7 @@ impl SyntaxNode {
                             node: Rc::clone(&it),
                             child_index,
                         },
-                        location: Location::new(token.location.source.clone(), range),
+                        location: Location::new(token.source().clone(), range),
                     })
                 }
             }

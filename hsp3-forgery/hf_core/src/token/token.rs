@@ -179,7 +179,7 @@ pub(crate) struct TokenData {
     token: Token,
     text: String,
 
-    pub(crate) location: Location,
+    source: TokenSource,
 
     /// 前にスペースや改行がある？
     pub(crate) leading: bool,
@@ -189,18 +189,14 @@ pub(crate) struct TokenData {
 }
 
 impl TokenData {
-    pub(crate) fn new(token: Token, text: String, location: Location) -> Self {
+    pub(crate) fn new(token: Token, text: String, source: TokenSource) -> Self {
         TokenData {
             token,
             text,
-            location,
+            source,
             leading: false,
             trailing: false,
         }
-    }
-
-    pub(crate) fn new_missing(hint_location: Location) -> Self {
-        TokenData::new(Token::Other, "???".to_string(), hint_location)
     }
 
     pub(crate) fn token(&self) -> Token {
@@ -209,6 +205,10 @@ impl TokenData {
 
     pub(crate) fn text(&self) -> &str {
         &self.text
+    }
+
+    pub(crate) fn source(&self) -> &TokenSource {
+        &self.source
     }
 
     pub(crate) fn len(&self) -> usize {

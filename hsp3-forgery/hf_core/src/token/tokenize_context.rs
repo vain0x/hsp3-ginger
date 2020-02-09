@@ -8,8 +8,6 @@ pub(crate) struct TokenizeContext {
 
     source_code: Rc<SourceCode>,
 
-    cursor: TextCursor,
-
     current_index: usize,
 
     /// 直前のコミット位置
@@ -26,7 +24,6 @@ impl TokenizeContext {
         TokenizeContext {
             source,
             source_code,
-            cursor: TextCursor::default(),
             current_index: 0,
             last_index: 0,
             leading: true,
@@ -98,15 +95,7 @@ impl TokenizeContext {
     pub(crate) fn commit(&mut self, token: Token) {
         let text = self.current_text().to_string();
 
-        let start = self.cursor.current();
-        self.cursor.advance(&text);
-        let end = self.cursor.current();
-        let location = Location {
-            source: self.source.clone(),
-            range: Range { start, end },
-        };
-
-        self.push_token(TokenData::new(token, text, location));
+        self.push_token(TokenData::new(token, text, self.source.clone()));
         self.last_index = self.current_index;
 
         self.assert_invariants();
