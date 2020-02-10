@@ -30,7 +30,7 @@ mod tests {
     fn snapshot_tests() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
-        let test_names = vec!["assign", "command", "exit_42", "syntax_error"];
+        let test_names = vec!["assign", "command", "exit_42", "syntax_error", "syntax_pp"];
 
         for name in test_names {
             let mut source_files = HashSet::new();

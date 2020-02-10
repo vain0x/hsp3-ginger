@@ -1,0 +1,20 @@
+#module
+
+#deffunc foo_bye onexit
+
+	return
+
+#deffunc local foo_init@m_foo label dest, double factor, str text, int n, \
+	var out_bar_count, array out_bars, \
+	local a, local b
+
+	return
+
+#deffunc foo_bad_syntax label *dest, double double, str,, int \
+	int int, a, unknown u, local x, y,
+
+	return
+
+#global
+
+	foo_init@m_foo
