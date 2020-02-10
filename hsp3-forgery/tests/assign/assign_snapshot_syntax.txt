@@ -9,7 +9,9 @@ Root(1.1-9.1)[
         Hash(3.1-3.2) "#",
         Ident(3.2-3.9) "deffunc",
         Space(3.9-3.10) " ",
-        Ident(3.10-3.14) "main",
+        Ident(3.10-3.14)[
+            Ident(3.10-3.14) "main",
+        ],
         Semi(3.14-3.14) "",
     ],
     AssignStmt(3.14-5.7)[

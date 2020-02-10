@@ -41,7 +41,9 @@ fn parse_deffunc_like_stmt_contents(p: &mut Px) {
     }
 
     // modinit/modterm でなければ
-    p.eat(Token::Ident);
+    if p.next() == Token::Ident {
+        parse_name(p);
+    }
 
     if !p.eat_ident("onexit") {
         // params
