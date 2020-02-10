@@ -17,8 +17,10 @@ Root(1.1-21.1)[
         Semi(3.24-3.24) "",
     ],
     CommandStmt(3.24-5.8)[
-        Eol(3.24-5.2) "\n\n\t",
-        Return(5.2-5.8) "return",
+        Ident(3.24-5.8)[
+            Eol(3.24-5.2) "\n\n\t",
+            Return(5.2-5.8) "return",
+        ],
         Semi(5.8-5.8) "",
     ],
     DeffuncPp(5.8-9.18)[
@@ -111,8 +113,10 @@ Root(1.1-21.1)[
         Semi(9.18-9.18) "",
     ],
     CommandStmt(9.18-11.8)[
-        Eol(9.18-11.2) "\n\n\t",
-        Return(11.2-11.8) "return",
+        Ident(9.18-11.8)[
+            Eol(9.18-11.2) "\n\n\t",
+            Return(11.2-11.8) "return",
+        ],
         Semi(11.8-11.8) "",
     ],
     DeffuncPp(11.8-14.36)[
@@ -208,8 +212,10 @@ Root(1.1-21.1)[
         Semi(14.36-14.36) "",
     ],
     CommandStmt(14.36-16.8)[
-        Eol(14.36-16.2) "\n\n\t",
-        Return(16.2-16.8) "return",
+        Ident(14.36-16.8)[
+            Eol(14.36-16.2) "\n\n\t",
+            Return(16.2-16.8) "return",
+        ],
         Semi(16.8-16.8) "",
     ],
     GlobalPp(16.8-18.8)[
@@ -219,10 +225,12 @@ Root(1.1-21.1)[
         Semi(18.8-18.8) "",
     ],
     CommandStmt(18.8-20.16)[
-        Eol(18.8-20.2) "\n\n\t",
-        Ident(20.2-20.10) "foo_init",
-        IdentAtSign(20.10-20.11) "@",
-        IdentScope(20.11-20.16) "m_foo",
+        Ident(18.8-20.16)[
+            Eol(18.8-20.2) "\n\n\t",
+            Ident(20.2-20.10) "foo_init",
+            IdentAtSign(20.10-20.11) "@",
+            IdentScope(20.11-20.16) "m_foo",
+        ],
         Semi(20.16-20.16) "",
     ],
     Eol(20.16-21.1) "\n",

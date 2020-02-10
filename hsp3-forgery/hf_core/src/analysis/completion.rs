@@ -55,8 +55,10 @@ pub(crate) fn get_signature_help(
 
                     let params = loop {
                         if let Some(command_token) = stmt
-                            .child_tokens()
-                            .filter(|t| t.kind() == Token::Ident)
+                            .child_nodes()
+                            .filter(|node| node.kind() == NodeKind::Ident)
+                            .flat_map(|node| node.child_tokens())
+                            .filter(|t| t.kind() == Token::Ident || t.kind().is_control_keyword())
                             .next()
                         {
                             if command_token.text() == "width" {

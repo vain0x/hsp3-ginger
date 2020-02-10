@@ -144,7 +144,14 @@ fn parse_command_stmt(p: &mut Px) {
     assert!(p.next().is_command_first());
 
     p.start_node();
-    p.bump();
+
+    if p.next().is_control_keyword() {
+        p.start_node();
+        p.bump();
+        p.end_node(NodeKind::Ident);
+    } else {
+        parse_name(p);
+    }
 
     parse_command_stmt_contents(p);
 

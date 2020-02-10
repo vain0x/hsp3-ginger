@@ -1,8 +1,10 @@
 Root(1.1-6.1)[
     CommandStmt(1.1-1.11)[
-        Space(1.1-1.2) "\t",
-        Ident(1.2-1.5) "mes",
-        Space(1.5-1.6) " ",
+        Ident(1.1-1.6)[
+            Space(1.1-1.2) "\t",
+            Ident(1.2-1.5) "mes",
+            Space(1.5-1.6) " ",
+        ],
         Arg(1.6-1.9)[
             CallExpr(1.6-1.9)[
                 Ident(1.6-1.7)[
@@ -19,9 +21,11 @@ Root(1.1-6.1)[
         Semi(1.11-1.11) "",
     ],
     CommandStmt(1.11-2.11)[
-        Eol(1.11-2.2) "\n\t",
-        Ident(2.2-2.5) "mes",
-        Space(2.5-2.6) " ",
+        Ident(1.11-2.6)[
+            Eol(1.11-2.2) "\n\t",
+            Ident(2.2-2.5) "mes",
+            Space(2.5-2.6) " ",
+        ],
         Arg(2.6-2.9)[
             LeftParen(2.6-2.7) "(",
             Ident(2.7-2.8)[
@@ -36,9 +40,11 @@ Root(1.1-6.1)[
         Semi(2.11-2.11) "",
     ],
     CommandStmt(2.11-4.14)[
-        Eol(2.11-4.2) "\n\n\t",
-        Ident(4.2-4.8) "button",
-        Space(4.8-4.9) " ",
+        Ident(2.11-4.9)[
+            Eol(2.11-4.2) "\n\n\t",
+            Ident(4.2-4.8) "button",
+            Space(4.8-4.9) " ",
+        ],
         Arg(4.9-4.13)[
             StrLiteral(4.9-4.11)[
                 StrStart(4.9-4.10) "\"",
