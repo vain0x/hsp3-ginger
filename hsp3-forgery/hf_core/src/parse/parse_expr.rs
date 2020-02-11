@@ -9,7 +9,8 @@ impl Token {
             | Token::StrStart
             | Token::FloatInt
             | Token::Ident
-            | Token::LeftParen => true,
+            | Token::LeftParen
+            | Token::Star => true,
             _ => self.is_int_literal_first(),
         }
     }
@@ -18,7 +19,7 @@ impl Token {
     /// (= expr の FIRST 集合に含まれるか？)
     pub(crate) fn is_expr_first(self) -> bool {
         match self {
-            Token::Minus | Token::Star => true,
+            Token::Minus => true,
             _ => self.is_atom_expr_first(),
         }
     }
