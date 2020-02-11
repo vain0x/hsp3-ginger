@@ -15,13 +15,17 @@ impl Token {
         }
     }
 
-    /// このトークンが式の先頭になることがあるか？
-    /// (= expr の FIRST 集合に含まれるか？)
-    pub(crate) fn is_expr_first(self) -> bool {
+    fn is_factor_first(self) -> bool {
         match self {
             Token::Minus => true,
             _ => self.is_atom_expr_first(),
         }
+    }
+
+    /// このトークンが式の先頭になることがあるか？
+    /// (= expr の FIRST 集合に含まれるか？)
+    pub(crate) fn is_expr_first(self) -> bool {
+        self.is_factor_first()
     }
 
     pub(crate) fn at_end_of_expr(self) -> bool {
@@ -75,8 +79,8 @@ fn parse_unary_expr(p: &mut Px) {
     p.start_node();
     p.bump();
 
-    if p.next().is_expr_first() {
-        parse_expr(p);
+    if p.next().is_factor_first() {
+        parse_factor(p);
     }
     p.end_node(NodeKind::UnaryExpr);
 }
