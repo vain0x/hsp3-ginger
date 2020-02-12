@@ -71,9 +71,19 @@ impl From<TextRange> for Range {
 }
 
 #[derive(Clone)]
-pub struct DocHandle(SourceFile);
-#[derive(Clone)]
-pub struct SyntaxRootHandle(Rc<SyntaxRoot>);
+pub struct TextLocation {
+    pub source_path: Rc<PathBuf>,
+    pub range: TextRange,
+}
+
+impl TextLocation {
+    fn new(source_path: Rc<PathBuf>, range: Range) -> Self {
+        TextLocation {
+            source_path,
+            range: range.into(),
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct World {
@@ -152,6 +162,11 @@ impl World {
         syntax_root
     }
 
+    fn get_text_location(&self, location: &Location) -> TextLocation {
+        let source_path = location.source.source_file.source_path.clone();
+        TextLocation::new(source_path, location.range())
+    }
+
     pub fn get_diagnostics(&mut self, source_path: Rc<PathBuf>, diagnostics: &mut Vec<Diagnostic>) {
         let source_file = SourceFile { source_path };
         let syntax_root = self.require_syntax_root(source_file);
@@ -213,6 +228,22 @@ impl World {
             }
         }
     }
+
+    pub fn goto_definition(
+        &mut self,
+        source_path: Rc<PathBuf>,
+        position: TextPosition,
+    ) -> Option<TextLocation> {
+        let source_file = SourceFile { source_path };
+        let syntax_root = self.require_syntax_root(source_file);
+
+        let global_symbols = get_global_symbols::get_global_symbols(&syntax_root);
+
+        let location =
+            goto_definition::goto_definition(&syntax_root, position.into(), &global_symbols)?;
+
+        Some(self.get_text_location(&location))
+    }
 }
 
 #[cfg(test)]
@@ -255,5 +286,29 @@ mod tests {
                 }
             });
         }
+    }
+
+    #[test]
+    fn test_goto_definition() {
+        let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let tests_dir = root_dir.join("../tests");
+        let name = "api_goto_definition";
+        let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
+
+        let mut world = World::new();
+        world.add_source_file(source_path.clone());
+
+        let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
+        world.set_source_code(source_path.clone(), source_code);
+
+        let location_opt = world.goto_definition(source_path, Position::new(0, 1).into());
+
+        assert_eq!(
+            match location_opt {
+                Some(location) => Some(location.range.start.into()),
+                _ => None,
+            },
+            Some(Position::new(2, 9))
+        );
     }
 }

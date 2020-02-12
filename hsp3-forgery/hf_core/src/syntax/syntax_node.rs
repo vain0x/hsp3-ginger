@@ -44,6 +44,13 @@ impl SyntaxNode {
         }
     }
 
+    pub(crate) fn parent_node(&self) -> Option<&SyntaxNode> {
+        match &self.parent {
+            SyntaxParent::NonRoot { node, .. } => Some(node),
+            SyntaxParent::Root { .. } => None,
+        }
+    }
+
     pub(crate) fn child_elements(&self) -> impl Iterator<Item = SyntaxElement> {
         let it = Rc::new(self.clone());
         let mut start = self.range.start;
@@ -102,6 +109,22 @@ impl SyntaxNode {
 
     pub(crate) fn descendant_elements(&self) -> impl Iterator<Item = SyntaxElement> {
         iter::DescendantElementsIter::new(self.clone().into())
+    }
+
+    pub(crate) fn descendant_nodes(&self) -> impl Iterator<Item = SyntaxNode> {
+        self.descendant_elements()
+            .filter_map(|element| match element {
+                SyntaxElement::Node(node) => Some(node),
+                SyntaxElement::Token(..) => None,
+            })
+    }
+
+    pub(crate) fn descendant_tokens(&self) -> impl Iterator<Item = SyntaxToken> {
+        self.descendant_elements()
+            .filter_map(|element| match element {
+                SyntaxElement::Token(token) => Some(token),
+                SyntaxElement::Node(..) => None,
+            })
     }
 }
 

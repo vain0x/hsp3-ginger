@@ -69,3 +69,16 @@ impl Ast for AIdent {
         }
     }
 }
+
+impl AIdent {
+    pub(crate) fn to_string(&self) -> String {
+        let mut out = String::new();
+        for token in self.0.child_tokens() {
+            match token.kind() {
+                Token::Ident | Token::IdentAtSign | Token::IdentScope => out += token.text(),
+                _ => {}
+            }
+        }
+        out
+    }
+}

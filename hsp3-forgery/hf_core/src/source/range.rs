@@ -13,6 +13,14 @@ impl Range {
         Range { start, end }
     }
 
+    pub(crate) fn start(&self) -> Position {
+        self.start
+    }
+
+    pub(crate) fn end(&self) -> Position {
+        self.end
+    }
+
     /// 指定された位置がこの範囲に含まれるか、あるいは範囲の終端を指しているとき true。
     pub(crate) fn contains_loosely(self, position: Position) -> bool {
         self.start <= position && position <= self.end
