@@ -57,6 +57,14 @@ HSP3 開発ツールを作るプロジェクト。
 - 言語: TypeScript
 - 状況: リリース済み。
 
+### hsp3-forgery
+
+[hsp3-forgery](hsp3-forgery)
+
+- 静的解析ツール
+- 言語: Rust
+- 状況: まだ構文解析の一部しか動きません。開発中。
+
 ### hsp3-ginger
 
 [hsp3-ginger](hsp3-ginger)
