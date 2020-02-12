@@ -1,0 +1,351 @@
+Semi ``
+Eol `
+`
+Hash `#`
+Ident `module`
+Space ` `
+Ident `m_main`
+Semi ``
+Eol `
+
+`
+Comment `// メイン関数`
+Semi ``
+Eol `
+`
+Hash `#`
+Ident `deffunc`
+Space ` `
+Ident `main`
+Space ` `
+Space `\
+`
+Space `	`
+Ident `local`
+Space ` `
+Ident `a`
+Semi ``
+Eol `
+
+	`
+Ident `a`
+PlusPlus `++`
+Semi ``
+Eol `
+	`
+If `if`
+Space ` `
+Ident `a`
+Space ` `
+EqualEqual `==`
+Space ` `
+Digit `1`
+Space ` `
+LeftBrace `{`
+Semi ``
+Eol `
+		`
+Break `break`
+Semi ``
+Eol `
+	`
+RightBrace `}`
+Semi ``
+Eol `
+
+	`
+Ident `mes`
+Space ` `
+StrStart `"`
+StrVerbatim `hello, world!`
+StrEnd `"`
+Semi ``
+Eol `
+	`
+Ident `mes`
+Space ` `
+StrStart `"`
+StrVerbatim `good bye ->`
+Semi ``
+Eol `
+
+	`
+Ident `mes`
+Space ` `
+StrStart `{"`
+StrVerbatim `
+		multiline
+		text
+	`
+StrEnd `"}`
+Semi ``
+Eol `
+	`
+Return `return`
+Semi ``
+Eol `
+
+`
+Hash `#`
+Ident `global`
+Semi ``
+Eol `
+
+	`
+Comment `; トップレベルコード`
+Semi ``
+Eol `
+	`
+Ident `main`
+Semi ``
+Eol `
+
+	`
+Comment `/***
+		multiline
+		comment
+	***/`
+Space ` `
+Star `*`
+Slash `/`
+Semi ``
+Eol `
+
+`
+Hash `#`
+Ident `define`
+Space ` `
+Ident `zero`
+Space ` `
+Percent `%%`
+Binary `0`
+Semi ``
+Eol `
+
+	`
+Ident `b`
+Space ` `
+Equal `=`
+Space ` `
+ZeroB `0b`
+Binary `11111111`
+Space ` `
+Pipe `|`
+Space ` `
+Percent `%`
+Binary `00110101`
+Semi ``
+Eol `
+	`
+Ident `bad_b`
+Space ` `
+Equal `=`
+Space ` `
+ZeroB `0b`
+Binary `1`
+Digit `234`
+Space ` `
+Pipe `|`
+Space ` `
+Percent `%`
+Binary `1`
+Digit `2`
+Semi ``
+Eol `
+	`
+Ident `h`
+Space ` `
+Equal `=`
+Space ` `
+ZeroX `0x`
+Hex `abcdef01`
+Space ` `
+Pipe `|`
+Space ` `
+ZeroX `0x`
+Hex `ABCDEF01`
+Space ` `
+Pipe `|`
+Space ` `
+ZeroX `0x`
+Hex `23456789`
+Space ` `
+Pipe `|`
+Space ` `
+Dollar `$`
+Hex `deadbeef`
+Semi ``
+Eol `
+	`
+Ident `bad_h`
+Space ` `
+Equal `=`
+Space ` `
+ZeroX `0x`
+Hex `f0`
+Ident `rd`
+Semi ``
+Eol `
+
+	`
+Ident `f1`
+Space ` `
+Equal `=`
+Space ` `
+FloatInt `0`
+FloatPoint `.`
+Fraction `0`
+Comma `,`
+Space ` `
+FloatInt ``
+FloatPoint `.`
+Fraction `0`
+Comma `,`
+Space ` `
+FloatInt `3`
+FloatPoint `.`
+Fraction `14159`
+Comma `,`
+Space ` `
+FloatInt `0`
+FloatPoint `.`
+ExpChar `e`
+Semi ``
+Eol `
+	`
+Ident `f2`
+Space ` `
+Equal `=`
+Space ` `
+FloatInt `1`
+ExpChar `e`
+ExpDigit `9`
+Comma `,`
+Space ` `
+FloatInt `1`
+ExpChar `e`
+ExpSign `+`
+ExpDigit `9`
+Comma `,`
+Space ` `
+FloatInt `1`
+ExpChar `E`
+ExpDigit `9`
+Comma `,`
+Space ` `
+FloatInt `1`
+ExpChar `E`
+ExpSign `+`
+ExpDigit `9`
+Semi ``
+Eol `
+	`
+Ident `f3`
+Space ` `
+Equal `=`
+Space ` `
+FloatInt `6`
+FloatPoint `.`
+Fraction `02`
+ExpChar `e`
+ExpSign `-`
+ExpDigit `23`
+Comma `,`
+Space ` `
+FloatInt `6`
+FloatPoint `.`
+Fraction `02`
+ExpChar `E`
+ExpSign `-`
+ExpDigit `23`
+Semi ``
+Eol `
+	`
+Ident `bad_f`
+Space ` `
+Equal `=`
+Space ` `
+Dot `.`
+Ident `e`
+Comma `,`
+Space ` `
+FloatInt `0`
+ExpChar `e`
+ExpSign `+`
+ExpDigit ``
+Comma `,`
+Space ` `
+FloatInt `0`
+ExpChar `e`
+ExpSign `-`
+ExpDigit ``
+Semi ``
+Eol `
+
+	`
+Ident `names`
+Space ` `
+Equal `=`
+Space ` `
+Ident `_`
+Comma `,`
+Space ` `
+Ident `_1`
+Comma `,`
+Space ` `
+Ident `foo_BAR`
+Comma `,`
+Space ` `
+Ident `_`
+IdentAtSign `@`
+Comma `,`
+Space ` `
+Ident `mes`
+IdentAtSign `@`
+IdentScope `hsp3`
+Comma `,`
+Space ` `
+Ident ``
+IdentAtSign `@`
+Comma `,`
+Space ` `
+Ident ``
+IdentAtSign `@`
+IdentScope `a`
+Comma `,`
+Space ` `
+Ident ``
+IdentAtSign `@`
+IdentAtSign `@`
+Comma `,`
+Space ` `
+Ident `x`
+IdentAtSign `@`
+IdentScope `y`
+IdentAtSign `@`
+IdentScope `z`
+Semi ``
+Eol `
+
+	`
+Comment `// プリプロセッサ命令の外では改行をエスケープできない。`
+Semi ``
+Eol `
+	`
+Backslash `\`
+Semi ``
+Eol `
+
+	`
+Comment `// 行頭にない # は解釈できない。`
+Semi ``
+Eol `
+	`
+Plus `+`
+Other `#`
+Ident `define`
+Semi ``
+Eol `
+`
+Semi ``
+Eof ``

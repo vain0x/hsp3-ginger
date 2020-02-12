@@ -1,0 +1,21 @@
+#!/bin/bash
+# Build compiler before this.
+
+set -eux
+
+if [[ -f hsp3-forgery.vsix ]]
+then
+    rm hsp3-forgery.vsix
+fi
+
+cargo build --release
+
+cp ../target/release/hsp3-forgery-lsp ./out/hsp3-forgery-lsp
+
+npm install
+npm run vsce:install
+npm run build
+npm run vsce:package
+
+./uninstall || :
+code --install-extension hsp3-forgery.vsix

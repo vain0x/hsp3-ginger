@@ -1,0 +1,34 @@
+[package]
+name = "hsp3-forgery-lsp"
+version = "0.1.0"
+authors = ["vain0x <vainzerox@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hsp3-forgery-core = { path = "../hf_core" }
+
+# shift_jis の解釈に使う。
+encoding = "0.2"
+
+# ファイルを GLOB 形式で探索するもの。
+glob = "0.3"
+
+# ログ出力 API の基本になるもの。
+log = "0.4"
+
+# LSP の型定義集。シリアライズに使う。
+lsp-types = "0.56"
+
+# ファイルの変更を検出するもの。
+notify = "4"
+
+# シリアライズ API の基本になるもの。
+serde = { version = "1", features = ["derive"] }
+
+# JSON シリアライザ。
+serde_json = "1"
+
+# ファイルに出力するロガー。
+simplelog = "0.7"

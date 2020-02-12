@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "extensionHost",
+            "request": "launch",
+            "name": "Launch Extension Host",
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/vscode-ext"
+            ],
+            "env": {
+                "HSP3_FORGERY_LSP_BIN": "../target/debug/hsp3-forgery-lsp",
+                "RUST_BACKTRACE": "1"
+            },
+            "preLaunchTask": "ext:build"
+        }
+    ],
+    "compounds": []
+}

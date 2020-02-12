@@ -1,0 +1,48 @@
+Root(1.1-9.1)[
+    ModulePp(1.1-1.8)[
+        Hash(1.1-1.2) "#",
+        Ident(1.2-1.8) "module",
+        Semi(1.8-1.8) "",
+    ],
+    DeffuncPp(1.8-3.14)[
+        Eol(1.8-3.1) "\n\n",
+        Hash(3.1-3.2) "#",
+        Ident(3.2-3.9) "deffunc",
+        Space(3.9-3.10) " ",
+        Ident(3.10-3.14)[
+            Ident(3.10-3.14) "main",
+        ],
+        Semi(3.14-3.14) "",
+    ],
+    AssignStmt(3.14-5.7)[
+        Ident(3.14-5.4)[
+            Eol(3.14-5.2) "\n\n\t",
+            Ident(5.2-5.3) "a",
+            Space(5.3-5.4) " ",
+        ],
+        Equal(5.4-5.5) "=",
+        Space(5.5-5.6) " ",
+        Arg(5.6-5.7)[
+            IntLiteral(5.6-5.7)[
+                Digit(5.6-5.7) "1",
+            ],
+        ],
+        Semi(5.7-5.7) "",
+    ],
+    CommandStmt(5.7-6.8)[
+        Ident(5.7-6.8)[
+            Eol(5.7-6.2) "\n\t",
+            Return(6.2-6.8) "return",
+        ],
+        Semi(6.8-6.8) "",
+    ],
+    GlobalPp(6.8-8.8)[
+        Eol(6.8-8.1) "\n\n",
+        Hash(8.1-8.2) "#",
+        Ident(8.2-8.8) "global",
+        Semi(8.8-8.8) "",
+    ],
+    Eol(8.8-9.1) "\n",
+    Semi(9.1-9.1) "",
+    Eof(9.1-9.1) "",
+]

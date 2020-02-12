@@ -1,0 +1,55 @@
+	width 800, 512
+	width instr(s, , t)
+
+	width = 1
+
+	dim a
+	n = 4
+
+	dim b, n, n
+	mes b(1, 1)
+	mes b((0))
+	mes "hello"
+	mes "world
+
+	mes {"first
+	second
+	"}, 3
+
+	goto *l_dest
+	onexit gosub *l_dest
+	l = *@f
+
+*l_dest
+*@
+
+	mes : mes
+
+#module "m_with_quoted_name"
+#global
+
+	mes 'A'
+	mes "\t\"It's done!\", said John.\n"
+	mes '\''
+
+	x = 1
+	x = 1, 2
+	x -= 1
+	x+
+	x++
+	x-
+	x--
+	x(i)=1
+	board(y, x) = 1, 2
+	board(y, x) += 1
+	board(y, x)+
+	board(y, x)++
+
+	x-1
+	x*y
+	xs(i) = 1, x = 2
+
+	objects(i)->"method" a, b, c
+
+	ok = l <= p && p < r || r > q && q >= l ^ 0
+	x = -b + sqrt(b * b - 4 * a * c) / (2 * a)

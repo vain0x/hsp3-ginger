@@ -1,0 +1,50 @@
+
+#module m_main
+
+// メイン関数
+#deffunc main \
+	local a
+
+	a++
+	if a == 1 {
+		break
+	}
+
+	mes "hello, world!"
+	mes "good bye ->
+
+	mes {"
+		multiline
+		text
+	"}
+	return
+
+#global
+
+	; トップレベルコード
+	main
+
+	/***
+		multiline
+		comment
+	***/ */
+
+#define zero %%0
+
+	b = 0b11111111 | %00110101
+	bad_b = 0b1234 | %12
+	h = 0xabcdef01 | 0xABCDEF01 | 0x23456789 | $deadbeef
+	bad_h = 0xf0rd
+
+	f1 = 0.0, .0, 3.14159, 0.e
+	f2 = 1e9, 1e+9, 1E9, 1E+9
+	f3 = 6.02e-23, 6.02E-23
+	bad_f = .e, 0e+, 0e-
+
+	names = _, _1, foo_BAR, _@, mes@hsp3, @, @a, @@, x@y@z
+
+	// プリプロセッサ命令の外では改行をエスケープできない。
+	\
+
+	// 行頭にない # は解釈できない。
+	+#define

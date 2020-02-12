@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "hf_core",
+    "hf_lsp"
+]
