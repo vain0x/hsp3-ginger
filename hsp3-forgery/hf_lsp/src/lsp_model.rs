@@ -108,8 +108,24 @@ impl LspModel {
         }
     }
 
-    pub(crate) fn definitions(&mut self, _uri: Url, _position: Position) -> Vec<Location> {
-        vec![]
+    pub(crate) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
+        self.poll();
+
+        let source_path = match canonicalize_uri(uri) {
+            None => return vec![],
+            Some(source_path) => Rc::new(source_path),
+        };
+
+        let location = match self
+            .world
+            .goto_definition(source_path, from_position(position))
+            .and_then(to_location)
+        {
+            None => return vec![],
+            Some(location) => location,
+        };
+
+        vec![location]
     }
 
     pub(crate) fn highlights(&mut self, _uri: Url, _position: Position) -> Vec<DocumentHighlight> {
@@ -164,11 +180,30 @@ fn to_position(position: hsp3_forgery_core::api::TextPosition) -> Position {
     }
 }
 
+fn from_position(position: Position) -> hsp3_forgery_core::api::TextPosition {
+    hsp3_forgery_core::api::TextPosition {
+        line: position.line as usize,
+        character: position.character as usize,
+    }
+}
+
 fn to_range(range: hsp3_forgery_core::api::TextRange) -> Range {
     Range {
         start: to_position(range.start),
         end: to_position(range.end),
     }
+}
+
+fn from_range(range: Range) -> hsp3_forgery_core::api::TextRange {
+    hsp3_forgery_core::api::TextRange {
+        start: from_position(range.start),
+        end: from_position(range.end),
+    }
+}
+
+fn to_location(location: hsp3_forgery_core::api::TextLocation) -> Option<Location> {
+    let uri = Url::from_file_path(location.source_path.as_ref()).ok()?;
+    Some(Location::new(uri, to_range(location.range)))
 }
 
 fn read_file(file_path: &Path) -> Option<String> {

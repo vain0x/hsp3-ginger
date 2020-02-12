@@ -27,7 +27,7 @@ impl<W: io::Write> LspHandler<W> {
                     resolve_provider: Some(false),
                     trigger_characters: None,
                 }),
-                definition_provider: Some(false),
+                definition_provider: Some(true),
                 document_highlight_provider: Some(false),
                 hover_provider: Some(false),
                 references_provider: Some(false),
