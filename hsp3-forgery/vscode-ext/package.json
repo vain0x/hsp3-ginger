@@ -1,0 +1,61 @@
+{
+  "name": "hsp3-forgery",
+  "displayName": "HSP3 フォージェリ",
+  "version": "0.1.0",
+  "description": "HSP3 開発支援ツール",
+  "repository": "https://github.com/vain0x/hsp3-ginger",
+  "author": "vain0x",
+  "publisher": "vain0x",
+  "license": "UNLICENSE",
+  "private": true,
+  "main": "./out/extension",
+  "activationEvents": [
+    "onLanguage:hsp3"
+  ],
+  "engines": {
+    "vscode": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.11",
+    "typescript": "^3.7.2",
+    "vsce": "^1.69.0",
+    "vscode": "^1.1.36",
+    "vscode-languageserver-protocol": "^3.14.1"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^5.2.1"
+  },
+  "scripts": {
+    "build": "node ./node_modules/typescript/bin/tsc -b",
+    "watch": "node ./node_modules/typescript/bin/tsc -w",
+    "vsce:install": "node ./node_modules/vscode/bin/install",
+    "vsce:package": "vsce package --out hsp3-forgery.vsix"
+  },
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "hsp3-forgery config",
+      "properties": {
+        "hsp3-forgery.hsp3-root": {
+          "type": "string",
+          "description": "HSP3 インストールディレクトリへの絶対パス"
+        },
+        "hsp3-forgery.lsp-bin": {
+          "type": "string",
+          "description": "[開発者向け] LSP の実行ファイルへの絶対パス"
+        },
+        "hsp3-forgery.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "[開発者向け] LSP サーバーの通信ログの詳細度",
+          "scope": "window"
+        }
+      }
+    }
+  }
+}

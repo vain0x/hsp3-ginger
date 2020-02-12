@@ -1,0 +1,3 @@
+#!/bin/bash
+
+code --uninstall-extension vain0x.hsp3-forgery
