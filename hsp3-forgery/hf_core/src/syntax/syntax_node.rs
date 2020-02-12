@@ -44,7 +44,7 @@ impl SyntaxNode {
         }
     }
 
-    pub(crate) fn child_elements(&self) -> impl DoubleEndedIterator<Item = SyntaxElement> {
+    pub(crate) fn child_elements(&self) -> impl Iterator<Item = SyntaxElement> {
         let it = Rc::new(self.clone());
         let mut start = self.range.start;
 
@@ -135,7 +135,8 @@ mod iter {
             match &element {
                 SyntaxElement::Token(_) => {}
                 SyntaxElement::Node(node) => {
-                    self.stack.extend(node.child_elements().rev());
+                    self.stack
+                        .extend(node.child_elements().collect::<Vec<_>>().into_iter().rev());
                 }
             }
             Some(element)
