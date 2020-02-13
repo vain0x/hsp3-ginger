@@ -1,5 +1,21 @@
 use super::*;
 
+pub(crate) struct AGroupExpr(SyntaxNode);
+
+impl Ast for AGroupExpr {
+    fn syntax(&self) -> &SyntaxNode {
+        &self.0
+    }
+
+    fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
+        if syntax_node.kind() == NodeKind::GroupExpr {
+            Some(AGroupExpr(syntax_node.clone()))
+        } else {
+            None
+        }
+    }
+}
+
 pub(crate) struct ACallExpr(SyntaxNode);
 
 impl Ast for ACallExpr {
@@ -21,6 +37,7 @@ pub(crate) enum AExpr {
     Str(AStr),
     Int(AInt),
     Ident(AIdent),
+    Group(AGroupExpr),
     Call(ACallExpr),
 }
 
@@ -61,6 +78,7 @@ impl Ast for AExpr {
             AExpr::Str(a) => a.syntax(),
             AExpr::Int(a) => a.syntax(),
             AExpr::Ident(a) => a.syntax(),
+            AExpr::Group(a) => a.syntax(),
             AExpr::Call(a) => a.syntax(),
         }
     }
@@ -80,6 +98,10 @@ impl Ast for AExpr {
 
         if let Some(a) = AIdent::cast(syntax_node) {
             return Some(AExpr::Ident(a));
+        }
+
+        if let Some(a) = AGroupExpr::cast(syntax_node) {
+            return Some(AExpr::Group(a));
         }
 
         if let Some(a) = ACallExpr::cast(syntax_node) {

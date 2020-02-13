@@ -44,6 +44,7 @@ impl Token {
 fn parse_group_expr(p: &mut Px) {
     assert_eq!(p.next(), Token::LeftParen);
 
+    p.start_node();
     p.bump();
 
     if p.next().is_expr_first() {
@@ -51,6 +52,7 @@ fn parse_group_expr(p: &mut Px) {
     }
 
     p.eat(Token::RightParen);
+    p.end_node(NodeKind::GroupExpr);
 }
 
 pub(crate) fn parse_call_expr(p: &mut Px) {

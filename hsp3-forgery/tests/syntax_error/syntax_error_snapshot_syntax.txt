@@ -32,8 +32,10 @@ Root(1.1-15.1)[
             ],
         ],
         Arg(8.9-8.11)[
-            LeftParen(8.9-8.10) "(",
-            RightParen(8.10-8.11) ")",
+            GroupExpr(8.9-8.11)[
+                LeftParen(8.9-8.10) "(",
+                RightParen(8.10-8.11) ")",
+            ],
         ],
         Semi(8.11-8.11) "",
     ],
@@ -44,15 +46,19 @@ Root(1.1-15.1)[
             Space(9.5-9.6) " ",
         ],
         Arg(9.6-9.9)[
-            LeftParen(9.6-9.7) "(",
-            Ident(9.7-9.8)[
-                Ident(9.7-9.8) "a",
+            GroupExpr(9.6-9.9)[
+                LeftParen(9.6-9.7) "(",
+                Ident(9.7-9.8)[
+                    Ident(9.7-9.8) "a",
+                ],
+                RightParen(9.8-9.9) ")",
             ],
-            RightParen(9.8-9.9) ")",
         ],
         Arg(9.9-9.11)[
-            LeftParen(9.9-9.10) "(",
-            RightParen(9.10-9.11) ")",
+            GroupExpr(9.9-9.11)[
+                LeftParen(9.9-9.10) "(",
+                RightParen(9.10-9.11) ")",
+            ],
         ],
         Semi(9.11-9.11) "",
     ],
