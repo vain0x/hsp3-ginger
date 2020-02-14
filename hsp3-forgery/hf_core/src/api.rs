@@ -171,78 +171,15 @@ impl World {
         let source_file = SourceFile { source_path };
         let syntax_root = self.require_syntax_root(source_file);
 
-        let mut add_error = |range: Range, message: String| {
+        let mut ds = Diagnostics::new();
+        get_syntax_errors::get_syntax_errors(&syntax_root, &mut ds);
+
+        for diagnostic in ds.into_iter() {
             diagnostics.push(Diagnostic {
                 severity: DiagnosticSeverity::Error,
-                range: range.into(),
-                message,
-            });
-        };
-
-        for element in syntax_root.node().descendant_elements() {
-            match element {
-                SyntaxElement::Token(token) => {
-                    if token.kind() == Token::Other {
-                        add_error(token.location().range, "この文字を解釈できません。(注意: フォージェリはまだ全角文字を解釈できません。)".to_string());
-                    }
-                }
-                SyntaxElement::Node(node) => match node.kind() {
-                    NodeKind::LabelLiteral => {
-                        if !node.child_tokens().any(|token| {
-                            token.kind() == Token::Ident || token.kind() == Token::IdentAtSign
-                        }) {
-                            add_error(node.range(), "ラベル名がありません。".to_string());
-                        }
-                    }
-                    NodeKind::GroupExpr => {
-                        if let Some(left_paren) = node
-                            .child_tokens()
-                            .filter(|token| token.kind() == Token::LeftParen)
-                            .next()
-                        {
-                            if node
-                                .child_tokens()
-                                .all(|token| token.kind() != Token::RightParen)
-                            {
-                                add_error(
-                                    left_paren.range(),
-                                    "カッコが閉じていません。".to_string(),
-                                );
-                            }
-                        }
-                    }
-                    NodeKind::CallExpr => {
-                        if let Some(left_paren) = node
-                            .child_tokens()
-                            .filter(|token| token.kind() == Token::LeftParen)
-                            .next()
-                        {
-                            if node
-                                .child_tokens()
-                                .all(|token| token.kind() != Token::RightParen)
-                            {
-                                add_error(
-                                    left_paren.range(),
-                                    "カッコが閉じていません。".to_string(),
-                                );
-                            }
-                        }
-                    }
-                    NodeKind::Param => {
-                        if !node
-                            .child_tokens()
-                            .any(|token| token.kind() == Token::Ident)
-                        {
-                            add_error(node.range(), "パラメータタイプがありません。".to_string());
-                        }
-                    }
-                    NodeKind::Other => {
-                        add_error(node.range(), "この部分は文法的に解釈できないので、無視しています。(注意: フォージェリはまだ HSP3 の一部の機能にしか対応していません。)"
-                                .to_string());
-                    }
-                    _ => continue,
-                },
-            }
+                range: diagnostic.range().into(),
+                message: diagnostic.kind().to_string(),
+            })
         }
     }
 
