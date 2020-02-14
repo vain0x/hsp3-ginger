@@ -194,6 +194,23 @@ impl World {
                             add_error(node.range(), "ラベル名がありません。".to_string());
                         }
                     }
+                    NodeKind::GroupExpr => {
+                        if let Some(left_paren) = node
+                            .child_tokens()
+                            .filter(|token| token.kind() == Token::LeftParen)
+                            .next()
+                        {
+                            if node
+                                .child_tokens()
+                                .all(|token| token.kind() != Token::RightParen)
+                            {
+                                add_error(
+                                    left_paren.range(),
+                                    "カッコが閉じていません。".to_string(),
+                                );
+                            }
+                        }
+                    }
                     NodeKind::CallExpr => {
                         if let Some(left_paren) = node
                             .child_tokens()
