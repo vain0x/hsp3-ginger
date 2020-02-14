@@ -1,11 +1,15 @@
-Root(1.1-21.1)[
-    ModulePp(1.1-1.8)[
+Root(1.1-27.1)[
+    ModulePp(1.1-1.14)[
         Hash(1.1-1.2) "#",
         Ident(1.2-1.8) "module",
-        Semi(1.8-1.8) "",
+        Space(1.8-1.9) " ",
+        Ident(1.9-1.14)[
+            Ident(1.9-1.14) "m_foo",
+        ],
+        Semi(1.14-1.14) "",
     ],
-    DeffuncPp(1.8-3.24)[
-        Eol(1.8-3.1) "\n\n",
+    DeffuncPp(1.14-3.24)[
+        Eol(1.14-3.1) "\n\n",
         Hash(3.1-3.2) "#",
         Ident(3.2-3.9) "deffunc",
         Space(3.9-3.10) " ",
@@ -224,16 +228,46 @@ Root(1.1-21.1)[
         Ident(18.2-18.8) "global",
         Semi(18.8-18.8) "",
     ],
-    CommandStmt(18.8-20.16)[
-        Ident(18.8-20.16)[
-            Eol(18.8-20.2) "\n\n\t",
-            Ident(20.2-20.10) "foo_init",
-            IdentAtSign(20.10-20.11) "@",
-            IdentScope(20.11-20.16) "m_foo",
+    ModulePp(18.8-20.16)[
+        Eol(18.8-20.1) "\n\n",
+        Hash(20.1-20.2) "#",
+        Ident(20.2-20.8) "module",
+        Space(20.8-20.9) " ",
+        StrLiteral(20.9-20.16)[
+            StrStart(20.9-20.10) "\"",
+            StrVerbatim(20.10-20.15) "m_bar",
+            StrEnd(20.15-20.16) "\"",
         ],
         Semi(20.16-20.16) "",
     ],
-    Eol(20.16-21.1) "\n",
-    Semi(21.1-21.1) "",
-    Eof(21.1-21.1) "",
+    GlobalPp(20.16-21.8)[
+        Eol(20.16-21.1) "\n",
+        Hash(21.1-21.2) "#",
+        Ident(21.2-21.8) "global",
+        Semi(21.8-21.8) "",
+    ],
+    ModulePp(21.8-23.8)[
+        Eol(21.8-23.1) "\n\n",
+        Hash(23.1-23.2) "#",
+        Ident(23.2-23.8) "module",
+        Semi(23.8-23.8) "",
+    ],
+    GlobalPp(23.8-24.8)[
+        Eol(23.8-24.1) "\n",
+        Hash(24.1-24.2) "#",
+        Ident(24.2-24.8) "global",
+        Semi(24.8-24.8) "",
+    ],
+    CommandStmt(24.8-26.16)[
+        Ident(24.8-26.16)[
+            Eol(24.8-26.2) "\n\n\t",
+            Ident(26.2-26.10) "foo_init",
+            IdentAtSign(26.10-26.11) "@",
+            IdentScope(26.11-26.16) "m_foo",
+        ],
+        Semi(26.16-26.16) "",
+    ],
+    Eol(26.16-27.1) "\n",
+    Semi(27.1-27.1) "",
+    Eof(27.1-27.1) "",
 ]

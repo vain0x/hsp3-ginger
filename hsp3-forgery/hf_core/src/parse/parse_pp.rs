@@ -99,11 +99,13 @@ fn parse_module_stmt_contents(p: &mut Px) {
 
     p.bump();
 
-    if !p.eat(Token::Ident) {
-        if p.next() == Token::StrStart {
-            parse_str_literal(p);
-        }
+    match p.next() {
+        Token::Ident => parse_name(p),
+        Token::StrStart => parse_str_literal(p),
+        _ => {}
     }
+
+    // FIXME: メンバ変数のリスト
 }
 
 fn parse_global_stmt_contents(p: &mut Px) {

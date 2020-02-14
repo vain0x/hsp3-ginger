@@ -1,4 +1,4 @@
-#module
+#module m_foo
 
 #deffunc foo_bye onexit
 
@@ -15,6 +15,12 @@
 
 	return
 
+#global
+
+#module "m_bar"
+#global
+
+#module
 #global
 
 	foo_init@m_foo
