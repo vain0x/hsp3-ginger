@@ -32,6 +32,31 @@ impl Ast for ADeffuncPp {
     }
 }
 
+impl ADeffuncPp {
+    pub(crate) fn is_local(&self) -> bool {
+        self.syntax()
+            .child_tokens()
+            .any(|token| token.kind() == Token::Ident && token.text() == "local")
+    }
+
+    pub(crate) fn is_global(&self) -> bool {
+        !self.is_local()
+    }
+
+    pub(crate) fn name(&self) -> Option<AIdent> {
+        self.syntax()
+            .child_nodes()
+            .filter_map(|node| AIdent::cast(&node))
+            .next()
+    }
+
+    pub(crate) fn params(&self) -> impl Iterator<Item = AParam> {
+        self.syntax()
+            .child_nodes()
+            .filter_map(|node| AParam::cast(&node))
+    }
+}
+
 pub(crate) struct AModulePp(SyntaxNode);
 
 impl Ast for AModulePp {
@@ -45,6 +70,15 @@ impl Ast for AModulePp {
         } else {
             None
         }
+    }
+}
+
+impl AModulePp {
+    pub(crate) fn name(&self) -> Option<SyntaxNode> {
+        self.syntax()
+            .child_nodes()
+            .filter(|node| node.kind() == NodeKind::Ident || node.kind() == NodeKind::StrLiteral)
+            .next()
     }
 }
 

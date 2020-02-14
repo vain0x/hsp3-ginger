@@ -71,6 +71,12 @@ impl Ast for AIdent {
 }
 
 impl AIdent {
+    pub(crate) fn is_qualified(&self) -> bool {
+        self.syntax()
+            .child_tokens()
+            .any(|token| token.kind() == Token::IdentAtSign)
+    }
+
     pub(crate) fn to_string(&self) -> String {
         let mut out = String::new();
         for token in self.0.child_tokens() {
