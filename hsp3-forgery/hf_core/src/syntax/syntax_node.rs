@@ -1,5 +1,6 @@
 use super::*;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 /// 具象構文木のノード。
@@ -30,6 +31,10 @@ impl SyntaxNode {
         self.range
     }
 
+    pub(crate) fn source(&self) -> &TokenSource {
+        self.syntax_root().source()
+    }
+
     pub(crate) fn green(&self) -> &GreenNode {
         match &self.parent {
             SyntaxParent::Root { root } => root.green(),
@@ -48,6 +53,13 @@ impl SyntaxNode {
         match &self.parent {
             SyntaxParent::NonRoot { node, .. } => Some(node),
             SyntaxParent::Root { .. } => None,
+        }
+    }
+
+    pub(crate) fn syntax_root(&self) -> &SyntaxRoot {
+        match &self.parent {
+            SyntaxParent::Root { root } => root,
+            SyntaxParent::NonRoot { node, .. } => node.syntax_root(),
         }
     }
 
@@ -132,6 +144,22 @@ impl fmt::Debug for SyntaxNode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}({:?})", self.kind(), self.range())?;
         self.child_elements().collect::<Vec<_>>().fmt(f)
+    }
+}
+
+impl PartialEq for SyntaxNode {
+    fn eq(&self, other: &SyntaxNode) -> bool {
+        self.kind == other.kind && self.range == other.range && self.source() == other.source()
+    }
+}
+
+impl Eq for SyntaxNode {}
+
+impl Hash for SyntaxNode {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.kind.hash(state);
+        self.range.hash(state);
+        self.source().hash(state);
     }
 }
 

@@ -33,6 +33,18 @@ impl SyntaxRoot {
     pub(crate) fn node(&self) -> SyntaxNode {
         SyntaxNode::from_root(Rc::new(self.clone()))
     }
+
+    pub(crate) fn source(&self) -> &TokenSource {
+        self.green()
+            .children()
+            .iter()
+            .filter_map(|element| match element {
+                GreenElement::Token(token) if token.token() == Token::Eof => Some(token.source()),
+                _ => None,
+            })
+            .next()
+            .unwrap()
+    }
 }
 
 impl fmt::Debug for SyntaxRoot {
