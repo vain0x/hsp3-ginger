@@ -1,11 +1,12 @@
 use super::*;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Default)]
 struct GlobalSymbolCollection {
-    current_module_opt: Option<Rc<SyntaxNode>>,
-    current_deffunc_opt: Option<Rc<SyntaxNode>>,
-    symbols: Vec<GlobalSymbol>,
+    current_module_opt: Option<Symbol>,
+    current_deffunc_opt: Option<Symbol>,
+    symbols: Symbols,
 }
 
 impl GlobalSymbolCollection {
@@ -15,37 +16,38 @@ impl GlobalSymbolCollection {
 }
 
 fn close_module(node_opt: Option<&SyntaxNode>, gsc: &mut GlobalSymbolCollection) {
-    let module_stmt = match gsc.current_module_opt.take() {
+    let module_symbol = match gsc.current_module_opt.take() {
         None => return,
         Some(x) => x,
     };
 
-    gsc.symbols.push(GlobalSymbol::Module {
-        module_stmt,
-        global_stmt_opt: node_opt.cloned().map(Rc::new),
-    });
+    gsc.symbols.define_module(&module_symbol, node_opt.cloned());
 }
 
 fn close_deffunc(node_opt: Option<&SyntaxNode>, gsc: &mut GlobalSymbolCollection) {
-    let deffunc_stmt = match gsc.current_deffunc_opt.take() {
+    let deffunc_symbol = match gsc.current_deffunc_opt.take() {
         None => return,
         Some(x) => x,
     };
 
-    gsc.symbols.push(GlobalSymbol::Deffunc {
-        deffunc_stmt,
-        closer_stmt_opt: node_opt.cloned().map(Rc::new),
-    });
+    gsc.symbols
+        .define_deffunc(&deffunc_symbol, node_opt.cloned());
 }
 
 fn go(node: SyntaxNode, gsc: &mut GlobalSymbolCollection) {
     for child in node.child_nodes() {
         match child.kind() {
             NodeKind::LabelStmt => {
-                gsc.symbols.push(GlobalSymbol::Label {
-                    label_stmt: Rc::new(child.clone()),
-                    module_stmt_opt: gsc.current_module_opt.clone(),
-                });
+                // gsc.symbols.push(GlobalSymbol::Label {
+                //     label_stmt: Rc::new(child.clone()),
+                //     module_stmt_opt: gsc.current_module_opt.clone(),
+                // });
+            }
+            NodeKind::DeffuncPp => {
+                close_deffunc(Some(&child), gsc);
+
+                let symbol = gsc.symbols.fresh_deffunc(ADeffuncPp::cast(&child).unwrap());
+                gsc.current_deffunc_opt = Some(symbol);
             }
             NodeKind::ModulePp => {
                 // FIXME: #deffunc の途中に #module があるケースはしばらく対応しない
@@ -54,15 +56,12 @@ fn go(node: SyntaxNode, gsc: &mut GlobalSymbolCollection) {
                 // モジュールは入れ子にならないので、現在の #module は閉じる。
                 close_module(Some(&child), gsc);
 
-                gsc.current_module_opt = Some(Rc::new(child.clone()));
+                let symbol = gsc.symbols.fresh_module(AModulePp::cast(&child).unwrap());
+                gsc.current_module_opt = Some(symbol);
             }
             NodeKind::GlobalPp => {
                 close_deffunc(Some(&child), gsc);
                 close_module(Some(&child), gsc);
-            }
-            NodeKind::DeffuncPp => {
-                close_deffunc(Some(&child), gsc);
-                gsc.current_deffunc_opt = Some(Rc::new(child.clone()));
             }
             _ => {}
         }
@@ -71,12 +70,12 @@ fn go(node: SyntaxNode, gsc: &mut GlobalSymbolCollection) {
     }
 }
 
-pub(crate) fn get_global_symbols(syntax_root: &SyntaxRoot) -> GlobalSymbols {
+pub(crate) fn get_global_symbols(syntax_root: &SyntaxRoot) -> Symbols {
     let mut gsc = GlobalSymbolCollection::new();
 
     go(syntax_root.node(), &mut gsc);
     close_deffunc(None, &mut gsc);
     close_module(None, &mut gsc);
 
-    GlobalSymbols::from(gsc.symbols)
+    gsc.symbols
 }

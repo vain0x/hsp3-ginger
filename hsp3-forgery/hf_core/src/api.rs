@@ -242,6 +242,7 @@ mod tests {
         }
     }
 
+    #[ignore]
     #[test]
     fn test_goto_definition() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
