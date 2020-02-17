@@ -57,6 +57,41 @@ impl ADeffuncPp {
     }
 }
 
+pub(crate) enum AModuleName {
+    Name(AIdent),
+    Str(AStr),
+}
+
+impl AModuleName {
+    pub(crate) fn to_string(&self) -> String {
+        match self {
+            AModuleName::Name(it) => it.to_string(),
+            AModuleName::Str(it) => it.to_string(),
+        }
+    }
+}
+
+impl Ast for AModuleName {
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            AModuleName::Name(it) => it.syntax(),
+            AModuleName::Str(it) => it.syntax(),
+        }
+    }
+
+    fn cast(node: &SyntaxNode) -> Option<Self> {
+        if let Some(it) = AIdent::cast(node) {
+            return Some(AModuleName::Name(it));
+        }
+
+        if let Some(it) = AStr::cast(node) {
+            return Some(AModuleName::Str(it));
+        }
+
+        None
+    }
+}
+
 pub(crate) struct AModulePp(SyntaxNode);
 
 impl Ast for AModulePp {
@@ -74,10 +109,10 @@ impl Ast for AModulePp {
 }
 
 impl AModulePp {
-    pub(crate) fn name(&self) -> Option<SyntaxNode> {
+    pub(crate) fn name(&self) -> Option<AModuleName> {
         self.syntax()
             .child_nodes()
-            .filter(|node| node.kind() == NodeKind::Ident || node.kind() == NodeKind::StrLiteral)
+            .filter_map(|node| AModuleName::cast(&node))
             .next()
     }
 }

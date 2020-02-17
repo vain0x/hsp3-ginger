@@ -6,6 +6,7 @@ use std::rc::Rc;
 struct GlobalSymbolCollection {
     current_module_opt: Option<Symbol>,
     current_deffunc_opt: Option<Symbol>,
+    name_context: NameContext,
     symbols: Symbols,
 }
 
@@ -37,6 +38,14 @@ fn close_deffunc(node_opt: Option<&SyntaxNode>, gsc: &mut GlobalSymbolCollection
 fn go(node: SyntaxNode, gsc: &mut GlobalSymbolCollection) {
     for child in node.child_nodes() {
         match child.kind() {
+            NodeKind::Ident => {
+                let name = AIdent::cast(&child).unwrap();
+                gsc.name_context.set_enclosures(
+                    name,
+                    gsc.current_deffunc_opt.clone(),
+                    gsc.current_module_opt.clone(),
+                );
+            }
             NodeKind::LabelStmt => {
                 // gsc.symbols.push(GlobalSymbol::Label {
                 //     label_stmt: Rc::new(child.clone()),
@@ -70,12 +79,12 @@ fn go(node: SyntaxNode, gsc: &mut GlobalSymbolCollection) {
     }
 }
 
-pub(crate) fn get_global_symbols(syntax_root: &SyntaxRoot) -> Symbols {
+pub(crate) fn get_global_symbols(syntax_root: &SyntaxRoot) -> (NameContext, Symbols) {
     let mut gsc = GlobalSymbolCollection::new();
 
     go(syntax_root.node(), &mut gsc);
     close_deffunc(None, &mut gsc);
     close_module(None, &mut gsc);
 
-    gsc.symbols
+    (gsc.name_context, gsc.symbols)
 }

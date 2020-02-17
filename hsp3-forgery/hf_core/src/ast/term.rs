@@ -24,6 +24,27 @@ impl Ast for ALabel {
 
 pub(crate) struct AStr(SyntaxNode);
 
+impl AStr {
+    pub(crate) fn to_string(&self) -> String {
+        let mut s = String::new();
+
+        for token in self.syntax().child_tokens() {
+            match token.kind() {
+                Token::StrVerbatim => {
+                    s += token.text();
+                }
+                Token::StrEscape => {
+                    // FIXME: エスケープのデコードを実装
+                    s += token.text();
+                }
+                _ => {}
+            }
+        }
+
+        s
+    }
+}
+
 impl Ast for AStr {
     fn syntax(&self) -> &SyntaxNode {
         &self.0
@@ -54,6 +75,7 @@ impl Ast for AInt {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct AIdent(SyntaxNode);
 
 impl Ast for AIdent {
@@ -75,6 +97,33 @@ impl AIdent {
         self.syntax()
             .child_tokens()
             .any(|token| token.kind() == Token::IdentAtSign)
+    }
+
+    pub(crate) fn unqualified_name(&self) -> String {
+        self.syntax()
+            .child_tokens()
+            .filter_map(|token| {
+                if token.kind() == Token::Ident {
+                    Some(token.text().to_string())
+                } else {
+                    None
+                }
+            })
+            .next()
+            .unwrap_or(String::new())
+    }
+
+    pub(crate) fn scope_name(&self) -> Option<String> {
+        self.syntax()
+            .child_tokens()
+            .filter_map(|token| {
+                if token.kind() == Token::IdentScope {
+                    Some(token.text().to_string())
+                } else {
+                    None
+                }
+            })
+            .next()
     }
 
     pub(crate) fn to_string(&self) -> String {

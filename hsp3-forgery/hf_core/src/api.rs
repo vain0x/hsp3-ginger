@@ -191,10 +191,14 @@ impl World {
         let source_file = SourceFile { source_path };
         let syntax_root = self.require_syntax_root(source_file);
 
-        let global_symbols = get_global_symbols::get_global_symbols(&syntax_root);
+        let (name_context, global_symbols) = get_global_symbols::get_global_symbols(&syntax_root);
 
-        let location =
-            goto_definition::goto_definition(&syntax_root, position.into(), &global_symbols)?;
+        let location = goto_definition::goto_definition(
+            &syntax_root,
+            position.into(),
+            &name_context,
+            &global_symbols,
+        )?;
 
         Some(self.get_text_location(&location))
     }
@@ -242,7 +246,6 @@ mod tests {
         }
     }
 
-    #[ignore]
     #[test]
     fn test_goto_definition() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
