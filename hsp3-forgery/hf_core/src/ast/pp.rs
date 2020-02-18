@@ -2,6 +2,28 @@ use super::*;
 
 pub(crate) struct AParam(SyntaxNode);
 
+impl AParam {
+    pub(crate) fn param_ty(&self) -> Option<ParamTy> {
+        self.syntax()
+            .child_tokens()
+            .filter_map(|token| {
+                if token.kind() == Token::Ident {
+                    token.text().parse().ok()
+                } else {
+                    None
+                }
+            })
+            .next()
+    }
+
+    pub(crate) fn name(&self) -> Option<AName> {
+        self.syntax()
+            .child_nodes()
+            .filter_map(|node| AName::cast(&node))
+            .next()
+    }
+}
+
 impl Ast for AParam {
     fn syntax(&self) -> &SyntaxNode {
         &self.0

@@ -52,6 +52,11 @@ fn go(node: SyntaxNode, gsc: &mut GlobalSymbolCollection) {
                 //     module_stmt_opt: gsc.current_module_opt.clone(),
                 // });
             }
+            NodeKind::Param => {
+                let enclosing_deffunc = gsc.current_deffunc_opt.clone();
+                gsc.symbols
+                    .define_fresh_param(AParam::cast(&child).unwrap(), enclosing_deffunc);
+            }
             NodeKind::DeffuncPp => {
                 close_deffunc(Some(&child), gsc);
 

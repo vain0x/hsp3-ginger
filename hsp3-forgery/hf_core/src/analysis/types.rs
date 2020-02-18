@@ -21,6 +21,7 @@ pub(crate) struct Symbols {
     unqualified_names: HashMap<Symbol, String>,
     def_sites: HashMap<Symbol, Vec<SyntaxNode>>,
     closing_sites: HashMap<Symbol, Vec<SyntaxNode>>,
+    params: HashMap<Symbol, Vec<Symbol>>,
 }
 
 impl Symbols {
@@ -68,6 +69,26 @@ impl Symbols {
             .entry(symbol.clone())
             .or_default()
             .push(closing_site);
+    }
+
+    fn add_param(&mut self, deffunc: Symbol, param: Symbol) {
+        assert_eq!(self.kind(&deffunc), SymbolKind::Deffunc);
+        assert_eq!(self.kind(&param), SymbolKind::Param);
+
+        self.params.entry(deffunc).or_default().push(param);
+    }
+
+    pub(crate) fn define_fresh_param(&mut self, param: AParam, enclosing_deffunc: Option<Symbol>) {
+        let symbol = self.fresh_symbol(SymbolKind::Param);
+
+        if let Some(name) = param.name() {
+            self.add_unqualified_name(&symbol, name.unqualified_name());
+            self.add_def_site(&symbol, name.syntax().clone());
+        }
+
+        if let Some(deffunc) = enclosing_deffunc {
+            self.add_param(deffunc, symbol);
+        }
     }
 
     pub(crate) fn fresh_deffunc(&mut self, deffunc_stmt: ADeffuncPp) -> Symbol {
