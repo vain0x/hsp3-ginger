@@ -18,7 +18,7 @@ fn resolve_node(
     name_context: &mut NameContext,
 ) {
     for child in node.child_nodes() {
-        if let Some(name) = AIdent::cast(&child) {
+        if let Some(name) = AName::cast(&child) {
             // FIXME: スコープを考慮する
             let unqualified_name = name.unqualified_name();
             if let Some(symbol) = env.get(&unqualified_name) {

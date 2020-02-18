@@ -11,7 +11,7 @@ pub(crate) fn goto_definition(
         .descendant_nodes()
         .filter(|node| node.range().contains_loosely(position))
         .filter_map(|node| {
-            let name = AIdent::cast(&node)?;
+            let name = AName::cast(&node)?;
             let symbol = name_context.symbol(&name)?;
             let def_site = symbols.def_sites(&symbol).next()?;
 

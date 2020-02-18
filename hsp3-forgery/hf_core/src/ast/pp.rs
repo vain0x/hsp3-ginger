@@ -43,10 +43,10 @@ impl ADeffuncPp {
         !self.is_local()
     }
 
-    pub(crate) fn name(&self) -> Option<AIdent> {
+    pub(crate) fn name(&self) -> Option<AName> {
         self.syntax()
             .child_nodes()
-            .filter_map(|node| AIdent::cast(&node))
+            .filter_map(|node| AName::cast(&node))
             .next()
     }
 
@@ -58,7 +58,7 @@ impl ADeffuncPp {
 }
 
 pub(crate) enum AModuleName {
-    Name(AIdent),
+    Name(AName),
     Str(AStr),
 }
 
@@ -80,7 +80,7 @@ impl Ast for AModuleName {
     }
 
     fn cast(node: &SyntaxNode) -> Option<Self> {
-        if let Some(it) = AIdent::cast(node) {
+        if let Some(it) = AName::cast(node) {
             return Some(AModuleName::Name(it));
         }
 

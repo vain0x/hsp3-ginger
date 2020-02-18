@@ -68,7 +68,7 @@ pub(crate) fn get_signature_help(
 
                         if let Some(func_token) = stmt
                             .child_nodes()
-                            .filter_map(|node| AIdent::cast(&node))
+                            .filter_map(|node| AName::cast(&node))
                             .flat_map(|ident| {
                                 ident
                                     .syntax()

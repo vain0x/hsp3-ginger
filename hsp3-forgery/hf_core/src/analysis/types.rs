@@ -113,25 +113,25 @@ impl Symbols {
 
 #[derive(Default)]
 pub(crate) struct NameContext {
-    symbols: HashMap<AIdent, Symbol>,
-    enclosing_deffuncs: HashMap<AIdent, Symbol>,
-    enclosing_modules: HashMap<AIdent, Symbol>,
+    symbols: HashMap<AName, Symbol>,
+    enclosing_deffuncs: HashMap<AName, Symbol>,
+    enclosing_modules: HashMap<AName, Symbol>,
 }
 
 impl NameContext {
-    fn enclosing_deffunc(&self, name: &AIdent) -> Option<Symbol> {
+    fn enclosing_deffunc(&self, name: &AName) -> Option<Symbol> {
         self.enclosing_deffuncs.get(name).cloned()
     }
 
-    fn enclosing_module(&self, name: &AIdent) -> Option<Symbol> {
+    fn enclosing_module(&self, name: &AName) -> Option<Symbol> {
         self.enclosing_modules.get(name).cloned()
     }
 
-    pub(crate) fn symbol(&self, name: &AIdent) -> Option<Symbol> {
+    pub(crate) fn symbol(&self, name: &AName) -> Option<Symbol> {
         self.symbols.get(name).cloned()
     }
 
-    pub(crate) fn full_name(&self, name: &AIdent, symbols: &Symbols) -> String {
+    pub(crate) fn full_name(&self, name: &AName, symbols: &Symbols) -> String {
         let unqualified_name = name.unqualified_name();
         let scope_name = name
             .scope_name()
@@ -146,7 +146,7 @@ impl NameContext {
 
     pub(crate) fn set_enclosures(
         &mut self,
-        name: AIdent,
+        name: AName,
         deffunc_opt: Option<Symbol>,
         module_opt: Option<Symbol>,
     ) {
@@ -159,7 +159,7 @@ impl NameContext {
         }
     }
 
-    pub(crate) fn set_symbol(&mut self, name: AIdent, symbol: Symbol) {
+    pub(crate) fn set_symbol(&mut self, name: AName, symbol: Symbol) {
         self.symbols.insert(name, symbol);
     }
 }

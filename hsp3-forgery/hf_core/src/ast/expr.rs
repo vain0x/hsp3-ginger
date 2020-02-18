@@ -36,7 +36,7 @@ pub(crate) enum AExpr {
     Label(ALabel),
     Str(AStr),
     Int(AInt),
-    Ident(AIdent),
+    Ident(AName),
     Group(AGroupExpr),
     Call(ACallExpr),
 }
@@ -59,8 +59,8 @@ impl From<AInt> for AExpr {
     }
 }
 
-impl From<AIdent> for AExpr {
-    fn from(it: AIdent) -> Self {
+impl From<AName> for AExpr {
+    fn from(it: AName) -> Self {
         AExpr::Ident(it)
     }
 }
@@ -96,7 +96,7 @@ impl Ast for AExpr {
             return Some(AExpr::Int(a));
         }
 
-        if let Some(a) = AIdent::cast(syntax_node) {
+        if let Some(a) = AName::cast(syntax_node) {
             return Some(AExpr::Ident(a));
         }
 

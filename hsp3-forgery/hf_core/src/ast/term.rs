@@ -76,23 +76,23 @@ impl Ast for AInt {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub(crate) struct AIdent(SyntaxNode);
+pub(crate) struct AName(SyntaxNode);
 
-impl Ast for AIdent {
+impl Ast for AName {
     fn syntax(&self) -> &SyntaxNode {
         &self.0
     }
 
     fn cast(syntax_node: &SyntaxNode) -> Option<Self> {
         if syntax_node.kind() == NodeKind::Ident {
-            Some(AIdent(syntax_node.clone()))
+            Some(AName(syntax_node.clone()))
         } else {
             None
         }
     }
 }
 
-impl AIdent {
+impl AName {
     pub(crate) fn is_qualified(&self) -> bool {
         self.syntax()
             .child_tokens()

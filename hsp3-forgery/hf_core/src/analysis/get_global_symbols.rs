@@ -39,7 +39,7 @@ fn go(node: SyntaxNode, gsc: &mut GlobalSymbolCollection) {
     for child in node.child_nodes() {
         match child.kind() {
             NodeKind::Ident => {
-                let name = AIdent::cast(&child).unwrap();
+                let name = AName::cast(&child).unwrap();
                 gsc.name_context.set_enclosures(
                     name,
                     gsc.current_deffunc_opt.clone(),
