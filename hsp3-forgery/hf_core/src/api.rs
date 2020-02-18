@@ -191,7 +191,10 @@ impl World {
         let source_file = SourceFile { source_path };
         let syntax_root = self.require_syntax_root(source_file);
 
-        let (name_context, global_symbols) = get_global_symbols::get_global_symbols(&syntax_root);
+        let (mut name_context, global_symbols) =
+            get_global_symbols::get_global_symbols(&syntax_root);
+
+        name_resolution::resolve(&syntax_root, &global_symbols, &mut name_context);
 
         let location = goto_definition::goto_definition(
             &syntax_root,

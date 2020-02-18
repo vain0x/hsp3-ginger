@@ -113,6 +113,7 @@ impl Symbols {
 
 #[derive(Default)]
 pub(crate) struct NameContext {
+    symbols: HashMap<AIdent, Symbol>,
     enclosing_deffuncs: HashMap<AIdent, Symbol>,
     enclosing_modules: HashMap<AIdent, Symbol>,
 }
@@ -124,6 +125,10 @@ impl NameContext {
 
     fn enclosing_module(&self, name: &AIdent) -> Option<Symbol> {
         self.enclosing_modules.get(name).cloned()
+    }
+
+    pub(crate) fn symbol(&self, name: &AIdent) -> Option<Symbol> {
+        self.symbols.get(name).cloned()
     }
 
     pub(crate) fn full_name(&self, name: &AIdent, symbols: &Symbols) -> String {
@@ -152,5 +157,9 @@ impl NameContext {
         if let Some(module) = module_opt {
             self.enclosing_modules.insert(name, module);
         }
+    }
+
+    pub(crate) fn set_symbol(&mut self, name: AIdent, symbol: Symbol) {
+        self.symbols.insert(name, symbol);
     }
 }

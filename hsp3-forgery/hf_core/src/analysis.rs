@@ -3,6 +3,7 @@ pub(crate) mod diagnostic;
 pub(crate) mod get_global_symbols;
 pub(crate) mod get_syntax_errors;
 pub(crate) mod goto_definition;
+pub(crate) mod name_resolution;
 pub(crate) mod types;
 
 pub(crate) use diagnostic::*;
