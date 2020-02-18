@@ -33,7 +33,7 @@ impl Symbols {
         symbol
     }
 
-    fn kind(&self, symbol: &Symbol) -> SymbolKind {
+    pub(crate) fn kind(&self, symbol: &Symbol) -> SymbolKind {
         *self.kinds.get(symbol).unwrap()
     }
 
@@ -43,6 +43,10 @@ impl Symbols {
 
     pub(crate) fn def_sites(&self, symbol: &Symbol) -> impl Iterator<Item = &SyntaxNode> {
         self.def_sites.get(symbol).into_iter().flatten()
+    }
+
+    pub(crate) fn params<'a>(&'a self, symbol: &Symbol) -> impl Iterator<Item = Symbol> + 'a {
+        self.params.get(symbol).into_iter().flatten().cloned()
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Symbol> {
@@ -140,7 +144,7 @@ pub(crate) struct NameContext {
 }
 
 impl NameContext {
-    fn enclosing_deffunc(&self, name: &AName) -> Option<Symbol> {
+    pub(crate) fn enclosing_deffunc(&self, name: &AName) -> Option<Symbol> {
         self.enclosing_deffuncs.get(name).cloned()
     }
 

@@ -262,14 +262,33 @@ mod tests {
         let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
         world.set_source_code(source_path.clone(), source_code);
 
-        let location_opt = world.goto_definition(source_path, Position::new(0, 1).into());
+        let location_opt = world.goto_definition(source_path.clone(), Position::new(0, 1).into());
 
+        // foo の呼び出し
         assert_eq!(
             match location_opt {
                 Some(location) => Some(location.range.start.into()),
                 _ => None,
             },
             Some(Position::new(2, 9))
+        );
+
+        // a (foo のパラメータ、定義の中)
+        assert_eq!(
+            match world.goto_definition(source_path.clone(), Position::new(3, 8).into()) {
+                Some(location) => Some(location.range.start.into()),
+                _ => None,
+            },
+            Some(Position::new(2, 17))
+        );
+
+        // a (foo のパラメータ、定義の外)
+        assert_eq!(
+            match world.goto_definition(source_path.clone(), Position::new(0, 6).into()) {
+                Some(location) => Some(Position::from(location.range.start)),
+                _ => None,
+            },
+            None
         );
     }
 }
