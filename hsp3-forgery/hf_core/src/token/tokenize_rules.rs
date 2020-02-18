@@ -394,7 +394,7 @@ fn tokenize_segment(t: &mut TokenizeContext) {
         false
     };
 
-    while !tokenize_eol(t) {
+    while !t.at_eof() && !tokenize_eol(t) {
         let ok = tokenize_space(pp, t)
             || tokenize_comment(t)
             || tokenize_number(pp, t)
@@ -415,4 +415,28 @@ pub(crate) fn tokenize_all(t: &mut TokenizeContext) {
     }
 
     t.commit(Token::Semi);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use std::rc::Rc;
+
+    fn tokenize(source_code: &str) -> Vec<Token> {
+        let source = TokenSource::from_file(SourceFile {
+            source_path: Rc::new(PathBuf::new()),
+        });
+
+        let source_code = Rc::new(source_code.to_string());
+
+        let mut t = TokenizeContext::new(source, source_code);
+        tokenize_rules::tokenize_all(&mut t);
+        t.finish().into_iter().map(|t| t.token()).collect()
+    }
+
+    #[test]
+    fn test_script_ending_with_ident() {
+        tokenize("a");
+    }
 }
