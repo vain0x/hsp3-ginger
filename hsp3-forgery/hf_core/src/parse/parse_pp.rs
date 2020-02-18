@@ -32,15 +32,9 @@ fn at_deffunc_like_keyword(p: &Px) -> bool {
 }
 
 fn parse_param_type(p: &mut Px) {
-    // FIXME: 網羅的にする
-    static PARAM_TYPE_WORDS: &[&str] = &[
-        "label", "str", "double", "int", "modvar", "var", "array", "local", "sptr", "wptr",
-        "nullptr",
-    ];
-
     if p.next() == Token::Ident {
         let text = p.next_data().text();
-        if PARAM_TYPE_WORDS.iter().any(|&word| word == text) {
+        if PARAM_TY_TABLE.iter().any(|&(_, word)| word == text) {
             p.bump();
         }
     }
