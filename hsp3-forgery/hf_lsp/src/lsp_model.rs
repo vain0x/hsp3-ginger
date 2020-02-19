@@ -145,6 +145,43 @@ impl LspModel {
         vec![]
     }
 
+    pub(crate) fn signature_help(&mut self, uri: Url, position: Position) -> Option<SignatureHelp> {
+        self.poll();
+
+        let source_path = match canonicalize_uri(uri) {
+            None => return None,
+            Some(source_path) => Rc::new(source_path),
+        };
+
+        let (params, active_param_index) = match self
+            .world
+            .signature_help(source_path, from_position(position))
+        {
+            None => return None,
+            Some(x) => x,
+        };
+
+        let signature = SignatureInformation {
+            label: "signature info label".to_string(),
+            documentation: None,
+            parameters: Some(
+                params
+                    .into_iter()
+                    .map(|p| ParameterInformation {
+                        label: ParameterLabel::Simple(p),
+                        documentation: None,
+                    })
+                    .collect(),
+            ),
+        };
+
+        Some(SignatureHelp {
+            signatures: vec![signature],
+            active_parameter: Some(active_param_index as i64),
+            active_signature: None,
+        })
+    }
+
     pub(crate) fn validate(&mut self, uri: Url) -> Vec<Diagnostic> {
         self.poll();
 

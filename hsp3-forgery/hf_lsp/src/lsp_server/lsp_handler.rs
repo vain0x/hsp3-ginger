@@ -31,6 +31,9 @@ impl<W: io::Write> LspHandler<W> {
                 document_highlight_provider: Some(false),
                 hover_provider: Some(false),
                 references_provider: Some(false),
+                signature_help_provider: Some(SignatureHelpOptions {
+                    trigger_characters: Some(vec![",".to_string(), "(".to_string()]),
+                }),
                 ..ServerCapabilities::default()
             },
         }
@@ -128,6 +131,14 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
+    fn text_document_signature_help(
+        &mut self,
+        params: TextDocumentPositionParams,
+    ) -> Option<SignatureHelp> {
+        self.model
+            .signature_help(params.text_document.uri, params.position)
+    }
+
     fn did_receive(&mut self, json: &str) {
         let msg = serde_json::from_str::<LspMessageOpaque>(json).unwrap();
 
@@ -201,6 +212,13 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspRequest<ReferenceParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_references(msg.params);
+                self.sender.send_response(msg_id, response);
+            }
+            "textDocument/signatureHelp" => {
+                let msg: LspRequest<TextDocumentPositionParams> =
+                    serde_json::from_str(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_signature_help(msg.params);
                 self.sender.send_response(msg_id, response);
             }
             _ => warn!("Msg unresolved."),
