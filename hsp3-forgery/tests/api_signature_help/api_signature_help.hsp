@@ -1,0 +1,8 @@
+	foo 1, 2
+	foo , goo()
+
+#deffunc foo int a, int b
+	return
+
+#deffunc goo int x, int y
+	return

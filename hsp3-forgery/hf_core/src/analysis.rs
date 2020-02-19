@@ -1,6 +1,7 @@
 pub(crate) mod completion;
 pub(crate) mod diagnostic;
 pub(crate) mod get_global_symbols;
+pub(crate) mod get_signature_help;
 pub(crate) mod get_syntax_errors;
 pub(crate) mod goto_definition;
 pub(crate) mod name_resolution;

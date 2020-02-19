@@ -205,6 +205,29 @@ impl World {
 
         Some(self.get_text_location(&location))
     }
+
+    pub fn signature_help(
+        &mut self,
+        source_path: Rc<PathBuf>,
+        position: TextPosition,
+    ) -> Option<(Vec<String>, usize)> {
+        let source_file = SourceFile { source_path };
+        let syntax_root = self.require_syntax_root(source_file);
+
+        let (mut name_context, global_symbols) =
+            get_global_symbols::get_global_symbols(&syntax_root);
+
+        name_resolution::resolve(&syntax_root, &global_symbols, &mut name_context);
+
+        let signature_help = get_signature_help::get(
+            &syntax_root,
+            position.into(),
+            &name_context,
+            &global_symbols,
+        )?;
+
+        Some((signature_help.params, signature_help.active_param_index))
+    }
 }
 
 #[cfg(test)]
@@ -289,6 +312,71 @@ mod tests {
                 _ => None,
             },
             None
+        );
+    }
+
+    fn do_signature_help(
+        world: &mut World,
+        source_path: &Rc<PathBuf>,
+        position: Position,
+    ) -> String {
+        let (params, active_param_index) =
+            match world.signature_help(source_path.clone(), position.into()) {
+                None => return String::new(),
+                Some(x) => x,
+            };
+
+        let mut w = "(".to_string();
+        for (i, param) in params.into_iter().enumerate() {
+            if i >= 1 {
+                w += ", ";
+            }
+
+            if i == active_param_index {
+                w += "<|>";
+            }
+
+            w += &param;
+        }
+        w += ")";
+        w
+    }
+
+    #[test]
+    fn test_signature_help() {
+        let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let tests_dir = root_dir.join("../tests");
+        let name = "api_signature_help";
+        let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
+
+        let mut world = World::new();
+        world.add_source_file(source_path.clone());
+
+        let source_code = fs::read_to_string(source_path.as_ref()).unwrap();
+        world.set_source_code(source_path.clone(), source_code);
+
+        // foo の1つ目の引数
+        assert_eq!(
+            do_signature_help(&mut world, &source_path, Position::new(0, 6)),
+            "(<|>a, b)"
+        );
+
+        // foo の2つ目の引数
+        assert_eq!(
+            do_signature_help(&mut world, &source_path, Position::new(0, 9)),
+            "(a, <|>b)"
+        );
+
+        // goo() の1つ目の引数
+        assert_eq!(
+            do_signature_help(&mut world, &source_path, Position::new(1, 11)),
+            "(<|>x, y)"
+        );
+
+        // foo の命令の部分
+        assert_eq!(
+            do_signature_help(&mut world, &source_path, Position::new(0, 1)),
+            ""
         );
     }
 }

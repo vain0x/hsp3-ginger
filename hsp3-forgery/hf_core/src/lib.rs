@@ -31,7 +31,14 @@ mod tests {
     fn snapshot_tests() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let tests_dir = root_dir.join("../tests");
-        let test_names = vec!["assign", "command", "exit_42", "syntax_error", "syntax_pp"];
+        let test_names = vec![
+            "api_signature_help",
+            "assign",
+            "command",
+            "exit_42",
+            "syntax_error",
+            "syntax_pp",
+        ];
 
         for name in test_names {
             let mut source_files = HashSet::new();
@@ -83,84 +90,5 @@ mod tests {
         let completion_items =
             crate::analysis::completion::get_completion_list(syntax_root, position);
         assert_eq!(completion_items.len(), 1);
-    }
-
-    #[test]
-    fn signature_help_tests() {
-        let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let tests_dir = root_dir.join("../tests");
-        let name = "command";
-
-        let mut source_files = HashSet::new();
-        let mut source_codes = HashMap::new();
-        let mut tokenss = HashMap::new();
-
-        let source_path = Rc::new(tests_dir.join(format!("{}/{}.hsp", name, name)));
-        let source_file = SourceFile { source_path };
-        source_files.insert(source_file.clone());
-
-        world::load_source_codes(source_files.iter().cloned(), &mut source_codes);
-        world::tokenize(&source_codes, &mut tokenss);
-
-        let source = TokenSource::from_file(source_file);
-        let tokens = tokenss.get(&source).unwrap();
-        let syntax_root = crate::parse::parse_tokens(tokens);
-
-        // first
-        let position = Position {
-            line: 0,
-            character: 7,
-        };
-        let signature_help_opt =
-            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
-        assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(0));
-
-        // second
-        let position = Position {
-            line: 0,
-            character: 13,
-        };
-        let signature_help_opt =
-            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
-        assert_eq!(signature_help_opt.map(|sh| sh.active_param_index), Some(1));
-
-        // 範囲外
-        let position = Position {
-            line: 0,
-            character: 1,
-        };
-        let signature_help_opt =
-            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
-        assert!(signature_help_opt.is_none());
-
-        // width
-        let position = Position {
-            line: 0,
-            character: 7,
-        };
-        let signature_help_opt =
-            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
-        assert_eq!(
-            signature_help_opt
-                .as_ref()
-                .map(|sh| sh.params.join(","))
-                .unwrap_or(String::new()),
-            "x,y"
-        );
-
-        // instr
-        let position = Position {
-            line: 1,
-            character: 18,
-        };
-        let signature_help_opt =
-            crate::analysis::completion::get_signature_help(syntax_root.clone(), position);
-        assert_eq!(
-            signature_help_opt
-                .as_ref()
-                .map(|sh| sh.params.join(","))
-                .unwrap_or(String::new()),
-            "text,offset,search_word"
-        );
     }
 }
