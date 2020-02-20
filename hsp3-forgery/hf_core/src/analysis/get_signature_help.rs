@@ -33,7 +33,7 @@ fn go_node(
             Some(x) => x,
         };
 
-        if name.syntax().range().contains_loosely(p) {
+        if name.syntax().nontrivia_range().contains_loosely(p) {
             continue;
         }
 

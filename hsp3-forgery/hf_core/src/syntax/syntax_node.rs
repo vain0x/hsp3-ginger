@@ -138,6 +138,47 @@ impl SyntaxNode {
                 SyntaxElement::Node(..) => None,
             })
     }
+
+    pub(crate) fn nontrivia_range(&self) -> Range {
+        fn element_is_leading_trivia(element: &GreenElement) -> bool {
+            match element {
+                GreenElement::Token(token) => token.token().is_leading_trivia(),
+                GreenElement::Node(_) => false,
+            }
+        }
+
+        fn element_is_trailing_trivia(element: &GreenElement) -> bool {
+            match element {
+                GreenElement::Token(token) => token.token().is_trailing_trivia(),
+                GreenElement::Node(_) => false,
+            }
+        }
+
+        let node = self.green();
+        let n = node.children().len();
+
+        let mut l = 0;
+        while l < n && element_is_leading_trivia(&node.children()[l]) {
+            l += 1;
+        }
+
+        let mut r = n;
+        while r >= 1 && element_is_trailing_trivia(&node.children()[r - 1]) {
+            r -= 1;
+        }
+
+        let mut start = self.range().start();
+        for element in &node.children()[..l] {
+            start += element.position();
+        }
+
+        let mut end = start;
+        for element in &node.children()[l..r] {
+            end += element.position();
+        }
+
+        Range::new(start, end)
+    }
 }
 
 impl fmt::Debug for SyntaxNode {

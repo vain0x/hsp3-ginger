@@ -3,4 +3,4 @@ syntax_error.hsp:4.14-7.12 "この部分は文法的に解釈できないので�
 syntax_error.hsp:8.6-8.7 "カッコが閉じていません。"
 syntax_error.hsp:13.7-13.8 "カッコが閉じていません。"
 syntax_error.hsp:16.13-16.14 "ラベル名がありません。"
-syntax_error.hsp:16.14-17.2 "ラベル名がありません。"
+syntax_error.hsp:17.1-17.2 "ラベル名がありません。"

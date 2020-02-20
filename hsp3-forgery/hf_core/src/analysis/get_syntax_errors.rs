@@ -13,7 +13,7 @@ pub(crate) fn get_syntax_errors(syntax_root: &SyntaxRoot, d: &mut Diagnostics) {
                     if !node.child_tokens().any(|token| {
                         token.kind() == Token::Ident || token.kind() == Token::IdentAtSign
                     }) {
-                        d.push_error(Diagnostic::MissingLabelName, node.range());
+                        d.push_error(Diagnostic::MissingLabelName, node.nontrivia_range());
                     }
                 }
                 NodeKind::GroupExpr => {
@@ -49,7 +49,7 @@ pub(crate) fn get_syntax_errors(syntax_root: &SyntaxRoot, d: &mut Diagnostics) {
                         .child_tokens()
                         .any(|token| token.kind() == Token::Ident)
                     {
-                        d.push_error(Diagnostic::MissingParamType, node.range());
+                        d.push_error(Diagnostic::MissingParamType, node.nontrivia_range());
                     }
                 }
                 NodeKind::Other => {
