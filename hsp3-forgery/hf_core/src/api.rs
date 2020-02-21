@@ -307,7 +307,7 @@ mod tests {
 
         // a (foo のパラメータ、定義の外)
         assert_eq!(
-            match world.goto_definition(source_path.clone(), Position::new(0, 6).into()) {
+            match world.goto_definition(source_path.clone(), Position::new(0, 5).into()) {
                 Some(location) => Some(Position::from(location.range.start)),
                 _ => None,
             },

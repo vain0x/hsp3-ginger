@@ -39,6 +39,21 @@ impl SyntaxToken {
             }
         }
     }
+
+    pub(crate) fn depth(&self) -> usize {
+        self.parent_node().depth() + 1
+    }
+
+    pub(crate) fn parent_node(&self) -> &SyntaxNode {
+        match &self.parent {
+            SyntaxParent::Root { .. } => unreachable!(),
+            SyntaxParent::NonRoot { node, .. } => node,
+        }
+    }
+
+    pub(crate) fn ancestral_nodes(&self) -> impl Iterator<Item = SyntaxNode> {
+        self.parent_node().ancestral_nodes()
+    }
 }
 
 impl fmt::Debug for SyntaxToken {

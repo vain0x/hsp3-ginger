@@ -49,6 +49,13 @@ impl SyntaxNode {
         }
     }
 
+    pub(crate) fn depth(&self) -> usize {
+        match self.parent_node() {
+            None => 0,
+            Some(parent) => parent.depth() + 1,
+        }
+    }
+
     pub(crate) fn parent_node(&self) -> Option<&SyntaxNode> {
         match &self.parent {
             SyntaxParent::NonRoot { node, .. } => Some(node),
@@ -137,6 +144,25 @@ impl SyntaxNode {
                 SyntaxElement::Token(token) => Some(token),
                 SyntaxElement::Node(..) => None,
             })
+    }
+
+    pub(crate) fn ancestral_nodes(&self) -> impl Iterator<Item = SyntaxNode> {
+        struct AncestorsIter {
+            next: Option<SyntaxNode>,
+        };
+
+        impl Iterator for AncestorsIter {
+            type Item = SyntaxNode;
+
+            fn next(&mut self) -> Option<SyntaxNode> {
+                let parent_opt = self.next.as_ref()?.parent_node().cloned();
+                std::mem::replace(&mut self.next, parent_opt)
+            }
+        }
+
+        AncestorsIter {
+            next: Some(self.clone()),
+        }
     }
 
     pub(crate) fn nontrivia_range(&self) -> Range {
