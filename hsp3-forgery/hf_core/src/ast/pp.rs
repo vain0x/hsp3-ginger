@@ -3,12 +3,12 @@ use super::*;
 pub(crate) struct AParam(SyntaxNode);
 
 impl AParam {
-    pub(crate) fn param_ty(&self) -> Option<ParamTy> {
+    pub(crate) fn param_ty(&self) -> Option<SyntaxToken> {
         self.syntax()
             .child_tokens()
             .filter_map(|token| {
                 if token.kind() == Token::Ident {
-                    token.text().parse().ok()
+                    Some(token)
                 } else {
                     None
                 }

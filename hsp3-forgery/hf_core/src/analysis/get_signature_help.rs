@@ -1,5 +1,29 @@
 use super::*;
 
+fn create_param_infos(deffunc: &Symbol, symbols: &Symbols) -> Vec<String> {
+    symbols
+        .params(deffunc)
+        .map(|param| {
+            let mut s = String::new();
+
+            match symbols.param_node(&param).param_ty() {
+                Some(token) => {
+                    s += token.text();
+                    s += " ";
+                }
+                None => {}
+            }
+
+            match symbols.unqualified_name(&param) {
+                Some(name) => s += name,
+                None => s += "???",
+            }
+
+            s
+        })
+        .collect()
+}
+
 fn go_node(
     node: &SyntaxNode,
     p: Position,
@@ -37,16 +61,6 @@ fn go_node(
             continue;
         }
 
-        let params = match name_context.symbol(&name).map(|symbol| {
-            symbols
-                .params(&symbol)
-                .map(|param| symbols.unqualified_name(&param).unwrap_or("?").to_string())
-                .collect()
-        }) {
-            None => continue,
-            Some(x) => x,
-        };
-
         let mut active_param_index = 0;
 
         let args = arg_holder
@@ -63,6 +77,14 @@ fn go_node(
             active_param_index = arg_index;
             break;
         }
+
+        let params = match name_context
+            .symbol(&name)
+            .map(|deffunc| create_param_infos(&deffunc, symbols))
+        {
+            None => continue,
+            Some(x) => x,
+        };
 
         *out = Some(SignatureHelp {
             params,

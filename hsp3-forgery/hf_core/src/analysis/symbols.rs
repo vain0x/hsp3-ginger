@@ -22,6 +22,7 @@ pub(crate) struct Symbols {
     def_sites: HashMap<Symbol, Vec<SyntaxNode>>,
     closing_sites: HashMap<Symbol, Vec<SyntaxNode>>,
     params: HashMap<Symbol, Vec<Symbol>>,
+    param_nodes: HashMap<Symbol, AParam>,
 }
 
 impl Symbols {
@@ -47,6 +48,12 @@ impl Symbols {
 
     pub(crate) fn params<'a>(&'a self, symbol: &Symbol) -> impl Iterator<Item = Symbol> + 'a {
         self.params.get(symbol).into_iter().flatten().cloned()
+    }
+
+    pub(crate) fn param_node(&self, symbol: &Symbol) -> &AParam {
+        assert_eq!(self.kind(symbol), SymbolKind::Param);
+
+        self.param_nodes.get(symbol).unwrap()
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &Symbol> {
@@ -89,6 +96,8 @@ impl Symbols {
             self.add_unqualified_name(&symbol, name.unqualified_name());
             self.add_def_site(&symbol, name.syntax().clone());
         }
+
+        self.param_nodes.insert(symbol.clone(), param);
 
         if let Some(deffunc) = enclosing_deffunc {
             self.add_param(deffunc, symbol);

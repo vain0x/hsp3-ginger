@@ -358,19 +358,19 @@ mod tests {
         // foo の1つ目の引数
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(0, 6)),
-            "(<|>a, b)"
+            "(<|>int a, int b)"
         );
 
         // foo の2つ目の引数
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(0, 9)),
-            "(a, <|>b)"
+            "(int a, <|>int b)"
         );
 
         // goo() の1つ目の引数
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(1, 11)),
-            "(<|>x, y)"
+            "(<|>int x, int y)"
         );
 
         // foo の命令の部分
