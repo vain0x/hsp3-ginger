@@ -87,6 +87,7 @@ fn go_node(
         };
 
         *out = Some(SignatureHelp {
+            command: name.unqualified_name(),
             params,
             active_param_index,
         });

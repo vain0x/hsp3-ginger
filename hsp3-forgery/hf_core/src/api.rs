@@ -210,7 +210,7 @@ impl World {
         &mut self,
         source_path: Rc<PathBuf>,
         position: TextPosition,
-    ) -> Option<(Vec<String>, usize)> {
+    ) -> Option<(String, Vec<String>, usize)> {
         let source_file = SourceFile { source_path };
         let syntax_root = self.require_syntax_root(source_file);
 
@@ -226,7 +226,11 @@ impl World {
             &global_symbols,
         )?;
 
-        Some((signature_help.params, signature_help.active_param_index))
+        Some((
+            signature_help.command,
+            signature_help.params,
+            signature_help.active_param_index,
+        ))
     }
 }
 
@@ -320,13 +324,13 @@ mod tests {
         source_path: &Rc<PathBuf>,
         position: Position,
     ) -> String {
-        let (params, active_param_index) =
+        let (command, params, active_param_index) =
             match world.signature_help(source_path.clone(), position.into()) {
                 None => return String::new(),
                 Some(x) => x,
             };
 
-        let mut w = "(".to_string();
+        let mut w = format!("{}(", command);
         for (i, param) in params.into_iter().enumerate() {
             if i >= 1 {
                 w += ", ";
@@ -358,19 +362,19 @@ mod tests {
         // foo の1つ目の引数
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(0, 6)),
-            "(<|>int a, int b)"
+            "foo(<|>int a, int b)"
         );
 
         // foo の2つ目の引数
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(0, 9)),
-            "(int a, <|>int b)"
+            "foo(int a, <|>int b)"
         );
 
         // goo() の1つ目の引数
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(1, 11)),
-            "(<|>int x, int y)"
+            "goo(<|>int x, int y)"
         );
 
         // foo の命令の部分

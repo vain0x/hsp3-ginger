@@ -153,7 +153,7 @@ impl LspModel {
             Some(source_path) => Rc::new(source_path),
         };
 
-        let (params, active_param_index) = match self
+        let (command, params, active_param_index) = match self
             .world
             .signature_help(source_path, from_position(position))
         {
@@ -162,7 +162,7 @@ impl LspModel {
         };
 
         let signature = SignatureInformation {
-            label: format!("({})", params.join(" ")),
+            label: format!("{}({})", command, params.join(", ")),
             documentation: None,
             parameters: Some(
                 params
