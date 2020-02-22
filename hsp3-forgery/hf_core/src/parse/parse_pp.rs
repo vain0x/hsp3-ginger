@@ -26,6 +26,7 @@ fn at_deffunc_like_keyword(p: &Px) -> bool {
     p.next() == Token::Ident && {
         match p.next_data().text() {
             "deffunc" => true,
+            "defcfunc" => true,
             _ => false,
         }
     }
@@ -116,7 +117,7 @@ pub(crate) fn parse_pp_stmt(p: &mut Px) {
     p.bump();
 
     let kind = match p.next_data().text() {
-        "deffunc" => {
+        "deffunc" | "defcfunc" => {
             parse_deffunc_like_stmt_contents(p);
             NodeKind::DeffuncPp
         }
