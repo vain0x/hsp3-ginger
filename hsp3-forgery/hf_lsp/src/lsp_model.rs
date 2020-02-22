@@ -162,7 +162,7 @@ impl LspModel {
         };
 
         let signature = SignatureInformation {
-            label: "signature info label".to_string(),
+            label: format!("({})", params.join(" ")),
             documentation: None,
             parameters: Some(
                 params
