@@ -365,9 +365,15 @@ mod tests {
             "foo(<|>int a, int b)"
         );
 
-        // foo の2つ目の引数
+        // foo の2つ目の引数 (引数が書かれているケース)
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(0, 9)),
+            "foo(int a, <|>int b)"
+        );
+
+        // foo の2つ目の引数 (引数が1文字もないケース)
+        assert_eq!(
+            do_signature_help(&mut world, &source_path, Position::new(2, 6)),
             "foo(int a, <|>int b)"
         );
 

@@ -1,5 +1,6 @@
 	foo 1, 2
 	foo , goo()
+	foo ,
 
 #deffunc foo int a, int b
 	return

@@ -61,22 +61,19 @@ fn go_node(
             continue;
         }
 
-        let mut active_param_index = 0;
-
-        let args = arg_holder
+        let active_param_index = arg_holder
             .child_nodes()
-            .filter_map(|node| AArg::cast(&node))
-            .enumerate()
-            .filter(|(_, arg)| arg.syntax().range().contains_loosely(p));
-
-        for (arg_index, arg) in args {
-            if go_node(arg.syntax(), p, name_context, symbols, out) {
-                return true;
-            }
-
-            active_param_index = arg_index;
-            break;
-        }
+            .filter_map(|node| {
+                if node.kind() == NodeKind::Arg {
+                    Some(node)
+                } else {
+                    None
+                }
+            })
+            .flat_map(|node| node.child_tokens())
+            .take_while(|token| token.range().start() < p)
+            .filter(|token| token.kind() == Token::Comma)
+            .count();
 
         let params = match name_context
             .symbol(&name)
