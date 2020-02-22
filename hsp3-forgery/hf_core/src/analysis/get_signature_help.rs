@@ -1,27 +1,33 @@
 use super::*;
+use std::str::FromStr;
 
 fn create_param_infos(deffunc: &Symbol, symbols: &Symbols) -> Vec<String> {
-    symbols
-        .params(deffunc)
-        .map(|param| {
-            let mut s = String::new();
+    let mut params = vec![];
+    let mut s = String::new();
 
-            match symbols.param_node(&param).param_ty() {
-                Some(token) => {
-                    s += token.text();
-                    s += " ";
-                }
-                None => {}
+    for param in symbols.params(deffunc) {
+        if let Some(param_ty_token) = symbols.param_node(&param).param_ty() {
+            // 引数を受け取らないパラメータは無視する。
+            if !ParamTy::from_str(param_ty_token.text())
+                .map_or(false, |param_ty| param_ty.takes_arg())
+            {
+                continue;
             }
 
-            match symbols.unqualified_name(&param) {
-                Some(name) => s += name,
-                None => s += "???",
-            }
+            s += param_ty_token.text();
+            s += " ";
+        }
 
-            s
-        })
-        .collect()
+        match symbols.unqualified_name(&param) {
+            Some(name) => s += name,
+            None => s += "???",
+        }
+
+        params.push(s.clone());
+        s.clear();
+    }
+
+    params
 }
 
 fn go_node(

@@ -13,6 +13,16 @@ pub(crate) enum ParamTy {
     Nullptr,
 }
 
+impl ParamTy {
+    /// 実引数を受け取るか？
+    pub(crate) fn takes_arg(self) -> bool {
+        match self {
+            ParamTy::Local | ParamTy::Nullptr => false,
+            _ => true,
+        }
+    }
+}
+
 impl std::str::FromStr for ParamTy {
     type Err = ();
 

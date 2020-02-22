@@ -1,9 +1,13 @@
 	foo 1, 2
 	foo , goo()
 	foo ,
+	_ = hoo()
 
 #deffunc foo int a, int b
 	return
 
 #deffunc goo int x, int y
+	return
+
+#deffunc hoo int first, local l, int second
 	return

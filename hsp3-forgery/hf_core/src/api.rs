@@ -383,6 +383,12 @@ mod tests {
             "goo(<|>int x, int y)"
         );
 
+        // hoo() の引数 (local は無視される)
+        assert_eq!(
+            do_signature_help(&mut world, &source_path, Position::new(3, 9)),
+            "hoo(<|>int first, int second)"
+        );
+
         // foo の命令の部分
         assert_eq!(
             do_signature_help(&mut world, &source_path, Position::new(0, 1)),

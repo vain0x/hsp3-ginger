@@ -17,4 +17,4 @@ pub(crate) use types::*;
 use crate::ast::*;
 use crate::source::{Position, Range};
 use crate::syntax::*;
-use crate::token::{Location, Token};
+use crate::token::*;
