@@ -82,6 +82,10 @@ impl Symbols {
             .push(closing_site);
     }
 
+    pub(crate) fn add_static_var(&mut self, name: &AName) -> Symbol {
+        self.fresh_symbol(SymbolKind::StaticVar)
+    }
+
     fn add_param(&mut self, deffunc: Symbol, param: Symbol) {
         assert_eq!(self.kind(&deffunc), SymbolKind::Deffunc);
         assert_eq!(self.kind(&param), SymbolKind::Param);

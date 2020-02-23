@@ -17,7 +17,7 @@ fn create_global_env(symbols: &Symbols, env: &mut Env) {
 
 fn try_resolve_name(
     name: &AName,
-    symbols: &Symbols,
+    symbols: &mut Symbols,
     env: &mut Env,
     name_context: &mut NameContext,
 ) -> Option<Symbol> {
@@ -42,12 +42,21 @@ fn try_resolve_name(
         return Some(param);
     }
 
-    env.get(&unqualified_name).cloned()
+    if let Some(symbol) = env.get(&unqualified_name).cloned() {
+        return Some(symbol);
+    }
+
+    // 不明な名前は静的変数に解決する。
+    {
+        let symbol = symbols.add_static_var(name);
+        env.insert(unqualified_name, symbol.clone());
+        Some(symbol)
+    }
 }
 
 fn resolve_node(
     node: &SyntaxNode,
-    symbols: &Symbols,
+    symbols: &mut Symbols,
     env: &mut Env,
     name_context: &mut NameContext,
 ) {
@@ -62,7 +71,11 @@ fn resolve_node(
     }
 }
 
-pub(crate) fn resolve(syntax_root: &SyntaxRoot, symbols: &Symbols, name_context: &mut NameContext) {
+pub(crate) fn resolve(
+    syntax_root: &SyntaxRoot,
+    symbols: &mut Symbols,
+    name_context: &mut NameContext,
+) {
     let mut env = Env::new();
     create_global_env(symbols, &mut env);
     resolve_node(&syntax_root.node(), symbols, &mut env, name_context);

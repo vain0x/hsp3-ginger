@@ -191,10 +191,10 @@ impl World {
         let source_file = SourceFile { source_path };
         let syntax_root = self.require_syntax_root(source_file);
 
-        let (mut name_context, global_symbols) =
+        let (mut name_context, mut global_symbols) =
             get_global_symbols::get_global_symbols(&syntax_root);
 
-        name_resolution::resolve(&syntax_root, &global_symbols, &mut name_context);
+        name_resolution::resolve(&syntax_root, &mut global_symbols, &mut name_context);
 
         let location = goto_definition::goto_definition(
             &syntax_root,
@@ -214,10 +214,10 @@ impl World {
         let source_file = SourceFile { source_path };
         let syntax_root = self.require_syntax_root(source_file);
 
-        let (mut name_context, global_symbols) =
+        let (mut name_context, mut global_symbols) =
             get_global_symbols::get_global_symbols(&syntax_root);
 
-        name_resolution::resolve(&syntax_root, &global_symbols, &mut name_context);
+        name_resolution::resolve(&syntax_root, &mut global_symbols, &mut name_context);
 
         let signature_help = get_signature_help::get(
             &syntax_root,
