@@ -16,6 +16,8 @@ use std::sync::mpsc::{Receiver, TryRecvError};
 /// テキストドキュメントのバージョン番号 (エディタ上で編集されるたびに変わる番号。いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
 type TextDocumentVersion = i64;
 
+const NO_VERSION: i64 = 1;
+
 #[derive(Default)]
 pub(super) struct LspModel {
     last_doc: usize,
@@ -377,8 +379,7 @@ impl LspModel {
             warn!("ファイルを開けません {:?}", path);
         }
 
-        let version = 1;
-        self.do_change_doc(uri, version, text);
+        self.do_change_doc(uri, NO_VERSION, text);
 
         None
     }
@@ -607,7 +608,7 @@ impl LspModel {
         uri: Url,
         position: Position,
         new_name: String,
-    ) -> Option<HashMap<Url, Vec<TextEdit>>> {
+    ) -> Option<WorkspaceEdit> {
         self.poll();
         let uri = canonicalize_uri(uri);
 
@@ -633,7 +634,7 @@ impl LspModel {
 
         // 名前変更の編集手順を構築する。(シンボルが書かれている位置をすべて新しい名前で置き換える。)
         let changes = {
-            let mut changes = HashMap::new();
+            let mut edits = vec![];
             for loc in locs {
                 let location = match self.loc_to_location(loc) {
                     Some(location) => location,
@@ -641,17 +642,34 @@ impl LspModel {
                 };
 
                 let (uri, range) = (location.uri, location.range);
+                let version = self
+                    .doc_versions
+                    .get(&loc.doc)
+                    .copied()
+                    .unwrap_or(NO_VERSION);
+
+                let text_document = VersionedTextDocumentIdentifier {
+                    uri,
+                    version: Some(version),
+                };
                 let text_edit = TextEdit {
                     range,
                     new_text: new_name.to_string(),
                 };
 
-                changes.entry(uri).or_insert(vec![]).push(text_edit);
+                edits.push(TextDocumentEdit {
+                    text_document,
+                    edits: vec![text_edit],
+                });
             }
-            changes
+
+            DocumentChanges::Edits(edits)
         };
 
-        Some(changes)
+        Some(WorkspaceEdit {
+            document_changes: Some(changes),
+            ..WorkspaceEdit::default()
+        })
     }
 
     pub(super) fn validate(&mut self, _uri: Url) -> Vec<Diagnostic> {

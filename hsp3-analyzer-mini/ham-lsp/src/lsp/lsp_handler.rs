@@ -154,16 +154,11 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn text_document_rename(&mut self, params: RenameParams) -> Option<WorkspaceEdit> {
-        let changes = self.model.rename(
+        self.model.rename(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
             params.new_name,
-        )?;
-
-        Some(WorkspaceEdit {
-            changes: Some(changes),
-            ..Default::default()
-        })
+        )
     }
 
     fn did_receive(&mut self, json: &str) {
