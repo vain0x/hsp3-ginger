@@ -603,6 +603,25 @@ impl LspModel {
             .unwrap_or(vec![])
     }
 
+    pub(super) fn prepare_rename(
+        &mut self,
+        uri: Url,
+        position: Position,
+    ) -> Option<PrepareRenameResponse> {
+        self.poll();
+        let uri = canonicalize_uri(uri);
+
+        let loc = self.to_loc(&uri, position)?;
+
+        // カーソル直下にシンボルがなければ変更しない。
+        if self.sem.locate_symbol(loc.doc, loc.start).is_none() {
+            return None;
+        }
+
+        let range = loc_to_range(loc);
+        Some(PrepareRenameResponse::Range(range))
+    }
+
     pub(super) fn rename(
         &mut self,
         uri: Url,
@@ -611,11 +630,6 @@ impl LspModel {
     ) -> Option<WorkspaceEdit> {
         self.poll();
         let uri = canonicalize_uri(uri);
-
-        // common ディレクトリのファイルは変更しない。
-        if uri.as_str().contains("common") {
-            return None;
-        }
 
         // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
         let locs = {
@@ -642,6 +656,12 @@ impl LspModel {
                 };
 
                 let (uri, range) = (location.uri, location.range);
+
+                // common ディレクトリのファイルは変更しない。
+                if uri.as_str().contains("common") {
+                    return None;
+                }
+
                 let version = self
                     .doc_versions
                     .get(&loc.doc)
