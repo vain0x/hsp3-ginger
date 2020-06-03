@@ -1,5 +1,6 @@
 use crate::lsp::*;
 use lsp_types::*;
+use request::Request;
 use std::io;
 use std::path::PathBuf;
 
@@ -35,6 +36,7 @@ impl<W: io::Write> LspHandler<W> {
                 document_highlight_provider: Some(true),
                 hover_provider: Some(true),
                 references_provider: Some(true),
+                rename_provider: Some(RenameProviderCapability::Simple(true)),
                 ..ServerCapabilities::default()
             },
             server_info: Some(ServerInfo {
@@ -151,6 +153,19 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
+    fn text_document_rename(&mut self, params: RenameParams) -> Option<WorkspaceEdit> {
+        let changes = self.model.rename(
+            params.text_document_position.text_document.uri,
+            params.text_document_position.position,
+            params.new_name,
+        )?;
+
+        Some(WorkspaceEdit {
+            changes: Some(changes),
+            ..Default::default()
+        })
+    }
+
     fn did_receive(&mut self, json: &str) {
         let msg = serde_json::from_str::<LspMessageOpaque>(json).unwrap();
 
@@ -224,6 +239,12 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspRequest<ReferenceParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_references(msg.params);
+                self.sender.send_response(msg_id, response);
+            }
+            request::Rename::METHOD => {
+                let msg: LspRequest<RenameParams> = serde_json::from_str(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_rename(msg.params);
                 self.sender.send_response(msg_id, response);
             }
             _ => warn!("Msg unresolved."),

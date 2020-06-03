@@ -597,6 +597,58 @@ impl LspModel {
             .unwrap_or(vec![])
     }
 
+    pub(super) fn rename(
+        &mut self,
+        uri: Url,
+        position: Position,
+        new_name: String,
+    ) -> Option<HashMap<Url, Vec<TextEdit>>> {
+        self.poll();
+        let uri = canonicalize_uri(uri);
+
+        // common ディレクトリのファイルは変更しない。
+        if uri.as_str().contains("common") {
+            return None;
+        }
+
+        // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
+        let locs = {
+            let loc = self.to_loc(&uri, position)?;
+            let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
+            let symbol_id = symbol.symbol_id;
+
+            let mut locs = vec![];
+            self.sem.get_symbol_defs(symbol_id, &mut locs);
+            self.sem.get_symbol_uses(symbol_id, &mut locs);
+            if locs.is_empty() {
+                return None;
+            }
+            locs
+        };
+
+        // 名前変更の編集手順を構築する。(シンボルが書かれている位置をすべて新しい名前で置き換える。)
+        let changes = {
+            let mut changes = HashMap::new();
+            for loc in locs {
+                let location = match self.loc_to_location(loc) {
+                    Some(location) => location,
+                    None => continue,
+                };
+
+                let (uri, range) = (location.uri, location.range);
+                let text_edit = TextEdit {
+                    range,
+                    new_text: new_name.to_string(),
+                };
+
+                changes.entry(uri).or_insert(vec![]).push(text_edit);
+            }
+            changes
+        };
+
+        Some(changes)
+    }
+
     pub(super) fn validate(&mut self, _uri: Url) -> Vec<Diagnostic> {
         // self.poll();
         // let uri = canonicalize_uri(uri);
