@@ -1,7 +1,7 @@
 {
   "name": "hsp3-analyzer-mini",
   "displayName": "HSP3 アナライザー・ミニ (LSP)",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "HSP3 の実用最小限なインテリセンス",
   "repository": "https://github.com/vain0x/hsp3-ginger",
   "author": "vain0x",
