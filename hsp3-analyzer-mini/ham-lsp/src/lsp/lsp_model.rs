@@ -13,12 +13,16 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, TryRecvError};
 
+/// テキストドキュメントのバージョン番号 (エディタ上で編集されるたびに変わる番号。いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
+type TextDocumentVersion = i64;
+
 #[derive(Default)]
 pub(super) struct LspModel {
     last_doc: usize,
     doc_to_uri: HashMap<DocId, Url>,
     uri_to_doc: HashMap<Url, DocId>,
     open_docs: HashSet<DocId>,
+    doc_versions: HashMap<DocId, TextDocumentVersion>,
     sem: ProjectSem,
     hsp_root: PathBuf,
     file_watcher: Option<RecommendedWatcher>,
@@ -288,7 +292,7 @@ impl LspModel {
         self.shutdown_file_watcher();
     }
 
-    fn do_change_doc(&mut self, uri: Url, _version: i64, text: String) {
+    fn do_change_doc(&mut self, uri: Url, version: i64, text: String) {
         debug!("追加または変更されたファイルを解析します {:?}", uri);
 
         let doc = match self.uri_to_doc.get(&uri) {
@@ -301,6 +305,7 @@ impl LspModel {
             Some(&doc) => doc,
         };
 
+        self.doc_versions.insert(doc, version);
         self.sem.update_doc(doc, text.into());
     }
 
