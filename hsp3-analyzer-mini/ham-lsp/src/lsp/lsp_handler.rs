@@ -42,10 +42,10 @@ impl<W: io::Write> LspHandler<W> {
                 })),
                 ..ServerCapabilities::default()
             },
+            // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
             server_info: Some(ServerInfo {
-                name: "hsp3-analyzer-mini".to_string(),
-                // FIXME: バージョン番号 (cargo の環境変数から env! でとれるはず)
-                version: None,
+                name: env!("CARGO_PKG_NAME").to_string(),
+                version: Some(env!("CARGO_PKG_VERSION").to_string()),
             }),
         }
     }
