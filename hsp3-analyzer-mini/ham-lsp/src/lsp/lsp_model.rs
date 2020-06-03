@@ -643,6 +643,12 @@ impl LspModel {
             if locs.is_empty() {
                 return None;
             }
+
+            // 1つの出現箇所が定義と使用の両方にカウントされてしまうケースがあるようなので、重複を削除する。
+            // (重複した変更をレスポンスに含めると名前の変更に失敗する。)
+            locs.sort();
+            locs.dedup();
+
             locs
         };
 
