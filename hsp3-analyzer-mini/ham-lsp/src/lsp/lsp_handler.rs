@@ -29,6 +29,7 @@ impl<W: io::Write> LspHandler<W> {
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(true),
                     trigger_characters: None,
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
                 }),
                 definition_provider: Some(true),
                 document_highlight_provider: Some(true),
@@ -36,6 +37,11 @@ impl<W: io::Write> LspHandler<W> {
                 references_provider: Some(true),
                 ..ServerCapabilities::default()
             },
+            server_info: Some(ServerInfo {
+                name: "hsp3-analyzer-mini".to_string(),
+                // FIXME: バージョン番号 (cargo の環境変数から env! でとれるはず)
+                version: None,
+            }),
         }
     }
 
@@ -79,7 +85,11 @@ impl<W: io::Write> LspHandler<W> {
 
         self.sender.send_notification(
             "textDocument/publishDiagnostics",
-            PublishDiagnosticsParams { uri, diagnostics },
+            PublishDiagnosticsParams {
+                uri,
+                version: None,
+                diagnostics,
+            },
         );
     }
 
@@ -88,8 +98,10 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn text_document_completion(&mut self, params: CompletionParams) -> CompletionList {
-        self.model
-            .completion(params.text_document.uri, params.position)
+        self.model.completion(
+            params.text_document_position.text_document.uri,
+            params.text_document_position.position,
+        )
     }
 
     fn completion_item_resolve(&mut self, completion_item: CompletionItem) -> CompletionItem {
@@ -107,17 +119,15 @@ impl<W: io::Write> LspHandler<W> {
     fn text_document_definition(
         &mut self,
         params: TextDocumentPositionParams,
-    ) -> lsp_types::request::GotoDefinitionResponse {
+    ) -> lsp_types::GotoDefinitionResponse {
         let definitions = self
             .model
             .definitions(params.text_document.uri, params.position);
 
         if definitions.len() == 1 {
-            lsp_types::request::GotoDefinitionResponse::Scalar(
-                definitions.into_iter().next().unwrap(),
-            )
+            lsp_types::GotoDefinitionResponse::Scalar(definitions.into_iter().next().unwrap())
         } else {
-            lsp_types::request::GotoDefinitionResponse::Array(definitions)
+            lsp_types::GotoDefinitionResponse::Array(definitions)
         }
     }
 
@@ -135,8 +145,8 @@ impl<W: io::Write> LspHandler<W> {
 
     fn text_document_references(&mut self, params: ReferenceParams) -> Vec<Location> {
         self.model.references(
-            params.text_document.uri,
-            params.position,
+            params.text_document_position.text_document.uri,
+            params.text_document_position.position,
             params.context.include_declaration,
         )
     }

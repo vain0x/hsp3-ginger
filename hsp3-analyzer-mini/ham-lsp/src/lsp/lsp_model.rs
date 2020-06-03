@@ -288,7 +288,7 @@ impl LspModel {
         self.shutdown_file_watcher();
     }
 
-    fn do_change_doc(&mut self, uri: Url, _version: u64, text: String) {
+    fn do_change_doc(&mut self, uri: Url, _version: i64, text: String) {
         debug!("追加または変更されたファイルを解析します {:?}", uri);
 
         let doc = match self.uri_to_doc.get(&uri) {
@@ -313,7 +313,7 @@ impl LspModel {
         self.uri_to_doc.remove(&uri);
     }
 
-    pub(super) fn open_doc(&mut self, uri: Url, version: u64, text: String) {
+    pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = canonicalize_uri(uri);
 
         self.do_change_doc(uri.clone(), version, text);
@@ -325,7 +325,7 @@ impl LspModel {
         self.poll();
     }
 
-    pub(super) fn change_doc(&mut self, uri: Url, version: u64, text: String) {
+    pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = canonicalize_uri(uri);
 
         self.do_change_doc(uri.clone(), version, text);
