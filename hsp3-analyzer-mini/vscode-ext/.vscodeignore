@@ -6,3 +6,13 @@ hsptmp
 obj
 packfile
 *.ax
+
+
+
+.vscode
+node_modules
+out/*.js
+out/*.js.map
+src/
+tsconfig.json
+webpack.config.js

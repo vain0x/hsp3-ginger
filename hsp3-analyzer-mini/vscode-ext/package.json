@@ -1,34 +1,40 @@
 {
   "name": "hsp3-analyzer-mini",
   "displayName": "HSP3 アナライザー・ミニ (LSP)",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "HSP3 の実用最小限なインテリセンス",
   "repository": "https://github.com/vain0x/hsp3-ginger",
   "author": "vain0x",
   "publisher": "vain0x",
   "license": "CC0-1.0",
   "private": true,
-  "main": "./out/extension",
+  "main": "./dist/extension",
   "activationEvents": [
     "onLanguage:hsp3"
   ],
   "engines": {
-    "vscode": "^1.44.1"
+    "vscode": "^1.45.1"
   },
   "devDependencies": {
     "@types/node": "^14",
     "@types/vscode": "^1.45.1",
+    "ts-loader": "^7.0.5",
     "typescript": "^3",
     "vsce": "^1",
-    "vscode-languageserver-protocol": "^3"
+    "vscode-languageserver-protocol": "^3",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11"
   },
   "dependencies": {
     "vscode-languageclient": "7.0.0-next.1"
   },
   "scripts": {
-    "build": "tsc -b",
-    "watch": "tsc -w",
-    "vsce:package": "vsce package --out ham.vsix"
+    "tsc-build": "tsc -b",
+    "tsc-watch": "tsc -w",
+    "build": "webpack --mode development",
+    "watch": "webpack --mode development --watch",
+    "webpack-prod": "webpack --mode production",
+    "vsce-package": "vsce package --out ham.vsix"
   },
   "contributes": {
     "configuration": {
