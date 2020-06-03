@@ -5,6 +5,7 @@ pub(super) struct LspReceiver<R> {
     content: Vec<u8>,
     line: String,
     reader: io::BufReader<R>,
+    error_count: usize,
 }
 
 impl<R: io::Read> LspReceiver<R> {
@@ -12,7 +13,10 @@ impl<R: io::Read> LspReceiver<R> {
         self.line.clear();
         self.reader.read_line(&mut self.line).expect("Read header");
         if !self.line.starts_with("Content-Length:") {
-            error!("Unknown header {}", self.line);
+            if self.error_count < 10 {
+                self.error_count += 1;
+                error!("Unknown header {}", self.line);
+            }
             return;
         }
 
@@ -26,7 +30,10 @@ impl<R: io::Read> LspReceiver<R> {
         self.line.clear();
         self.reader.read_line(&mut self.line).expect("Read header");
         if self.line.trim().len() != 0 {
-            error!("Unknown header {}", self.line);
+            if self.error_count < 10 {
+                self.error_count += 1;
+                error!("Unknown header {}", self.line);
+            }
             return;
         }
 
@@ -47,6 +54,7 @@ impl<R: io::Read> LspReceiver<R> {
             content: vec![],
             line: String::new(),
             reader: io::BufReader::new(reader),
+            error_count: 0,
         }
     }
 }
