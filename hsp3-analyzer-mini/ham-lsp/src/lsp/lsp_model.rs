@@ -13,12 +13,18 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, TryRecvError};
 
+/// テキストドキュメントのバージョン番号 (エディタ上で編集されるたびに変わる番号。いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
+type TextDocumentVersion = i64;
+
+const NO_VERSION: i64 = 1;
+
 #[derive(Default)]
 pub(super) struct LspModel {
     last_doc: usize,
     doc_to_uri: HashMap<DocId, Url>,
     uri_to_doc: HashMap<Url, DocId>,
     open_docs: HashSet<DocId>,
+    doc_versions: HashMap<DocId, TextDocumentVersion>,
     sem: ProjectSem,
     hsp_root: PathBuf,
     file_watcher: Option<RecommendedWatcher>,
@@ -288,7 +294,7 @@ impl LspModel {
         self.shutdown_file_watcher();
     }
 
-    fn do_change_doc(&mut self, uri: Url, _version: i64, text: String) {
+    fn do_change_doc(&mut self, uri: Url, version: i64, text: String) {
         debug!("追加または変更されたファイルを解析します {:?}", uri);
 
         let doc = match self.uri_to_doc.get(&uri) {
@@ -301,6 +307,7 @@ impl LspModel {
             Some(&doc) => doc,
         };
 
+        self.doc_versions.insert(doc, version);
         self.sem.update_doc(doc, text.into());
     }
 
@@ -372,8 +379,7 @@ impl LspModel {
             warn!("ファイルを開けません {:?}", path);
         }
 
-        let version = 1;
-        self.do_change_doc(uri, version, text);
+        self.do_change_doc(uri, NO_VERSION, text);
 
         None
     }
@@ -595,6 +601,101 @@ impl LspModel {
 
         self.do_references(uri, position, include_definition)
             .unwrap_or(vec![])
+    }
+
+    pub(super) fn prepare_rename(
+        &mut self,
+        uri: Url,
+        position: Position,
+    ) -> Option<PrepareRenameResponse> {
+        self.poll();
+        let uri = canonicalize_uri(uri);
+
+        let loc = self.to_loc(&uri, position)?;
+
+        // カーソル直下にシンボルがなければ変更しない。
+        if self.sem.locate_symbol(loc.doc, loc.start).is_none() {
+            return None;
+        }
+
+        let range = loc_to_range(loc);
+        Some(PrepareRenameResponse::Range(range))
+    }
+
+    pub(super) fn rename(
+        &mut self,
+        uri: Url,
+        position: Position,
+        new_name: String,
+    ) -> Option<WorkspaceEdit> {
+        self.poll();
+        let uri = canonicalize_uri(uri);
+
+        // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
+        let locs = {
+            let loc = self.to_loc(&uri, position)?;
+            let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
+            let symbol_id = symbol.symbol_id;
+
+            let mut locs = vec![];
+            self.sem.get_symbol_defs(symbol_id, &mut locs);
+            self.sem.get_symbol_uses(symbol_id, &mut locs);
+            if locs.is_empty() {
+                return None;
+            }
+
+            // 1つの出現箇所が定義と使用の両方にカウントされてしまうケースがあるようなので、重複を削除する。
+            // (重複した変更をレスポンスに含めると名前の変更に失敗する。)
+            locs.sort();
+            locs.dedup();
+
+            locs
+        };
+
+        // 名前変更の編集手順を構築する。(シンボルが書かれている位置をすべて新しい名前で置き換える。)
+        let changes = {
+            let mut edits = vec![];
+            for loc in locs {
+                let location = match self.loc_to_location(loc) {
+                    Some(location) => location,
+                    None => continue,
+                };
+
+                let (uri, range) = (location.uri, location.range);
+
+                // common ディレクトリのファイルは変更しない。
+                if uri.as_str().contains("common") {
+                    return None;
+                }
+
+                let version = self
+                    .doc_versions
+                    .get(&loc.doc)
+                    .copied()
+                    .unwrap_or(NO_VERSION);
+
+                let text_document = VersionedTextDocumentIdentifier {
+                    uri,
+                    version: Some(version),
+                };
+                let text_edit = TextEdit {
+                    range,
+                    new_text: new_name.to_string(),
+                };
+
+                edits.push(TextDocumentEdit {
+                    text_document,
+                    edits: vec![text_edit],
+                });
+            }
+
+            DocumentChanges::Edits(edits)
+        };
+
+        Some(WorkspaceEdit {
+            document_changes: Some(changes),
+            ..WorkspaceEdit::default()
+        })
     }
 
     pub(super) fn validate(&mut self, _uri: Url) -> Vec<Diagnostic> {
