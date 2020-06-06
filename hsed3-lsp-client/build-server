@@ -1,0 +1,6 @@
+#!/bin/bash
+
+(
+    cd ../hsp3-analyzer-mini
+    cargo build
+)

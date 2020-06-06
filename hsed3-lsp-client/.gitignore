@@ -1,0 +1,19 @@
+ham-lsp.log
+
+
+
+# Created by https://www.toptal.com/developers/gitignore/api/HSP
+# Edit at https://www.toptal.com/developers/gitignore?templates=HSP
+
+### HSP ###
+# Object files
+hsptmp*
+packfile
+obj
+*.ax
+
+# Binaries
+*.exe
+*.dpm
+
+# End of https://www.toptal.com/developers/gitignore/api/HSP

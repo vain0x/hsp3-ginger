@@ -1,0 +1,115 @@
+// LICENSE: CC0-1.0
+// v0
+
+// LSP メッセージを送信する機能。
+
+// メッセージのテンプレートとなる JSON ファイルを使用する。(messages ディレクトリ)
+// 参考: [LSP 仕様書](https://microsoft.github.io/language-server-protocol/specifications/specification-3-14/)
+
+// 外部 API
+// app_do_send_msg data, data_len : LSP メッセージデータを送信する。
+
+#ifndef included_mod_lsp_send_hsp
+#define included_mod_lsp_send_hsp
+
+#module m_lsp_send
+
+#deffunc lsp_send_init
+
+	s_msg_cap = 0x10000
+	sdim s_msg, s_msg_cap
+
+	s_body_cap = 0x10000
+	sdim s_body, s_body_cap
+	return
+
+// メッセージのテンプレートをファイルから読み込む。
+#deffunc local lsp_send_load_file str file_name, \
+	local file_size
+
+	logmes "file_name: " + file_name
+	exist file_name
+	file_size = strsize
+	assert file_size >= 0
+
+	if file_size >= s_body_cap {
+		s_body_cap += file_size + s_body_cap / 2 + 64
+		memexpand s_body, s_body_cap
+	}
+
+	bload file_name, s_body, file_size
+	poke s_body, file_size, 0
+	return file_size
+
+// 現在のメッセージを送信する。
+#deffunc lsp_send_do_send \
+	local body_len
+
+	body_len = strlen(s_body)
+
+	s_msg = ""
+	if body_len >= s_msg_cap {
+		s_msg_cap += body_len + s_msg_cap / 2 + 64
+		memexpand s_msg, s_msg_cap
+	}
+
+	s_msg = "Content-Length: " + body_len + "\n\n" + s_body
+
+	app_do_send_msg s_msg, strlen(s_msg)
+
+	s_msg = ""
+	s_body = ""
+	return
+
+// initialize リクエストを送信し、サーバーに起動の準備をさせる。
+#deffunc lsp_send_initialize \
+	int msg_id, \
+	int process_id, \
+	str root_path, \
+	str root_uri, \
+	str workspace_folder_uri, \
+	str workspace_folder_name
+
+	lsp_send_load_file "messages/initialize_request.json"
+
+	strrep s_body, "\"$MSG_ID\"", str(msg_id)
+	strrep s_body, "\"$PROCESS_ID\"", str(process_id)
+	strrep s_body, "$ROOT_PATH", root_path
+	strrep s_body, "$ROOT_URI", root_uri
+	strrep s_body, "$WORKSPACE_FOLDER_URI", workspace_folder_uri
+	strrep s_body, "$WORKSPACE_FOLDER_NAME", workspace_folder_name
+
+	lsp_send_do_send
+	return
+
+// initialized 通知を送信する。
+#deffunc lsp_send_initialized
+
+	lsp_send_load_file "messages/initialized_notification.json"
+	lsp_send_do_send
+	return
+
+// shutdown リクエストを送信し、サーバーに終了の準備をさせる。
+// この段階ではサーバーはまだ終了しない。これのレスポンスを受け取った後に exit 通知を送信することで正常に終了する。
+#deffunc lsp_send_shutdown int msg_id
+
+	lsp_send_load_file "messages/shutdown_request.json"
+
+	strrep s_body, "\"$MSG_ID\"", str(msg_id)
+
+	lsp_send_do_send
+	return
+
+// exit 通知を送信し、サーバーを終了させる。
+// これを送る前に shutdown リクエストを送信し、レスポンスを受け取らなければいけない。
+#deffunc lsp_send_exit
+
+	lsp_send_load_file "messages/exit_notification.json"
+	lsp_send_do_send
+	return
+
+#global
+
+	lsp_send_init
+
+#endif

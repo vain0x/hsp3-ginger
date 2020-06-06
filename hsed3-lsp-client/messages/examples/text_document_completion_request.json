@@ -1,0 +1,14 @@
+{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "textDocument/completion",
+    "params": {
+        "position": {
+            "line": 10,
+            "character": 2
+        },
+        "textDocument": {
+            "uri": "file:///C:/repo/local/foo.hsp"
+        }
+    }
+}

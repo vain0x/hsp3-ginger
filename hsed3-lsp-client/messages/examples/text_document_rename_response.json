@@ -1,0 +1,50 @@
+{
+    "jsonrpc": "2.0",
+    "id": 21,
+    "result": {
+        "documentChanges": [
+            {
+                "textDocument": {
+                    "uri": "file:///C:/repo/local/foo.hsp",
+                    "version": 18
+                },
+                "edits": [
+                    {
+                        "range": {
+                            "start": {
+                                "line": 8,
+                                "character": 1
+                            },
+                            "end": {
+                                "line": 8,
+                                "character": 7
+                            }
+                        },
+                        "newText": "hogehoge"
+                    }
+                ]
+            },
+            {
+                "textDocument": {
+                    "uri": "file:///C:/repo/local/foo.hsp",
+                    "version": 18
+                },
+                "edits": [
+                    {
+                        "range": {
+                            "start": {
+                                "line": 10,
+                                "character": 5
+                            },
+                            "end": {
+                                "line": 10,
+                                "character": 11
+                            }
+                        },
+                        "newText": "hogehoge"
+                    }
+                ]
+            }
+        ]
+    }
+}

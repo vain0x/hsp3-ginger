@@ -1,0 +1,15 @@
+{
+    "jsonrpc": "2.0",
+    "id": 21,
+    "method": "textDocument/rename",
+    "params": {
+        "newName": "hogehoge",
+        "position": {
+            "line": 10,
+            "character": 10
+        },
+        "textDocument": {
+            "uri": "file:///C:/repo/local/foo.hsp"
+        }
+    }
+}

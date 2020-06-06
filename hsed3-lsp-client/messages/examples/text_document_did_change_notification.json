@@ -1,0 +1,15 @@
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/didChange",
+    "params": {
+        "contentChanges": [
+            {
+                "text": "#module\n\n#deffunc hello\n\thello\n\treturn\n\n#global\n\n\tfooooo = 1\n\n\te\n\n"
+            }
+        ],
+        "textDocument": {
+            "version": 6,
+            "uri": "file:///C:/repo/local/foo.hsp"
+        }
+    }
+}

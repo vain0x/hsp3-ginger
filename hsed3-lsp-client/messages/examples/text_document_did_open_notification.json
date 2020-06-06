@@ -1,0 +1,12 @@
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/didOpen",
+    "params": {
+        "textDocument": {
+            "version": 0,
+            "languageId": "hsp3",
+            "text": "#module\n\n#deffunc hello\n\thello\n\treturn\n\n#global\n\n\tfooooo = 1\n\n",
+            "uri": "file:///C:/repo/local/foo.hsp"
+        }
+    }
+}

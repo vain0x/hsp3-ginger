@@ -1,0 +1,17 @@
+{
+    "jsonrpc": "2.0",
+    "id": 17,
+    "result": {
+        "uri": "file:///C:/repo/local/foo.hsp",
+        "range": {
+            "start": {
+                "line": 8,
+                "character": 1
+            },
+            "end": {
+                "line": 8,
+                "character": 7
+            }
+        }
+    }
+}

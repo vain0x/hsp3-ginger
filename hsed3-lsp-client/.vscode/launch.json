@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "hsp3",
+            "request": "launch",
+            "name": "Run",
+            "program": "${command:hsp3-debug-window-adapter.createHsptmp}",
+            "trace": false
+        }
+    ]
+}

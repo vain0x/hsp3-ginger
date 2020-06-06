@@ -1,0 +1,14 @@
+{
+    "jsonrpc": "2.0",
+    "id": 61,
+    "method": "textDocument/hover",
+    "params": {
+        "position": {
+            "line": 14,
+            "character": 7
+        },
+        "textDocument": {
+            "uri": "file:///C:/repo/local/foo.hsp"
+        }
+    }
+}
