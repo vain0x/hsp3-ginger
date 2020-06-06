@@ -1,0 +1,29 @@
+// LICENSE: CC0-1.0
+// v0
+
+// hsedsdk から直接はアクセスできない機能を提供する。
+
+#ifndef included_mod_hsed_hsp
+#define included_mod_hsed_hsp
+
+#include "hsedsdk.as"
+
+#module m_hsed
+
+// カレットがある位置の行番号を取得する。(先頭は 1。)
+// hsed_exist でスクリプトエディタがあることを確認してから使うこと。
+#deffunc hsed_get_caret_line int footy_id
+
+	sendmsg hIF@hsedsdk, _HSED_GETCARETLINE@hsedsdk, footy_id
+	return stat
+
+// カレットがある位置の列番号を取得する。(先頭は 1。)
+// hsed_exist でスクリプトエディタがあることを確認してから使うこと。
+#deffunc hsed_get_caret_character int footy_id
+
+	sendmsg hIF@hsedsdk, _HSED_GETCARETPOS@hsedsdk, footy_id
+	return stat
+
+#global
+
+#endif

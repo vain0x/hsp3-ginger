@@ -1,0 +1,400 @@
+// LICENSE: CC0-1.0
+// v0
+
+// スクリプトエディタの状態の変化を観測して、適切にイベントを発行する。
+
+#ifndef included_mod_hsed_model_hsp
+#define included_mod_hsed_model_hsp
+
+#module m_hsed_model
+
+#const true 1
+#const false 0
+
+// 更新中ではない
+#enum k_update_kind_none = 0
+// タブ情報の更新中
+#enum k_update_kind_tabs
+// テキストドキュメントの内容の更新中
+#enum k_update_kind_texts
+// カレットの更新中
+#enum k_update_kind_caret
+
+// このテキストドキュメントはファイルではなく、新しいタブをもとにしている。
+// (無題。ファイルを開いていないし、ファイルとして保存してもいない。)
+#enum k_document_kind_untitled = 1
+// このテキストドキュメントはファイルを開いたか、ファイルとして保存されている。
+#enum k_document_kind_file
+
+// 生きている。(いずれかのタブと関連している。)
+#const k_document_status_alive 1 << 0
+// 「開かれた」イベントから参照されている。
+#const k_document_status_opened 1 << 1
+// 「変更された」イベントから参照されている。
+#const k_document_status_changed 1 << 2
+// 「閉じられた」イベントから参照されている。
+#const k_document_status_closed 1 << 3
+
+#enum global hsed_model_k_document_opened = 1
+#enum global hsed_model_k_document_changed
+#enum global hsed_model_k_document_closed
+
+#deffunc hsed_model_init
+
+	// スクリプトエディタの各タブの情報
+	// タブの個数
+	dim s_tab_count
+	// タブ上に配置されている Footy コントロール (テキストエディタ) のID
+	// (ID は再利用される。例えば Footy ID 1 のタブが閉じられた後、
+	//  新しく開かれたタブの Footy ID は 1 になる可能性がある。)
+	dim s_tab_footy_ids
+	// タブで開かれているファイルの絶対パス。
+	// (ファイルを開く操作や名前を付けて保存によって変化する。「無題」なら空文字列。)
+	sdim s_tab_file_paths
+	dim s_tab_text_lens
+	dim s_tab_document_ids
+
+	// スクリプトエディタの各タブの情報 (前回更新時のもの)
+	dim s_prev_tab_count
+	dim s_prev_tab_footy_ids
+	sdim s_prev_tab_file_paths
+	dim s_prev_tab_text_lens
+	dim s_prev_tab_document_ids
+
+	// テキストドキュメントの個数
+	dim s_document_count
+	// テキストドキュメントの種類
+	dim s_document_kinds
+	dim s_document_tab_ids
+	// テキストドキュメントに関連しているファイルパス。
+	// 種類がファイルであるときのみ有効。ファイルパスは変化しない。
+	sdim s_document_file_paths
+	dim s_document_footy_ids
+	// テキストドキュメントに関連する URI
+	// (ファイルなら "file://<path>"。無題なら "hsed:///footies/<footy-id>/")
+	sdim s_document_uris
+	// テキストドキュメントのステータス
+	dim s_document_statuses
+	// バージョン番号 (内容が変化するたびに増える値)
+	dim s_document_versions
+	// 内容
+	sdim s_document_texts
+	dim s_document_text_lens
+	dim s_document_text_is_dirty
+
+	// s_document_* のフリーリスト
+	dim s_document_free_count
+	dim s_document_free_ids
+
+	dim s_dirty_document_count
+	dim s_dirty_document_ids
+
+	// 前回更新時より後に開かれた・変更された・閉じられたドキュメントの個数
+	dim s_changed_document_count
+	dim s_changed_document_ids
+
+	// 選択中のタブの Footy ID (なければマイナス)
+	s_active_footy_id = -1
+	// カレットの行番号 (先頭は 1)
+	s_caret_line = 1
+	// カレットの列番号 (先頭は 1)
+	s_caret_char = 1
+	s_caret_hover_timer = -1
+
+	// 発生した hover イベントの個数
+	dim s_hover_count
+	dim s_hover_footy_ids
+	dim s_hover_caret_lines
+	dim s_hover_caret_chars
+	return
+
+// テキストドキュメントを新しく生成する。
+#deffunc local hsed_model_alloc_document int footy_id, var file_path, \
+	local document_id
+
+	if s_document_free_count >= 1 {
+		s_document_free_count--
+		document_id = s_document_free_ids(s_document_free_count)
+	} else {
+		document_id = s_document_count
+		s_document_count++
+	}
+	assert document_id >= 0 && document_id < s_document_count
+
+	s_document_statuses(document_id) = k_document_status_alive
+	s_document_versions(document_id) = 0
+	s_document_tab_ids(document_id) = -1
+	s_document_footy_ids(document_id) = footy_id
+	s_document_file_paths(document_id) = file_path
+	s_document_texts(document_id) = ""
+	s_document_text_lens(document_id) = 0
+
+	if file_path == "" {
+		s_document_kinds(document_id) = k_document_kind_untitled
+		s_document_uris(document_id) = "hsed:///footies/" + footy_id
+	} else {
+		s_document_kinds(document_id) = k_document_kind_file
+		s_document_uris(document_id) = "file:///" + file_path
+	}
+
+	s_document_text_is_dirty(document_id) = true
+	s_dirty_document_ids(s_dirty_document_count) = document_id
+	s_dirty_document_count++
+	return document_id
+
+// テキストドキュメントを破棄する。
+#deffunc local hsed_model_free_document int document_id
+
+	s_document_statuses(document_id) = 0
+	s_document_free_ids(s_document_free_count) = document_id
+	s_document_free_count++
+	return
+
+// テキストドキュメントの内容を設定する。
+#deffunc hsed_model_set_document_text int document_id, var new_text
+
+	assert 0 <= document_id && document_id < s_document_count
+
+	if (s_document_statuses(document_id) & k_document_status_alive) == 0 {
+		return
+	}
+
+	if s_document_texts(document_id) == new_text {
+		return
+	}
+
+	s_document_texts(document_id) = new_text
+	s_document_text_lens(document_id) = strlen(new_text)
+	s_document_versions(document_id)++
+	s_document_text_is_dirty(document_id) = false
+
+	// 変更イベントを発行。
+	s_document_statuses(document_id) |= k_document_status_changed
+	s_changed_document_ids(s_changed_document_count) = document_id
+	s_changed_document_count++
+	return
+
+// タブの現在の状態を受け取る。状態の差分を取り、ドキュメントの開閉を検出する。
+//
+// 前回更新時にいずれかのタブで開かれていたファイル (厳密には URI) が、
+// いまどのタブでも開かれていなければ、それは閉じられたとみなす。
+//
+// 逆に、いまのタブで開かれているファイルが、
+// 前回更新時にどのタブでも開かれていなければ、それは開かれたとみなす。
+//
+// 状態の変更による影響は hsed_model_emit_* 系の命令を使ってイベントとして取り出せる。
+#deffunc hsed_model_update_tabs int tab_count, array tab_footy_ids, array tab_file_paths, array tab_text_lens, \
+	local prev_tab_id, local tab_document_ids, \
+	local document_id, local status
+
+	dim tab_document_ids, tab_count
+	repeat tab_count
+		tab_document_ids(cnt) = -1
+	loop
+
+	// 前回更新時のタブと、いまあるタブの対応付けを行う。
+	// NOTE: タブの個数は少ない (多くて100) と予想されるので全探索で OK。
+	repeat s_prev_tab_count
+		prev_tab_id = cnt
+
+		document_id = s_prev_tab_document_ids(prev_tab_id)
+		if document_id < 0 {
+			continue
+		}
+
+		repeat tab_count
+			if tab_document_ids(cnt) >= 0 {
+				continue
+			}
+
+			// Footy ID やファイルパスが異なるタブは、異なるドキュメントに関連するので、
+			// (仮に同じタブだったとしても) 異なるタブとみなすことにする。
+			if s_prev_tab_footy_ids(prev_tab_id) != tab_footy_ids(cnt) {
+				continue
+			}
+
+			if s_prev_tab_file_paths(prev_tab_id) != tab_file_paths(cnt) {
+				continue
+			}
+
+			// ドキュメントを引き継ぐ。
+			tab_document_ids(cnt) = document_id
+			s_prev_tab_document_ids(prev_tab_id) = -1
+
+			s_document_tab_ids(document_id) = cnt
+
+			// テキストの長さが変わっていたら、内容が変化した可能性があるとみなす。
+			if s_document_text_lens(document_id) != tab_text_lens(cnt) {
+				if s_document_text_is_dirty(document_id) == false {
+					s_document_text_is_dirty(document_id) = true
+
+					s_dirty_document_ids(s_dirty_document_count) = document_id
+					s_dirty_document_count++
+				}
+			}
+			break
+		loop
+	loop
+
+	// 現在のタブと対応付けられなかった以前のタブは、閉じられたとみなす。
+	// 関連しているドキュメントを「閉じられた」とマークする。
+	repeat s_prev_tab_count
+		document_id = s_prev_tab_document_ids(cnt)
+		if document_id < 0 {
+			continue
+		}
+
+		assert s_document_statuses(document_id) & k_document_status_alive
+
+		// 「ドキュメントが閉じられた」イベントを発行する。
+		status = s_document_statuses(document_id)
+		status &= k_document_status_alive ^ (-1)
+		status |= k_document_status_closed
+		s_document_statuses(document_id) = status
+
+		s_changed_document_ids(s_changed_document_count) = s_document_uris(document_id)
+		s_changed_document_count++
+		logmes "hsed_model: closed " + s_document_uris(document_id)
+	loop
+
+	// 以前のタブと対応付けられなかった現在のタブは、開かれたとみなす。
+	repeat tab_count
+		if tab_document_ids(cnt) >= 0 {
+			continue
+		}
+
+		hsed_model_alloc_document tab_footy_ids(cnt), tab_file_paths(cnt)
+		document_id = stat
+		tab_document_ids(cnt) = document_id
+		s_document_tab_ids(document_id) = cnt
+
+		// 「ドキュメントが開かれた」イベントを発行する。
+		s_document_statuses(document_id) |= k_document_status_opened
+
+		s_changed_document_ids(s_changed_document_count) = document_id
+		s_changed_document_count++
+		logmes "hsed_model: opened " + s_document_uris(document_id)
+	loop
+
+	// 次の更新時のために、現在のデータを保存する。
+	s_prev_tab_count = tab_count
+	repeat s_tab_count
+		s_prev_tab_footy_ids(cnt) = tab_footy_ids(cnt)
+		s_prev_tab_file_paths(cnt) = tab_file_paths(cnt)
+		s_prev_tab_text_lens(cnt) = tab_text_lens(cnt)
+		s_prev_tab_document_ids(cnt) = tab_document_ids(cnt)
+	loop
+	return
+
+// 内容が変化した可能性のあるテキストドキュメントの ID を取り出す。
+#deffunc hsed_model_emit_dirty_documents array document_ids, array document_tab_ids, var document_count, \
+	local document_id
+
+	repeat s_dirty_document_count
+		document_id = s_dirty_document_ids(cnt)
+		document_ids(cnt) = document_id
+		document_tab_ids(cnt) = s_document_tab_ids(document_id)
+	loop
+
+	document_count = s_dirty_document_count
+	s_dirty_document_count = 0
+	return
+
+// ドキュメントの変更イベントを発行する。
+#deffunc hsed_model_emit_document_changes array event_kinds, array document_uris, var event_count, \
+	local document_id, local status, local mask
+
+	event_count = 0
+
+	repeat s_changed_document_count
+		document_id = s_changed_document_ids(cnt)
+		assert 0 <= document_id && document_id < s_document_count
+
+		status = s_document_statuses(document_id)
+		if status == 0 {
+			continue
+		}
+
+		// ドキュメントが開かれて、すぐに閉じられた場合、イベントは発行しない。
+		mask = k_document_status_opened | k_document_status_closed
+		if (status & mask) == mask {
+			hsed_model_free_document document_id
+			continue
+		}
+
+		if status & k_document_status_opened {
+			event_kinds(event_count) = hsed_model_k_document_opened
+			document_uris(event_count) = s_document_uris(document_id)
+			event_count++
+
+		} else : if status & k_document_status_closed {
+			event_kinds(event_count) = hsed_model_k_document_closed
+			document_uris(event_count) = s_document_uris(document_id)
+			event_count++
+
+		} else : if status & k_document_status_changed {
+			// (開かれたか閉じられた場合、変更イベントは発行しない。)
+			event_kinds(event_count) = hsed_model_k_document_changed
+			document_uris(event_count) = s_document_uris(document_id)
+			event_count++
+		}
+
+		// 対応するタブがすでに閉じられている場合、ドキュメントを破棄していい。
+		if (status & k_document_status_alive) == 0 {
+			hsed_model_free_document document_id
+			continue
+		}
+
+		s_document_statuses(document_id) = k_document_status_alive
+	loop
+
+	s_changed_document_count = 0
+	return
+
+#deffunc hsed_model_update_caret int active_footy_id, int caret_line, int caret_char, \
+	local is_same
+
+	is_same = s_active_footy_id == active_footy_id
+	s_active_footy_id = active_footy_id
+
+	is_same = is_same && s_caret_line == s_caret_line
+	s_caret_line = s_caret_line
+
+	is_same = is_same && s_caret_char == s_caret_char
+	s_caret_char = s_caret_char
+
+	if is_same == false {
+		// 60 FPS と仮定して 1.5 秒後に発火する。
+		s_caret_hover_timer = 1500 * 60 / 1000
+		return
+	}
+
+	if s_caret_hover_timer >= 0 {
+		if s_caret_hover_timer == 0 {
+			s_hover_footy_ids(s_hover_count) = active_footy_id
+			s_hover_caret_chars(s_hover_count) = caret_char
+			s_hover_caret_lines(s_hover_count) = caret_line
+			s_hover_count++
+		}
+
+		s_caret_hover_timer--
+	}
+	return
+
+#deffunc hsed_model_drain_hovers array hover_footy_ids, array hover_caret_lines, array hover_caret_chars, var hover_count
+
+	repeat s_hover_count
+		hover_footy_ids(cnt) = s_hover_footy_ids(cnt)
+		hover_caret_chars(cnt) = s_hover_caret_chars(cnt)
+		hover_caret_lines(cnt) = s_hover_caret_lines(cnt)
+	loop
+
+	hover_count = s_hover_count
+	s_hover_count = 0
+	return
+
+#global
+
+	hsed_model_init
+
+#endif

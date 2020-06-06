@@ -1,0 +1,43 @@
+// LICENSE: CC0-1.0
+// v0
+
+#include "mod_hsed_model.hsp"
+
+#module m_hsed_model_tests
+
+#const true 1
+#const false 0
+
+#deffunc hsed_model_tests_main
+
+	// 初期状態
+	s_tab_count = 2
+	s_footy_ids = 1, 2
+	s_file_paths = "C:/1.hsp", "C:/2.hsp"
+	s_texts = "mes 1", "mes 222"
+	s_text_lens = strlen(s_texts(0)), strlen(s_texts(1))
+	hsed_model_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	// 2つのファイルはどちらも dirty のはず。
+	hsed_model_emit_dirty_documents s_document_ids, s_document_tab_ids, s_document_count
+	assert s_document_count == 2
+	assert s_document_ids(0) != s_document_ids(1)
+	assert s_document_tab_ids(0) == 0
+	assert s_document_tab_ids(1) == 1
+
+	// テキストを設定する。
+	repeat s_document_count
+		hsed_model_set_document_text s_document_ids(cnt), s_texts(s_document_tab_ids(cnt))
+	loop
+
+	hsed_model_emit_document_changes s_event_kinds, s_document_uris, s_event_count
+	assert s_event_count == 2
+	assert s_event_kinds(0) == hsed_model_k_document_opened
+	assert s_document_uris(0) == "file:///C:/1.hsp"
+	assert s_event_kinds(1) == hsed_model_k_document_opened
+	assert s_document_uris(1) == "file:///C:/2.hsp"
+	return
+
+#global
+
+	hsed_model_tests_main
