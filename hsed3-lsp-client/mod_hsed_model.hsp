@@ -43,16 +43,11 @@
 
 	// スクリプトエディタの各タブの情報
 	// タブの個数
-	dim s_tab_count
 	// タブ上に配置されている Footy コントロール (テキストエディタ) のID
 	// (ID は再利用される。例えば Footy ID 1 のタブが閉じられた後、
 	//  新しく開かれたタブの Footy ID は 1 になる可能性がある。)
-	dim s_tab_footy_ids
 	// タブで開かれているファイルの絶対パス。
 	// (ファイルを開く操作や名前を付けて保存によって変化する。「無題」なら空文字列。)
-	sdim s_tab_file_paths
-	dim s_tab_text_lens
-	dim s_tab_document_ids
 
 	// スクリプトエディタの各タブの情報 (前回更新時のもの)
 	dim s_prev_tab_count
@@ -119,7 +114,7 @@
 		document_id = s_document_count
 		s_document_count++
 	}
-	assert document_id >= 0 && document_id < s_document_count
+	assert 0 <= document_id && document_id < s_document_count
 
 	s_document_statuses(document_id) = k_document_status_alive
 	s_document_versions(document_id) = 0
@@ -131,7 +126,7 @@
 
 	if file_path == "" {
 		s_document_kinds(document_id) = k_document_kind_untitled
-		s_document_uris(document_id) = "hsed:///footies/" + footy_id
+		s_document_uris(document_id) = "hsed:///footies/" + footy_id + "/"
 	} else {
 		s_document_kinds(document_id) = k_document_kind_file
 		s_document_uris(document_id) = "file:///" + file_path
@@ -252,7 +247,7 @@
 		status |= k_document_status_closed
 		s_document_statuses(document_id) = status
 
-		s_changed_document_ids(s_changed_document_count) = s_document_uris(document_id)
+		s_changed_document_ids(s_changed_document_count) = document_id
 		s_changed_document_count++
 		logmes "hsed_model: closed " + s_document_uris(document_id)
 	loop
@@ -278,7 +273,7 @@
 
 	// 次の更新時のために、現在のデータを保存する。
 	s_prev_tab_count = tab_count
-	repeat s_tab_count
+	repeat tab_count
 		s_prev_tab_footy_ids(cnt) = tab_footy_ids(cnt)
 		s_prev_tab_file_paths(cnt) = tab_file_paths(cnt)
 		s_prev_tab_text_lens(cnt) = tab_text_lens(cnt)
