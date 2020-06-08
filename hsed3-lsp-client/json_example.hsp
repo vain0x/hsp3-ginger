@@ -1,0 +1,66 @@
+// LICENSE: CC0-1.0
+
+// JSON の内容を出力する。
+
+#include "hsp3utf.as"
+#include "hspinet.as"
+
+#module
+
+#const json_next_next 0
+#const json_next_previous 1
+#const json_next_child 2
+// #const json_next_type 3
+
+#deffunc json_dump int node_ptr, str indent, \
+	local next_ptr, local child_ptr, \
+	local int_value, local str_value
+
+	jsonnext@ next_ptr, node_ptr, json_next_child
+	if next_ptr == 0 {
+		// node_ptr は子ノードを持たない、リーフノードである。
+
+		jsongeti@ int_value, , node_ptr
+		if int_value != 0 {
+			logmes indent + int_value
+			return
+		}
+
+		jsongets@ str_value, , node_ptr
+		logmes indent + "\"\"\"" + str_value + "\"\"\""
+		return
+	}
+
+	logmes indent + "["
+	repeat
+		json_dump next_ptr, indent + "    "
+
+		jsonnext@ child_ptr, next_ptr
+		if child_ptr == 0 {
+			break
+		}
+		next_ptr = child_ptr
+	loop
+	logmes indent + "]"
+	return
+
+#deffunc main
+
+	sdim s_json_text
+	notesel s_json_text
+	noteload "messages/examples/text_document_hover_response.json"
+	noteunsel
+
+	dim s_root_ptr
+	jsonopen@ s_root_ptr, s_json_text
+
+	logmes "{"
+	json_dump s_root_ptr, "    "
+	logmes "}"
+
+	jsonclose@
+	return
+
+#global
+
+	main
