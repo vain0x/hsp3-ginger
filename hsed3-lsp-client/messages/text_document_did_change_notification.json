@@ -1,0 +1,15 @@
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/didChange",
+    "params": {
+        "textDocument": {
+            "uri": "$URI",
+            "version": "$VERSION"
+        },
+        "contentChanges": [
+            {
+                "text": "$TEXT"
+            }
+        ]
+    }
+}

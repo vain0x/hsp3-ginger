@@ -1,6 +1,8 @@
 // LICENSE: CC0-1.0
 // v0
 
+// WIP
+
 // LSP メッセージを送信する機能。
 
 // メッセージのテンプレートとなる JSON ファイルを使用する。(messages ディレクトリ)
@@ -21,6 +23,17 @@
 
 	s_body_cap = 0x10000
 	sdim s_body, s_body_cap
+
+	s_lf = " "
+	poke s_lf, , 0x0a
+	return
+
+#defcfunc local json_escape var text
+
+	strrep "\n", "\\r\\n"
+	strrep s_lf, "\\n"
+	strrep "\"", "\\\""
+	strrep "\\", "\\\\"
 	return
 
 // メッセージのテンプレートをファイルから読み込む。
@@ -105,6 +118,55 @@
 #deffunc lsp_send_exit
 
 	lsp_send_load_file "messages/exit_notification.json"
+	lsp_send_do_send
+	return
+
+#deffunc lsp_send_text_document_did_open var uri, int version, var text, \
+	local escaped_uri, local escaped_text
+
+	escaped_uri = uri
+	json_escape escaped_uri
+
+	escaped_text = text
+	json_escape escaped_text
+
+	lsp_send_load_file "messages/text_document_did_open_notification.json"
+
+	strrep s_body, "$URI", escaped_uri
+	strrep s_body, "\"$VERSION\"", version
+	strrep s_body, "$TEXT", escaped_text
+
+	lsp_send_do_send
+	return
+
+#deffunc lsp_send_text_document_did_change var uri, int version, var text, \
+	local escaped_uri, local escaped_text
+
+	escaped_uri = uri
+	json_escape escaped_uri
+
+	escaped_text = text
+	json_escape escaped_text
+
+	lsp_send_load_file "messages/text_document_did_change_notification.json"
+
+	strrep s_body, "$URI", escaped_uri
+	strrep s_body, "\"$VERSION\"", version
+	strrep s_body, "$TEXT", escaped_text
+
+	lsp_send_do_send
+	return
+
+#deffunc lsp_send_text_document_did_close var uri, \
+	local escaped_uri
+
+	escaped_uri = uri
+	json_escape escaped_uri
+
+	lsp_send_load_file "messages/text_document_did_close_notification.json"
+
+	strrep s_body, "$URI", escaped_uri
+
 	lsp_send_do_send
 	return
 
