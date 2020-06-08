@@ -1,17 +1,4 @@
-#[macro_use]
-extern crate log;
-
-// #[macro_use]
-// extern crate serde;
-
-mod help_source;
-mod id;
-mod lsp;
-mod rc_str;
-mod sem;
-mod syntax;
-
-use crate::lsp::lsp_main::start_lsp_server;
+use ham_core::start_lsp_server;
 use std::env::ArgsOs;
 use std::path::PathBuf;
 
