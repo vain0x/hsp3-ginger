@@ -90,20 +90,6 @@
 	// 前回更新時より後に開かれた・変更された・閉じられたドキュメントの個数
 	dim s_changed_document_count
 	dim s_changed_document_ids
-
-	// 選択中のタブの Footy ID (なければマイナス)
-	s_active_footy_id = -1
-	// カレットの行番号 (先頭は 1)
-	s_caret_line = 1
-	// カレットの列番号 (先頭は 1)
-	s_caret_char = 1
-	s_caret_hover_timer = -1
-
-	// 発生した hover イベントの個数
-	dim s_hover_count
-	dim s_hover_footy_ids
-	dim s_hover_caret_lines
-	dim s_hover_caret_chars
 	return
 
 // テキストドキュメントを新しく生成する。
@@ -367,49 +353,6 @@
 	}
 
 	s_changed_document_count = 0
-	return
-
-// FIXME: 要テスト
-#deffunc hsed_model_update_caret int active_footy_id, int caret_line, int caret_char, \
-	local is_same
-
-	is_same = s_active_footy_id == active_footy_id
-	s_active_footy_id = active_footy_id
-
-	is_same = is_same && s_caret_line == s_caret_line
-	s_caret_line = s_caret_line
-
-	is_same = is_same && s_caret_char == s_caret_char
-	s_caret_char = s_caret_char
-
-	if is_same == false {
-		// 60 FPS と仮定して 1.5 秒後に発火する。
-		s_caret_hover_timer = 1500 * 60 / 1000
-		return
-	}
-
-	if s_caret_hover_timer >= 0 {
-		if s_caret_hover_timer == 0 {
-			s_hover_footy_ids(s_hover_count) = active_footy_id
-			s_hover_caret_chars(s_hover_count) = caret_char
-			s_hover_caret_lines(s_hover_count) = caret_line
-			s_hover_count++
-		}
-
-		s_caret_hover_timer--
-	}
-	return
-
-#deffunc hsed_model_drain_hovers array hover_footy_ids, array hover_caret_lines, array hover_caret_chars, var hover_count
-
-	repeat s_hover_count
-		hover_footy_ids(cnt) = s_hover_footy_ids(cnt)
-		hover_caret_chars(cnt) = s_hover_caret_chars(cnt)
-		hover_caret_lines(cnt) = s_hover_caret_lines(cnt)
-	loop
-
-	hover_count = s_hover_count
-	s_hover_count = 0
 	return
 
 #global
