@@ -1,34 +1,21 @@
-use crate::help_source::collect_all_symbols;
-use crate::sem::{self, ProjectSem};
-use crate::syntax::{self, DocId};
-use encoding::{
-    codec::utf_8::UTF8Encoding, label::encoding_from_windows_code_page, DecoderTrap, Encoding,
-    StringWriter,
+use crate::{
+    docs::{DocChange, Docs},
+    help_source::collect_all_symbols,
+    rc_str::RcStr,
+    sem::{self, ProjectSem},
+    syntax,
 };
 use lsp_types::*;
-use notify::{DebouncedEvent, RecommendedWatcher};
-use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::rc::Rc;
-use std::sync::mpsc::{Receiver, TryRecvError};
-
-/// テキストドキュメントのバージョン番号 (エディタ上で編集されるたびに変わる番号。いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
-type TextDocumentVersion = i64;
+use std::{mem::take, path::PathBuf, rc::Rc};
 
 const NO_VERSION: i64 = 1;
 
 #[derive(Default)]
 pub(super) struct LspModel {
-    last_doc: usize,
-    doc_to_uri: HashMap<DocId, Url>,
-    uri_to_doc: HashMap<Url, DocId>,
-    open_docs: HashSet<DocId>,
-    doc_versions: HashMap<DocId, TextDocumentVersion>,
     sem: ProjectSem,
     hsp_root: PathBuf,
-    file_watcher: Option<RecommendedWatcher>,
-    file_event_rx: Option<Receiver<DebouncedEvent>>,
+    docs_opt: Option<Docs>,
+    doc_changes: Vec<DocChange>,
 }
 
 fn canonicalize_uri(uri: Url) -> Url {
@@ -37,24 +24,6 @@ fn canonicalize_uri(uri: Url) -> Url {
         .and_then(|path| path.canonicalize().ok())
         .and_then(|path| Url::from_file_path(path).ok())
         .unwrap_or(uri)
-}
-
-fn file_ext_is_watched(path: &Path) -> bool {
-    path.extension()
-        .map_or(false, |ext| ext == "hsp" || ext == "as")
-}
-
-/// ファイルを shift_jis または UTF-8 として読む。
-fn read_file(file_path: &Path, out: &mut impl StringWriter, shift_jis: &dyn Encoding) -> bool {
-    let content = match fs::read(file_path).ok() {
-        None => return false,
-        Some(x) => x,
-    };
-
-    shift_jis
-        .decode_to(&content, DecoderTrap::Strict, out)
-        .or_else(|_| UTF8Encoding.decode_to(&content, DecoderTrap::Strict, out))
-        .is_ok()
 }
 
 fn loc_to_range(loc: syntax::Loc) -> Range {
@@ -83,13 +52,8 @@ impl LspModel {
         }
     }
 
-    fn fresh_doc(&mut self) -> DocId {
-        self.last_doc += 1;
-        DocId::new(self.last_doc)
-    }
-
     fn to_loc(&self, uri: &Url, position: Position) -> Option<syntax::Loc> {
-        let doc = self.uri_to_doc.get(uri).cloned()?;
+        let doc = self.docs_opt.as_ref()?.find_by_uri(uri)?;
 
         // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要
         let pos = syntax::Pos {
@@ -105,12 +69,14 @@ impl LspModel {
     }
 
     fn loc_to_location(&self, loc: syntax::Loc) -> Option<Location> {
-        let uri = self.doc_to_uri.get(&loc.doc)?.clone();
+        let uri = self.docs_opt.as_ref()?.get_uri(loc.doc)?.clone();
         let range = loc_to_range(loc);
         Some(Location { uri, range })
     }
 
     pub(super) fn did_initialize(&mut self) {
+        let mut docs = Docs::new(self.hsp_root.clone());
+
         debug!("hsphelp ファイルからシンボルを探索します。");
         let mut file_count = 0;
         let mut symbols = vec![];
@@ -122,7 +88,7 @@ impl LspModel {
             warn!("{}", w);
         }
 
-        let doc = self.fresh_doc();
+        let doc = docs.fresh_doc();
 
         let symbols = symbols
             .into_iter()
@@ -148,252 +114,72 @@ impl LspModel {
 
         self.sem.add_hs_symbols(doc, symbols);
 
-        self.scan_files();
+        docs.did_initialize();
 
-        if let Some((file_watcher, file_event_rx)) = self.start_file_watcher() {
-            self.file_watcher = Some(file_watcher);
-            self.file_event_rx = Some(file_event_rx);
-        }
-    }
-
-    fn scan_files(&mut self) -> Option<()> {
-        let current_dir = std::env::current_dir()
-            .map_err(|err| warn!("カレントディレクトリの取得 {:?}", err))
-            .ok()?;
-
-        let glob_pattern = format!("{}/**/*.hsp", current_dir.to_str()?);
-
-        debug!("ファイルリストを取得します '{}'", glob_pattern);
-
-        let entries = match glob::glob(&glob_pattern) {
-            Err(err) => {
-                warn!("ファイルリストの取得 {:?}", err);
-                return None;
-            }
-            Ok(entries) => entries,
-        };
-
-        for entry in entries {
-            match entry {
-                Err(err) => warn!("ファイルエントリの取得 {:?}", err),
-                Ok(path) => {
-                    self.change_file(&path);
-                }
-            }
-        }
-
-        None
-    }
-
-    fn start_file_watcher(&mut self) -> Option<(RecommendedWatcher, Receiver<DebouncedEvent>)> {
-        debug!("ファイルウォッチャーを起動します");
-
-        use notify::{RecursiveMode, Watcher};
-        use std::sync::mpsc::channel;
-        use std::time::Duration;
-
-        let delay_millis = 1000;
-
-        let current_dir = std::env::current_dir()
-            .map_err(|err| warn!("カレントディレクトリの取得 {:?}", err))
-            .ok()?;
-
-        let (tx, rx) = channel();
-
-        let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_millis(delay_millis))
-            .map_err(|err| warn!("ファイルウォッチャーの作成 {:?}", err))
-            .ok()?;
-
-        watcher
-            .watch(&current_dir, RecursiveMode::Recursive)
-            .map_err(|err| warn!("ファイルウォッチャーの起動 {:?}", err))
-            .ok()?;
-
-        debug!("ファイルウォッチャーを起動しました ({:?})", current_dir);
-        Some((watcher, rx))
+        self.docs_opt = Some(docs);
     }
 
     fn poll(&mut self) {
-        let rx = match self.file_event_rx.as_mut() {
-            None => return,
-            Some(rx) => rx,
-        };
-
-        debug!("ファイルウォッチャーのイベントをポールします。");
-
-        let mut rescan = false;
-        let mut updated_paths = HashSet::new();
-        let mut removed_paths = HashSet::new();
-        let mut disconnected = false;
-
-        loop {
-            match rx.try_recv() {
-                Ok(DebouncedEvent::Create(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが作成されました: {:?}", path);
-                    updated_paths.insert(path.clone());
-                }
-                Ok(DebouncedEvent::Write(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが変更されました: {:?}", path);
-                    updated_paths.insert(path.clone());
-                }
-                Ok(DebouncedEvent::Remove(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが削除されました: {:?}", path);
-                    removed_paths.insert(path.clone());
-                }
-                Ok(DebouncedEvent::Rename(ref src_path, ref dest_path)) => {
-                    debug!("ファイルが移動しました: {:?} → {:?}", src_path, dest_path);
-                    if file_ext_is_watched(src_path) {
-                        removed_paths.insert(src_path.clone());
-                    }
-                    if file_ext_is_watched(dest_path) {
-                        updated_paths.insert(dest_path.clone());
-                    }
-                }
-                Ok(DebouncedEvent::Rescan) => {
-                    debug!("ファイルウォッチャーから再スキャンが要求されました");
-                    rescan = true;
-                }
-                Ok(ev) => {
-                    debug!("ファイルウォッチャーのイベントをスキップします: {:?}", ev);
-                }
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => {
-                    disconnected = true;
-                    break;
-                }
-            }
-        }
-
-        if rescan {
-            self.scan_files();
-        } else {
-            for path in updated_paths {
-                if removed_paths.contains(&path) {
-                    continue;
-                }
-                self.change_file(&path);
-            }
-
-            for path in removed_paths {
-                self.close_file(&path);
-            }
-        }
-
-        if disconnected {
-            self.shutdown_file_watcher();
+        if let Some(docs) = self.docs_opt.as_mut() {
+            docs.poll();
         }
     }
 
-    fn shutdown_file_watcher(&mut self) {
-        debug!("ファイルウォッチャーがシャットダウンしました。");
-        self.file_watcher.take();
-        self.file_event_rx.take();
+    fn notify_doc_changes_to_sem(&mut self) -> Option<()> {
+        let mut doc_changes = take(&mut self.doc_changes);
+
+        self.docs_opt.as_mut()?.drain_doc_changes(&mut doc_changes);
+        for change in doc_changes.drain(..) {
+            match change {
+                DocChange::Opened { doc, text } | DocChange::Changed { doc, text } => {
+                    self.sem.update_doc(doc, RcStr::from(text));
+                }
+                DocChange::Closed { doc } => self.sem.close_doc(doc),
+            }
+        }
+
+        assert!(doc_changes.is_empty());
+        self.doc_changes = doc_changes;
+        Some(())
     }
 
     pub(super) fn shutdown(&mut self) {
-        self.shutdown_file_watcher();
-    }
-
-    fn do_change_doc(&mut self, uri: Url, version: i64, text: String) {
-        debug!("追加または変更されたファイルを解析します {:?}", uri);
-
-        let doc = match self.uri_to_doc.get(&uri) {
-            None => {
-                let doc = self.fresh_doc();
-                self.doc_to_uri.insert(doc, uri.clone());
-                self.uri_to_doc.insert(uri, doc);
-                doc
-            }
-            Some(&doc) => doc,
-        };
-
-        self.doc_versions.insert(doc, version);
-        self.sem.update_doc(doc, text.into());
-    }
-
-    fn do_close_doc(&mut self, uri: Url) {
-        if let Some(&doc) = self.uri_to_doc.get(&uri) {
-            self.sem.close_doc(doc);
-            self.doc_to_uri.remove(&doc);
+        if let Some(mut docs) = self.docs_opt.take() {
+            docs.shutdown();
         }
-
-        self.uri_to_doc.remove(&uri);
     }
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = canonicalize_uri(uri);
 
-        self.do_change_doc(uri.clone(), version, text);
-
-        if let Some(&doc) = self.uri_to_doc.get(&uri) {
-            self.open_docs.insert(doc);
+        if let Some(docs) = self.docs_opt.as_mut() {
+            docs.open_doc(uri, version, text);
         }
 
+        self.notify_doc_changes_to_sem();
         self.poll();
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = canonicalize_uri(uri);
 
-        self.do_change_doc(uri.clone(), version, text);
-
-        if let Some(&doc) = self.uri_to_doc.get(&uri) {
-            self.open_docs.insert(doc);
+        if let Some(docs) = self.docs_opt.as_mut() {
+            docs.change_doc(uri, version, text);
         }
 
+        self.notify_doc_changes_to_sem();
         self.poll();
     }
 
     pub(super) fn close_doc(&mut self, uri: Url) {
         let uri = canonicalize_uri(uri);
 
-        if let Some(&doc) = self.uri_to_doc.get(&uri) {
-            self.open_docs.remove(&doc);
+        if let Some(docs) = self.docs_opt.as_mut() {
+            docs.close_doc(uri);
         }
 
+        self.notify_doc_changes_to_sem();
         self.poll();
-    }
-
-    pub(super) fn change_file(&mut self, path: &Path) -> Option<()> {
-        let shift_jis = encoding_from_windows_code_page(932).or_else(|| {
-            warn!("shift_jis エンコーディングの取得");
-            None
-        })?;
-
-        let uri = Url::from_file_path(path)
-            .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
-            .ok()?;
-        let uri = canonicalize_uri(uri);
-
-        let is_open = self
-            .uri_to_doc
-            .get(&uri)
-            .map_or(false, |doc| self.open_docs.contains(&doc));
-        if is_open {
-            debug!("ファイルは開かれているのでロードされません。");
-            return None;
-        }
-
-        let mut text = String::new();
-        if !read_file(path, &mut text, shift_jis) {
-            warn!("ファイルを開けません {:?}", path);
-        }
-
-        self.do_change_doc(uri, NO_VERSION, text);
-
-        None
-    }
-
-    pub(super) fn close_file(&mut self, path: &Path) -> Option<()> {
-        let uri = Url::from_file_path(path)
-            .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
-            .ok()?;
-
-        let uri = canonicalize_uri(uri);
-
-        self.do_close_doc(uri);
-
-        None
     }
 
     fn do_completion(&mut self, uri: &Url, position: Position) -> Option<CompletionList> {
@@ -669,9 +455,9 @@ impl LspModel {
                 }
 
                 let version = self
-                    .doc_versions
-                    .get(&loc.doc)
-                    .copied()
+                    .docs_opt
+                    .as_ref()?
+                    .get_version(loc.doc)
                     .unwrap_or(NO_VERSION);
 
                 let text_document = VersionedTextDocumentIdentifier {
