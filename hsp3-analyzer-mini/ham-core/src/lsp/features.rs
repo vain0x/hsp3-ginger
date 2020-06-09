@@ -1,3 +1,2 @@
+pub(crate) mod completion;
 pub(crate) mod hover;
-
-pub(crate) use hover::hover;

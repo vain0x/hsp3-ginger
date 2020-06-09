@@ -182,62 +182,17 @@ impl LspModel {
         self.poll();
     }
 
-    fn do_completion(&mut self, uri: &Url, position: Position) -> Option<CompletionList> {
-        let mut items = vec![];
-        let mut symbols = vec![];
+    fn do_completion(&mut self, uri: Url, position: Position) -> Option<CompletionList> {
+        let docs = self.docs_opt.as_ref()?;
 
-        let loc = self.to_loc(uri, position)?;
-
-        self.sem.get_symbol_list(loc.doc, loc.start, &mut symbols);
-
-        for symbol in symbols {
-            let kind = match symbol.kind {
-                sem::SymbolKind::Macro { ctype: true, .. }
-                | sem::SymbolKind::Command { ctype: true, .. } => CompletionItemKind::Function,
-                sem::SymbolKind::Label | sem::SymbolKind::Macro { .. } => {
-                    CompletionItemKind::Constant
-                }
-                sem::SymbolKind::Command { .. } => CompletionItemKind::Method, // :thinking_face:
-                sem::SymbolKind::Param { .. } | sem::SymbolKind::Static => {
-                    CompletionItemKind::Variable
-                }
-            };
-
-            items.push(CompletionItem {
-                kind: Some(kind),
-                label: symbol.name.to_string(),
-                detail: symbol.details.description.as_ref().map(|s| s.to_string()),
-                documentation: if symbol.details.documentation.is_empty() {
-                    None
-                } else {
-                    Some(Documentation::String(
-                        symbol.details.documentation.join("\r\n\r\n"),
-                    ))
-                },
-                filter_text: if symbol.name.as_str().starts_with("#") {
-                    Some(symbol.name.as_str().chars().skip(1).collect::<String>())
-                } else {
-                    None
-                },
-                data: Some(serde_json::to_value(&symbol.symbol_id).unwrap()),
-                ..CompletionItem::default()
-            })
-        }
-
-        Some(CompletionList {
-            is_incomplete: false,
-            items,
-        })
+        features::completion::completion(&uri, position, docs, &mut self.sem)
     }
 
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
 
-        self.do_completion(&uri, position)
-            .unwrap_or(CompletionList {
-                is_incomplete: true,
-                items: vec![],
-            })
+        self.do_completion(uri, position)
+            .unwrap_or_else(features::completion::incomplete_completion_list)
     }
 
     fn do_definitions(&mut self, uri: Url, position: Position) -> Option<Vec<Location>> {
@@ -304,7 +259,7 @@ impl LspModel {
 
         let sem = &mut self.sem;
         let docs = self.docs_opt.as_ref()?;
-        features::hover(uri, position, sem, &docs)
+        features::hover::hover(uri, position, sem, &docs)
     }
 
     fn do_references(
