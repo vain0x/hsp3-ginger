@@ -1,4 +1,4 @@
-use crate::lsp::*;
+use super::{LspNotification, LspResponse};
 use std::io;
 use std::io::Write as _;
 

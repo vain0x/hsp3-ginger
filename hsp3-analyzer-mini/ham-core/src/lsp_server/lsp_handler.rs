@@ -1,4 +1,5 @@
-use crate::{lang_service::LangService, lsp::*};
+use super::{LspMessageOpaque, LspNotification, LspReceiver, LspRequest, LspSender};
+use crate::lang_service::LangService;
 use lsp_types::*;
 use request::Request;
 use std::io;
