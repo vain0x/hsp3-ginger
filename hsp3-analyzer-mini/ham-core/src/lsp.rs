@@ -1,3 +1,4 @@
+pub(super) mod features;
 pub(super) mod lsp_handler;
 pub(super) mod lsp_main;
 pub(super) mod lsp_model;

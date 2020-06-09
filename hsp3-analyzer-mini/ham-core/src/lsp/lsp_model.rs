@@ -1,3 +1,4 @@
+use super::features;
 use crate::{
     canonical_uri::CanonicalUri,
     docs::{DocChange, Docs},
@@ -25,15 +26,6 @@ fn loc_to_range(loc: syntax::Loc) -> Range {
         Position::new(loc.start.row as u64, loc.start.col as u64),
         Position::new(loc.end.row as u64, loc.end.col as u64),
     )
-}
-
-fn plain_text_to_marked_string(text: String) -> MarkedString {
-    const PLAIN_LANG_ID: &str = "plaintext";
-
-    MarkedString::LanguageString(LanguageString {
-        language: PLAIN_LANG_ID.to_string(),
-        value: text,
-    })
 }
 
 impl LspModel {
@@ -310,50 +302,9 @@ impl LspModel {
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
 
-        let loc = self.to_loc(&uri, position)?;
-        let (symbol, symbol_loc) = self.sem.locate_symbol(loc.doc, loc.start)?;
-        let symbol_id = symbol.symbol_id;
-
-        let mut contents = vec![];
-        contents.push(plain_text_to_marked_string(symbol.name.to_string()));
-
-        if let Some(description) = symbol.details.description.as_ref() {
-            contents.push(plain_text_to_marked_string(description.to_string()));
-        }
-
-        contents.extend(
-            symbol
-                .details
-                .documentation
-                .iter()
-                .map(|text| plain_text_to_marked_string(text.to_string())),
-        );
-
-        {
-            let mut locs = vec![];
-            self.sem.get_symbol_defs(symbol_id, &mut locs);
-            let def_links = locs
-                .iter()
-                .filter_map(|&loc| {
-                    let location = self.loc_to_location(loc)?;
-                    let uri = location
-                        .uri
-                        .to_string()
-                        .replace("%3A", ":")
-                        .replace("\\", "/");
-                    let Position { line, character } = location.range.start;
-                    Some(format!("- [{}:{}:{}]({})", uri, line, character, uri))
-                })
-                .collect::<Vec<_>>();
-            if !def_links.is_empty() {
-                contents.push(MarkedString::from_markdown(def_links.join("\r\n")));
-            }
-        }
-
-        Some(Hover {
-            contents: HoverContents::Array(contents),
-            range: Some(loc_to_range(symbol_loc)),
-        })
+        let sem = &mut self.sem;
+        let docs = self.docs_opt.as_ref()?;
+        features::hover(uri, position, sem, &docs)
     }
 
     fn do_references(
