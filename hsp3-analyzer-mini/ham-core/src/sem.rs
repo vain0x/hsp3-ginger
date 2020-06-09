@@ -1,9 +1,10 @@
 //! FIXME: func, cfunc, cmd
 
-use crate::rc_str::RcStr;
-use crate::syntax::{DocId, Loc, Pos};
-use std::collections::HashMap;
-use std::rc::Rc;
+use crate::{
+    syntax::{DocId, Loc, Pos},
+    utils::rc_str::RcStr,
+};
+use std::{collections::HashMap, rc::Rc};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum SymbolKind {

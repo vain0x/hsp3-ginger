@@ -1,4 +1,4 @@
-use crate::id::Id;
+use crate::utils::id::Id;
 use std::rc::Rc;
 
 pub(crate) type DocId = Id<Doc>;

@@ -2,10 +2,9 @@ pub(crate) mod docs;
 
 use crate::{
     assists,
-    canonical_uri::CanonicalUri,
     help_source::collect_all_symbols,
-    rc_str::RcStr,
     sem::{self, ProjectSem},
+    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
 };
 use docs::{DocChange, Docs, NO_VERSION};
 use lsp_types::*;

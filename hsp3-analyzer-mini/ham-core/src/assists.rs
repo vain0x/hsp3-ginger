@@ -1,4 +1,4 @@
-use crate::{canonical_uri::CanonicalUri, lang_service::docs::Docs, syntax};
+use crate::{lang_service::docs::Docs, syntax, utils::canonical_uri::CanonicalUri};
 use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};
 
 pub(crate) mod completion;

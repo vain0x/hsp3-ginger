@@ -1,4 +1,7 @@
-use crate::{canonical_uri::CanonicalUri, rc_str::RcStr, syntax::DocId};
+use crate::{
+    syntax::DocId,
+    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
+};
 use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
 use notify::{DebouncedEvent, RecommendedWatcher};
 use std::collections::{HashMap, HashSet};
