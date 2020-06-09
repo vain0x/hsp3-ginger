@@ -62,12 +62,25 @@ impl<W: io::Write> LspHandler<W> {
         std::process::exit(0)
     }
 
+    fn send_publish_diagnostics(&mut self, uri: Url) {
+        let (version, diagnostics) = self.model.validate(&uri);
+
+        self.sender.send_notification(
+            "textDocument/publishDiagnostics",
+            PublishDiagnosticsParams {
+                uri,
+                version,
+                diagnostics,
+            },
+        );
+    }
+
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
         let uri = doc.uri.to_owned();
         self.model.open_doc(doc.uri, doc.version, doc.text);
 
-        self.text_document_did_open_or_change(uri);
+        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
@@ -82,20 +95,7 @@ impl<W: io::Write> LspHandler<W> {
 
         self.model.change_doc(doc.uri, version, text);
 
-        self.text_document_did_open_or_change(uri);
-    }
-
-    fn text_document_did_open_or_change(&mut self, uri: Url) {
-        let diagnostics = self.model.validate(uri.clone());
-
-        self.sender.send_notification(
-            "textDocument/publishDiagnostics",
-            PublishDiagnosticsParams {
-                uri,
-                version: None,
-                diagnostics,
-            },
-        );
+        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {

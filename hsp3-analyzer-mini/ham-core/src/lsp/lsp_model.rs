@@ -1,7 +1,7 @@
 use super::features;
 use crate::{
     canonical_uri::CanonicalUri,
-    docs::{DocChange, Docs},
+    docs::{DocChange, Docs, NO_VERSION},
     help_source::collect_all_symbols,
     rc_str::RcStr,
     sem::{self, ProjectSem},
@@ -222,7 +222,8 @@ impl LspModel {
         features::rename::rename(uri, position, new_name, docs, &mut self.sem)
     }
 
-    pub(super) fn validate(&mut self, _uri: Url) -> Vec<Diagnostic> {
-        vec![]
+    pub(super) fn validate(&mut self, _uri: &Url) -> (Option<i64>, Vec<Diagnostic>) {
+        // FIXME: 実装
+        (Some(NO_VERSION), vec![])
     }
 }
