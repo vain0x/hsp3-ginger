@@ -13,7 +13,7 @@ pub(crate) fn incomplete_completion_list() -> CompletionList {
 }
 
 pub(crate) fn completion(
-    uri: &Url,
+    uri: Url,
     position: Position,
     docs: &Docs,
     sem: &mut ProjectSem,
@@ -21,7 +21,7 @@ pub(crate) fn completion(
     let mut items = vec![];
     let mut symbols = vec![];
 
-    let loc = to_loc(uri, position, docs)?;
+    let loc = to_loc(&uri, position, docs)?;
 
     sem.get_symbol_list(loc.doc, loc.start, &mut symbols);
 

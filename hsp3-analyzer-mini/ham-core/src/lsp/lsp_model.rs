@@ -182,34 +182,24 @@ impl LspModel {
         self.poll();
     }
 
-    fn do_completion(&mut self, uri: Url, position: Position) -> Option<CompletionList> {
-        let docs = self.docs_opt.as_ref()?;
-        features::completion::completion(&uri, position, docs, &mut self.sem)
-    }
-
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
-        self.do_completion(uri, position)
-            .unwrap_or_else(features::completion::incomplete_completion_list)
-    }
 
-    fn do_definitions(&mut self, uri: Url, position: Position) -> Option<Vec<Location>> {
-        let docs = self.docs_opt.as_ref()?;
-        features::definitions::definitions(uri, position, docs, &mut self.sem)
+        let go = || {
+            let docs = self.docs_opt.as_ref()?;
+            features::completion::completion(uri, position, docs, &mut self.sem)
+        };
+        go().unwrap_or_else(features::completion::incomplete_completion_list)
     }
 
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
-        self.do_definitions(uri, position).unwrap_or(vec![])
-    }
 
-    fn do_document_highlight(
-        &mut self,
-        uri: Url,
-        position: Position,
-    ) -> Option<Vec<DocumentHighlight>> {
-        let docs = self.docs_opt.as_ref()?;
-        features::document_highlight::document_highlight(uri, position, docs, &mut self.sem)
+        let go = || {
+            let docs = self.docs_opt.as_ref()?;
+            features::definitions::definitions(uri, position, docs, &mut self.sem)
+        };
+        go().unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
@@ -218,11 +208,17 @@ impl LspModel {
         position: Position,
     ) -> Vec<DocumentHighlight> {
         self.poll();
-        self.do_document_highlight(uri, position).unwrap_or(vec![])
+
+        let go = || {
+            let docs = self.docs_opt.as_ref()?;
+            features::document_highlight::document_highlight(uri, position, docs, &mut self.sem)
+        };
+        go().unwrap_or(vec![])
     }
 
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
+
         let docs = self.docs_opt.as_ref()?;
         features::hover::hover(uri, position, docs, &mut self.sem)
     }
