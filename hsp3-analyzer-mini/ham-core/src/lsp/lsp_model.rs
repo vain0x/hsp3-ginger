@@ -19,14 +19,6 @@ pub(super) struct LspModel {
     doc_changes: Vec<DocChange>,
 }
 
-fn canonicalize_uri(uri: Url) -> Url {
-    uri.to_file_path()
-        .ok()
-        .and_then(|path| path.canonicalize().ok())
-        .and_then(|path| Url::from_file_path(path).ok())
-        .unwrap_or(uri)
-}
-
 fn loc_to_range(loc: syntax::Loc) -> Range {
     // FIXME: UTF-8 から UTF-16 基準のインデックスへの変換
     Range::new(
@@ -248,7 +240,6 @@ impl LspModel {
 
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
-        let uri = canonicalize_uri(uri);
 
         self.do_completion(&uri, position)
             .unwrap_or(CompletionList {
@@ -275,7 +266,6 @@ impl LspModel {
 
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
-        let uri = canonicalize_uri(uri);
 
         self.do_definitions(uri, position).unwrap_or(vec![])
     }
@@ -313,14 +303,12 @@ impl LspModel {
 
     pub(super) fn highlights(&mut self, uri: Url, position: Position) -> Vec<DocumentHighlight> {
         self.poll();
-        let uri = canonicalize_uri(uri);
 
         self.do_highlights(uri, position).unwrap_or(vec![])
     }
 
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
-        let uri = canonicalize_uri(uri);
 
         let loc = self.to_loc(&uri, position)?;
         let (symbol, symbol_loc) = self.sem.locate_symbol(loc.doc, loc.start)?;
@@ -399,7 +387,6 @@ impl LspModel {
         include_definition: bool,
     ) -> Vec<Location> {
         self.poll();
-        let uri = canonicalize_uri(uri);
 
         self.do_references(uri, position, include_definition)
             .unwrap_or(vec![])
@@ -411,7 +398,6 @@ impl LspModel {
         position: Position,
     ) -> Option<PrepareRenameResponse> {
         self.poll();
-        let uri = canonicalize_uri(uri);
 
         let loc = self.to_loc(&uri, position)?;
 
@@ -431,7 +417,6 @@ impl LspModel {
         new_name: String,
     ) -> Option<WorkspaceEdit> {
         self.poll();
-        let uri = canonicalize_uri(uri);
 
         // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
         let locs = {
