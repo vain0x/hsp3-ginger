@@ -5,6 +5,7 @@ pub(crate) mod completion;
 pub(crate) mod definitions;
 pub(crate) mod document_highlight;
 pub(crate) mod hover;
+pub(crate) mod references;
 
 fn plain_text_to_marked_string(text: String) -> MarkedString {
     const PLAIN_LANG_ID: &str = "plaintext";

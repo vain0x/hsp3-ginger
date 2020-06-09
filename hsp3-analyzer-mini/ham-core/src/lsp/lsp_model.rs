@@ -223,30 +223,6 @@ impl LspModel {
         features::hover::hover(uri, position, docs, &mut self.sem)
     }
 
-    fn do_references(
-        &mut self,
-        uri: Url,
-        position: Position,
-        include_definition: bool,
-    ) -> Option<Vec<Location>> {
-        let loc = self.to_loc(&uri, position)?;
-        let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
-        let symbol_id = symbol.symbol_id;
-
-        let mut locs = vec![];
-
-        if include_definition {
-            self.sem.get_symbol_defs(symbol_id, &mut locs);
-        }
-        self.sem.get_symbol_uses(symbol_id, &mut locs);
-
-        Some(
-            locs.into_iter()
-                .filter_map(|loc| self.loc_to_location(loc))
-                .collect(),
-        )
-    }
-
     pub(super) fn references(
         &mut self,
         uri: Url,
@@ -255,8 +231,11 @@ impl LspModel {
     ) -> Vec<Location> {
         self.poll();
 
-        self.do_references(uri, position, include_definition)
-            .unwrap_or(vec![])
+        let go = || {
+            let docs = self.docs_opt.as_ref()?;
+            features::references::references(uri, position, include_definition, docs, &mut self.sem)
+        };
+        go().unwrap_or(vec![])
     }
 
     pub(super) fn prepare_rename(
