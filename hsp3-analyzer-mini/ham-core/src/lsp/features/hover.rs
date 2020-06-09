@@ -5,8 +5,8 @@ use lsp_types::{Hover, HoverContents, MarkedString, Position, Url};
 pub(crate) fn hover(
     uri: Url,
     position: Position,
-    sem: &mut ProjectSem,
     docs: &Docs,
+    sem: &mut ProjectSem,
 ) -> Option<Hover> {
     let loc = to_loc(&uri, position, docs)?;
     let (symbol, symbol_loc) = sem.locate_symbol(loc.doc, loc.start)?;

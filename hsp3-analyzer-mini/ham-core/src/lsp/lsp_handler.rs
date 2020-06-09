@@ -141,7 +141,7 @@ impl<W: io::Write> LspHandler<W> {
         params: TextDocumentPositionParams,
     ) -> Vec<lsp_types::DocumentHighlight> {
         self.model
-            .highlights(params.text_document.uri, params.position)
+            .document_highlight(params.text_document.uri, params.position)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {

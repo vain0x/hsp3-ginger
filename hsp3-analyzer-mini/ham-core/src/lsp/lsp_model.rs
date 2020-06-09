@@ -184,72 +184,47 @@ impl LspModel {
 
     fn do_completion(&mut self, uri: Url, position: Position) -> Option<CompletionList> {
         let docs = self.docs_opt.as_ref()?;
-
         features::completion::completion(&uri, position, docs, &mut self.sem)
     }
 
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
-
         self.do_completion(uri, position)
             .unwrap_or_else(features::completion::incomplete_completion_list)
     }
 
     fn do_definitions(&mut self, uri: Url, position: Position) -> Option<Vec<Location>> {
         let docs = self.docs_opt.as_ref()?;
-
         features::definitions::definitions(uri, position, docs, &mut self.sem)
     }
 
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
-
         self.do_definitions(uri, position).unwrap_or(vec![])
     }
 
-    fn do_highlights(&mut self, uri: Url, position: Position) -> Option<Vec<DocumentHighlight>> {
-        let loc = self.to_loc(&uri, position)?;
-        let doc = loc.doc;
-        let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
-        let symbol_id = symbol.symbol_id;
-
-        let mut locs = vec![];
-        let mut highlights = vec![];
-
-        self.sem.get_symbol_defs(symbol_id, &mut locs);
-        highlights.extend(
-            locs.drain(..)
-                .map(|loc| (DocumentHighlightKind::Write, loc)),
-        );
-
-        self.sem.get_symbol_uses(symbol_id, &mut locs);
-        highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::Read, loc)));
-
-        highlights.retain(|(_, loc)| loc.doc == doc);
-
-        Some(
-            highlights
-                .into_iter()
-                .map(|(kind, loc)| DocumentHighlight {
-                    kind: Some(kind),
-                    range: loc_to_range(loc),
-                })
-                .collect(),
-        )
+    fn do_document_highlight(
+        &mut self,
+        uri: Url,
+        position: Position,
+    ) -> Option<Vec<DocumentHighlight>> {
+        let docs = self.docs_opt.as_ref()?;
+        features::document_highlight::document_highlight(uri, position, docs, &mut self.sem)
     }
 
-    pub(super) fn highlights(&mut self, uri: Url, position: Position) -> Vec<DocumentHighlight> {
+    pub(super) fn document_highlight(
+        &mut self,
+        uri: Url,
+        position: Position,
+    ) -> Vec<DocumentHighlight> {
         self.poll();
-
-        self.do_highlights(uri, position).unwrap_or(vec![])
+        self.do_document_highlight(uri, position).unwrap_or(vec![])
     }
 
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
-
-        let sem = &mut self.sem;
         let docs = self.docs_opt.as_ref()?;
-        features::hover::hover(uri, position, sem, &docs)
+        features::hover::hover(uri, position, docs, &mut self.sem)
     }
 
     fn do_references(
