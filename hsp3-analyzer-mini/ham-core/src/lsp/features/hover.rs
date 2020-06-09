@@ -1,47 +1,6 @@
-use crate::{canonical_uri::CanonicalUri, docs::Docs, sem::ProjectSem, syntax};
-use lsp_types::{
-    Hover, HoverContents, LanguageString, Location, MarkedString, Position, Range, Url,
-};
-
-fn plain_text_to_marked_string(text: String) -> MarkedString {
-    const PLAIN_LANG_ID: &str = "plaintext";
-
-    MarkedString::LanguageString(LanguageString {
-        language: PLAIN_LANG_ID.to_string(),
-        value: text,
-    })
-}
-
-fn loc_to_range(loc: syntax::Loc) -> Range {
-    // FIXME: UTF-8 から UTF-16 基準のインデックスへの変換
-    Range::new(
-        Position::new(loc.start.row as u64, loc.start.col as u64),
-        Position::new(loc.end.row as u64, loc.end.col as u64),
-    )
-}
-
-fn loc_to_location(loc: syntax::Loc, docs: &Docs) -> Option<Location> {
-    let uri = docs.get_uri(loc.doc)?.clone().into_url()?;
-    let range = loc_to_range(loc);
-    Some(Location { uri, range })
-}
-
-fn to_loc(uri: &Url, position: Position, docs: &Docs) -> Option<syntax::Loc> {
-    let uri = CanonicalUri::from_url(uri)?;
-    let doc = docs.find_by_uri(&uri)?;
-
-    // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要
-    let pos = syntax::Pos {
-        row: position.line as usize,
-        col: position.character as usize,
-    };
-
-    Some(syntax::Loc {
-        doc,
-        start: pos,
-        end: pos,
-    })
-}
+use super::{loc_to_location, loc_to_range, plain_text_to_marked_string, to_loc};
+use crate::{docs::Docs, sem::ProjectSem};
+use lsp_types::{Hover, HoverContents, MarkedString, Position, Url};
 
 pub(crate) fn hover(
     uri: Url,

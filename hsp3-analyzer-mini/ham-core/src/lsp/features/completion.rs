@@ -1,27 +1,9 @@
+use super::to_loc;
 use crate::{
-    canonical_uri::CanonicalUri,
     docs::Docs,
     sem::{self, ProjectSem},
-    syntax,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
-
-fn to_loc(uri: &Url, position: Position, docs: &Docs) -> Option<syntax::Loc> {
-    let uri = CanonicalUri::from_url(uri)?;
-    let doc = docs.find_by_uri(&uri)?;
-
-    // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要
-    let pos = syntax::Pos {
-        row: position.line as usize,
-        col: position.character as usize,
-    };
-
-    Some(syntax::Loc {
-        doc,
-        start: pos,
-        end: pos,
-    })
-}
 
 pub(crate) fn incomplete_completion_list() -> CompletionList {
     CompletionList {
