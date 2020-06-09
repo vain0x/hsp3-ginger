@@ -21,7 +21,7 @@ pub(crate) enum DocChange {
 
 /// テキストドキュメントを管理するもの。
 #[derive(Default)]
-pub(super) struct Docs {
+pub(crate) struct Docs {
     last_doc: usize,
     doc_to_uri: HashMap<DocId, CanonicalUri>,
     uri_to_doc: HashMap<CanonicalUri, DocId>,

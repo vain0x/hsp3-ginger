@@ -1,4 +1,4 @@
-use crate::lsp::*;
+use crate::{lang_service::LangService, lsp::*};
 use lsp_types::*;
 use request::Request;
 use std::io;
@@ -6,14 +6,14 @@ use std::path::PathBuf;
 
 pub(super) struct LspHandler<W: io::Write> {
     sender: LspSender<W>,
-    model: LspModel,
+    model: LangService,
 }
 
 impl<W: io::Write> LspHandler<W> {
     pub(crate) fn new(sender: LspSender<W>, hsp_root: PathBuf) -> Self {
         Self {
             sender,
-            model: LspModel::new(hsp_root),
+            model: LangService::new(hsp_root),
         }
     }
 

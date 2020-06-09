@@ -1,5 +1,5 @@
 use super::{loc_to_range, to_loc};
-use crate::{docs::Docs, sem::ProjectSem};
+use crate::{lang_service::docs::Docs, sem::ProjectSem};
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Url};
 
 pub(crate) fn document_highlight(

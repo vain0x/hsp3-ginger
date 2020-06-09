@@ -1,23 +1,25 @@
-use super::features;
+pub(crate) mod docs;
+
 use crate::{
+    assists,
     canonical_uri::CanonicalUri,
-    docs::{DocChange, Docs, NO_VERSION},
     help_source::collect_all_symbols,
     rc_str::RcStr,
     sem::{self, ProjectSem},
 };
+use docs::{DocChange, Docs, NO_VERSION};
 use lsp_types::*;
 use std::{mem::take, path::PathBuf, rc::Rc};
 
 #[derive(Default)]
-pub(super) struct LspModel {
+pub(super) struct LangService {
     sem: ProjectSem,
     hsp_root: PathBuf,
     docs_opt: Option<Docs>,
     doc_changes: Vec<DocChange>,
 }
 
-impl LspModel {
+impl LangService {
     pub(super) fn new(hsp_root: PathBuf) -> Self {
         Self {
             hsp_root,
@@ -148,9 +150,9 @@ impl LspModel {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            features::completion::completion(uri, position, docs, &mut self.sem)
+            assists::completion::completion(uri, position, docs, &mut self.sem)
         };
-        go().unwrap_or_else(features::completion::incomplete_completion_list)
+        go().unwrap_or_else(assists::completion::incomplete_completion_list)
     }
 
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
@@ -158,7 +160,7 @@ impl LspModel {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            features::definitions::definitions(uri, position, docs, &mut self.sem)
+            assists::definitions::definitions(uri, position, docs, &mut self.sem)
         };
         go().unwrap_or(vec![])
     }
@@ -172,7 +174,7 @@ impl LspModel {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            features::document_highlight::document_highlight(uri, position, docs, &mut self.sem)
+            assists::document_highlight::document_highlight(uri, position, docs, &mut self.sem)
         };
         go().unwrap_or(vec![])
     }
@@ -181,7 +183,7 @@ impl LspModel {
         self.poll();
 
         let docs = self.docs_opt.as_ref()?;
-        features::hover::hover(uri, position, docs, &mut self.sem)
+        assists::hover::hover(uri, position, docs, &mut self.sem)
     }
 
     pub(super) fn references(
@@ -194,7 +196,7 @@ impl LspModel {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            features::references::references(uri, position, include_definition, docs, &mut self.sem)
+            assists::references::references(uri, position, include_definition, docs, &mut self.sem)
         };
         go().unwrap_or(vec![])
     }
@@ -207,7 +209,7 @@ impl LspModel {
         self.poll();
 
         let docs = self.docs_opt.as_ref()?;
-        features::rename::prepare_rename(uri, position, docs, &mut self.sem)
+        assists::rename::prepare_rename(uri, position, docs, &mut self.sem)
     }
 
     pub(super) fn rename(
@@ -219,7 +221,7 @@ impl LspModel {
         self.poll();
 
         let docs = self.docs_opt.as_ref()?;
-        features::rename::rename(uri, position, new_name, docs, &mut self.sem)
+        assists::rename::rename(uri, position, new_name, docs, &mut self.sem)
     }
 
     pub(super) fn validate(&mut self, _uri: &Url) -> (Option<i64>, Vec<Diagnostic>) {

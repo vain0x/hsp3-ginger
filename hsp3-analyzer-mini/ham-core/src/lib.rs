@@ -1,10 +1,11 @@
 #[macro_use]
 extern crate log;
 
+mod assists;
 mod canonical_uri;
-mod docs;
 mod help_source;
 mod id;
+mod lang_service;
 mod lsp;
 mod rc_str;
 mod sem;

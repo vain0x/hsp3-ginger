@@ -1,6 +1,6 @@
 use super::to_loc;
 use crate::{
-    docs::Docs,
+    lang_service::docs::Docs,
     sem::{self, ProjectSem},
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};

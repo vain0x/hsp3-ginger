@@ -1,6 +1,6 @@
 use super::{loc_to_location, loc_to_range, to_loc};
 use crate::{
-    docs::{self, Docs},
+    lang_service::docs::{self, Docs},
     sem::ProjectSem,
 };
 use lsp_types::{

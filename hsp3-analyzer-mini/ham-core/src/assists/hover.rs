@@ -1,5 +1,5 @@
 use super::{loc_to_location, loc_to_range, plain_text_to_marked_string, to_loc};
-use crate::{docs::Docs, sem::ProjectSem};
+use crate::{lang_service::docs::Docs, sem::ProjectSem};
 use lsp_types::{Hover, HoverContents, MarkedString, Position, Url};
 
 pub(crate) fn hover(
