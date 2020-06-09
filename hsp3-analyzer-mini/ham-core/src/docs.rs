@@ -1,9 +1,8 @@
-use crate::{rc_str::RcStr, syntax::DocId};
+use crate::{canonical_uri::CanonicalUri, rc_str::RcStr, syntax::DocId};
 use encoding::{
     codec::utf_8::UTF8Encoding, label::encoding_from_windows_code_page, DecoderTrap, Encoding,
     StringWriter,
 };
-use lsp_types::*;
 use notify::{DebouncedEvent, RecommendedWatcher};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -27,8 +26,8 @@ pub(crate) enum DocChange {
 #[derive(Default)]
 pub(super) struct Docs {
     last_doc: usize,
-    doc_to_uri: HashMap<DocId, Url>,
-    uri_to_doc: HashMap<Url, DocId>,
+    doc_to_uri: HashMap<DocId, CanonicalUri>,
+    uri_to_doc: HashMap<CanonicalUri, DocId>,
     open_docs: HashSet<DocId>,
     doc_versions: HashMap<DocId, TextDocumentVersion>,
     // hsphelp や common の下をウォッチするのに使う
@@ -58,7 +57,7 @@ impl Docs {
         DocId::new(self.last_doc)
     }
 
-    fn resolve_uri(&mut self, uri: Url) -> DocId {
+    fn resolve_uri(&mut self, uri: CanonicalUri) -> DocId {
         match self.uri_to_doc.get(&uri) {
             Some(&doc) => doc,
             None => {
@@ -70,11 +69,11 @@ impl Docs {
         }
     }
 
-    pub(crate) fn find_by_uri(&self, uri: &Url) -> Option<DocId> {
+    pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
         self.uri_to_doc.get(uri).cloned()
     }
 
-    pub(crate) fn get_uri(&self, doc: DocId) -> Option<&Url> {
+    pub(crate) fn get_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
         self.doc_to_uri.get(&doc)
     }
 
@@ -233,7 +232,7 @@ impl Docs {
         self.shutdown_file_watcher();
     }
 
-    fn do_open_doc(&mut self, uri: Url, version: i64, text: RcStr) -> DocId {
+    fn do_open_doc(&mut self, uri: CanonicalUri, version: i64, text: RcStr) -> DocId {
         let doc = self.resolve_uri(uri);
 
         self.doc_versions.insert(doc, version);
@@ -242,13 +241,13 @@ impl Docs {
         doc
     }
 
-    fn do_change_doc(&mut self, uri: Url, version: i64, text: RcStr) {
+    fn do_change_doc(&mut self, uri: CanonicalUri, version: i64, text: RcStr) {
         let doc = self.resolve_uri(uri);
         self.doc_versions.insert(doc, version);
         self.doc_changes.push(DocChange::Changed { doc, text });
     }
 
-    fn do_close_doc(&mut self, uri: Url) {
+    fn do_close_doc(&mut self, uri: CanonicalUri) {
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.doc_to_uri.remove(&doc);
             self.doc_changes.push(DocChange::Closed { doc })
@@ -257,9 +256,7 @@ impl Docs {
         self.uri_to_doc.remove(&uri);
     }
 
-    pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
-        let uri = canonicalize_uri(uri);
-
+    pub(super) fn open_doc(&mut self, uri: CanonicalUri, version: i64, text: String) {
         self.do_open_doc(uri.clone(), version, text.into());
 
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
@@ -269,17 +266,13 @@ impl Docs {
         self.poll();
     }
 
-    pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
-        let uri = canonicalize_uri(uri);
-
+    pub(super) fn change_doc(&mut self, uri: CanonicalUri, version: i64, text: String) {
         self.do_change_doc(uri.clone(), version, text.into());
 
         self.poll();
     }
 
-    pub(super) fn close_doc(&mut self, uri: Url) {
-        let uri = canonicalize_uri(uri);
-
+    pub(super) fn close_doc(&mut self, uri: CanonicalUri) {
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.open_docs.remove(&doc);
         }
@@ -293,10 +286,7 @@ impl Docs {
             None
         })?;
 
-        let uri = Url::from_file_path(path)
-            .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
-            .ok()?;
-        let uri = canonicalize_uri(uri);
+        let uri = CanonicalUri::from_file_path(path)?;
 
         let is_open = self
             .uri_to_doc
@@ -318,24 +308,12 @@ impl Docs {
     }
 
     pub(super) fn close_file(&mut self, path: &Path) -> Option<()> {
-        let uri = Url::from_file_path(path)
-            .map_err(|err| warn!("URL の作成 {:?} {:?}", path, err))
-            .ok()?;
-
-        let uri = canonicalize_uri(uri);
+        let uri = CanonicalUri::from_file_path(path)?;
 
         self.do_close_doc(uri);
 
         None
     }
-}
-
-fn canonicalize_uri(uri: Url) -> Url {
-    uri.to_file_path()
-        .ok()
-        .and_then(|path| path.canonicalize().ok())
-        .and_then(|path| Url::from_file_path(path).ok())
-        .unwrap_or(uri)
 }
 
 fn file_ext_is_watched(path: &Path) -> bool {

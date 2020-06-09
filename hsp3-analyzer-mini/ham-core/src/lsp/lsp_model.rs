@@ -1,4 +1,5 @@
 use crate::{
+    canonical_uri::CanonicalUri,
     docs::{DocChange, Docs},
     help_source::collect_all_symbols,
     rc_str::RcStr,
@@ -53,7 +54,8 @@ impl LspModel {
     }
 
     fn to_loc(&self, uri: &Url, position: Position) -> Option<syntax::Loc> {
-        let doc = self.docs_opt.as_ref()?.find_by_uri(uri)?;
+        let uri = CanonicalUri::from_url(uri)?;
+        let doc = self.docs_opt.as_ref()?.find_by_uri(&uri)?;
 
         // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要
         let pos = syntax::Pos {
@@ -69,7 +71,12 @@ impl LspModel {
     }
 
     fn loc_to_location(&self, loc: syntax::Loc) -> Option<Location> {
-        let uri = self.docs_opt.as_ref()?.get_uri(loc.doc)?.clone();
+        let uri = self
+            .docs_opt
+            .as_ref()?
+            .get_uri(loc.doc)?
+            .clone()
+            .into_url()?;
         let range = loc_to_range(loc);
         Some(Location { uri, range })
     }
@@ -150,7 +157,10 @@ impl LspModel {
     }
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
-        let uri = canonicalize_uri(uri);
+        let uri = match CanonicalUri::from_url(&uri) {
+            Some(uri) => uri,
+            None => return,
+        };
 
         if let Some(docs) = self.docs_opt.as_mut() {
             docs.open_doc(uri, version, text);
@@ -161,7 +171,10 @@ impl LspModel {
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
-        let uri = canonicalize_uri(uri);
+        let uri = match CanonicalUri::from_url(&uri) {
+            Some(uri) => uri,
+            None => return,
+        };
 
         if let Some(docs) = self.docs_opt.as_mut() {
             docs.change_doc(uri, version, text);
@@ -172,7 +185,10 @@ impl LspModel {
     }
 
     pub(super) fn close_doc(&mut self, uri: Url) {
-        let uri = canonicalize_uri(uri);
+        let uri = match CanonicalUri::from_url(&uri) {
+            Some(uri) => uri,
+            None => return,
+        };
 
         if let Some(docs) = self.docs_opt.as_mut() {
             docs.close_doc(uri);
