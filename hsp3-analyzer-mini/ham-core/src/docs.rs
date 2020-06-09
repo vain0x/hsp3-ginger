@@ -1,8 +1,5 @@
 use crate::{canonical_uri::CanonicalUri, rc_str::RcStr, syntax::DocId};
-use encoding::{
-    codec::utf_8::UTF8Encoding, label::encoding_from_windows_code_page, DecoderTrap, Encoding,
-    StringWriter,
-};
+use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
 use notify::{DebouncedEvent, RecommendedWatcher};
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -281,11 +278,6 @@ impl Docs {
     }
 
     pub(super) fn change_file(&mut self, path: &Path) -> Option<()> {
-        let shift_jis = encoding_from_windows_code_page(932).or_else(|| {
-            warn!("shift_jis エンコーディングの取得");
-            None
-        })?;
-
         let uri = CanonicalUri::from_file_path(path)?;
 
         let is_open = self
@@ -298,7 +290,7 @@ impl Docs {
         }
 
         let mut text = String::new();
-        if !read_file(path, &mut text, shift_jis) {
+        if !read_file(path, &mut text) {
             warn!("ファイルを開けません {:?}", path);
         }
 
@@ -322,13 +314,15 @@ fn file_ext_is_watched(path: &Path) -> bool {
 }
 
 /// ファイルを shift_jis または UTF-8 として読む。
-fn read_file(file_path: &Path, out: &mut impl StringWriter, shift_jis: &dyn Encoding) -> bool {
+fn read_file(file_path: &Path, out: &mut impl StringWriter) -> bool {
+    // utf-8?
     let content = match fs::read(file_path).ok() {
         None => return false,
         Some(x) => x,
     };
 
-    shift_jis
+    // shift-jis?
+    encoding::all::WINDOWS_31J
         .decode_to(&content, DecoderTrap::Strict, out)
         .or_else(|_| UTF8Encoding.decode_to(&content, DecoderTrap::Strict, out))
         .is_ok()
