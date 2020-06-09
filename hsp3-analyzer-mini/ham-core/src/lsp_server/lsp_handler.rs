@@ -1,7 +1,14 @@
 use super::{LspMessageOpaque, LspNotification, LspReceiver, LspRequest, LspSender};
 use crate::lang_service::LangService;
-use lsp_types::*;
-use request::Request;
+use lsp_types::{
+    request::{self, Request},
+    CompletionItem, CompletionList, CompletionOptions, CompletionParams,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, Hover,
+    InitializeParams, InitializeResult, Location, PrepareRenameResponse, PublishDiagnosticsParams,
+    ReferenceParams, RenameOptions, RenameParams, RenameProviderCapability, ServerCapabilities,
+    ServerInfo, TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, Url, WorkDoneProgressOptions, WorkspaceEdit,
+};
 use std::io;
 use std::path::PathBuf;
 
