@@ -196,19 +196,9 @@ impl LspModel {
     }
 
     fn do_definitions(&mut self, uri: Url, position: Position) -> Option<Vec<Location>> {
-        let loc = self.to_loc(&uri, position)?;
-        let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
-        let symbol_id = symbol.symbol_id;
+        let docs = self.docs_opt.as_ref()?;
 
-        let mut locs = vec![];
-
-        self.sem.get_symbol_defs(symbol_id, &mut locs);
-
-        Some(
-            locs.into_iter()
-                .filter_map(|loc| self.loc_to_location(loc))
-                .collect(),
-        )
+        features::definitions::definitions(uri, position, docs, &mut self.sem)
     }
 
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {

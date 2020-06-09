@@ -2,6 +2,7 @@ use crate::{canonical_uri::CanonicalUri, docs::Docs, syntax};
 use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};
 
 pub(crate) mod completion;
+pub(crate) mod definitions;
 pub(crate) mod hover;
 
 fn plain_text_to_marked_string(text: String) -> MarkedString {
