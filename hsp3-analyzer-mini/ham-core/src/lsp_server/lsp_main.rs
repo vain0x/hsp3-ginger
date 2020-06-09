@@ -10,6 +10,8 @@ fn init_log() {
     use simplelog::{Config, WriteLogger};
     use std::{env::temp_dir, fs::OpenOptions};
 
+    let does_append = cfg!(debug_assertions);
+
     let log_filter = if cfg!(debug_assertions) {
         LevelFilter::Debug
     } else {
@@ -24,7 +26,7 @@ fn init_log() {
 
     let file = OpenOptions::new()
         .create(true)
-        .append(true)
+        .append(does_append)
         .open(file_path)
         .expect("log file creation");
 
