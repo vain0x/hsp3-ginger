@@ -14,29 +14,29 @@ pub(self) use lsp_sender::LspSender;
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct LspRequest<Params> {
-    pub jsonrpc: String,
-    pub id: i64,
-    pub method: String,
-    pub params: Params,
+    pub(crate) jsonrpc: String,
+    pub(crate) id: i64,
+    pub(crate) method: String,
+    pub(crate) params: Params,
 }
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct LspResponse<Result> {
-    pub jsonrpc: String,
-    pub id: i64,
-    pub result: Result,
+    pub(crate) jsonrpc: String,
+    pub(crate) id: i64,
+    pub(crate) result: Result,
 }
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct LspNotification<Params> {
-    pub jsonrpc: String,
-    pub method: String,
-    pub params: Params,
+    pub(crate) jsonrpc: String,
+    pub(crate) method: String,
+    pub(crate) params: Params,
 }
 
 /// LSP message (request or notification) without results/params
 /// just for deserialization.
 #[derive(Deserialize)]
 pub(super) struct LspMessageOpaque {
-    pub method: String,
+    pub(crate) method: String,
 }

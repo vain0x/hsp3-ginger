@@ -11,9 +11,9 @@ const EOL: &str = "\r\n";
 /// ヘルプソースファイルから抽出したシンボル情報
 #[derive(Clone, Debug, Default)]
 pub(crate) struct HsSymbol {
-    pub name: String,
-    pub description: Option<String>,
-    pub documentation: Vec<String>,
+    pub(crate) name: String,
+    pub(crate) description: Option<String>,
+    pub(crate) documentation: Vec<String>,
 }
 
 fn str_is_whitespace(s: &str) -> bool {

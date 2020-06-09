@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 pub(crate) struct Id<T>(usize, PhantomData<T>);
 
 impl<T> Id<T> {
-    pub const fn new(id: usize) -> Self {
+    pub(crate) const fn new(id: usize) -> Self {
         Id(id, PhantomData)
     }
 }

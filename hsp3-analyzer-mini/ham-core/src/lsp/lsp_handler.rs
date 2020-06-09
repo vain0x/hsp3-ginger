@@ -10,7 +10,7 @@ pub(super) struct LspHandler<W: io::Write> {
 }
 
 impl<W: io::Write> LspHandler<W> {
-    pub fn new(sender: LspSender<W>, hsp_root: PathBuf) -> Self {
+    pub(crate) fn new(sender: LspSender<W>, hsp_root: PathBuf) -> Self {
         Self {
             sender,
             model: LspModel::new(hsp_root),
@@ -264,7 +264,7 @@ impl<W: io::Write> LspHandler<W> {
         }
     }
 
-    pub fn main(mut self, mut receiver: LspReceiver<impl io::Read>) {
+    pub(crate) fn main(mut self, mut receiver: LspReceiver<impl io::Read>) {
         loop {
             receiver.read_next(|json| self.did_receive(json));
         }

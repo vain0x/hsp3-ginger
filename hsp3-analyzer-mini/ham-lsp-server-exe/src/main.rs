@@ -79,6 +79,6 @@ fn switch_on_args(mut args: ArgsOs) {
     }
 }
 
-pub fn main() {
+fn main() {
     switch_on_args(std::env::args_os())
 }

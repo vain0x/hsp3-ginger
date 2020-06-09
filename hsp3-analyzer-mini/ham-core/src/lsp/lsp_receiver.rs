@@ -49,7 +49,7 @@ impl<R: io::Read> LspReceiver<R> {
         f(&json);
     }
 
-    pub fn new(reader: R) -> Self {
+    pub(crate) fn new(reader: R) -> Self {
         LspReceiver {
             content: vec![],
             line: String::new(),

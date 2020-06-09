@@ -7,7 +7,7 @@ pub(super) struct LspSender<W: io::Write> {
 }
 
 impl<W: io::Write> LspSender<W> {
-    pub fn new(out: W) -> LspSender<W> {
+    pub(crate) fn new(out: W) -> LspSender<W> {
         LspSender {
             out: io::BufWriter::new(out),
         }
@@ -31,7 +31,7 @@ impl<W: io::Write> LspSender<W> {
         );
     }
 
-    pub fn send_notification<P: serde::Serialize>(&mut self, method: &str, params: P) {
+    pub(crate) fn send_notification<P: serde::Serialize>(&mut self, method: &str, params: P) {
         let mut buf = Vec::new();
         serde_json::to_writer(
             &mut buf,
@@ -46,7 +46,7 @@ impl<W: io::Write> LspSender<W> {
         self.do_send(&buf);
     }
 
-    pub fn send_response<R: serde::Serialize>(&mut self, id: i64, result: R) {
+    pub(crate) fn send_response<R: serde::Serialize>(&mut self, id: i64, result: R) {
         let mut buf = Vec::new();
         serde_json::to_writer(
             &mut buf,
