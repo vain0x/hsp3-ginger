@@ -10,7 +10,6 @@ use lsp_types::{
     TextDocumentSyncOptions, Url, WorkDoneProgressOptions, WorkspaceEdit,
 };
 use std::io;
-use std::path::PathBuf;
 
 pub(super) struct LspHandler<W: io::Write> {
     sender: LspSender<W>,
@@ -18,11 +17,8 @@ pub(super) struct LspHandler<W: io::Write> {
 }
 
 impl<W: io::Write> LspHandler<W> {
-    pub(crate) fn new(sender: LspSender<W>, hsp_root: PathBuf) -> Self {
-        Self {
-            sender,
-            model: LangService::new(hsp_root),
-        }
+    pub(crate) fn new(sender: LspSender<W>, model: LangService) -> Self {
+        Self { sender, model }
     }
 
     fn initialize<'a>(&'a mut self, _params: InitializeParams) -> InitializeResult {

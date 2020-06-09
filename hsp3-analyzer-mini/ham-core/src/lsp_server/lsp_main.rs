@@ -1,4 +1,5 @@
 use super::{LspHandler, LspReceiver, LspSender};
+use crate::lang_service::LangService;
 use std::{
     io::{stdin, stdout},
     path::PathBuf,
@@ -43,6 +44,7 @@ pub fn start_lsp_server(hsp_root: PathBuf) {
     let stdout = stdout();
     let stdout = stdout.lock();
     let sender = LspSender::new(stdout);
-    let handler = LspHandler::new(sender, hsp_root);
+    let lang_service = LangService::new(hsp_root);
+    let handler = LspHandler::new(sender, lang_service);
     handler.main(receiver);
 }
