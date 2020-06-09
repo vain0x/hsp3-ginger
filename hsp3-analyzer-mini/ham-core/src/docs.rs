@@ -11,7 +11,7 @@ use std::sync::mpsc::{Receiver, TryRecvError};
 ///  いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
 type TextDocumentVersion = i64;
 
-const NO_VERSION: i64 = 1;
+pub(crate) const NO_VERSION: i64 = 1;
 
 pub(crate) enum DocChange {
     Opened { doc: DocId, text: RcStr },

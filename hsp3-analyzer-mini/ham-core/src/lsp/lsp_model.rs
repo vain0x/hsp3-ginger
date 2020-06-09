@@ -5,12 +5,9 @@ use crate::{
     help_source::collect_all_symbols,
     rc_str::RcStr,
     sem::{self, ProjectSem},
-    syntax,
 };
 use lsp_types::*;
 use std::{mem::take, path::PathBuf, rc::Rc};
-
-const NO_VERSION: i64 = 1;
 
 #[derive(Default)]
 pub(super) struct LspModel {
@@ -20,14 +17,6 @@ pub(super) struct LspModel {
     doc_changes: Vec<DocChange>,
 }
 
-fn loc_to_range(loc: syntax::Loc) -> Range {
-    // FIXME: UTF-8 から UTF-16 基準のインデックスへの変換
-    Range::new(
-        Position::new(loc.start.row as u64, loc.start.col as u64),
-        Position::new(loc.end.row as u64, loc.end.col as u64),
-    )
-}
-
 impl LspModel {
     pub(super) fn new(hsp_root: PathBuf) -> Self {
         Self {
@@ -35,34 +24,6 @@ impl LspModel {
             sem: sem::ProjectSem::new(),
             ..Default::default()
         }
-    }
-
-    fn to_loc(&self, uri: &Url, position: Position) -> Option<syntax::Loc> {
-        let uri = CanonicalUri::from_url(uri)?;
-        let doc = self.docs_opt.as_ref()?.find_by_uri(&uri)?;
-
-        // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要
-        let pos = syntax::Pos {
-            row: position.line as usize,
-            col: position.character as usize,
-        };
-
-        Some(syntax::Loc {
-            doc,
-            start: pos,
-            end: pos,
-        })
-    }
-
-    fn loc_to_location(&self, loc: syntax::Loc) -> Option<Location> {
-        let uri = self
-            .docs_opt
-            .as_ref()?
-            .get_uri(loc.doc)?
-            .clone()
-            .into_url()?;
-        let range = loc_to_range(loc);
-        Some(Location { uri, range })
     }
 
     pub(super) fn did_initialize(&mut self) {
@@ -245,15 +206,8 @@ impl LspModel {
     ) -> Option<PrepareRenameResponse> {
         self.poll();
 
-        let loc = self.to_loc(&uri, position)?;
-
-        // カーソル直下にシンボルがなければ変更しない。
-        if self.sem.locate_symbol(loc.doc, loc.start).is_none() {
-            return None;
-        }
-
-        let range = loc_to_range(loc);
-        Some(PrepareRenameResponse::Range(range))
+        let docs = self.docs_opt.as_ref()?;
+        features::rename::prepare_rename(uri, position, docs, &mut self.sem)
     }
 
     pub(super) fn rename(
@@ -264,78 +218,11 @@ impl LspModel {
     ) -> Option<WorkspaceEdit> {
         self.poll();
 
-        // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
-        let locs = {
-            let loc = self.to_loc(&uri, position)?;
-            let (symbol, _) = self.sem.locate_symbol(loc.doc, loc.start)?;
-            let symbol_id = symbol.symbol_id;
-
-            let mut locs = vec![];
-            self.sem.get_symbol_defs(symbol_id, &mut locs);
-            self.sem.get_symbol_uses(symbol_id, &mut locs);
-            if locs.is_empty() {
-                return None;
-            }
-
-            // 1つの出現箇所が定義と使用の両方にカウントされてしまうケースがあるようなので、重複を削除する。
-            // (重複した変更をレスポンスに含めると名前の変更に失敗する。)
-            locs.sort();
-            locs.dedup();
-
-            locs
-        };
-
-        // 名前変更の編集手順を構築する。(シンボルが書かれている位置をすべて新しい名前で置き換える。)
-        let changes = {
-            let mut edits = vec![];
-            for loc in locs {
-                let location = match self.loc_to_location(loc) {
-                    Some(location) => location,
-                    None => continue,
-                };
-
-                let (uri, range) = (location.uri, location.range);
-
-                // common ディレクトリのファイルは変更しない。
-                if uri.as_str().contains("common") {
-                    return None;
-                }
-
-                let version = self
-                    .docs_opt
-                    .as_ref()?
-                    .get_version(loc.doc)
-                    .unwrap_or(NO_VERSION);
-
-                let text_document = VersionedTextDocumentIdentifier {
-                    uri,
-                    version: Some(version),
-                };
-                let text_edit = TextEdit {
-                    range,
-                    new_text: new_name.to_string(),
-                };
-
-                edits.push(TextDocumentEdit {
-                    text_document,
-                    edits: vec![text_edit],
-                });
-            }
-
-            DocumentChanges::Edits(edits)
-        };
-
-        Some(WorkspaceEdit {
-            document_changes: Some(changes),
-            ..WorkspaceEdit::default()
-        })
+        let docs = self.docs_opt.as_ref()?;
+        features::rename::rename(uri, position, new_name, docs, &mut self.sem)
     }
 
     pub(super) fn validate(&mut self, _uri: Url) -> Vec<Diagnostic> {
-        // self.poll();
-        // let uri = canonicalize_uri(uri);
-
-        // features::diagnostics::sem_to_diagnostics(&analysis.sem)
         vec![]
     }
 }
