@@ -4,55 +4,150 @@
 // UTF-8 ランタイムでしか動作しない。
 #include "hsp3utf.as"
 
+#include "hsedsdk.as"
 #include "mod_ham_lsp_server.hsp"
+
+#module m_hamls_example
+
+#deffunc hamls_init
+
+    dim s_active_footy_id
+    dim s_caret_line
+    dim s_caret_character
+
+    s_text_capacity = 0x1000
+    sdim s_text, s_text_capacity
+    dim s_text_len
+
+    s_hover_text_capacity = 0x1000
+    sdim s_hover_text, s_hover_text_capacity
+    dim s_hover_text_len
 
     s_hsp3_root = dir_exe
     s_hsp3_root_len = strlen(s_hsp3_root)
 
+    // FIXME: 相対パスは受け付けてくれない？
+    s_file_path = dir_cur + "/mod_ham_lsp_server_example.hsp"
+    s_file_path_len = strlen(s_file_path)
+    s_version = 1
+
     // 言語サーバーを生成する。
-    ham_create varptr(s_hsp3_root), s_hsp3_root_len
+    ham_create s_hsp3_root, s_hsp3_root_len
     s_ham = stat
     if s_ham == 0 {
         mes "ham_create に失敗しました。"
         goto *l_fail
     }
 
-    // FIXME: 相対パスは受け付けてくれない？
-    s_file_path = dir_cur + "/mod_ham_lsp_server_example.hsp"
-    s_file_path_len = strlen(s_file_path)
-    s_version = 1
-    s_text = "mes 1\n"
-    s_text_len = strlen(s_text)
-
+    // ファイルを開く。
     ham_doc_did_open s_ham, varptr(s_file_path), s_file_path_len, s_version, varptr(s_text), s_text_len
     if stat == 0 {
         mes "ham_doc_did_open に失敗しました。"
         goto *l_fail
     }
+    return
 
-    s_caret_line = 0
-    s_caret_character = 0
-    s_output_len = 0xfff
-    sdim s_output, s_output_len + 1
+#deffunc hamls_update
 
-    ham_hover s_ham, varptr(s_file_path), s_file_path_len, s_caret_line, s_caret_character, varptr(s_output), s_output_len
-    if stat == 0 {
-        mes "ham_hover に失敗しました。"
-        goto *l_fail
+    hsed_exist
+    s_hsed_exists = stat
+    if s_hsed_exists == 0 {
+        return
     }
-    poke s_output, s_output_len, 0
 
-    mes "hover: " + s_output
-
-    // 言語サーバーを破棄する。(必須)
-    ham_destroy s_ham
-    if stat == 0 {
-        mes "ham_destroy に失敗しました。"
-        goto *l_fail
+    hsed_getactfootyid s_active_footy_id
+    s_active_footy_id_exists = stat == 0
+    if s_active_footy_id_exists == 0 {
+        return
     }
-    s_ham = 0
-    stop
+
+    sendmsg hIF@hsedsdk, _HSED_GETCARETLINE@hsedsdk, s_active_footy_id
+    s_caret_line = stat - 1
+
+    sendmsg hIF@hsedsdk, _HSED_GETCARETPOS@hsedsdk, s_active_footy_id
+    s_caret_character = stat - 1
+
+    hsed_gettextlength s_text_len, s_active_footy_id
+    s_text_len_exists = stat == 0
+
+    if s_text_len_exists == 0 {
+        return
+    }
+
+    hsed_gettext s_text, s_active_footy_id
+    s_text_exists = stat == 0
+    if s_text_exists == 0 {
+        return
+    }
+
+    s_text_len = strlen(s_text)
+    s_version++
+    ham_doc_did_change s_ham, varptr(s_file_path), s_file_path_len, s_version, s_text, s_text_len
+    s_doc_did_change_success = stat
+
+    s_hover_text_len = s_hover_text_capacity
+    ham_hover s_ham, varptr(s_file_path), s_file_path_len, s_caret_line, s_caret_character, s_hover_text, s_hover_text_len
+    s_hover_success = stat
+
+    if s_hover_success {
+        poke s_hover_text, s_hover_text_len
+    }
+    return
+
+#deffunc hamls_render
+
+    redraw 2
+
+    hsvcolor , , 0xfc
+    boxf
+    hsvcolor , , 0x10
+
+    pos 0, 0
+
+    if s_hsed_exists {
+        mes "スクリプトエディタ: 接続中"
+    } else {
+        mes "スクリプトエディタ: 未接続"
+    }
+
+    mes strf("カレット位置: (%d, %d)", s_caret_line, s_caret_character)
+    mes strf("ホバー (%d): %s", s_hover_text_len, s_hover_text)
+
+    redraw
+    return
+
+#deffunc hamls_main
+
+    hamls_init
+
+    repeat
+        hamls_update
+        hamls_render
+
+        await 150
+    loop
+    return
 
 *l_fail
+
     mes "something wrong."
     stop
+
+*l_exit
+
+    gosub *l_drop
+    end
+    end
+
+*l_drop
+
+    if s_ham {
+        // 言語サーバーを破棄する。(必須)
+        ham_destroy s_ham
+        s_ham = 0
+    }
+    return
+
+#global
+
+    hamls_main
