@@ -26,13 +26,13 @@ fn loc_to_range(loc: syntax::Loc) -> Range {
 }
 
 fn loc_to_location(loc: syntax::Loc, docs: &Docs) -> Option<Location> {
-    let uri = docs.get_uri(loc.doc)?.clone().into_url()?;
+    let uri = docs.get_uri(loc.doc)?.clone().into_url();
     let range = loc_to_range(loc);
     Some(Location { uri, range })
 }
 
 fn to_loc(uri: &Url, position: Position, docs: &Docs) -> Option<syntax::Loc> {
-    let uri = CanonicalUri::from_url(uri)?;
+    let uri = CanonicalUri::from_url(uri);
     let doc = docs.find_by_uri(&uri)?;
 
     // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要

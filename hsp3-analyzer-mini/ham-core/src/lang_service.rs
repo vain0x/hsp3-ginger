@@ -103,10 +103,7 @@ impl LangService {
     }
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
-        let uri = match CanonicalUri::from_url(&uri) {
-            Some(uri) => uri,
-            None => return,
-        };
+        let uri = CanonicalUri::from_url(&uri);
 
         if let Some(docs) = self.docs_opt.as_mut() {
             docs.open_doc(uri, version, text);
@@ -117,10 +114,7 @@ impl LangService {
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
-        let uri = match CanonicalUri::from_url(&uri) {
-            Some(uri) => uri,
-            None => return,
-        };
+        let uri = CanonicalUri::from_url(&uri);
 
         if let Some(docs) = self.docs_opt.as_mut() {
             docs.change_doc(uri, version, text);
@@ -131,10 +125,7 @@ impl LangService {
     }
 
     pub(super) fn close_doc(&mut self, uri: Url) {
-        let uri = match CanonicalUri::from_url(&uri) {
-            Some(uri) => uri,
-            None => return,
-        };
+        let uri = CanonicalUri::from_url(&uri);
 
         if let Some(docs) = self.docs_opt.as_mut() {
             docs.close_doc(uri);
