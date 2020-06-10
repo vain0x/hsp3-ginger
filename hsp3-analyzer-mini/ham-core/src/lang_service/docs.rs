@@ -282,6 +282,13 @@ impl Docs {
     }
 
     pub(super) fn open_doc(&mut self, uri: CanonicalUri, version: i64, text: String) {
+        trace!(
+            "クライアントでファイルが開かれました ({:?} version={}, len={})",
+            uri,
+            version,
+            text.len()
+        );
+
         self.do_open_doc(uri.clone(), version, text.into());
 
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
@@ -292,12 +299,21 @@ impl Docs {
     }
 
     pub(super) fn change_doc(&mut self, uri: CanonicalUri, version: i64, text: String) {
-        self.do_change_doc(uri.clone(), version, text.into());
+        trace!(
+            "クライアントでファイルが変更されました ({:?} version={}, len={})",
+            uri,
+            version,
+            text.len()
+        );
+
+        self.do_change_doc(uri, version, text.into());
 
         self.poll();
     }
 
     pub(super) fn close_doc(&mut self, uri: CanonicalUri) {
+        trace!("クライアントでファイルが閉じられました ({:?})", uri);
+
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.open_docs.remove(&doc);
         }
