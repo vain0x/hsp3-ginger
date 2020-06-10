@@ -170,7 +170,9 @@ pub unsafe extern "C" fn ham_doc_did_change(
         None => return FALSE,
     };
 
-    (*instance).lang_service.open_doc(uri, version as i64, text);
+    (*instance)
+        .lang_service
+        .change_doc(uri, version as i64, text);
     TRUE
 }
 
