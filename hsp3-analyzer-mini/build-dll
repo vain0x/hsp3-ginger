@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+rustup target add i686-pc-windows-msvc
+cargo build -p ham-lsp-server-dll --target i686-pc-windows-msvc
+cp ./target/i686-pc-windows-msvc/debug/ham_lsp_server_dll.dll ~/bin/ham_lsp_server_dll.dll

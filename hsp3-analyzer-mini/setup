@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu
+
+rustup install stable-i686-pc-windows-msvc
+rustup target add i686-pc-windows-msvc

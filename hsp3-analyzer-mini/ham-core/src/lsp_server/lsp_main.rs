@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
 };
 
-fn init_log() {
+pub(crate) fn init_log() {
     use log::LevelFilter;
     use simplelog::{Config, WriteLogger};
     use std::{env::temp_dir, fs::OpenOptions};

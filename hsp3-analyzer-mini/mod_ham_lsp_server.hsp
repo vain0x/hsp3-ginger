@@ -1,0 +1,122 @@
+// LICENSE: CC0-1.0
+// v0
+
+#ifndef included_ham_lsp_server_hsp
+#define included_ham_lsp_server_hsp
+
+#uselib "ham_lsp_server_dll.dll"
+#func ham_init "ham_init"
+
+// hsp3-analyzer-mini (ham) を起動する
+//
+// %prm
+// hsp3_root, hsp3_root_len
+//
+// hsp3_root: HSP のインストールディレクトリへの絶対パス
+// hsp3_root_len: hsp3_root の長さ
+// stat: ham インスタンスのポインタ。失敗したら 0
+//
+// %inst
+// 言語サーバーを起動する。
+//
+// stat が 0 でなければ、それは「HAM インスタンス」のポインタである。
+// ham_* 系命令の第一引数が ham_instance なら、この値を渡せばよい。
+// プログラムが終了する前、あるいは ham_* 系命令を使う必要がなくなった時点で、
+// ham_destroy を使って破棄すること。
+// (テキストドキュメントを閉じておく必要はない。)
+#func global ham_create "ham_create" sptr, sptr, int
+
+// ham インスタンスを破棄する
+//
+// %prm
+// ham_instance
+//
+// %inst
+// HAM インスタンスを破棄する。
+#func global ham_destroy "ham_destroy" sptr
+
+// テキストドキュメントが開かれたことを通知する
+//
+// %prm
+// ham_instance, file_path, file_path_len, version, text, text_len
+//
+// file_path: ファイルへの絶対パス (UTF-8)
+// file_path_len: file_path の長さ
+// version: バージョン番号 (任意の整数。通常は 1)
+// text: ファイルの中身 (UTF-8)
+// text_len: text の長さ
+// stat: 成功なら真
+//
+// %inst
+// エディタが新しいテキストドキュメントを開いたことを通知する。
+//
+// 開かれたテキストドキュメントの内容が変化したときは、
+// ham_doc_did_change でその内容を通知する。
+// 閉じられたときは、ham_doc_did_close で通知する。
+// (テキストドキュメントを閉じないまま ham_destroy しても OK。)
+//
+// ファイルパスは実在しなくてもよい。
+#func global ham_doc_did_open "ham_doc_did_open" sptr, sptr, int, int, sptr, int
+
+// テキストドキュメントが変更されたことを通知する
+//
+// %prm
+// ham_instance, file_path, file_path_len, version, text, text_len
+//
+// file_path: ファイルへの絶対パス (UTF-8)
+// file_path_len: file_path の長さ
+// version: バージョン番号
+// text: ファイルの中身 (UTF-8)
+// text_len: text の長さ
+// stat: 成功なら真
+//
+// %inst
+// すでに ham_doc_did_open で開かれたことを通知したテキストドキュメントに関して、
+// その内容がエディタ上で変更されたことを言語サーバーに通知する。
+// 内容がファイルに保存されていなくてもよい。
+//
+// バージョン番号は任意の整数。ただし ham_doc_did_open や ham_doc_did_change 命令で、
+// 同じファイルパスとバージョン番号の組み合わせは一度だけしか使ってはいけない。
+// (通常は open の時点でバージョン 1 とし、
+//  ham_doc_did_change を呼び出すたびに 2, 3, 4, ... とすればいい。)
+#func global ham_doc_did_change "ham_doc_did_change" sptr, sptr, int, int, sptr, int
+
+// テキストドキュメントが閉じられたことを通知する
+//
+// %prm
+// ham_instance, file_path, file_path_len
+//
+// file_path: ファイルへの絶対パス (UTF-8)
+// file_path_len: file_path の長さ
+// stat: 成功なら真
+//
+// %inst
+// すでに ham_doc_did_open で開かれたことを通知したテキストドキュメントに関して、
+// それがエディタで閉じられたことを言語サーバーに通知する。
+#func global ham_doc_did_close "ham_doc_did_close" sptr, sptr, int, int, sptr, int
+
+// カーソル付近のシンボル情報を取得する
+//
+// %prm
+// ham_instance, file_path, file_path_len, position_line, position_character, output, output_len
+//
+// file_path: ファイルへの絶対パス (UTF-8)
+// file_path_len: file_path の長さ
+// position_line: 行番号 (先頭は 0)
+// position_character: 列番号 (先頭は 0、UTF-8)
+// output: 結果を書き込む文字列へのポインタ
+// output_len: output の長さを受け取る変数
+// stat: 成功したら真。シンボル情報がないときも stat は真になり、結果は空の文字列になる。
+//
+// %inst
+// テキストドキュメントの特定の位置にカーソルがあたっているときに
+// ホバー表示される内容 (カーソル付近のシンボルの情報) を取得する。
+#func global ham_hover "ham_hover" sptr, sptr, int, int, int, var, var
+
+// HACK: module の中で include されていたらエラーにする。
+#module m_ham_lsp_server
+#global
+
+    ham_init
+
+#endif

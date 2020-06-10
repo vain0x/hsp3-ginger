@@ -1,0 +1,58 @@
+// LICENSE: CC0-1.0
+// v0
+
+// UTF-8 ランタイムでしか動作しない。
+#include "hsp3utf.as"
+
+#include "mod_ham_lsp_server.hsp"
+
+    s_hsp3_root = dir_exe
+    s_hsp3_root_len = strlen(s_hsp3_root)
+
+    // 言語サーバーを生成する。
+    ham_create varptr(s_hsp3_root), s_hsp3_root_len
+    s_ham = stat
+    if s_ham == 0 {
+        mes "ham_create に失敗しました。"
+        goto *l_fail
+    }
+
+    // FIXME: 相対パスは受け付けてくれない？
+    s_file_path = dir_cur + "/mod_ham_lsp_server_example.hsp"
+    s_file_path_len = strlen(s_file_path)
+    s_version = 1
+    s_text = "mes 1\n"
+    s_text_len = strlen(s_text)
+
+    ham_doc_did_open s_ham, varptr(s_file_path), s_file_path_len, s_version, varptr(s_text), s_text_len
+    if stat == 0 {
+        mes "ham_doc_did_open に失敗しました。"
+        goto *l_fail
+    }
+
+    s_caret_line = 0
+    s_caret_character = 0
+    s_output_len = 0xfff
+    sdim s_output, s_output_len + 1
+
+    ham_hover s_ham, varptr(s_file_path), s_file_path_len, s_caret_line, s_caret_character, varptr(s_output), s_output_len
+    if stat == 0 {
+        mes "ham_hover に失敗しました。"
+        goto *l_fail
+    }
+    poke s_output, s_output_len, 0
+
+    mes "hover: " + s_output
+
+    // 言語サーバーを破棄する。(必須)
+    ham_destroy s_ham
+    if stat == 0 {
+        mes "ham_destroy に失敗しました。"
+        goto *l_fail
+    }
+    s_ham = 0
+    stop
+
+*l_fail
+    mes "something wrong."
+    stop

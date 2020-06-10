@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate log;
 
+pub mod c_api;
+
 mod assists;
 mod help_source;
 mod lang;
