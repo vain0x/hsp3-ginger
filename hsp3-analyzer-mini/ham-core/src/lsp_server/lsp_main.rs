@@ -13,7 +13,7 @@ pub(crate) fn init_log() {
     let does_append = cfg!(debug_assertions);
 
     let log_filter = if cfg!(debug_assertions) {
-        LevelFilter::Debug
+        LevelFilter::Trace
     } else {
         LevelFilter::Info
     };
