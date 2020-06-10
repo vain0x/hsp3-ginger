@@ -3,6 +3,7 @@ extern crate log;
 
 mod assists;
 mod help_source;
+mod lang;
 mod lang_service;
 mod lsp_server;
 mod sem;

@@ -1,4 +1,5 @@
 use crate::{
+    lang::Lang,
     syntax::DocId,
     utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
 };
@@ -29,6 +30,7 @@ pub(crate) struct Docs {
     doc_to_uri: HashMap<DocId, CanonicalUri>,
     uri_to_doc: HashMap<CanonicalUri, DocId>,
     open_docs: HashSet<DocId>,
+    doc_langs: HashMap<DocId, Lang>,
     doc_versions: HashMap<DocId, TextDocumentVersion>,
     // hsphelp や common の下をウォッチするのに使う
     #[allow(unused)]
@@ -235,6 +237,10 @@ impl Docs {
     fn do_open_doc(&mut self, uri: CanonicalUri, version: i64, text: RcStr) -> DocId {
         let doc = self.resolve_uri(uri);
 
+        // この LSP サーバーが対応する拡張子として .hsp しか指定していないので、
+        // クライアントから送られてくる情報は .hsp ファイルのものだと仮定してよいはず。
+        self.doc_langs.insert(doc, Lang::Hsp3);
+
         self.doc_versions.insert(doc, version);
         self.doc_changes.push(DocChange::Opened { doc, text });
 
@@ -250,6 +256,8 @@ impl Docs {
     fn do_close_doc(&mut self, uri: CanonicalUri) {
         if let Some(&doc) = self.uri_to_doc.get(&uri) {
             self.doc_to_uri.remove(&doc);
+            self.doc_langs.remove(&doc);
+            self.doc_versions.remove(&doc);
             self.doc_changes.push(DocChange::Closed { doc })
         }
 
