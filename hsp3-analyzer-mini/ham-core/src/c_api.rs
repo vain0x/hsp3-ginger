@@ -219,8 +219,6 @@ pub unsafe extern "C" fn ham_hover(
         None => return FALSE,
     };
 
-    info!("hover {:?}", (&uri, position, output, output_len));
-
     let contents = match (*instance).lang_service.hover(uri, position) {
         Some(hover) => match hover.contents {
             HoverContents::Scalar(scalar) => marked_string_to_string(scalar),
@@ -233,8 +231,6 @@ pub unsafe extern "C" fn ham_hover(
         },
         None => "".to_string(),
     };
-
-    info!("hover content {:?}", contents);
 
     str_assign(output, output_len, &contents);
     TRUE
