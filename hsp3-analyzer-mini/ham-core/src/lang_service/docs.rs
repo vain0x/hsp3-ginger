@@ -204,6 +204,9 @@ impl Docs {
             }
         }
 
+        let mut change_count = 0;
+        let mut remove_count = 0;
+
         if rescan {
             self.scan_files();
         } else {
@@ -212,16 +215,30 @@ impl Docs {
                     continue;
                 }
                 self.change_file(&path);
+                change_count += 1;
             }
 
             for path in removed_paths {
                 self.close_file(&path);
+                remove_count += 1;
             }
         }
 
         if disconnected {
             self.shutdown_file_watcher();
         }
+
+        debug!(
+            "ファイルウォッチャーのイベントをポールしました (change={} remove={}{}{})",
+            change_count,
+            remove_count,
+            if rescan { " rescan=true" } else { "" },
+            if disconnected {
+                " disconnected=true"
+            } else {
+                ""
+            }
+        );
     }
 
     fn shutdown_file_watcher(&mut self) {
