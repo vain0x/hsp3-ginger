@@ -1,18 +1,22 @@
 #!/bin/bash
-# Build compiler before this.
+# VSCode 拡張機能をビルド・インストールする。
+# これを実行する前に、LSP サーバーをビルドしておくこと。
 
-set -eux
+set -eu
 
-if [[ -f ham.vsix ]]
+# 前回生成したファイルを削除する。
+if test -f ham.vsix
 then
     rm ham.vsix
 fi
 
-cp ../target/release/ham-lsp ./out/ham-lsp
+# 配布用ディレクトリに必要なファイルを入れる。
+cp ../target/release/ham-lsp-server-exe ./out/ham-lsp-server-exe
 
-npm install
+# 拡張機能をビルドする。
 npm run webpack-prod
 npm run vsce-package
 
+# ローカルにインストールする。
 ./uninstall || :
 code --install-extension ham.vsix
