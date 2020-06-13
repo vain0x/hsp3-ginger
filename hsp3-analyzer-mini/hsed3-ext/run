@@ -1,0 +1,13 @@
+#!/bin/bash
+# ユーザーディレクトリの下に ~/bin を作成して、そこにパスが通しておくこと。
+# ginger コマンドをインストールして、パスを通しておくこと。
+
+set -eu
+
+(
+    cd ..
+    cargo build -p ham-lsp-server-dll --target i686-pc-windows-msvc
+    cp target/i686-pc-windows-msvc/debug/ham_lsp_server_dll.dll ~/bin/ham_lsp_server_dll.dll
+)
+
+ginger run mod_ham_lsp_server_example.hsp
