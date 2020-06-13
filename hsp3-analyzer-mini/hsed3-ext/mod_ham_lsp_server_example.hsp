@@ -84,11 +84,12 @@
     ham_doc_did_change s_ham, varptr(s_uri), s_uri_len, s_version, s_text, s_text_len
     s_doc_did_change_success = stat
 
-    s_hover_text_len = s_hover_text_capacity
+    s_hover_text_len = s_hover_text_capacity - 1
     ham_hover s_ham, varptr(s_uri), s_uri_len, s_caret_line, s_caret_character, s_hover_text, s_hover_text_len
     s_hover_success = stat
 
     if s_hover_success {
+		// ヌル終端する。(DLL 側ではヌル終端されない。)
         poke s_hover_text, s_hover_text_len
     }
     return
