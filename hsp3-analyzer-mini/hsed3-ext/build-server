@@ -3,6 +3,9 @@
 set -eu
 
 (
-    cd ../hsp3-analyzer-mini
+    cd ..
     ./build
+    cp target/debug/ham_lsp_server_dll.dll ~/bin/ham_lsp_server_dll.dll
 )
+
+# ginger run mod_ham_lsp_server_example.hsp
