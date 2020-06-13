@@ -26,9 +26,8 @@
     s_hsp3_root = dir_exe
     s_hsp3_root_len = strlen(s_hsp3_root)
 
-    // FIXME: 相対パスは受け付けてくれない？
-    s_file_path = dir_cur + "/mod_ham_lsp_server_example.hsp"
-    s_file_path_len = strlen(s_file_path)
+	s_uri = "hsed:///footies/1/"
+    s_uri_len = strlen(s_uri)
     s_version = 1
 
     // 言語サーバーを生成する。
@@ -40,7 +39,7 @@
     }
 
     // ファイルを開く。
-    ham_doc_did_open s_ham, varptr(s_file_path), s_file_path_len, s_version, varptr(s_text), s_text_len
+    ham_doc_did_open s_ham, varptr(s_uri), s_uri_len, s_version, varptr(s_text), s_text_len
     if stat == 0 {
         mes "ham_doc_did_open に失敗しました。"
         goto *l_fail
@@ -82,11 +81,11 @@
 
     s_text_len = strlen(s_text)
     s_version++
-    ham_doc_did_change s_ham, varptr(s_file_path), s_file_path_len, s_version, s_text, s_text_len
+    ham_doc_did_change s_ham, varptr(s_uri), s_uri_len, s_version, s_text, s_text_len
     s_doc_did_change_success = stat
 
     s_hover_text_len = s_hover_text_capacity
-    ham_hover s_ham, varptr(s_file_path), s_file_path_len, s_caret_line, s_caret_character, s_hover_text, s_hover_text_len
+    ham_hover s_ham, varptr(s_uri), s_uri_len, s_caret_line, s_caret_character, s_hover_text, s_hover_text_len
     s_hover_success = stat
 
     if s_hover_success {
