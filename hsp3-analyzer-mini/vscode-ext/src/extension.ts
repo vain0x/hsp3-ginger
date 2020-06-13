@@ -19,7 +19,7 @@ const getLspBin = (context: ExtensionContext) => {
 
   const relativePath = process.env.HSP3_ANALYZER_MINI_LSP_BIN
     || config.get("lsp-bin") as string | undefined
-    || "./out/ham-lsp.exe"
+    || "./out/ham-lsp-server-exe"
 
   return context.asAbsolutePath(relativePath)
 }

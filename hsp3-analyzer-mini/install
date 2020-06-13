@@ -1,15 +1,18 @@
 #!/bin/bash
-# Build and install VSCode extension.
+# VSCode 拡張機能をビルド・インストールする。
 
-set -eux
+set -eu
 
-# Check.
+# 必要なツールがインストールされていることを検査する。
 cargo --version
 npm --version
 code --version
 
-# Build the compiler for release.
+# LSP サーバーをリリースモードでビルドする。
 cargo build --release
 
-# Build VSCode extension.
-(cd vscode-ext && ./install)
+# 拡張機能のインストール
+(
+    cd vscode-ext
+    ./install
+)

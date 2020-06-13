@@ -1,17 +1,4 @@
-#[macro_use]
-extern crate log;
-
-// #[macro_use]
-// extern crate serde;
-
-mod help_source;
-mod id;
-mod lsp;
-mod rc_str;
-mod sem;
-mod syntax;
-
-use crate::lsp::lsp_main::start_lsp_server;
+use ham_core::start_lsp_server;
 use std::env::ArgsOs;
 use std::path::PathBuf;
 
@@ -92,6 +79,6 @@ fn switch_on_args(mut args: ArgsOs) {
     }
 }
 
-pub fn main() {
+fn main() {
     switch_on_args(std::env::args_os())
 }

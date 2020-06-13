@@ -1,20 +1,24 @@
-use crate::lsp::*;
-use lsp_types::*;
-use request::Request;
+use super::{LspMessageOpaque, LspNotification, LspReceiver, LspRequest, LspSender};
+use crate::lang_service::LangService;
+use lsp_types::{
+    request::{self, Request},
+    CompletionItem, CompletionList, CompletionOptions, CompletionParams,
+    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, Hover,
+    InitializeParams, InitializeResult, Location, PrepareRenameResponse, PublishDiagnosticsParams,
+    ReferenceParams, RenameOptions, RenameParams, RenameProviderCapability, ServerCapabilities,
+    ServerInfo, TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
+    TextDocumentSyncOptions, Url, WorkDoneProgressOptions, WorkspaceEdit,
+};
 use std::io;
-use std::path::PathBuf;
 
 pub(super) struct LspHandler<W: io::Write> {
     sender: LspSender<W>,
-    model: LspModel,
+    model: LangService,
 }
 
 impl<W: io::Write> LspHandler<W> {
-    pub fn new(sender: LspSender<W>, hsp_root: PathBuf) -> Self {
-        Self {
-            sender,
-            model: LspModel::new(hsp_root),
-        }
+    pub(crate) fn new(sender: LspSender<W>, model: LangService) -> Self {
+        Self { sender, model }
     }
 
     fn initialize<'a>(&'a mut self, _params: InitializeParams) -> InitializeResult {
@@ -62,12 +66,25 @@ impl<W: io::Write> LspHandler<W> {
         std::process::exit(0)
     }
 
+    fn send_publish_diagnostics(&mut self, uri: Url) {
+        let (version, diagnostics) = self.model.validate(&uri);
+
+        self.sender.send_notification(
+            "textDocument/publishDiagnostics",
+            PublishDiagnosticsParams {
+                uri,
+                version,
+                diagnostics,
+            },
+        );
+    }
+
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
         let uri = doc.uri.to_owned();
         self.model.open_doc(doc.uri, doc.version, doc.text);
 
-        self.text_document_did_open_or_change(uri);
+        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
@@ -82,20 +99,7 @@ impl<W: io::Write> LspHandler<W> {
 
         self.model.change_doc(doc.uri, version, text);
 
-        self.text_document_did_open_or_change(uri);
-    }
-
-    fn text_document_did_open_or_change(&mut self, uri: Url) {
-        let diagnostics = self.model.validate(uri.clone());
-
-        self.sender.send_notification(
-            "textDocument/publishDiagnostics",
-            PublishDiagnosticsParams {
-                uri,
-                version: None,
-                diagnostics,
-            },
-        );
+        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
@@ -141,7 +145,7 @@ impl<W: io::Write> LspHandler<W> {
         params: TextDocumentPositionParams,
     ) -> Vec<lsp_types::DocumentHighlight> {
         self.model
-            .highlights(params.text_document.uri, params.position)
+            .document_highlight(params.text_document.uri, params.position)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {
@@ -264,7 +268,7 @@ impl<W: io::Write> LspHandler<W> {
         }
     }
 
-    pub fn main(mut self, mut receiver: LspReceiver<impl io::Read>) {
+    pub(crate) fn main(mut self, mut receiver: LspReceiver<impl io::Read>) {
         loop {
             receiver.read_next(|json| self.did_receive(json));
         }

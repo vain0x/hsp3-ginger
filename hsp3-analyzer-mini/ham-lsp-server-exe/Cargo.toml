@@ -1,0 +1,8 @@
+[package]
+name = "ham-lsp-server-exe"
+version = "0.3.0"
+authors = ["vain0x <vainzerox@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+ham-core = { path = "../ham-core" }

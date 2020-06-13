@@ -10,7 +10,7 @@
                 "--extensionDevelopmentPath=${workspaceFolder}"
             ],
             "env": {
-                "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham-lsp"
+                "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham-lsp-server-exe"
             },
             "preLaunchTask": "ext:build"
         }

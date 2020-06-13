@@ -1,9 +1,10 @@
 //! FIXME: func, cfunc, cmd
 
-use crate::rc_str::RcStr;
-use crate::syntax::{DocId, Loc, Pos};
-use std::collections::HashMap;
-use std::rc::Rc;
+use crate::{
+    syntax::{DocId, Loc, Pos},
+    utils::rc_str::RcStr,
+};
+use std::{collections::HashMap, rc::Rc};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum SymbolKind {
@@ -25,10 +26,10 @@ pub(crate) enum SymbolKind {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct Scope {
-    pub doc: DocId,
-    pub row_range: (usize, usize),
-    pub is_global: bool,
-    pub only_global: bool,
+    pub(crate) doc: DocId,
+    pub(crate) row_range: (usize, usize),
+    pub(crate) is_global: bool,
+    pub(crate) only_global: bool,
 }
 
 impl Scope {
@@ -44,17 +45,17 @@ impl Scope {
 
 #[derive(Clone, Debug)]
 pub(crate) struct SymbolDetails {
-    pub description: Option<RcStr>,
-    pub documentation: Vec<String>,
+    pub(crate) description: Option<RcStr>,
+    pub(crate) documentation: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct Symbol {
-    pub symbol_id: usize,
-    pub name: RcStr,
-    pub details: SymbolDetails,
-    pub kind: SymbolKind,
-    pub scope: Scope,
+    pub(crate) symbol_id: usize,
+    pub(crate) name: RcStr,
+    pub(crate) details: SymbolDetails,
+    pub(crate) kind: SymbolKind,
+    pub(crate) scope: Scope,
 }
 
 type SymbolMap = HashMap<RcStr, Vec<Rc<Symbol>>>;
@@ -83,26 +84,30 @@ pub(crate) struct Line {
 }
 // ドキュメントの解析結果
 pub(crate) struct DocSem {
-    pub doc: DocId,
-    pub text: RcStr,
-    pub lines: Vec<Line>,
-    pub line_count: usize,
-    pub module_ranges: HashMap<usize, usize>,
-    pub command_ranges: HashMap<usize, usize>,
-    pub pp_symbols: HashMap<usize, Rc<Symbol>>,
-    pub pp_symbol_defs: HashMap<usize, Vec<Loc>>,
+    pub(crate) doc: DocId,
+    #[allow(unused)]
+    pub(crate) text: RcStr,
+    pub(crate) lines: Vec<Line>,
+    #[allow(unused)]
+    pub(crate) line_count: usize,
+    #[allow(unused)]
+    pub(crate) module_ranges: HashMap<usize, usize>,
+    #[allow(unused)]
+    pub(crate) command_ranges: HashMap<usize, usize>,
+    pub(crate) pp_symbols: HashMap<usize, Rc<Symbol>>,
+    pub(crate) pp_symbol_defs: HashMap<usize, Vec<Loc>>,
 }
 
 // プロジェクト全体の解析結果
 #[derive(Default)]
 pub(crate) struct ProjectSem {
-    pub docs: HashMap<DocId, DocSem>,
-    pub last_symbol_id: usize,
-    pub all_symbols: HashMap<usize, Rc<Symbol>>,
-    pub all_symbol_defs: HashMap<usize, Vec<Loc>>,
-    pub all_symbol_uses: HashMap<usize, Vec<Loc>>,
-    pub all_symbol_map: SymbolMap,
-    pub is_dirty: bool,
+    pub(crate) docs: HashMap<DocId, DocSem>,
+    pub(crate) last_symbol_id: usize,
+    pub(crate) all_symbols: HashMap<usize, Rc<Symbol>>,
+    pub(crate) all_symbol_defs: HashMap<usize, Vec<Loc>>,
+    pub(crate) all_symbol_uses: HashMap<usize, Vec<Loc>>,
+    pub(crate) all_symbol_map: SymbolMap,
+    pub(crate) is_dirty: bool,
 }
 
 fn char_is_nonident(c: char) -> bool {

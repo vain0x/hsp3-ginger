@@ -1,14 +1,19 @@
-use crate::lsp::*;
-use std::io;
-use std::path::PathBuf;
+use super::{LspHandler, LspReceiver, LspSender};
+use crate::lang_service::LangService;
+use std::{
+    io::{stdin, stdout},
+    path::PathBuf,
+};
 
-fn init_log() {
+pub(crate) fn init_log() {
     use log::LevelFilter;
-    use simplelog::*;
-    use std::fs::OpenOptions;
+    use simplelog::{Config, WriteLogger};
+    use std::{env::temp_dir, fs::OpenOptions};
+
+    let does_append = cfg!(debug_assertions);
 
     let log_filter = if cfg!(debug_assertions) {
-        LevelFilter::Debug
+        LevelFilter::Trace
     } else {
         LevelFilter::Info
     };
@@ -16,12 +21,12 @@ fn init_log() {
     let file_path = if cfg!(debug_assertions) {
         PathBuf::from("ham-lsp.log")
     } else {
-        std::env::temp_dir().join("ham-lsp.log")
+        temp_dir().join("ham-lsp.log")
     };
 
     let file = OpenOptions::new()
         .create(true)
-        .append(true)
+        .append(does_append)
         .open(file_path)
         .expect("log file creation");
 
@@ -35,12 +40,13 @@ fn init_log() {
 pub fn start_lsp_server(hsp_root: PathBuf) {
     init_log();
 
-    let stdin = io::stdin();
+    let stdin = stdin();
     let stdin = stdin.lock();
     let receiver = LspReceiver::new(stdin);
-    let stdout = io::stdout();
+    let stdout = stdout();
     let stdout = stdout.lock();
     let sender = LspSender::new(stdout);
-    let handler = LspHandler::new(sender, hsp_root);
+    let lang_service = LangService::new(hsp_root);
+    let handler = LspHandler::new(sender, lang_service);
     handler.main(receiver);
 }

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -eux
+
+# 32ビット版の DLL をビルドするためのツールチェインをインストールする。
+rustup install stable-i686-pc-windows-msvc
+rustup target add i686-pc-windows-msvc
+
+# 依存パッケージをインストールする。
+(
+    cd vscode-ext
+    npm ci
+)

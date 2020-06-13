@@ -16,8 +16,9 @@
         {
             "label": "ext:build",
             "type": "shell",
-            "command": "yarn",
+            "command": "npm",
             "args": [
+                "run",
                 "build"
             ],
             "options": {
