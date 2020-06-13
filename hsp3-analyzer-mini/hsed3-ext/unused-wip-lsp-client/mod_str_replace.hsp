@@ -1,0 +1,54 @@
+// strrep alternative
+
+#ifndef included_mod_str_replace_hsp
+#define included_mod_str_replace_hsp
+
+#module m_str_replace
+
+	dim s_out_cap
+
+#deffunc str_replace var buf, str src, str dest, \
+	local buf_len, local src_len, local dest_len, \
+	local buf_index, local offset, local found
+
+	buf_len = strlen(buf)
+	src_len = strlen(src)
+	dest_len = strlen(dest)
+
+	s_out = ""
+	s_out_len = 0
+
+	repeat
+		if buf_index >= buf_len {
+			break
+		}
+
+		offset = instr(buf, buf_index, src)
+		found = offset >= 0
+		if found == 0 {
+			offset = buf_len - buf_index
+		}
+
+		if s_out_len + offset + dest_len >= s_out_cap {
+			s_out_cap += s_out_cap / 2 + offset + dest_len + 64
+			memexpand s_out, s_out_cap
+		}
+
+		memcpy s_out, buf, offset, s_out_len, buf_index
+		s_out_len += offset
+		buf_index += offset
+
+		if found {
+			poke s_out, s_out_len, dest
+			s_out_len += dest_len
+			buf_index += src_len
+		}
+	loop
+
+	poke s_out, s_out_len, 0
+	buf = s_out
+	return
+
+#global
+
+#endif
