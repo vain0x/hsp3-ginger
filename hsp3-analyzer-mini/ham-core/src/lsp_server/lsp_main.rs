@@ -10,8 +10,6 @@ pub(crate) fn init_log() {
     use simplelog::{Config, WriteLogger};
     use std::{env::temp_dir, fs::OpenOptions};
 
-    let does_append = cfg!(debug_assertions);
-
     let log_filter = if cfg!(debug_assertions) {
         LevelFilter::Trace
     } else {
@@ -26,15 +24,12 @@ pub(crate) fn init_log() {
 
     let file = OpenOptions::new()
         .create(true)
-        .append(does_append)
+        .write(true)
+        .truncate(true)
         .open(file_path)
         .expect("log file creation");
 
     WriteLogger::init(log_filter, Config::default(), file).expect("init log");
-
-    info!("--------------------------------------------------");
-    info!("                START NEW SESSION ");
-    info!("--------------------------------------------------");
 }
 
 pub fn start_lsp_server(hsp_root: PathBuf) {
