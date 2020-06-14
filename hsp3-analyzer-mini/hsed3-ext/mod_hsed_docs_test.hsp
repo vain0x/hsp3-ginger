@@ -3,6 +3,8 @@
 
 // 実行して assert で止まらなければ OK。
 
+// ginger run mod_hsed_docs_test.hsp
+
 #include "hsp3utf.as"
 #include "mod_hsed_docs.hsp"
 
@@ -24,7 +26,9 @@
 	dim s_doc_count
 
 	dim s_event_kinds
-	sdim s_doc_uris
+	sdim s_event_uris
+	dim s_event_versions
+	sdim s_event_texts
 	dim s_event_count
 	return
 
@@ -55,12 +59,12 @@
 	loop
 
 	// opened イベントが観測されるはず。
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 2
 	assert s_event_kinds(0) == hsed_docs_k_doc_opened
-	assert s_doc_uris(0) == "file:///C:/1.hsp"
+	assert s_event_uris(0) == "file:///C:/1.hsp"
 	assert s_event_kinds(1) == hsed_docs_k_doc_opened
-	assert s_doc_uris(1) == "file:///C:/2.hsp"
+	assert s_event_uris(1) == "file:///C:/2.hsp"
 	return
 
 #deffunc hsed_docs_test_no_diff
@@ -73,7 +77,7 @@
 	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
 	assert s_doc_count == 0
 
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 0
 	return
 
@@ -91,10 +95,10 @@
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
 	// opened イベントが観測されるはず。
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 1
 	assert s_event_kinds(0) == hsed_docs_k_doc_opened
-	assert s_doc_uris(0) == "file:///C:/3.hsp"
+	assert s_event_uris(0) == "file:///C:/3.hsp"
 	return
 
 #deffunc hsed_docs_test_one_changed_doc
@@ -116,10 +120,10 @@
 	hsed_docs_set_doc_text s_doc_ids(0), s_texts(s_doc_tab_ids(0))
 
 	// changed イベントが観測されるはず。
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 1
 	assert s_event_kinds(0) == hsed_docs_k_doc_changed
-	assert s_doc_uris(0) == "file:///C:/2.hsp"
+	assert s_event_uris(0) == "file:///C:/2.hsp"
 	return
 
 #deffunc hsed_docs_test_one_closed_doc
@@ -132,10 +136,10 @@
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
 	// closed イベントが観測されるはず。
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 1
 	assert s_event_kinds(0) == hsed_docs_k_doc_closed
-	assert s_doc_uris(0) == "file:///C:/2.hsp"
+	assert s_event_uris(0) == "file:///C:/2.hsp"
 	return
 
 #deffunc hsed_docs_test_three_doc_events
@@ -167,19 +171,19 @@
 	loop
 
 	// 複数のイベントが観測されるはず。
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 4
 	assert s_event_kinds(0) == hsed_docs_k_doc_closed
-	assert s_doc_uris(0) == "file:///C:/2.hsp"
+	assert s_event_uris(0) == "file:///C:/2.hsp"
 
 	assert s_event_kinds(1) == hsed_docs_k_doc_opened
-	assert s_doc_uris(1) == "file:///C:/3.hsp"
+	assert s_event_uris(1) == "file:///C:/3.hsp"
 
 	assert s_event_kinds(2) == hsed_docs_k_doc_opened
-	assert s_doc_uris(2) == "file:///C:/4.hsp"
+	assert s_event_uris(2) == "file:///C:/4.hsp"
 
 	assert s_event_kinds(3) == hsed_docs_k_doc_changed
-	assert s_doc_uris(3) == "file:///C:/1.hsp"
+	assert s_event_uris(3) == "file:///C:/1.hsp"
 	return
 
 #deffunc hsed_docs_test_nonfile_tabs
@@ -193,13 +197,13 @@
 	s_text_lens = strlen(s_texts(0))
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 1
 	assert s_event_kinds(0) == hsed_docs_k_doc_opened
-	assert s_doc_uris(0) == "hsed:///footies/1/"
+	assert s_event_uris(0) == "hsed:///footies/1/"
 
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
-	hsed_docs_emit_doc_changes s_event_kinds, s_doc_uris, s_event_count
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 0
 	return
 

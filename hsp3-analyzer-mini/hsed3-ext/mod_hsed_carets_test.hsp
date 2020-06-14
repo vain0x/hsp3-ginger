@@ -11,6 +11,8 @@
 #const true 1
 #const false 0
 
+#const int k_hover_ticks ((150 * 60 + 1000 - 1) / 1000)
+
 #deffunc hsed_carets_test_init
 
 	dim s_hover_is_happend
@@ -42,7 +44,7 @@
 	assert stat == false
 
 	// しばらくすると hover イベントが起こる。
-	hsed_carets_test_sleep 90 + 10 // 1.5s
+	hsed_carets_test_sleep k_hover_ticks + 10
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat
 	assert s_hover_footy_id == s_active_footy_id
@@ -50,14 +52,14 @@
 	assert s_hover_caret_char == s_caret_char
 
 	// 一度 hover イベントが起こると、同じ場所にいても hover イベントは起きない。
-	hsed_carets_test_sleep 90 + 10 // 1.5s
+	hsed_carets_test_sleep k_hover_ticks + 10
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat == false
 
 	// カレット位置を変えてしばらく経つと、また hover イベントが起こる。
 	s_caret_line++
 
-	hsed_carets_test_sleep 90 + 10
+	hsed_carets_test_sleep k_hover_ticks + 10
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat
 	assert s_hover_caret_line == s_caret_line
@@ -67,13 +69,13 @@
 	// またカレット位置を変えると、hover イベントが起こるまでの経過時間がリセットされる。
 	s_caret_line++
 
-	hsed_carets_test_sleep (90 + 10) / 2
+	hsed_carets_test_sleep (k_hover_ticks + 10) / 2
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat == false
 
 	s_caret_line++
 
-	hsed_carets_test_sleep (90 + 10) / 2
+	hsed_carets_test_sleep (k_hover_ticks + 10) / 2
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat == false
 	return

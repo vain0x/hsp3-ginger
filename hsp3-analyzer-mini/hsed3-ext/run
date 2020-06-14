@@ -10,4 +10,4 @@ set -eu
     cp target/i686-pc-windows-msvc/debug/ham_lsp_server_dll.dll ~/bin/ham_lsp_server_dll.dll
 )
 
-ginger run mod_ham_lsp_server_example.hsp
+ginger run app_main.hsp

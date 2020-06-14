@@ -1,10 +1,10 @@
 // LICENSE: CC0-1.0
 
+// WIP
+
 // hsed3 のための LSP クライアント
 // hsp36b1 以前のスクリプトエディタでは動作しない。
 // hsp3-analyzer-mini を事前にビルドしておくこと
-
-// 参考: [HSPラベル・関数一覧 - HSPTV!掲示板](http://hsp.tv/play/pforum.php?mode=pastwch&num=88874)
 
 #packopt name "hsed3_lsp_client"
 #packopt hide 1

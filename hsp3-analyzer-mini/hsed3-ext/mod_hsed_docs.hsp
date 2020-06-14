@@ -209,7 +209,7 @@
 
 			// テキストの長さが変わっていたら、内容が変化した可能性があるとみなす。
 			if s_doc_text_lens(doc_id) != tab_text_lens(cnt) {
-				if s_doc_text_is_dirty(doc_id) == false {
+				if s_doc_text_is_dirty(doc_id) == false || true {
 					s_doc_text_is_dirty(doc_id) = true
 
 					s_dirty_doc_ids(s_dirty_doc_count) = doc_id
@@ -299,8 +299,15 @@
 	return
 
 // ドキュメントの変更イベントを発行する。
-#deffunc hsed_docs_emit_doc_changes array event_kinds, array doc_uris, var event_count, \
+#deffunc hsed_docs_emit_doc_changes \
+	array event_kinds, \
+	array event_uris, \
+	array event_versions, \
+	array event_texts, \
+	var event_count, \
 	local doc_id, local status, local mask
+
+	// FIXME: ドキュメントを破棄するタイミングを遅らせることで、テキストをコピーしなくて済むようにしたい。
 
 	event_count = 0
 
@@ -316,31 +323,37 @@
 		// ドキュメントが開かれて、すぐに閉じられた場合、イベントは発行しない。
 		mask = k_doc_status_opened | k_doc_status_closed
 		if (status & mask) == mask {
-			logmes "hsed_docs: skip " + doc_uris(doc_id)
+			logmes "hsed_docs: skip " + s_doc_uris(doc_id)
 			hsed_docs_free_doc doc_id
 			continue
 		}
 
 		if status & k_doc_status_opened {
 			event_kinds(event_count) = hsed_docs_k_doc_opened
-			doc_uris(event_count) = s_doc_uris(doc_id)
+			event_uris(event_count) = s_doc_uris(doc_id)
+			event_versions(event_count) = s_doc_versions(doc_id)
+			event_texts(event_count) = s_doc_texts(doc_id)
 			event_count++
 
 		} else : if status & k_doc_status_closed {
 			event_kinds(event_count) = hsed_docs_k_doc_closed
-			doc_uris(event_count) = s_doc_uris(doc_id)
+			event_uris(event_count) = s_doc_uris(doc_id)
+			event_versions(event_count) = 0
+			event_texts(event_count) = ""
 			event_count++
 
 		} else : if status & k_doc_status_changed {
-			// (開かれたか閉じられた場合、変更イベントは発行しない。)
+			// (did_open/did_close イベントを発行しなかったときのみ、変更イベントを発行する。)
 			event_kinds(event_count) = hsed_docs_k_doc_changed
-			doc_uris(event_count) = s_doc_uris(doc_id)
+			event_uris(event_count) = s_doc_uris(doc_id)
+			event_versions(event_count) = s_doc_versions(doc_id)
+			event_texts(event_count) = s_doc_texts(doc_id)
 			event_count++
 		}
 
 		// 対応するタブがすでに閉じられている場合、ドキュメントを破棄していい。
 		if (status & k_doc_status_alive) == 0 {
-			logmes "hsed_docs: drop " + doc_uris(doc_id)
+			logmes "hsed_docs: drop " + s_doc_uris(doc_id)
 			hsed_docs_free_doc doc_id
 			continue
 		}
@@ -354,6 +367,28 @@
 
 	s_changed_doc_count = 0
 	return
+
+#deffunc hsed_docs_get_uri_by_footy_id int footy_id, var uri, \
+	local ok
+
+	if footy_id < 0 {
+		uri = ""
+		return false
+	}
+
+	ok = false
+	repeat s_doc_count
+		if (s_doc_statuses(cnt) & k_doc_status_alive) != 0 && s_doc_footy_ids(cnt) == footy_id {
+			uri = s_doc_uris(cnt)
+			ok = true
+			break
+		}
+	loop
+
+	if ok == false {
+		uri = ""
+	}
+	return ok
 
 #global
 

@@ -53,9 +53,9 @@
 	loop
 	return ok
 
-#deffunc hsed_client_request_text int tab_id, var text
+#deffunc hsed_client_request_text int footy_id, var text
 
-	hsed_gettext text, tab_id
+	hsed_gettext text, footy_id
 	return stat == 0
 
 #global
