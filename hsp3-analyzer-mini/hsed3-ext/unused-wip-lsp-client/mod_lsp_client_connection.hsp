@@ -1,0 +1,244 @@
+// LICENSE: CC0-1.0
+// v0
+
+#ifndef included_lsp_client_connection
+#define included_lsp_client_connection
+
+#module m_lspcc
+
+#include "hspext.as"
+
+#const true 1
+#const false 0
+
+#const getpath_basename 8
+
+// pipeget を参照
+#const pipeget_stat_did_exit    0
+#const pipeget_stat_starting    1
+#const pipeget_stat_stdout      2
+#const pipeget_stat_stderr      3
+#const pipeget_stat_will_exit   4
+
+// 未初期化状態
+#enum k_phase_none = 0
+// サーバーを起動した後、初期化処理の完了前
+#enum k_phase_spawned
+// 初期化処理中
+#enum k_phase_initializing
+// 初期化処理の完了後、シャットダウン前
+#enum k_phase_connected
+// シャットダウン中
+#enum k_phase_shutting_down
+// 正常終了後
+#enum k_phase_exited
+
+#deffunc lspcc_init
+
+	s_hsp_root = dir_exe
+
+	sdim s_server_bin
+	dim s_server_bin_exists
+	dim s_server_is_spawned
+	dim s_server_is_starting
+	dim s_server_did_exit
+	sdim s_server_stdout, 0x100000
+
+	dim s_phase
+	dim s_last_msg_id
+
+	sdim s_pipe_buffer, 0x100000
+
+	// ワークスペースの URI と名前を計算する。
+	s_root_path = dir_cur
+	strrep s_root_path, "\\", "/"
+	s_root_uri = "file:///" + s_root_path
+	s_workspace_folder_uri = s_root_uri
+	s_workspace_folder_name = getpath(s_root_path, getpath_basename)
+
+#ifdef _debug
+	s_server_bin = "../hsp3-analyzer-mini/target/debug/ham-lsp.exe"
+	s_server_bin_exists = true
+#endif
+	return
+
+// LSP サーバーを起動する。
+#deffunc local lspcc_spawn
+
+	if s_server_is_spawned {
+		return
+	}
+
+	s_server_command = s_server_bin + " --hsp \"" + s_hsp_root + "\" lsp"
+	logmes "lspcc: spawn: " + s_server_command + "\""
+	pipeexec s_server_stdout, s_server_command
+
+	// サーバーのプロセスID (pipeexec だととれない？) (必要ないかも？)
+	s_server_pid = 0
+
+	s_server_is_spawned = true
+	return
+
+// LSP サーバープロセスの状態を監視する。
+#deffunc local lspcc_poll_server
+
+	if s_server_is_spawned == false || s_server_did_exit {
+		// サーバープロセスがないので何もしない。
+		return
+	}
+
+	pipeget s_pipe_buffer
+	s_pipe_stat = stat
+	s_pipe_buffer_kind = 0
+
+	if s_pipe_stat == pipeget_stat_did_exit {
+		if s_server_did_exit == false {
+			s_server_did_exit = true
+			logmes "lspcc: [info] server exited"
+		}
+		return
+	}
+
+	if s_pipe_stat == pipeget_stat_starting {
+		if s_server_is_starting == false {
+			s_server_is_starting = true
+			logmes "lspcc: [info] server is starting"
+		}
+		return
+	}
+
+	if s_pipe_stat == pipeget_stat_stdout {
+		if peek(s_pipe_buffer) {
+			logmes "lspcc: [trace] server stdout: " + s_pipe_buffer
+			s_pipe_buffer_kind = 1
+		}
+		return
+	}
+
+	if s_pipe_stat == pipeget_stat_stderr {
+		if peek(s_pipe_buffer) {
+			logmes "lspcc: [trace] server stderr: " + s_pipe_buffer
+			s_pipe_buffer_kind = 2
+		}
+		return
+	}
+
+	if s_pipe_stat == pipeget_stat_will_exit {
+		return
+	}
+
+	assert false
+	logmes "lspcc: [trace] pipeget stat unknown"
+	return
+
+// 更新処理を行う。
+#deffunc lspcc_update
+
+	if s_phase == k_phase_none {
+		lspcc_spawn
+
+		s_phase = k_phase_spawned
+		logmes "lspcc: [trace] phase=spawned"
+		return
+	}
+
+	if s_phase == k_phase_exited {
+		return
+	}
+
+	lspcc_poll_server
+
+	if s_phase == k_phase_spawned && s_server_is_starting {
+		// サーバーが起動したら、はじめに initialize リクエストを送る。
+		s_last_msg_id++
+		lsp_send_initialize s_last_msg_id, s_server_pid, s_root_path, s_root_uri, s_workspace_folder_uri, s_workspace_folder_name
+
+		s_phase = k_phase_initializing
+		logmes "lspcc: [trace] phase=initializing"
+		return
+	}
+
+	if s_pipe_buffer_kind == 1 {
+		// stdout
+		lsp_receive_add_data s_pipe_buffer
+		s_pipe_buffer = ""
+	}
+
+	if s_pipe_buffer_kind == 2 {
+		// stderr
+		// ログに出力する？
+		s_pipe_buffer = ""
+	}
+
+	repeat
+		lsp_receive_next
+		if stat == false {
+			break
+		}
+
+		logmes "lspcc: [trace] received: " + s_body@m_lsp_receive
+
+		// initialize レスポンスが来たら
+		if instr(s_body@m_lsp_receive, , "\"id\":1,") >= 0 {
+			lsp_send_initialized
+
+			s_phase = k_phase_connected
+			logmes "lspcc: [trace] phase=connected"
+			continue
+		}
+	loop
+	return
+
+// クライアントからサーバーにシャットダウンを要求する。
+#deffunc lspcc_shutdown
+
+	if s_server_is_spawned == false || s_server_did_exit {
+		logmes "lspcc: [info] shutdown server before spawned or after exited"
+		s_server_is_spawned = true
+		s_server_did_exit = true
+		return
+	}
+
+	// FIXME: 初期化中だったらどうする？
+	s_last_msg_id++
+	lsp_send_shutdown s_last_msg_id
+	s_phase = k_phase_shutting_down
+	logmes "lspcc: [trace] phase=shutting_down"
+
+	// FIXME: shutdown のレスポンスを待つ
+	lsp_send_exit
+	s_phase = k_phase_exited
+	logmes "lspcc: [trace] phase=exited"
+
+	s_server_did_exit = true
+	return
+
+// サーバーの標準入力にデータを送信する。
+#deffunc lspcc_send var data, int data_len
+
+	assert data_len >= 0
+
+	if data_len <= 0 {
+		return
+	}
+
+	if s_server_is_spawned == false || s_server_did_exit {
+		logmes "lspcc: [info] couldn't send data because server isn't running (" + data_len + " b)"
+		return
+	}
+
+	logmes strf("lspcc: [trace] send (%d b): \"%s\"", data_len, data)
+	repeat data_len
+		pipeput peek(data, cnt)
+	loop
+	return
+
+#deffunc lspcc_is_exited
+
+	return s_phase == k_phase_exited
+
+#global
+
+	lspcc_init
+
+#endif

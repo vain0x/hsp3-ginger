@@ -1,0 +1,26 @@
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "capabilities": {
+            "textDocumentSync": {
+                "openClose": true,
+                "change": 1
+            },
+            "hoverProvider": true,
+            "completionProvider": {
+                "resolveProvider": true
+            },
+            "definitionProvider": true,
+            "referencesProvider": true,
+            "documentHighlightProvider": true,
+            "renameProvider": {
+                "prepareProvider": true
+            }
+        },
+        "serverInfo": {
+            "name": "ham-lsp",
+            "version": "0.2.1"
+        }
+    }
+}

@@ -1,0 +1,152 @@
+// LSP メッセージを受信する機能。
+
+#ifndef included_mod_lsp_receive_hsp
+#define included_mod_lsp_receive_hsp
+
+#module m_lsp_receive
+
+#define true 1
+#define false 0
+
+#deffunc lsp_receive_init
+
+	s_data_cap = 0x10000
+	sdim s_data, s_data_cap
+	s_data_index = 0
+	s_data_len = 0
+
+	sdim s_header
+	s_header_len = 0
+
+	s_body_cap = 0x10000
+	sdim s_body, s_body_cap
+	s_body_index = 0
+	s_body_len = -1
+	return
+
+// 受信したデータをバッファーに追加する。
+#deffunc lsp_receive_add_data var chunk, \
+	local chunk_len
+
+	chunk_len = strlen(chunk)
+
+	if s_data_len + chunk_len >= s_data_cap {
+		s_data_cap += chunk_len + s_data_cap / 2 + 64
+		memexpand s_data, s_data_cap
+
+	}
+	memcpy s_data, chunk, chunk_len, s_data_len
+	s_data_len += chunk_len
+
+	poke s_data, s_data_len, 0
+	return
+
+// 不要なデータをバッファーから取り除く。
+#deffunc lsp_receive_rotate_data
+
+	if s_data_index >= 3000 {
+		s_data = strmid(s_data, s_data_index, s_data_len - s_data_index)
+		s_data_len -= s_data_index
+		s_data_index = 0
+	}
+	return
+
+// 次のメッセージがあれば取得する。
+// メッセージがあれば true を返す。その場合、次に lsp_receive_next するまでの間に lsp_receive_dup_body を使って、データを取得できる。
+#deffunc lsp_receive_next \
+	local ok, local data_index_old
+
+	s_body = ""
+	s_body_len = -1
+
+	data_index_old = s_data_index
+
+	repeat
+		if s_data_index >= s_data_len {
+			break
+		}
+
+		s_header_len = instr(s_data, s_data_index, "\n")
+		if s_header_len < 0 {
+			break
+		}
+
+		if s_header_len == 0 {
+			s_data_index += 2
+			ok = true
+			break
+		}
+
+		s_header = strmid(s_data, s_data_index, s_header_len)
+
+		s_key_len = instr(s_header, , ":")
+		if s_key_len < 0 {
+			break
+		}
+
+		s_key = strmid(s_header, 0, s_key_len)
+		s_key = strtrim(s_key)
+		s_value = strmid(s_header, s_key_len + 1, s_header_len - (s_key_len + 1))
+		s_value = strtrim(s_value)
+
+		logmes "key = '" + s_key + "', value = '" + s_value + "'"
+
+		s_data_index += s_header_len + 2
+
+		if s_key == "Content-Length" {
+			s_body_len = int(s_value)
+			continue
+		}
+
+		if s_key == "Content-Type" {
+			continue
+		}
+
+		logmes "Received unknown header: " + s_header
+	loop
+
+	if s_body_len < 0 {
+		// no content-length
+		ok = false
+	}
+
+	if s_data_index + s_body_len > s_data_len {
+		// body is not loaded yet
+		ok = false
+	}
+
+	if ok == false {
+		// not ready
+		s_data_index = data_index_old
+		return false
+	}
+
+	if s_body_len >= s_body_cap {
+		s_body_cap += s_body_len + s_body_cap / 2 + 64
+		memexpand s_body, s_body_cap
+	}
+
+	memcpy s_body, s_data, s_body_len, 0, s_data_index
+	poke s_body, s_body_len, 0
+	s_data_index += s_body_len
+
+	lsp_receive_rotate_data
+	return true
+
+// lsp_receive_next で取得したデータの本体をクローン変数に格納する。
+#deffunc lsp_receive_dup_body var body, var body_len
+
+	dup body, s_body
+	body_len = s_body_len
+	return
+
+// テスト用。内部バッファーのデータサイズを取得する。
+#defcfunc lsp_receive_data_len
+
+	return s_data_len
+
+#global
+
+	lsp_receive_init
+
+#endif

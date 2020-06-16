@@ -1,0 +1,12 @@
+{
+    "jsonrpc": "2.0",
+    "method": "textDocument/didOpen",
+    "params": {
+        "textDocument": {
+            "uri": "$URI",
+            "version": "$VERSION",
+            "languageId": "hsp3",
+            "text": "$TEXT"
+        }
+    }
+}

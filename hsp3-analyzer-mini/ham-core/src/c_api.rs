@@ -44,17 +44,13 @@ unsafe fn str_assign(dest: *mut c_char, dest_len: *mut i32, src: &str) {
     *dest_len = len as i32;
 }
 
-unsafe fn url_from_raw_file_path(file_path: *const c_char, file_path_len: i32) -> Option<Url> {
-    let file_path = match str_from_raw_parts(file_path, file_path_len) {
-        Some(s) => PathBuf::from(s),
-        None => return None,
-    };
-
-    match Url::from_file_path(&file_path) {
+unsafe fn url_from_raw_parts(uri: *const c_char, uri_len: i32) -> Option<Url> {
+    let uri = str_from_raw_parts(uri, uri_len)?;
+    match Url::parse(uri) {
         Ok(uri) => Some(uri),
-        Err(()) => {
-            error!("expected a valid file path {:?}", file_path);
-            return None;
+        Err(err) => {
+            error!("expected a valid URI {:?}", err);
+            None
         }
     }
 }
@@ -123,8 +119,8 @@ pub unsafe extern "C" fn ham_destroy(instance: *mut HamInstance) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn ham_doc_did_open(
     instance: *mut HamInstance,
-    file_path: *const c_char,
-    file_path_len: i32,
+    uri: *const c_char,
+    uri_len: i32,
     version: i32,
     text: *const c_char,
     text_len: i32,
@@ -133,7 +129,7 @@ pub unsafe extern "C" fn ham_doc_did_open(
         return FALSE;
     }
 
-    let uri = match url_from_raw_file_path(file_path, file_path_len) {
+    let uri = match url_from_raw_parts(uri, uri_len) {
         Some(uri) => uri,
         None => return FALSE,
     };
@@ -150,8 +146,8 @@ pub unsafe extern "C" fn ham_doc_did_open(
 #[no_mangle]
 pub unsafe extern "C" fn ham_doc_did_change(
     instance: *mut HamInstance,
-    file_path: *const c_char,
-    file_path_len: i32,
+    uri: *const c_char,
+    uri_len: i32,
     version: i32,
     text: *const c_char,
     text_len: i32,
@@ -160,7 +156,7 @@ pub unsafe extern "C" fn ham_doc_did_change(
         return FALSE;
     }
 
-    let uri = match url_from_raw_file_path(file_path, file_path_len) {
+    let uri = match url_from_raw_parts(uri, uri_len) {
         Some(uri) => uri,
         None => return FALSE,
     };
@@ -179,14 +175,14 @@ pub unsafe extern "C" fn ham_doc_did_change(
 #[no_mangle]
 pub unsafe extern "C" fn ham_doc_did_close(
     instance: *mut HamInstance,
-    file_path: *const c_char,
-    file_path_len: i32,
+    uri: *const c_char,
+    uri_len: i32,
 ) -> i32 {
     if instance.is_null() {
         return FALSE;
     }
 
-    let uri = match url_from_raw_file_path(file_path, file_path_len) {
+    let uri = match url_from_raw_parts(uri, uri_len) {
         Some(uri) => uri,
         None => return FALSE,
     };
@@ -198,8 +194,8 @@ pub unsafe extern "C" fn ham_doc_did_close(
 #[no_mangle]
 pub unsafe extern "C" fn ham_hover(
     instance: *mut HamInstance,
-    file_path: *const c_char,
-    file_path_len: i32,
+    uri: *const c_char,
+    uri_len: i32,
     position_line: i32,
     position_character: i32,
     output: *mut c_char,
@@ -209,7 +205,7 @@ pub unsafe extern "C" fn ham_hover(
         return FALSE;
     }
 
-    let uri = match url_from_raw_file_path(file_path, file_path_len) {
+    let uri = match url_from_raw_parts(uri, uri_len) {
         Some(uri) => uri,
         None => return FALSE,
     };

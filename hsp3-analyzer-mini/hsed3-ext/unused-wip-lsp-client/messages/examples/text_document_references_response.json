@@ -1,0 +1,19 @@
+{
+    "jsonrpc": "2.0",
+    "id": 14,
+    "result": [
+        {
+            "uri": "file:///C:/repo/local/foo.hsp",
+            "range": {
+                "start": {
+                    "line": 10,
+                    "character": 5
+                },
+                "end": {
+                    "line": 10,
+                    "character": 11
+                }
+            }
+        }
+    ]
+}

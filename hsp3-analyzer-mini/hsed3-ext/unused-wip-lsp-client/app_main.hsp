@@ -1,0 +1,153 @@
+// LICENSE: CC0-1.0
+
+// WIP
+
+// hsed3 のための LSP クライアント
+// hsp36b1 以前のスクリプトエディタでは動作しない。
+// hsp3-analyzer-mini を事前にビルドしておくこと
+
+#packopt name "hsed3_lsp_client"
+#packopt hide 1
+
+#include "hsp3utf.as"
+#include "hsedsdk.as"
+#include "mod_hsed.hsp"
+#include "mod_hsed_carets.hsp"
+#include "mod_hsed_client.hsp"
+#include "mod_hsed_docs.hsp"
+#include "mod_lsp_client_connection.hsp"
+#include "mod_lsp_receive.hsp"
+#include "mod_lsp_send.hsp"
+
+#module m_app
+
+#const true 1
+#const false 0
+
+// frame per second
+#const k_fps 60
+
+#deffunc app_main
+
+	dim s_tab_count
+	dim s_tab_footy_ids
+	dim s_tab_file_paths
+	dim s_tab_text_lens
+
+	dim s_dirty_doc_ids
+	dim s_dirty_doc_tab_ids
+	dim s_dirty_doc_count
+	sdim s_text
+
+	dim s_doc_change_kinds
+	dim s_doc_change_uris
+	dim s_doc_change_count
+
+	onexit goto *l_on_exit
+
+	// hsed が起動するのを待つ。
+	logmes "app: waiting for hsed to get ready"
+
+	s_hsed_exists = false
+	repeat 60 * 60 // 1 min
+		await 1000 / k_fps
+
+		hsed_exist
+		if stat {
+			s_hsed_exists = true
+			break
+		}
+	loop
+
+	if s_hsed_exists == false {
+		logmes "app: hsed not running"
+		return
+	}
+
+	logmes "app: hsed is now ready"
+
+	repeat
+		await 1000 / k_fps
+
+		// 接続を確認する。
+		hsed_exist
+		if stat == false {
+			s_hsed_exists = false
+			logmes "app: hsed has gone"
+			break
+		}
+
+		// hsed のタブ情報を受信する。
+		hsed_client_request_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
+		if stat {
+			hsed_docs_update_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
+
+			// 内容が変更された可能性があるタブがあるなら、内容を共有する。
+			hsed_docs_emit_dirty_documents s_dirty_doc_ids, s_dirty_doc_tab_ids, s_dirty_doc_count
+
+			repeat s_dirty_doc_count
+				s_tab_id = s_dirty_doc_tab_ids(cnt)
+				hsed_client_request_text s_tab_footy_ids(s_tab_id), s_text
+				if stat == false {
+					logmes "app: failed to get text"
+					continue
+				}
+
+				hsed_docs_set_doc_text s_dirty_doc_count(cnt), s_text
+				s_text = ""
+			loop
+			s_dirty_doc_count = 0
+
+			// ドキュメントの変更イベントを LSP サーバーに送る。
+			hsed_docs_emit_document_changes s_doc_change_kinds, s_doc_change_uris, s_doc_change_count
+
+			repeat s_doc_change_count
+				// FIXME: 実装
+			loop
+			s_doc_change_count = 0
+		} else {
+			logmes "app: failed to request tabs"
+		}
+
+		// lsp の状態を更新する。
+		lspcc_update
+
+		// FIXME: LSP から来たレスポンスを受け取る。
+	loop
+	return
+
+#deffunc app_shutdown
+
+	logmes "app: [info] shutting..."
+	lspcc_shutdown
+
+	repeat
+		lspcc_is_exited
+		if stat {
+			break
+		}
+
+		lspcc_update
+		await 100
+	loop
+
+	logmes "app: [info] gracefully exited"
+	return
+
+#deffunc app_do_send_msg var data, int data_len
+
+	lspcc_send data, data_len
+	return
+
+*l_on_exit
+
+	app_shutdown
+	end
+	end
+
+#global
+
+	app_main
+	app_shutdown
+	end
+	end

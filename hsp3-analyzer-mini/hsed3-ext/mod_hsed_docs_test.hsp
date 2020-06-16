@@ -1,0 +1,231 @@
+// LICENSE: CC0-1.0
+// v0
+
+// 実行して assert で止まらなければ OK。
+
+// ginger run mod_hsed_docs_test.hsp
+
+#include "hsp3utf.as"
+#include "mod_hsed_docs.hsp"
+
+#module m_hsed_docs_test
+
+#const true 1
+#const false 0
+
+#deffunc hsed_docs_test_init
+
+	dim s_tab_count
+	dim s_footy_ids
+	sdim s_file_paths
+	sdim s_texts
+	dim s_text_lens
+
+	dim s_doc_ids
+	dim s_doc_tab_ids
+	dim s_doc_count
+
+	dim s_event_kinds
+	sdim s_event_uris
+	dim s_event_versions
+	sdim s_event_texts
+	dim s_event_count
+	return
+
+#deffunc hsed_docs_test_diffing_setup
+
+	hsed_docs_init
+	hsed_docs_test_init
+
+	// 初期状態
+	s_tab_count = 2
+	s_footy_ids = 1, 2
+	s_file_paths = "C:/1.hsp", "C:/2.hsp"
+	s_texts = "mes 1", "mes 22"
+	s_text_lens = strlen(s_texts(0)), strlen(s_texts(1))
+
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	// 2つのファイルはどちらも dirty のはず。
+	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
+	assert s_doc_count == 2
+	assert s_doc_ids(0) != s_doc_ids(1)
+	assert s_doc_tab_ids(0) == 0
+	assert s_doc_tab_ids(1) == 1
+
+	// テキストを設定する。
+	repeat s_doc_count
+		hsed_docs_set_doc_text s_doc_ids(cnt), s_texts(s_doc_tab_ids(cnt))
+	loop
+
+	// opened イベントが観測されるはず。
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 2
+	assert s_event_kinds(0) == hsed_docs_k_doc_opened
+	assert s_event_uris(0) == "file:///C:/1.hsp"
+	assert s_event_kinds(1) == hsed_docs_k_doc_opened
+	assert s_event_uris(1) == "file:///C:/2.hsp"
+	return
+
+#deffunc hsed_docs_test_no_diff
+
+	hsed_docs_test_diffing_setup
+
+	// 状態が変化しなければイベントが発生しないことを確認する。
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
+	assert s_doc_count == 0
+
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 0
+	return
+
+#deffunc hsed_docs_test_one_opened_doc
+
+	hsed_docs_test_diffing_setup
+
+	// 新しいタブを開く。
+	s_footy_ids(s_tab_count) = 3
+	s_file_paths(s_tab_count) = "C:/3.hsp"
+	s_texts(s_tab_count) = "mes 333"
+	s_text_lens(s_tab_count) = strlen(s_texts(s_tab_count))
+	s_tab_count++
+
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	// opened イベントが観測されるはず。
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 1
+	assert s_event_kinds(0) == hsed_docs_k_doc_opened
+	assert s_event_uris(0) == "file:///C:/3.hsp"
+	return
+
+#deffunc hsed_docs_test_one_changed_doc
+
+	hsed_docs_test_diffing_setup
+
+	// テキストの長さを変更する。
+	s_texts(1) = "print 22"
+	s_text_lens(1) = strlen(s_texts(1))
+
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	// dirty になるはず。
+	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
+	assert s_doc_count == 1
+	assert s_doc_tab_ids(0) == 1
+
+	// テキストを設定する。
+	hsed_docs_set_doc_text s_doc_ids(0), s_texts(s_doc_tab_ids(0))
+
+	// changed イベントが観測されるはず。
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 1
+	assert s_event_kinds(0) == hsed_docs_k_doc_changed
+	assert s_event_uris(0) == "file:///C:/2.hsp"
+	return
+
+#deffunc hsed_docs_test_one_closed_doc
+
+	hsed_docs_test_diffing_setup
+
+	// タブを閉じる。
+	s_tab_count--
+
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	// closed イベントが観測されるはず。
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 1
+	assert s_event_kinds(0) == hsed_docs_k_doc_closed
+	assert s_event_uris(0) == "file:///C:/2.hsp"
+	return
+
+#deffunc hsed_docs_test_three_doc_events
+
+	hsed_docs_test_diffing_setup
+
+	// 1 を変更し、2 を閉じ、3, 4 を開く。
+	s_tab_count = 3
+	s_file_paths = "C:/3.hsp", "C:/1.hsp", "C:/4.hsp"
+	s_texts = "mes 333", "print 1", "mes 4444"
+	s_footy_ids = 3, 1, 4
+
+	repeat s_tab_count
+		s_text_lens(cnt) = strlen(s_texts(cnt))
+	loop
+
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	// 1, 3, 4 が dirty になるはず。
+	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
+	assert s_doc_count == 3
+	assert s_doc_tab_ids(0) == 1
+	assert s_doc_tab_ids(1) == 0
+	assert s_doc_tab_ids(2) == 2
+
+	// テキストを設定する。
+	repeat s_tab_count
+		hsed_docs_set_doc_text s_doc_ids(cnt), s_texts(s_doc_tab_ids(cnt))
+	loop
+
+	// 複数のイベントが観測されるはず。
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 4
+	assert s_event_kinds(0) == hsed_docs_k_doc_closed
+	assert s_event_uris(0) == "file:///C:/2.hsp"
+
+	assert s_event_kinds(1) == hsed_docs_k_doc_opened
+	assert s_event_uris(1) == "file:///C:/3.hsp"
+
+	assert s_event_kinds(2) == hsed_docs_k_doc_opened
+	assert s_event_uris(2) == "file:///C:/4.hsp"
+
+	assert s_event_kinds(3) == hsed_docs_k_doc_changed
+	assert s_event_uris(3) == "file:///C:/1.hsp"
+	return
+
+#deffunc hsed_docs_test_nonfile_tabs
+
+	hsed_docs_init
+
+	s_tab_count = 1
+	s_footy_ids = 1
+	s_file_paths = ""
+	s_texts = "mes 1"
+	s_text_lens = strlen(s_texts(0))
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 1
+	assert s_event_kinds(0) == hsed_docs_k_doc_opened
+	assert s_event_uris(0) == "hsed:///footies/1/"
+
+	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
+	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
+	assert s_event_count == 0
+	return
+
+#deffunc hsed_docs_test_main
+
+	hsed_docs_test_init
+
+	hsed_docs_test_no_diff
+	hsed_docs_test_one_opened_doc
+	hsed_docs_test_one_changed_doc
+	hsed_docs_test_one_closed_doc
+	hsed_docs_test_three_doc_events
+	hsed_docs_test_nonfile_tabs
+
+	// FIXME: hover イベントのテスト
+	return
+
+#global
+
+	hsed_docs_test_main
+
+	mes "passed"
+	await 500
+	end
+	end

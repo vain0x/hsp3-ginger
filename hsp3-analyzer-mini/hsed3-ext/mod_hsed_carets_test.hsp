@@ -1,0 +1,90 @@
+// LICENSE: CC0-1.0
+// v0
+
+// 実行して assert で止まらなければ OK。
+
+#include "hsp3utf.as"
+#include "mod_hsed_carets.hsp"
+
+#module m_hsed_carets_test
+
+#const true 1
+#const false 0
+
+#const int k_hover_ticks ((150 * 60 + 1000 - 1) / 1000)
+
+#deffunc hsed_carets_test_init
+
+	dim s_hover_is_happend
+	dim s_hover_footy_id
+	dim s_hover_caret_line
+	dim s_hover_caret_char
+	return
+
+// 一定時間、経過するのを待つ。
+#deffunc local hsed_carets_test_sleep int ellapse_frames
+
+	repeat ellapse_frames
+		hsed_carets_update s_active_footy_id, s_caret_line, s_caret_char
+	loop
+	return
+
+#deffunc hsed_carets_test_main
+
+	hsed_carets_init
+	hsed_carets_test_init
+
+	s_active_footy_id = 1
+	s_caret_line = 2
+	s_caret_char = 3
+
+	// すぐには hover イベントは起きない。
+	hsed_carets_test_sleep 1
+	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
+	assert stat == false
+
+	// しばらくすると hover イベントが起こる。
+	hsed_carets_test_sleep k_hover_ticks + 10
+	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
+	assert stat
+	assert s_hover_footy_id == s_active_footy_id
+	assert s_hover_caret_line == s_caret_line
+	assert s_hover_caret_char == s_caret_char
+
+	// 一度 hover イベントが起こると、同じ場所にいても hover イベントは起きない。
+	hsed_carets_test_sleep k_hover_ticks + 10
+	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
+	assert stat == false
+
+	// カレット位置を変えてしばらく経つと、また hover イベントが起こる。
+	s_caret_line++
+
+	hsed_carets_test_sleep k_hover_ticks + 10
+	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
+	assert stat
+	assert s_hover_caret_line == s_caret_line
+	assert s_hover_caret_char == s_caret_char
+
+	// カレット位置を変えてから、hover イベントが起こる前に、
+	// またカレット位置を変えると、hover イベントが起こるまでの経過時間がリセットされる。
+	s_caret_line++
+
+	hsed_carets_test_sleep (k_hover_ticks + 10) / 2
+	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
+	assert stat == false
+
+	s_caret_line++
+
+	hsed_carets_test_sleep (k_hover_ticks + 10) / 2
+	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
+	assert stat == false
+	return
+
+#global
+
+	hsed_carets_test_main
+
+	mes "passed"
+	await 500
+	end
+	end

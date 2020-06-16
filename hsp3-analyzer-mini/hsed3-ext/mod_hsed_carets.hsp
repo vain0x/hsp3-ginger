@@ -1,0 +1,82 @@
+// LICENSE: CC0-1.0
+// v0
+
+// スクリプトエディタの状態の変化を観測して、前回更新以降に起こったイベントを再構築する。
+
+#ifndef included_mod_hsed_carets_hsp
+#define included_mod_hsed_carets_hsp
+
+#module m_hsed_carets
+
+#const true 1
+#const false 0
+
+#deffunc hsed_carets_init
+
+	// 選択中のタブの Footy ID (なければマイナス)
+	s_active_footy_id = -1
+	// カレットの行番号 (先頭は 0)
+	s_caret_line = 0
+	// カレットの列番号 (先頭は 0)
+	// FIXME: マルチバイト文字は何文字と数えられる？
+	s_caret_char = 0
+	// hover イベントが発生するまでのフレーム数 (発生済みならマイナス)
+	s_hover_timer = -1
+
+	// hover イベントが発生したか？
+	dim s_hover_is_happened
+	dim s_hover_footy_id
+	dim s_hover_caret_line
+	dim s_hover_caret_char
+	return
+
+#deffunc hsed_carets_update int active_footy_id, int caret_line, int caret_char, \
+	local is_same
+
+	is_same = s_active_footy_id == active_footy_id
+	s_active_footy_id = active_footy_id
+
+	is_same = is_same && s_caret_line == caret_line
+	s_caret_line = caret_line
+
+	is_same = is_same && s_caret_char == caret_char
+	s_caret_char = caret_char
+
+	if is_same == false {
+		// 60 FPS と仮定して 15 ミリ秒後に発火する。
+		// FIXME: 時間を設定できるようにする。
+		s_hover_timer = (150 * 60 + 1000 - 1) / 1000
+		return
+	}
+
+	if s_hover_timer >= 0 {
+		if s_hover_timer == 0 {
+			// hover イベントを発生させる。(すでに発生していても上書きして OK。)
+			s_hover_footy_id = active_footy_id
+			s_hover_caret_line = caret_line
+			s_hover_caret_char = caret_char
+			s_hover_is_happened = true
+			s_hover_timer = -1
+		} else {
+			s_hover_timer--
+		}
+	}
+	return
+
+// hover イベントを取り出す。
+// stat: hover イベントが発生していたら true
+#deffunc hsed_carets_take_hover_event var footy_id, var caret_line, var caret_char
+
+	if s_hover_is_happened == false {
+		return false
+	}
+
+	s_hover_is_happened = false
+	footy_id = s_hover_footy_id
+	caret_line = s_hover_caret_line
+	caret_char = s_hover_caret_char
+	return true
+
+#global
+
+#endif

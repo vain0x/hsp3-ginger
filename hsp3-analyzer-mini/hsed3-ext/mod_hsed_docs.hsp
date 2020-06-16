@@ -1,0 +1,397 @@
+// LICENSE: CC0-1.0
+// v0
+
+// スクリプトエディタの状態の変化を観測して、ドキュメントが開かれた・変更された・閉じられた、というイベントを適切に発行する。
+
+#ifndef included_mod_hsed_docs_hsp
+#define included_mod_hsed_docs_hsp
+
+#module m_hsed_docs
+
+#const true 1
+#const false 0
+
+// このテキストドキュメントはファイルではなく、新しいタブをもとにしている。
+// (無題。ファイルを開いていないし、ファイルとして保存してもいない。)
+#enum k_doc_kind_untitled = 1
+// このテキストドキュメントはファイルを開いたか、ファイルとして保存されている。
+#enum k_doc_kind_file
+
+// このテキストドキュメントはいずれかのタブに関連している (生きている)。
+#const k_doc_status_alive 1 << 0
+// 未発行の「開かれた」イベントで参照されている。
+#const k_doc_status_opened 1 << 1
+// 未発行の「変更された」イベントで参照されている。
+#const k_doc_status_changed 1 << 2
+// 未発行の「閉じられた」イベントで参照されている。
+#const k_doc_status_closed 1 << 3
+
+// このイベントはテキストドキュメントが開かれたことを表している。
+#enum global hsed_docs_k_doc_opened = 1
+// このイベントはテキストドキュメントの内容が変更された (可能性がある) ことを表している。
+#enum global hsed_docs_k_doc_changed
+// このイベントはテキストドキュメントが閉じられたことを表している。
+#enum global hsed_docs_k_doc_closed
+
+#deffunc hsed_docs_init
+
+	// スクリプトエディタの各タブの情報
+
+	// スクリプトエディタの各タブの情報 (前回更新時のもの)
+	// タブの個数
+	dim s_prev_tab_count
+	// タブ上に配置されている Footy コントロール (テキストエディタ) のID
+	// (ID は再利用される。例えば Footy ID 1 のタブが閉じられた後、
+	//  新しく開かれたタブの Footy ID は 1 になる可能性がある。
+	//  値は 0 以上の整数。)
+	dim s_prev_tab_footy_ids
+	// タブで開かれているファイルの絶対パス。
+	// (ファイルを開く操作や名前を付けて保存によって変化する。「無題」なら空文字列。)
+	sdim s_prev_tab_file_paths
+	// テキストの長さ
+	dim s_prev_tab_text_lens
+	// 関連しているドキュメントの ID (なければマイナス)
+	dim s_prev_tab_doc_ids
+
+	// テキストドキュメントの個数
+	dim s_doc_count
+	// テキストドキュメントのステータス
+	// (k_doc_status_* の論理和)
+	// 0 なら、このテキストドキュメントは使われていなくて、フリーリストに入っている。
+	dim s_doc_statuses
+	// テキストドキュメントに関連する URI
+	// (ファイルなら "file://<path>"。無題なら "hsed:///footies/<footy-id>/")
+	sdim s_doc_uris
+	// テキストドキュメントの種類
+	dim s_doc_kinds
+	// このテキストドキュメントを開いているタブの ID (なければマイナス)
+	dim s_doc_tab_ids
+	// このテキストドキュメントの編集に使われている Footy ID (なければマイナス)
+	dim s_doc_footy_ids
+	// テキストドキュメントに関連しているファイルパス。
+	// 種類がファイルであるときのみ有効。ファイルパスは変化しない。
+	sdim s_doc_file_paths
+	// バージョン番号 (内容が変化するたびに増える値)
+	dim s_doc_versions
+	// 内容
+	sdim s_doc_texts
+	dim s_doc_text_lens
+	//　内容が変更された可能性がある？
+	dim s_doc_text_is_dirty
+
+	// s_doc_* のフリーリスト
+	dim s_doc_free_count
+	dim s_doc_free_ids
+
+	// 内容が変化した可能性があるテキストドキュメントの個数
+	dim s_dirty_doc_count
+	dim s_dirty_doc_ids
+
+	// 前回更新時より後に開かれた・変更された・閉じられたドキュメントの個数
+	dim s_changed_doc_count
+	dim s_changed_doc_ids
+	return
+
+// テキストドキュメントを新しく生成する。
+#deffunc local hsed_docs_alloc_doc int footy_id, var file_path, \
+	local doc_id
+
+	if s_doc_free_count >= 1 {
+		s_doc_free_count--
+		doc_id = s_doc_free_ids(s_doc_free_count)
+	} else {
+		doc_id = s_doc_count
+		s_doc_count++
+	}
+	assert 0 <= doc_id && doc_id < s_doc_count
+
+	s_doc_statuses(doc_id) = k_doc_status_alive
+	s_doc_versions(doc_id) = 0
+	s_doc_tab_ids(doc_id) = -1
+	s_doc_footy_ids(doc_id) = footy_id
+	s_doc_file_paths(doc_id) = file_path
+	s_doc_texts(doc_id) = ""
+	s_doc_text_lens(doc_id) = 0
+
+	if file_path == "" {
+		s_doc_kinds(doc_id) = k_doc_kind_untitled
+		s_doc_uris(doc_id) = "hsed:///footies/" + footy_id + "/"
+	} else {
+		s_doc_kinds(doc_id) = k_doc_kind_file
+		s_doc_uris(doc_id) = "file:///" + file_path
+	}
+
+	s_doc_text_is_dirty(doc_id) = true
+	s_dirty_doc_ids(s_dirty_doc_count) = doc_id
+	s_dirty_doc_count++
+	return doc_id
+
+// テキストドキュメントを破棄する。
+#deffunc local hsed_docs_free_doc int doc_id
+
+	s_doc_statuses(doc_id) = 0
+	s_doc_free_ids(s_doc_free_count) = doc_id
+	s_doc_free_count++
+	return
+
+// テキストドキュメントの内容を設定する。
+#deffunc hsed_docs_set_doc_text int doc_id, var new_text
+
+	assert 0 <= doc_id && doc_id < s_doc_count
+
+	if (s_doc_statuses(doc_id) & k_doc_status_alive) == 0 {
+		return
+	}
+
+	if s_doc_texts(doc_id) == new_text {
+		return
+	}
+
+	s_doc_texts(doc_id) = new_text
+	s_doc_text_lens(doc_id) = strlen(new_text)
+	s_doc_versions(doc_id)++
+	s_doc_text_is_dirty(doc_id) = false
+
+	// 変更イベントを発行。
+	s_doc_statuses(doc_id) |= k_doc_status_changed
+	s_changed_doc_ids(s_changed_doc_count) = doc_id
+	s_changed_doc_count++
+	return
+
+// タブの現在の状態を受け取る。状態の差分を取り、ドキュメントの開閉を検出する。
+//
+// 前回更新時にいずれかのタブで開かれていたファイル (厳密には URI) が、
+// いまどのタブでも開かれていなければ、それは閉じられたとみなす。
+//
+// 逆に、いまのタブで開かれているファイルが、
+// 前回更新時にどのタブでも開かれていなければ、それは開かれたとみなす。
+//
+// 状態の変更による影響は hsed_docs_emit_* 系の命令を使ってイベントとして取り出せる。
+#deffunc hsed_docs_update_tabs int tab_count, array tab_footy_ids, array tab_file_paths, array tab_text_lens, \
+	local prev_tab_id, local tab_doc_ids, \
+	local doc_id, local status
+
+	dim tab_doc_ids, tab_count
+	repeat tab_count
+		tab_doc_ids(cnt) = -1
+	loop
+
+	// 前回更新時のタブと、いまあるタブの対応付けを行う。
+	// NOTE: タブの個数は少ない (多くて100) と予想されるので全探索で OK。
+	repeat s_prev_tab_count
+		prev_tab_id = cnt
+
+		doc_id = s_prev_tab_doc_ids(prev_tab_id)
+		if doc_id < 0 {
+			continue
+		}
+
+		repeat tab_count
+			if tab_doc_ids(cnt) >= 0 {
+				continue
+			}
+
+			// Footy ID やファイルパスが異なるタブは、異なるドキュメントに関連するので、
+			// (仮に同じタブだったとしても) 異なるタブとみなすことにする。
+			if s_prev_tab_footy_ids(prev_tab_id) != tab_footy_ids(cnt) {
+				continue
+			}
+
+			if s_prev_tab_file_paths(prev_tab_id) != tab_file_paths(cnt) {
+				continue
+			}
+
+			// ドキュメントを引き継ぐ。
+			tab_doc_ids(cnt) = doc_id
+			s_prev_tab_doc_ids(prev_tab_id) = -1
+
+			s_doc_tab_ids(doc_id) = cnt
+
+			// テキストの長さが変わっていたら、内容が変化した可能性があるとみなす。
+			if s_doc_text_lens(doc_id) != tab_text_lens(cnt) {
+				if s_doc_text_is_dirty(doc_id) == false || true {
+					s_doc_text_is_dirty(doc_id) = true
+
+					s_dirty_doc_ids(s_dirty_doc_count) = doc_id
+					s_dirty_doc_count++
+					logmes "hsed_docs: dirty " + s_doc_uris(doc_id)
+				}
+			}
+			break
+		loop
+	loop
+
+	// 現在のタブと対応付けられなかった以前のタブは、閉じられたとみなす。
+	// 関連しているドキュメントを「閉じられた」とマークする。
+	repeat s_prev_tab_count
+		doc_id = s_prev_tab_doc_ids(cnt)
+		if doc_id < 0 {
+			continue
+		}
+
+		assert s_doc_statuses(doc_id) & k_doc_status_alive
+
+		// 「ドキュメントが閉じられた」イベントを発行する。
+		status = s_doc_statuses(doc_id)
+		status &= k_doc_status_alive ^ (-1)
+		status |= k_doc_status_closed
+		s_doc_statuses(doc_id) = status
+
+		s_changed_doc_ids(s_changed_doc_count) = doc_id
+		s_changed_doc_count++
+		logmes "hsed_docs: closed " + s_doc_uris(doc_id)
+	loop
+
+	// 以前のタブと対応付けられなかった現在のタブは、開かれたとみなす。
+	repeat tab_count
+		if tab_doc_ids(cnt) >= 0 {
+			continue
+		}
+
+		hsed_docs_alloc_doc tab_footy_ids(cnt), tab_file_paths(cnt)
+		doc_id = stat
+		tab_doc_ids(cnt) = doc_id
+		s_doc_tab_ids(doc_id) = cnt
+
+		// 「ドキュメントが開かれた」イベントを発行する。
+		s_doc_statuses(doc_id) |= k_doc_status_opened
+
+		s_changed_doc_ids(s_changed_doc_count) = doc_id
+		s_changed_doc_count++
+		logmes "hsed_docs: opened " + s_doc_uris(doc_id)
+	loop
+
+	// 次の更新時のために、現在のデータを保存する。
+	s_prev_tab_count = tab_count
+	repeat tab_count
+		s_prev_tab_footy_ids(cnt) = tab_footy_ids(cnt)
+		s_prev_tab_file_paths(cnt) = tab_file_paths(cnt)
+		s_prev_tab_text_lens(cnt) = tab_text_lens(cnt)
+		s_prev_tab_doc_ids(cnt) = tab_doc_ids(cnt)
+	loop
+	return
+
+// 内容が変化した可能性のあるテキストドキュメントの ID を取り出す。
+#deffunc hsed_docs_emit_dirty_docs array doc_ids, array doc_tab_ids, var doc_count, \
+	local doc_id
+
+	doc_count = 0
+
+	repeat s_dirty_doc_count
+		doc_id = s_dirty_doc_ids(cnt)
+		assert 0 <= doc_id && doc_id < s_doc_count
+
+		// すでに閉じられているなら内容はどうでもいいので、dirty とはみなさない。
+		if (s_doc_statuses(doc_id) & k_doc_status_alive) == 0 {
+			continue
+		}
+
+		doc_ids(doc_count) = doc_id
+		doc_tab_ids(doc_count) = s_doc_tab_ids(doc_id)
+		doc_count++
+	loop
+
+	if doc_count >= 1 {
+		logmes "hsed_docs: emit_dirty_docs " + doc_count
+	}
+
+	s_dirty_doc_count = 0
+	return
+
+// ドキュメントの変更イベントを発行する。
+#deffunc hsed_docs_emit_doc_changes \
+	array event_kinds, \
+	array event_uris, \
+	array event_versions, \
+	array event_texts, \
+	var event_count, \
+	local doc_id, local status, local mask
+
+	// FIXME: ドキュメントを破棄するタイミングを遅らせることで、テキストをコピーしなくて済むようにしたい。
+
+	event_count = 0
+
+	repeat s_changed_doc_count
+		doc_id = s_changed_doc_ids(cnt)
+		assert 0 <= doc_id && doc_id < s_doc_count
+
+		status = s_doc_statuses(doc_id)
+		if status == 0 {
+			continue
+		}
+
+		// ドキュメントが開かれて、すぐに閉じられた場合、イベントは発行しない。
+		mask = k_doc_status_opened | k_doc_status_closed
+		if (status & mask) == mask {
+			logmes "hsed_docs: skip " + s_doc_uris(doc_id)
+			hsed_docs_free_doc doc_id
+			continue
+		}
+
+		if status & k_doc_status_opened {
+			event_kinds(event_count) = hsed_docs_k_doc_opened
+			event_uris(event_count) = s_doc_uris(doc_id)
+			event_versions(event_count) = s_doc_versions(doc_id)
+			event_texts(event_count) = s_doc_texts(doc_id)
+			event_count++
+
+		} else : if status & k_doc_status_closed {
+			event_kinds(event_count) = hsed_docs_k_doc_closed
+			event_uris(event_count) = s_doc_uris(doc_id)
+			event_versions(event_count) = 0
+			event_texts(event_count) = ""
+			event_count++
+
+		} else : if status & k_doc_status_changed {
+			// (did_open/did_close イベントを発行しなかったときのみ、変更イベントを発行する。)
+			event_kinds(event_count) = hsed_docs_k_doc_changed
+			event_uris(event_count) = s_doc_uris(doc_id)
+			event_versions(event_count) = s_doc_versions(doc_id)
+			event_texts(event_count) = s_doc_texts(doc_id)
+			event_count++
+		}
+
+		// 対応するタブがすでに閉じられている場合、ドキュメントを破棄していい。
+		if (status & k_doc_status_alive) == 0 {
+			logmes "hsed_docs: drop " + s_doc_uris(doc_id)
+			hsed_docs_free_doc doc_id
+			continue
+		}
+
+		s_doc_statuses(doc_id) = k_doc_status_alive
+	loop
+
+	if event_count >= 1 {
+		logmes "hsed_docs: emit_doc_changes " + event_count
+	}
+
+	s_changed_doc_count = 0
+	return
+
+#deffunc hsed_docs_get_uri_by_footy_id int footy_id, var uri, \
+	local ok
+
+	if footy_id < 0 {
+		uri = ""
+		return false
+	}
+
+	ok = false
+	repeat s_doc_count
+		if (s_doc_statuses(cnt) & k_doc_status_alive) != 0 && s_doc_footy_ids(cnt) == footy_id {
+			uri = s_doc_uris(cnt)
+			ok = true
+			break
+		}
+	loop
+
+	if ok == false {
+		uri = ""
+	}
+	return ok
+
+#global
+
+	hsed_docs_init
+
+#endif

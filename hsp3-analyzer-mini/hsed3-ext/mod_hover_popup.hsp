@@ -1,0 +1,36 @@
+// LICENSE: CC0-1.0
+// v0
+
+#module m_hover_popup
+
+#const k_window_max_sx 500
+#const k_window_max_sy 500
+
+#enum k_self_window_id = 0
+#enum k_self_window_sx
+#enum k_self_window_sy
+#enum k_self_is_shown
+
+#deffunc hover_popup_new array self, int window_id
+
+	self(k_self_window_id) = window_id
+	self(k_self_window_sx) = 300
+	self(k_self_window_sy) = 300
+	self(k_self_is_shown) = false
+
+	screen window_id, k_window_max_sx, k_window_max_sy, screen_hide, , , self(k_self_window_sx), self(k_self_window_sy)
+	return
+
+#deffunc hover_popup_update array self
+
+	return
+
+#deffunc hover_popup_show array self
+
+	return
+
+#deffunc hover_popup_hide
+
+	return
+
+#global

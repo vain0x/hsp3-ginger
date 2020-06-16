@@ -1,0 +1,35 @@
+// LICENSE: CC0-1.0
+// v0
+
+// スクリプトエディタのカレット位置を表示するだけのアプリ。
+// 行番号と列番号ともに 0 ではなく 1 から始まる。
+// 列番号は UTF-16 (Unicode) の code unit 単位っぽい。
+
+#include "hsedsdk.as"
+
+	dim s_hsed_active_footy_id
+
+	repeat
+		await 16
+
+		hsed_getactfootyid s_hsed_active_footy_id
+		if stat {
+			continue
+		}
+
+		sendmsg hIF@hsedsdk, _HSED_GETCARETLINE@hsedsdk, s_hsed_active_footy_id
+		s_row = stat
+
+		sendmsg hIF@hsedsdk, _HSED_GETCARETPOS@hsedsdk, s_hsed_active_footy_id
+		s_col = stat
+
+		redraw 2
+
+		hsvcolor , , 255
+		boxf
+		color
+		pos 0, 0
+		mes strf("%d,%d", s_row, s_col)
+
+		redraw
+	loop

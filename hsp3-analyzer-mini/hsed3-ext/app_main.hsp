@@ -1,0 +1,359 @@
+// LICENSE: CC0-1.0
+
+// hsed3 のための LSP クライアント
+// hsp36b1 以前のスクリプトエディタでは動作しない。
+// hsp3-analyzer-mini を事前にビルドしておくこと
+
+// 参考: [HSPラベル・関数一覧 - HSPTV!掲示板](http://hsp.tv/play/pforum.php?mode=pastwch&num=88874)
+
+#packopt name "hsed3_lsp_client"
+#packopt hide 1
+
+// UTF-8 ランタイムは必須。
+#include "hsp3utf.as"
+
+#include "hsedsdk.as"
+#include "mod_ham_lsp_server.hsp"
+#include "mod_hsed.hsp"
+#include "mod_hsed_carets.hsp"
+#include "mod_hsed_client.hsp"
+#include "mod_hsed_docs.hsp"
+#include "user32.as"
+
+#module m_app
+
+#const true 1
+#const false 0
+
+#const HWND_TOP 0
+
+// frame per second
+#const k_fps 60
+
+#enum k_hover_window_id = 1
+
+#deffunc app_init
+
+	dim s_ham
+
+	dim s_tab_count
+	dim s_tab_footy_ids
+	dim s_tab_file_paths
+	dim s_tab_text_lens
+
+	dim s_dirty_doc_count
+	dim s_dirty_doc_ids
+	dim s_dirty_doc_tab_ids
+
+	dim s_doc_change_count
+	dim s_doc_change_kinds
+	sdim s_doc_change_uris
+	dim s_doc_change_versions
+	sdim s_doc_change_texts
+
+	dim s_hsed_is_connected
+	// 選択中のタブの footy ID (なければ -1)
+	s_active_footy_id = -1
+	dim s_caret_line
+	dim s_caret_character
+
+	dim s_hover_is_happened
+	dim s_hover_footy_id
+	dim s_hover_caret_line
+	dim s_hover_caret_character
+
+	s_hover_text_capacity = 0x8000
+	sdim s_hover_text, s_hover_text_capacity
+	dim s_hover_text_len
+	sdim s_hover_text_prev, s_hover_text_capacity
+	dim s_hover_text_len_prev
+
+	dim s_hover_window_is_visible
+	s_hover_window_sx = 300
+	s_hover_window_sy = 150
+
+	screen k_hover_window_id, s_hover_window_sx, s_hover_window_sy, screen_hide | screen_tool | screen_fixedsize
+
+	font "MS Gothic", 12
+	objmode objmode_usefont
+	mesbox s_hover_text_prev, ginfo_winx, ginfo_winy, 0
+	s_hover_mesbox_id = stat
+
+	onexit goto *l_on_exit
+	return
+
+// スクリプトエディタが起動するのを待つ。
+#deffunc app_wait_for_hsed
+
+	s_hsed_is_connected = false
+	logmes "app: waiting for hsed"
+
+	repeat 10 * k_fps  // 10 sec
+		hsed_exist
+		if stat {
+			s_hsed_is_connected = true
+			break
+		}
+
+		await 1000 / k_fps
+	loop
+
+	if s_hsed_is_connected {
+		logmes "app: hsed is now ready"
+	} else {
+		logmes "app: hsed not running"
+	}
+	return
+
+#deffunc app_hsed_update \
+	local ok, local tab_id
+
+	// 接続を確認する。
+	assert s_hsed_is_connected
+	hsed_exist
+	s_hsed_is_connected = stat
+	if s_hsed_is_connected == false {
+		logmes "app: hsed has gone"
+		return
+	}
+
+	// タブ情報を問い合わせる。
+	hsed_client_request_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
+	if stat == false {
+		logmes "app: failed to request tabs"
+		return
+	}
+
+	hsed_docs_update_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
+
+	// 内容が変更された可能性があるタブがあるなら、内容を共有する。
+	hsed_docs_emit_dirty_docs s_dirty_doc_ids, s_dirty_doc_tab_ids, s_dirty_doc_count
+
+	ok = true
+	repeat s_dirty_doc_count
+		tab_id = s_dirty_doc_tab_ids(cnt)
+		hsed_client_request_text s_tab_footy_ids(tab_id), s_text
+		if stat == false {
+			ok = false
+			continue
+		}
+
+		hsed_docs_set_doc_text s_dirty_doc_ids(cnt), s_text
+		s_text = ""
+	loop
+	s_dirty_doc_count = 0
+
+	if ok == false {
+		logmes "app: failed to get text"
+		return
+	}
+
+	// ドキュメントの変更イベントを取り出す。
+	hsed_docs_emit_doc_changes s_doc_change_kinds, s_doc_change_uris, s_doc_change_versions, s_doc_change_texts, s_doc_change_count
+
+	// キャレット位置を更新する。
+	hsed_getactfootyid s_active_footy_id
+	if s_active_footy_id >= 0 {
+		hsed_get_caret_line s_active_footy_id
+		s_caret_line = stat - 1
+
+		hsed_get_caret_character s_active_footy_id
+		s_caret_character = stat - 1
+
+		hsed_carets_update s_active_footy_id, s_caret_line, s_caret_character
+
+		hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_character
+		s_hover_is_happened = stat
+	}
+	return
+
+// ドキュメントの変更イベントを LSP サーバーに通知する。
+#deffunc app_lsp_notify_doc_changes \
+	local ok, local kind, local uri, local uri_len, local version, local text_len
+
+	if s_doc_change_count <= 0 {
+		assert s_doc_change_count == 0
+		return true
+	}
+
+	assert s_ham != 0
+
+	ok = true
+	repeat s_doc_change_count
+		kind = s_doc_change_kinds(cnt)
+		uri = s_doc_change_uris(cnt)
+		version = s_doc_change_versions(cnt)
+		uri_len = strlen(uri)
+
+		if kind == hsed_docs_k_doc_opened {
+			text_len = strlen(s_doc_change_texts(cnt))
+			ham_doc_did_open s_ham, varptr(uri), uri_len, version, varptr(s_doc_change_texts(cnt)), text_len
+			ok = ok && stat
+			continue
+		}
+
+		if kind == hsed_docs_k_doc_closed {
+			ham_doc_did_close s_ham, varptr(uri), uri_len
+			ok = ok && stat
+			continue
+		}
+
+		if kind == hsed_docs_k_doc_changed {
+			text_len = strlen(s_doc_change_texts(cnt))
+			ham_doc_did_change s_ham, varptr(uri), uri_len, version, varptr(s_doc_change_texts(cnt)), text_len
+			ok = ok && stat
+			continue
+		}
+
+		assert false
+		logmes "app: unknown doc change kind"
+		ok = false
+		break
+	loop
+	s_doc_change_count = 0
+
+	if ok == false {
+		logmes "app: failed to notify doc changes to LSP"
+	}
+	return ok
+
+// 何かしら変化があれば true
+#deffunc app_lsp_request_hover \
+	local uri, local uri_len
+
+	if s_hover_is_happened == false {
+		return false
+	}
+
+	hsed_docs_get_uri_by_footy_id s_active_footy_id, uri
+	if stat == false {
+		s_hover_text = ""
+		s_hover_text_len = 0
+		return true
+	}
+
+	uri_len = strlen(uri)
+
+	// FIXME: s_caret_character の値はエンコーディングに依存する。(hsed は UTF-16 ベースだからここは問題ないが、ham は UTF-8 ベースで実装されているので正しく動作しない。)
+	s_hover_text_len = s_hover_text_capacity - 1
+	ham_hover s_ham, varptr(uri), uri_len, s_caret_line, s_caret_character, s_hover_text, s_hover_text_len
+	if stat == false {
+		logmes "app: failed hover request"
+		s_hover_text = ""
+		s_hover_text_len = 0
+		return true
+	}
+
+	// ヌル終端する。(DLL 側ではヌル終端されない。)
+	poke s_hover_text, s_hover_text_len
+
+	if s_hover_text_len == 0 {
+		return true
+	}
+
+	s_hover_text_is_changed = true
+	if s_hover_text_len == s_hover_text_len_prev {
+		if s_hover_text == s_hover_text_prev {
+			s_hover_text_is_changed = false
+		}
+	}
+	return true
+
+#deffunc app_update_hover \
+	local px, local py, local sx, local sy, local flags
+
+	assert s_ham != 0
+
+	app_lsp_request_hover
+	if stat == false {
+		return
+	}
+
+	s_hover_text_prev = s_hover_text
+	s_hover_text_len_prev = s_hover_text_len
+
+	s_hover_window_is_visible = s_hover_text_len > 0
+
+	sx = s_hover_window_sx
+	sy = s_hover_window_sy
+
+	// マウスの右上に出す。
+	px = ginfo_mx + 16
+	py = ginfo_my - sy - 16
+
+	gsel k_hover_window_id
+
+	if s_hover_window_is_visible && s_hover_text_is_changed {
+		objprm s_hover_mesbox_id, s_hover_text
+	}
+
+	// <https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos>
+	// 0x10: SWP_NOACTIVATE
+	flags = 0x10
+	if s_hover_window_is_visible {
+		flags |= 0x40
+	} else {
+		flags |= 0x80
+	}
+	SetWindowPos hwnd, (-1), px, py, sx, sy, flags
+	assert stat
+	return
+
+#deffunc app_main
+
+	app_init
+
+	// FIXME: コマンドライン引数で受け取る、環境変数から読む？
+	s_hsp3_root = dir_exe
+	s_hsp3_root_len = strlen(s_hsp3_root)
+	ham_create s_hsp3_root, s_hsp3_root_len
+	s_ham = stat
+	if s_ham == 0 {
+		logmes "app: failed to create lsp server"
+	}
+
+	app_wait_for_hsed
+	if s_hsed_is_connected == false {
+		return
+	}
+
+	repeat
+		await 1000 / k_fps
+
+		app_hsed_update
+		if s_hsed_is_connected == false {
+			break
+		}
+
+		app_lsp_notify_doc_changes
+		if stat == false {
+			await 1000
+			continue
+		}
+
+		app_update_hover
+	loop
+	return
+
+#deffunc app_shutdown
+
+	if s_ham != 0 {
+		ham_destroy s_ham
+		s_ham = 0
+	}
+
+	logmes "app: gracefully exited"
+	return
+
+*l_on_exit
+
+	app_shutdown
+	end
+	end
+
+#global
+
+	app_main
+	app_shutdown
+	end
+	end

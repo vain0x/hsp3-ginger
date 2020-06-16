@@ -24,7 +24,7 @@
 // プログラムが終了する前、あるいは ham_* 系命令を使う必要がなくなった時点で、
 // ham_destroy を使って破棄すること。
 // (テキストドキュメントを閉じておく必要はない。)
-#func global ham_create "ham_create" sptr, sptr, int
+#func global ham_create "ham_create" sptr, sptr
 
 // ham インスタンスを破棄する
 //
@@ -38,10 +38,10 @@
 // テキストドキュメントが開かれたことを通知する
 //
 // %prm
-// ham_instance, file_path, file_path_len, version, text, text_len
+// ham_instance, uri, uri_len, version, text, text_len
 //
-// file_path: ファイルへの絶対パス (UTF-8)
-// file_path_len: file_path の長さ
+// uri: URI (UTF-8)
+// uri_len: uri の長さ
 // version: バージョン番号 (任意の整数。通常は 1)
 // text: ファイルの中身 (UTF-8)
 // text_len: text の長さ
@@ -61,10 +61,10 @@
 // テキストドキュメントが変更されたことを通知する
 //
 // %prm
-// ham_instance, file_path, file_path_len, version, text, text_len
+// ham_instance, uri, uri_len, version, text, text_len
 //
-// file_path: ファイルへの絶対パス (UTF-8)
-// file_path_len: file_path の長さ
+// uri: URI (UTF-8)
+// uri_len: uri の長さ
 // version: バージョン番号
 // text: ファイルの中身 (UTF-8)
 // text_len: text の長さ
@@ -84,24 +84,26 @@
 // テキストドキュメントが閉じられたことを通知する
 //
 // %prm
-// ham_instance, file_path, file_path_len
+// ham_instance, uri, uri_len
 //
-// file_path: ファイルへの絶対パス (UTF-8)
-// file_path_len: file_path の長さ
+// uri: URI (UTF-8)
+// uri_len: uri の長さ
 // stat: 成功なら真
 //
 // %inst
 // すでに ham_doc_did_open で開かれたことを通知したテキストドキュメントに関して、
 // それがエディタで閉じられたことを言語サーバーに通知する。
-#func global ham_doc_did_close "ham_doc_did_close" sptr, sptr, int, int, sptr, int
+//
+// テキストドキュメントを閉じることなく HAM インスタンスを破棄してもよい。
+#func global ham_doc_did_close "ham_doc_did_close" sptr, sptr, int
 
 // カーソル付近のシンボル情報を取得する
 //
 // %prm
-// ham_instance, file_path, file_path_len, position_line, position_character, output, output_len
+// ham_instance, uri, uri_len, position_line, position_character, output, output_len
 //
-// file_path: ファイルへの絶対パス (UTF-8)
-// file_path_len: file_path の長さ
+// uri: URI (UTF-8)
+// uri_len: uri の長さ
 // position_line: 行番号 (先頭は 0)
 // position_character: 列番号 (先頭は 0、UTF-8)
 // output: 結果を書き込む文字列へのポインタ
