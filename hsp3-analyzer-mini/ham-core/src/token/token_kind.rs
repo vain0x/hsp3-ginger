@@ -4,8 +4,10 @@ pub(crate) enum TokenKind {
     /// ファイルの終わり (end of file)
     Eof,
     /// 改行やファイル終端の直前 (end of line)
+    Eos,
+    /// 改行
     Eol,
-    /// 改行や空白
+    /// 改行でない空白
     Space,
     /// コメント
     Comment,

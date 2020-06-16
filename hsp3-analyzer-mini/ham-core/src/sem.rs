@@ -139,9 +139,30 @@ impl Line {
 }
 
 impl TokenKind {
-    pub(crate) fn is_trivial(self) -> bool {
+    fn is_leading_trivial(self) -> bool {
+        match self {
+            TokenKind::Eol | TokenKind::Space | TokenKind::Comment | TokenKind::Other => true,
+            _ => false,
+        }
+    }
+
+    fn is_trailing_trivial(self) -> bool {
         match self {
             TokenKind::Space | TokenKind::Comment | TokenKind::Other => true,
+            _ => false,
+        }
+    }
+
+    /// 文の終わりを表す字句か？
+    ///
+    /// プリプロセッサ行では改行で文が終わる。(エスケープされた改行は字句解析の段階で処理している。)
+    /// 通常の行では改行に加えて : や {} も文の終わりとみなす。
+    fn is_terminator(self, preproc: bool) -> bool {
+        match (self, preproc) {
+            (TokenKind::Eos, _)
+            | (TokenKind::Colon, false)
+            | (TokenKind::LeftBrace, false)
+            | (TokenKind::RightBrace, false) => true,
             _ => false,
         }
     }
@@ -159,9 +180,21 @@ impl PToken {
     pub(crate) fn kind(&self) -> TokenKind {
         self.body.kind
     }
+
+    fn behind(&self) -> ALoc {
+        match self.trailing.last() {
+            Some(last) => last.loc.behind(),
+            None => self.body.loc.behind(),
+        }
+    }
 }
 
 fn convert_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
+    let empty_text = {
+        let eof = tokens.last().unwrap();
+        eof.text.slice(0, 0)
+    };
+
     // 空白やコメントなど、構文上の役割を持たないトークンをトリビアと呼ぶ。
     // トリビアは解析の邪魔なので、トリビアでないトークンの前後にくっつける。
     let mut tokens = tokens.into_iter().peekable();
@@ -171,26 +204,21 @@ fn convert_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
 
     loop {
         // トークンの前にあるトリビアは先行トリビアとする。
-        while tokens
-            .peek()
-            .map_or(false, |t| t.kind.is_trivial() || t.kind == TokenKind::Eol)
-        {
+        while tokens.peek().map_or(false, |t| t.kind.is_leading_trivial()) {
             leading.push(tokens.next().unwrap());
         }
 
         let body = match tokens.next() {
             Some(body) => {
-                assert!(!body.kind.is_trivial());
+                assert!(!body.kind.is_leading_trivial());
                 body
             }
             None => break,
         };
 
-        // トークンの直後にあって同じ行にあるトリビアは後続トリビアとする。
-        let row = body.loc.end_row();
         while tokens
             .peek()
-            .map_or(false, |t| t.kind.is_trivial() && t.loc.end_row() == row)
+            .map_or(false, |t| t.kind.is_trailing_trivial())
         {
             trailing.push(tokens.next().unwrap());
         }
@@ -200,6 +228,21 @@ fn convert_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
             body,
             trailing: trailing.split_off(0),
         });
+
+        // 改行の前に文の終わりを挿入する。
+        if tokens.peek().map_or(false, |t| t.kind == TokenKind::Eol) {
+            let loc = p_tokens.last().map(|t| t.behind()).unwrap_or_default();
+
+            p_tokens.push(PToken {
+                leading: vec![],
+                body: TokenData {
+                    kind: TokenKind::Eos,
+                    text: empty_text.clone(),
+                    loc,
+                },
+                trailing: vec![],
+            });
+        }
     }
 
     assert!(leading.is_empty());
@@ -236,13 +279,20 @@ fn make_lines(doc: ADoc, tokens: Vec<PToken>, lines: &mut Vec<Line>) {
         loop {
             if tokens
                 .peek()
-                .map_or(false, |t| t.body.loc.start_row() == row)
+                .map_or(true, |t| t.body.kind.is_terminator(preproc))
             {
-                let body = tokens.next().unwrap().body;
-                words.push((body.loc.start(), body.loc.end(), body.text));
-            } else {
                 break;
             }
+
+            let body = tokens.next().unwrap().body;
+            words.push((body.loc.start(), body.loc.end(), body.text));
+        }
+
+        while tokens
+            .peek()
+            .map_or(false, |t| t.body.kind.is_terminator(preproc))
+        {
+            tokens.next();
         }
 
         let kind = if preproc {
@@ -890,5 +940,55 @@ impl ProjectSem {
         self.compute();
 
         locs.extend(self.all_symbol_uses.get(&symbol_id).into_iter().flatten());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{tokenize, LineKind};
+    use crate::analysis::ADoc;
+
+    #[test]
+    fn test_escaped_eol() {
+        let doc = ADoc::new(1);
+        let mut lines = vec![];
+        let mut line_count = 0;
+
+        let text = r#"
+            #deffunc foo int name, \
+                local a
+
+                return
+        "#
+        .to_string();
+
+        tokenize(doc, text.into(), &mut lines, &mut line_count);
+
+        assert_eq!(lines.len(), 2);
+        assert_eq!(
+            lines
+                .iter()
+                .map(|line| (
+                    line.kind,
+                    line.words
+                        .iter()
+                        .map(|word| word.2.to_string())
+                        .collect::<Vec<_>>()
+                ))
+                .collect::<Vec<_>>(),
+            vec![
+                (
+                    LineKind::PreProc,
+                    vec!["#", "deffunc", "foo", "int", "name", ",", "local", "a"]
+                        .into_iter()
+                        .map(Into::into)
+                        .collect()
+                ),
+                (
+                    LineKind::Ground,
+                    vec!["return"].into_iter().map(Into::into).collect()
+                )
+            ]
+        );
     }
 }

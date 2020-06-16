@@ -43,4 +43,14 @@ impl ALoc {
     pub(crate) fn is_touched(&self, doc: ADoc, pos: APos) -> bool {
         self.doc == doc && self.range.is_touched(pos)
     }
+
+    pub(crate) fn behind(&self) -> ALoc {
+        ALoc {
+            doc: self.doc,
+            range: ARange {
+                start: self.end(),
+                end: self.end(),
+            },
+        }
+    }
 }

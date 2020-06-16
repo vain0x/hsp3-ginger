@@ -10,7 +10,10 @@ type Tx = TokenizeContext;
 #[derive(PartialEq, Eq)]
 enum Lookahead {
     Eof,
-    Eol,
+    CrLf,
+    Lf,
+    EscapedCrLf,
+    EscapedLf,
     Space,
     Semi,
     SlashSlash,
@@ -31,7 +34,11 @@ enum Lookahead {
 fn lookahead(tx: &mut Tx) -> Lookahead {
     match tx.next() {
         '\0' => Lookahead::Eof,
-        '\n' | '\r' => Lookahead::Eol,
+        '\r' => match tx.nth(1) {
+            '\n' => Lookahead::CrLf,
+            _ => Lookahead::Space,
+        },
+        '\n' => Lookahead::Lf,
         ' ' | '\t' | '\u{3000}' => {
             // U+3000: 全角空白
             Lookahead::Space
@@ -68,6 +75,11 @@ fn lookahead(tx: &mut Tx) -> Lookahead {
             _ => Lookahead::Token(TokenKind::And, 1),
         },
         '\\' => match tx.nth(1) {
+            '\r' => match tx.nth(2) {
+                '\n' => Lookahead::EscapedCrLf,
+                _ => Lookahead::Token(TokenKind::Backslash, 1),
+            },
+            '\n' => Lookahead::EscapedLf,
             '=' => Lookahead::Token(TokenKind::BackslashEqual, 2),
             _ => Lookahead::Token(TokenKind::Backslash, 1),
         },
@@ -131,9 +143,10 @@ fn lookahead(tx: &mut Tx) -> Lookahead {
 fn eat_spaces(tx: &mut Tx) {
     loop {
         match tx.next() {
-            ' ' | '\t' | '\n' | '\r' | '\u{3000}' => {
+            ' ' | '\t' | '\u{3000}' => {
                 tx.bump();
             }
+            '\r' | '\n' => break,
             c if c.is_whitespace() => {
                 tx.bump();
             }
@@ -215,8 +228,24 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
                 tx.commit(TokenKind::Eol);
                 break;
             }
-            Lookahead::Eol => {
+            Lookahead::CrLf => {
+                tx.bump_many(2);
+
                 tx.commit(TokenKind::Eol);
+            }
+            Lookahead::Lf => {
+                tx.bump();
+
+                tx.commit(TokenKind::Eol);
+            }
+            Lookahead::EscapedCrLf => {
+                tx.bump_many(3);
+
+                eat_spaces(tx);
+                tx.commit(TokenKind::Space);
+            }
+            Lookahead::EscapedLf => {
+                tx.bump_many(2);
 
                 eat_spaces(tx);
                 tx.commit(TokenKind::Space);
@@ -368,7 +397,7 @@ mod tests {
     fn space() {
         assert_eq!(
             tokenize_str_to_kinds(" \r\n\t\u{3000}　"),
-            vec![TokenKind::Space]
+            vec![TokenKind::Space, TokenKind::Eol, TokenKind::Space]
         );
     }
 
@@ -394,7 +423,7 @@ mod tests {
     fn comment_slash_with_eol() {
         assert_eq!(
             tokenize_str_to_kinds("// 🐧\n"),
-            vec![TokenKind::Comment, TokenKind::Eol, TokenKind::Space]
+            vec![TokenKind::Comment, TokenKind::Eol]
         );
     }
 
@@ -535,6 +564,25 @@ mod tests {
                 TokenKind::RightBrace,
                 TokenKind::Equal,
                 TokenKind::SlimArrow,
+            ]
+        )
+    }
+
+    #[test]
+    fn escaped_eol() {
+        assert_eq!(
+            tokenize_str_to_kinds("#define \\\r\na\\\n42\\\n\nmes"),
+            vec![
+                TokenKind::Hash,
+                TokenKind::Ident,
+                TokenKind::Space,
+                TokenKind::Space,
+                TokenKind::Ident,
+                TokenKind::Space,
+                TokenKind::Number,
+                TokenKind::Space,
+                TokenKind::Eol,
+                TokenKind::Ident,
             ]
         )
     }
