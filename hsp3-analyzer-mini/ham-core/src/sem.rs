@@ -1,7 +1,7 @@
 //! FIXME: func, cfunc, cmd
 
 use crate::{
-    syntax::{DocId, Loc, Pos},
+    analysis::{ADoc, ALoc, APos},
     utils::rc_str::RcStr,
 };
 use std::{collections::HashMap, rc::Rc};
@@ -26,14 +26,14 @@ pub(crate) enum SymbolKind {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct Scope {
-    pub(crate) doc: DocId,
+    pub(crate) doc: ADoc,
     pub(crate) row_range: (usize, usize),
     pub(crate) is_global: bool,
     pub(crate) only_global: bool,
 }
 
 impl Scope {
-    pub(crate) fn new_global(doc: DocId) -> Self {
+    pub(crate) fn new_global(doc: ADoc) -> Self {
         Self {
             doc,
             row_range: (0, std::usize::MAX),
@@ -71,12 +71,12 @@ pub(crate) enum LineKind {
 #[derive(Clone, Debug)]
 pub(crate) struct Line {
     kind: LineKind,
-    doc: DocId,
+    doc: ADoc,
     row: usize,
     text: RcStr,
     leading: Vec<RcStr>,
     trailing: Vec<RcStr>,
-    words: Vec<(Pos, Pos, RcStr)>,
+    words: Vec<(APos, APos, RcStr)>,
     module_start: Option<usize>,
     module_end: Option<usize>,
     command_start: Option<usize>,
@@ -84,7 +84,7 @@ pub(crate) struct Line {
 }
 // ドキュメントの解析結果
 pub(crate) struct DocSem {
-    pub(crate) doc: DocId,
+    pub(crate) doc: ADoc,
     #[allow(unused)]
     pub(crate) text: RcStr,
     pub(crate) lines: Vec<Line>,
@@ -95,17 +95,17 @@ pub(crate) struct DocSem {
     #[allow(unused)]
     pub(crate) command_ranges: HashMap<usize, usize>,
     pub(crate) pp_symbols: HashMap<usize, Rc<Symbol>>,
-    pub(crate) pp_symbol_defs: HashMap<usize, Vec<Loc>>,
+    pub(crate) pp_symbol_defs: HashMap<usize, Vec<ALoc>>,
 }
 
 // プロジェクト全体の解析結果
 #[derive(Default)]
 pub(crate) struct ProjectSem {
-    pub(crate) docs: HashMap<DocId, DocSem>,
+    pub(crate) docs: HashMap<ADoc, DocSem>,
     pub(crate) last_symbol_id: usize,
     pub(crate) all_symbols: HashMap<usize, Rc<Symbol>>,
-    pub(crate) all_symbol_defs: HashMap<usize, Vec<Loc>>,
-    pub(crate) all_symbol_uses: HashMap<usize, Vec<Loc>>,
+    pub(crate) all_symbol_defs: HashMap<usize, Vec<ALoc>>,
+    pub(crate) all_symbol_uses: HashMap<usize, Vec<ALoc>>,
     pub(crate) all_symbol_map: SymbolMap,
     pub(crate) is_dirty: bool,
 }
@@ -131,7 +131,7 @@ impl Line {
 
 // 行をおおまかに分類する。
 pub(crate) fn parse_as_lines(
-    doc: DocId,
+    doc: ADoc,
     text: RcStr,
     lines: &mut Vec<Line>,
     line_count: &mut usize,
@@ -324,8 +324,8 @@ pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
 
             let row = line.row + y;
             words.push((
-                Pos { row, col: start },
-                Pos { row, col: end },
+                APos { row, column: start },
+                APos { row, column: end },
                 text.slice(start, end),
             ));
         }
@@ -447,7 +447,7 @@ fn calculate_details(lines: &[RcStr]) -> SymbolDetails {
 }
 
 fn calculate_scope(
-    doc: DocId,
+    doc: ADoc,
     kind: SymbolKind,
     module_start: Option<usize>,
     module_end: Option<usize>,
@@ -494,11 +494,11 @@ fn calculate_scope(
 
 // deffunc etc.
 pub(crate) fn collect_commands(
-    doc: DocId,
+    doc: ADoc,
     lines: &mut Vec<Line>,
     last_symbol_id: &mut usize,
     symbols: &mut HashMap<usize, Rc<Symbol>>,
-    symbol_defs: &mut HashMap<usize, Vec<Loc>>,
+    symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
 ) {
     for line in lines.iter_mut() {
         if line.kind != LineKind::PreProc {
@@ -550,7 +550,7 @@ pub(crate) fn collect_commands(
             };
 
             let name = word.clone();
-            let loc = Loc { doc, start, end };
+            let loc = ALoc::new3(doc, start, end);
             let symbol_id = {
                 *last_symbol_id += 1;
                 *last_symbol_id
@@ -572,11 +572,11 @@ pub(crate) fn collect_commands(
 
 // define/enum/const
 pub(crate) fn collect_macro(
-    doc: DocId,
+    doc: ADoc,
     lines: &mut Vec<Line>,
     last_symbol_id: &mut usize,
     symbols: &mut HashMap<usize, Rc<Symbol>>,
-    symbol_defs: &mut HashMap<usize, Vec<Loc>>,
+    symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
 ) {
     for line in lines.iter_mut() {
         if line.kind != LineKind::PreProc {
@@ -604,7 +604,7 @@ pub(crate) fn collect_macro(
 
             let name = word.clone();
             let kind = SymbolKind::Macro { global, ctype };
-            let loc = Loc { doc, start, end };
+            let loc = ALoc::new3(doc, start, end);
             let symbol_id = {
                 *last_symbol_id += 1;
                 *last_symbol_id
@@ -625,11 +625,11 @@ pub(crate) fn collect_macro(
 }
 
 pub(crate) fn collect_labels(
-    doc: DocId,
+    doc: ADoc,
     lines: &mut Vec<Line>,
     last_symbol_id: &mut usize,
     symbols: &mut HashMap<usize, Rc<Symbol>>,
-    symbol_defs: &mut HashMap<usize, Vec<Loc>>,
+    symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
 ) {
     for line in lines.iter_mut() {
         if line.kind != LineKind::Ground {
@@ -651,23 +651,23 @@ pub(crate) fn collect_labels(
             x += c.len_utf8();
         }
 
-        let start = Pos {
+        let start = APos {
             row: line.row,
-            col: x,
+            column: x,
         };
 
         for c in text[x..].chars().take_while(|&c| !char_is_nonident(c)) {
             x += c.len_utf8();
         }
 
-        let end = Pos {
+        let end = APos {
             row: line.row,
-            col: x,
+            column: x,
         };
 
-        let name = line.text.slice(start.col, end.col);
+        let name = line.text.slice(start.column, end.column);
         let kind = SymbolKind::Label;
-        let loc = Loc { doc, start, end };
+        let loc = ALoc::new3(doc, start, end);
         let symbol_id = {
             *last_symbol_id += 1;
             *last_symbol_id
@@ -690,11 +690,11 @@ pub(crate) fn collect_labels(
 // dim などの第一引数になっているか、単純な代入文 (x = ...)　の左辺に来ているものだけを候補とする。
 
 pub(crate) fn collect_static_vars(
-    doc: DocId,
+    doc: ADoc,
     lines: &mut Vec<Line>,
     last_symbol_id: &mut usize,
     symbols: &mut HashMap<usize, Rc<Symbol>>,
-    symbol_defs: &mut HashMap<usize, Vec<Loc>>,
+    symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
     symbol_map: &mut SymbolMap,
 ) {
     static KEYWORDS: &[&str] = &[
@@ -716,7 +716,7 @@ pub(crate) fn collect_static_vars(
 
         let candidate = if line.words.len() >= 2 && KEYWORDS.contains(&line.words[0].2.as_str()) {
             Some(line.words[1].clone())
-        } else if line.words.len() >= 1 && text[line.words[0].1.col..].trim().starts_with("=") {
+        } else if line.words.len() >= 1 && text[line.words[0].1.column..].trim().starts_with("=") {
             Some(line.words[0].clone())
         } else {
             None
@@ -727,7 +727,7 @@ pub(crate) fn collect_static_vars(
             Some(x) => x,
         };
 
-        let loc = Loc { doc, start, end };
+        let loc = ALoc::new3(doc, start, end);
 
         if symbol_map
             .get(word.as_str())
@@ -760,7 +760,7 @@ pub(crate) fn collect_static_vars(
     }
 }
 
-fn symbol_is_in_scope(symbol: &Symbol, doc: DocId, row: usize) -> bool {
+fn symbol_is_in_scope(symbol: &Symbol, doc: ADoc, row: usize) -> bool {
     if symbol.scope.is_global {
         // FIXME: check only_global
         true
@@ -770,10 +770,10 @@ fn symbol_is_in_scope(symbol: &Symbol, doc: DocId, row: usize) -> bool {
 }
 
 pub(crate) fn resolve_uses(
-    doc: DocId,
+    doc: ADoc,
     lines: &mut Vec<Line>,
-    symbol_defs: &mut HashMap<usize, Vec<Loc>>,
-    symbol_uses: &mut HashMap<usize, Vec<Loc>>,
+    symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
+    symbol_uses: &mut HashMap<usize, Vec<ALoc>>,
     symbol_map: &SymbolMap,
 ) {
     for line in lines.iter() {
@@ -792,7 +792,7 @@ pub(crate) fn resolve_uses(
             // 定義は使用に含めない
             if symbol_defs.get(&symbol.symbol_id).map_or(false, |locs| {
                 locs.iter()
-                    .any(|loc| loc.doc == doc && loc.start.row == line.row)
+                    .any(|loc| loc.doc == doc && loc.start_row() == line.row)
             }) {
                 continue;
             }
@@ -800,12 +800,12 @@ pub(crate) fn resolve_uses(
             symbol_uses
                 .entry(symbol.symbol_id)
                 .or_insert(vec![])
-                .push(Loc { doc, start, end });
+                .push(ALoc::new3(doc, start, end));
         }
     }
 }
 
-pub(crate) fn analyze_doc(doc: DocId, text: RcStr, last_symbol_id: &mut usize) -> DocSem {
+pub(crate) fn analyze_doc(doc: ADoc, text: RcStr, last_symbol_id: &mut usize) -> DocSem {
     let mut lines = vec![];
     let mut line_count = 0;
     let mut module_ranges = HashMap::new();
@@ -856,11 +856,11 @@ pub(crate) fn analyze_doc(doc: DocId, text: RcStr, last_symbol_id: &mut usize) -
 }
 
 pub(crate) fn analyze_project(
-    docs: &mut HashMap<DocId, DocSem>,
+    docs: &mut HashMap<ADoc, DocSem>,
     last_symbol_id: &mut usize,
     symbols: &mut HashMap<usize, Rc<Symbol>>,
-    symbol_defs: &mut HashMap<usize, Vec<Loc>>,
-    symbol_uses: &mut HashMap<usize, Vec<Loc>>,
+    symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
+    symbol_uses: &mut HashMap<usize, Vec<ALoc>>,
     symbol_map: &mut SymbolMap,
 ) {
     for doc_sem in docs.values() {
@@ -913,7 +913,7 @@ impl ProjectSem {
         ProjectSem::default()
     }
 
-    pub(crate) fn add_hs_symbols(&mut self, doc: DocId, hs_symbols: Vec<Rc<Symbol>>) {
+    pub(crate) fn add_hs_symbols(&mut self, doc: ADoc, hs_symbols: Vec<Rc<Symbol>>) {
         self.is_dirty = true;
         self.docs.insert(
             doc,
@@ -933,7 +933,7 @@ impl ProjectSem {
         );
     }
 
-    pub(crate) fn update_doc(&mut self, doc: DocId, text: RcStr) {
+    pub(crate) fn update_doc(&mut self, doc: ADoc, text: RcStr) {
         self.is_dirty = true;
         self.docs.remove(&doc);
 
@@ -941,7 +941,7 @@ impl ProjectSem {
         self.docs.insert(doc, doc_sem);
     }
 
-    pub(crate) fn close_doc(&mut self, doc: DocId) {
+    pub(crate) fn close_doc(&mut self, doc: ADoc) {
         self.is_dirty = true;
         self.docs.remove(&doc);
     }
@@ -977,7 +977,7 @@ impl ProjectSem {
         self.last_symbol_id = last_symbol_id;
     }
 
-    pub(crate) fn get_symbol_list(&mut self, doc: DocId, pos: Pos, symbols: &mut Vec<Rc<Symbol>>) {
+    pub(crate) fn get_symbol_list(&mut self, doc: ADoc, pos: APos, symbols: &mut Vec<Rc<Symbol>>) {
         self.compute();
 
         symbols.extend(
@@ -988,7 +988,7 @@ impl ProjectSem {
         )
     }
 
-    pub(crate) fn locate_symbol(&mut self, doc: DocId, pos: Pos) -> Option<(&Symbol, Loc)> {
+    pub(crate) fn locate_symbol(&mut self, doc: ADoc, pos: APos) -> Option<(&Symbol, ALoc)> {
         self.compute();
 
         for (&symbol_id, locs) in self
@@ -997,11 +997,7 @@ impl ProjectSem {
             .chain(self.all_symbol_uses.iter())
         {
             for &loc in locs.iter() {
-                if loc.doc == doc
-                    && loc.start.row == pos.row
-                    && loc.start.col <= pos.col
-                    && pos.col <= loc.end.col
-                {
+                if loc.is_touched(doc, pos) {
                     if let Some(symbol) = self.all_symbols.get(&symbol_id) {
                         return Some((symbol, loc));
                     }
@@ -1012,13 +1008,13 @@ impl ProjectSem {
         None
     }
 
-    pub(crate) fn get_symbol_defs(&mut self, symbol_id: usize, locs: &mut Vec<Loc>) {
+    pub(crate) fn get_symbol_defs(&mut self, symbol_id: usize, locs: &mut Vec<ALoc>) {
         self.compute();
 
         locs.extend(self.all_symbol_defs.get(&symbol_id).into_iter().flatten());
     }
 
-    pub(crate) fn get_symbol_uses(&mut self, symbol_id: usize, locs: &mut Vec<Loc>) {
+    pub(crate) fn get_symbol_uses(&mut self, symbol_id: usize, locs: &mut Vec<ALoc>) {
         self.compute();
 
         locs.extend(self.all_symbol_uses.get(&symbol_id).into_iter().flatten());

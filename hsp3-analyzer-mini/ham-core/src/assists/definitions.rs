@@ -9,7 +9,7 @@ pub(crate) fn definitions(
     sem: &mut ProjectSem,
 ) -> Option<Vec<Location>> {
     let loc = to_loc(&uri, position, docs)?;
-    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start)?;
+    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start())?;
     let symbol_id = symbol.symbol_id;
 
     let mut locs = vec![];

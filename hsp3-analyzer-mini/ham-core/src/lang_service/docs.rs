@@ -1,6 +1,6 @@
 use crate::{
+    analysis::ADoc,
     lang::Lang,
-    syntax::DocId,
     utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
 };
 use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
@@ -18,20 +18,20 @@ type TextDocumentVersion = i64;
 pub(crate) const NO_VERSION: i64 = 1;
 
 pub(crate) enum DocChange {
-    Opened { doc: DocId, text: RcStr },
-    Changed { doc: DocId, text: RcStr },
-    Closed { doc: DocId },
+    Opened { doc: ADoc, text: RcStr },
+    Changed { doc: ADoc, text: RcStr },
+    Closed { doc: ADoc },
 }
 
 /// テキストドキュメントを管理するもの。
 #[derive(Default)]
 pub(crate) struct Docs {
     last_doc: usize,
-    doc_to_uri: HashMap<DocId, CanonicalUri>,
-    uri_to_doc: HashMap<CanonicalUri, DocId>,
-    open_docs: HashSet<DocId>,
-    doc_langs: HashMap<DocId, Lang>,
-    doc_versions: HashMap<DocId, TextDocumentVersion>,
+    doc_to_uri: HashMap<ADoc, CanonicalUri>,
+    uri_to_doc: HashMap<CanonicalUri, ADoc>,
+    open_docs: HashSet<ADoc>,
+    doc_langs: HashMap<ADoc, Lang>,
+    doc_versions: HashMap<ADoc, TextDocumentVersion>,
     // hsphelp や common の下をウォッチするのに使う
     #[allow(unused)]
     hsp_root: PathBuf,
@@ -54,12 +54,12 @@ impl Docs {
     //         .map_or(false, |doc| self.open_docs.contains(&doc))
     // }
 
-    pub(crate) fn fresh_doc(&mut self) -> DocId {
+    pub(crate) fn fresh_doc(&mut self) -> ADoc {
         self.last_doc += 1;
-        DocId::new(self.last_doc)
+        ADoc::new(self.last_doc)
     }
 
-    fn resolve_uri(&mut self, uri: CanonicalUri) -> DocId {
+    fn resolve_uri(&mut self, uri: CanonicalUri) -> ADoc {
         match self.uri_to_doc.get(&uri) {
             Some(&doc) => doc,
             None => {
@@ -71,15 +71,15 @@ impl Docs {
         }
     }
 
-    pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
+    pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<ADoc> {
         self.uri_to_doc.get(uri).cloned()
     }
 
-    pub(crate) fn get_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
+    pub(crate) fn get_uri(&self, doc: ADoc) -> Option<&CanonicalUri> {
         self.doc_to_uri.get(&doc)
     }
 
-    pub(crate) fn get_version(&self, doc: DocId) -> Option<TextDocumentVersion> {
+    pub(crate) fn get_version(&self, doc: ADoc) -> Option<TextDocumentVersion> {
         self.doc_versions.get(&doc).copied()
     }
 
@@ -251,7 +251,7 @@ impl Docs {
         self.shutdown_file_watcher();
     }
 
-    fn do_open_doc(&mut self, uri: CanonicalUri, version: i64, text: RcStr) -> DocId {
+    fn do_open_doc(&mut self, uri: CanonicalUri, version: i64, text: RcStr) -> ADoc {
         let doc = self.resolve_uri(uri);
 
         // この LSP サーバーが対応する拡張子として .hsp しか指定していないので、

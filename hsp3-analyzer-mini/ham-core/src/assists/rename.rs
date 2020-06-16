@@ -17,7 +17,7 @@ pub(crate) fn prepare_rename(
     let loc = to_loc(&uri, position, docs)?;
 
     // カーソル直下にシンボルがなければ変更しない。
-    if sem.locate_symbol(loc.doc, loc.start).is_none() {
+    if sem.locate_symbol(loc.doc, loc.start()).is_none() {
         return None;
     }
 
@@ -35,7 +35,7 @@ pub(crate) fn rename(
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
         let loc = to_loc(&uri, position, docs)?;
-        let (symbol, _) = sem.locate_symbol(loc.doc, loc.start)?;
+        let (symbol, _) = sem.locate_symbol(loc.doc, loc.start())?;
         let symbol_id = symbol.symbol_id;
 
         let mut locs = vec![];

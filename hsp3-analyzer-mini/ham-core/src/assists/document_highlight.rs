@@ -10,7 +10,7 @@ pub(crate) fn document_highlight(
 ) -> Option<Vec<DocumentHighlight>> {
     let loc = to_loc(&uri, position, docs)?;
     let doc = loc.doc;
-    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start)?;
+    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start())?;
     let symbol_id = symbol.symbol_id;
 
     let mut locs = vec![];

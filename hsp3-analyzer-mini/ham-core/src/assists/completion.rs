@@ -23,7 +23,7 @@ pub(crate) fn completion(
 
     let loc = to_loc(&uri, position, docs)?;
 
-    sem.get_symbol_list(loc.doc, loc.start, &mut symbols);
+    sem.get_symbol_list(loc.doc, loc.start(), &mut symbols);
 
     for symbol in symbols {
         let kind = match symbol.kind {

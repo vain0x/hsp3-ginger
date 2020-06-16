@@ -9,7 +9,7 @@ pub(crate) fn hover(
     sem: &mut ProjectSem,
 ) -> Option<Hover> {
     let loc = to_loc(&uri, position, docs)?;
-    let (symbol, symbol_loc) = sem.locate_symbol(loc.doc, loc.start)?;
+    let (symbol, symbol_loc) = sem.locate_symbol(loc.doc, loc.start())?;
     let symbol_id = symbol.symbol_id;
 
     let mut contents = vec![];
