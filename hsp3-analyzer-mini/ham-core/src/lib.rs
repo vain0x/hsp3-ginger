@@ -31,6 +31,22 @@ mod analysis {
     };
 }
 
+mod token {
+    //! 字句・字句解析
+
+    #![allow(unused)]
+
+    pub(crate) mod token_data;
+    pub(crate) mod token_kind;
+    pub(crate) mod tokenize_context;
+    pub(crate) mod tokenize_rules;
+    pub(crate) mod tokenize_tests;
+
+    pub(crate) use token_data::TokenData;
+    pub(crate) use token_kind::TokenKind;
+    pub(crate) use tokenize_rules::tokenize;
+}
+
 mod utils {
     pub(crate) mod canonical_uri;
     pub(crate) mod id;
