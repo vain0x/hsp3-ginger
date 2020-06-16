@@ -2,6 +2,7 @@
 
 use crate::{
     analysis::{ADoc, ALoc, APos},
+    token::{TokenData, TokenKind},
     utils::rc_str::RcStr,
 };
 use std::{collections::HashMap, rc::Rc};
@@ -70,18 +71,17 @@ pub(crate) enum LineKind {
 
 #[derive(Clone, Debug)]
 pub(crate) struct Line {
-    kind: LineKind,
-    doc: ADoc,
-    row: usize,
-    text: RcStr,
-    leading: Vec<RcStr>,
-    trailing: Vec<RcStr>,
-    words: Vec<(APos, APos, RcStr)>,
-    module_start: Option<usize>,
-    module_end: Option<usize>,
-    command_start: Option<usize>,
-    command_end: Option<usize>,
+    pub(crate) kind: LineKind,
+    pub(crate) doc: ADoc,
+    pub(crate) row: usize,
+    pub(crate) leading: Vec<RcStr>,
+    pub(crate) words: Vec<(APos, APos, RcStr)>,
+    pub(crate) module_start: Option<usize>,
+    pub(crate) module_end: Option<usize>,
+    pub(crate) command_start: Option<usize>,
+    pub(crate) command_end: Option<usize>,
 }
+
 // ドキュメントの解析結果
 pub(crate) struct DocSem {
     pub(crate) doc: ADoc,
@@ -110,228 +110,168 @@ pub(crate) struct ProjectSem {
     pub(crate) is_dirty: bool,
 }
 
-fn char_is_nonident(c: char) -> bool {
-    // _ と @ は識別子
-    c.is_whitespace() || "+-*/%\\=~|&^!?.,:;<>()[]{}\"'$`".contains(c)
-}
-
 impl Line {
+    fn is_module_decl(&self) -> bool {
+        self.words.get(1).map(|t| &t.2 == "module").unwrap_or(false)
+    }
+
+    fn is_global_decl(&self) -> bool {
+        self.words.get(1).map(|t| &t.2 == "global").unwrap_or(false)
+    }
+
+    fn is_cfunc_decl(&self) -> bool {
+        self.words.get(1).map(|t| &t.2 == "cfunc").unwrap_or(false)
+    }
+
     fn is_command_decl(&self) -> bool {
-        ["#deffunc", "#defcfunc", "#modfunc", "#modcfunc"]
-            .iter()
-            .any(|&s| self.text.as_str().contains(s))
+        self.words
+            .get(1)
+            .map(|t| ["deffunc", "defcfunc", "modfunc", "modcfunc"].contains(&t.2.as_str()))
+            .unwrap_or(false)
     }
 
     fn is_macro_decl(&self) -> bool {
-        ["#define", "#enum", "#const"]
-            .iter()
-            .any(|&s| self.text.as_str().contains(s))
+        self.words
+            .get(1)
+            .map(|t| ["const", "define", "enum"].contains(&t.2.as_str()))
+            .unwrap_or(false)
     }
 }
 
-// 行をおおまかに分類する。
-pub(crate) fn parse_as_lines(
-    doc: ADoc,
-    text: RcStr,
-    lines: &mut Vec<Line>,
-    line_count: &mut usize,
-) {
+impl TokenKind {
+    pub(crate) fn is_trivial(self) -> bool {
+        match self {
+            TokenKind::Space | TokenKind::Comment | TokenKind::Other => true,
+            _ => false,
+        }
+    }
+}
+
+/// トリビアでないトークンに前後のトリビアをくっつけたものをPトークンと呼ぶ。
+#[derive(Clone, Debug)]
+struct PToken {
+    leading: Vec<TokenData>,
+    body: TokenData,
+    trailing: Vec<TokenData>,
+}
+
+impl PToken {
+    pub(crate) fn kind(&self) -> TokenKind {
+        self.body.kind
+    }
+}
+
+fn convert_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
+    // 空白やコメントなど、構文上の役割を持たないトークンをトリビアと呼ぶ。
+    // トリビアは解析の邪魔なので、トリビアでないトークンの前後にくっつける。
+    let mut tokens = tokens.into_iter().peekable();
+    let mut p_tokens = vec![];
     let mut leading = vec![];
+    let mut trailing = vec![];
 
-    let mut pp = false;
-    let mut in_multiline_str = false;
-    let mut in_multiline_comment = false;
-
-    let mut line_start = 0;
-
-    while let Some(len) = text.as_str()[line_start..].find("\n") {
-        let row = *line_count;
-        let line_text = text.slice(line_start, line_start + len);
-        line_start += len + 1;
-        *line_count += 1;
-
-        let lt = line_text.as_str();
-
-        if pp || lt.trim_start().starts_with("#") {
-            if pp {
-                if let Some(last) = lines.last_mut() {
-                    last.trailing.push(line_text.clone());
-                }
-            } else {
-                lines.push(Line {
-                    kind: LineKind::PreProc,
-                    doc,
-                    row,
-                    text: line_text.clone(),
-                    leading: leading.clone(),
-                    trailing: vec![],
-                    words: vec![],
-                    module_start: None,
-                    module_end: None,
-                    command_start: None,
-                    command_end: None,
-                });
-                leading.clear();
-            }
-
-            if lt.trim_end().ends_with("\\") {
-                pp = true;
-            } else {
-                pp = false;
-            }
-            continue;
-        }
-
-        if lt.trim().chars().all(|c| c.is_whitespace())
-            || lt.trim().starts_with("//")
-            || lt.trim().starts_with(";")
+    loop {
+        // トークンの前にあるトリビアは先行トリビアとする。
+        while tokens
+            .peek()
+            .map_or(false, |t| t.kind.is_trivial() || t.kind == TokenKind::Eol)
         {
-            leading.push(line_text);
-            continue;
+            leading.push(tokens.next().unwrap());
         }
 
-        if in_multiline_comment || lt.contains("/*") {
-            let mut x = 0;
-            loop {
-                if in_multiline_comment {
-                    let n = match lt[x..].find("*/") {
-                        None => break,
-                        Some(n) => n,
-                    };
-                    x += n + 2;
-                    in_multiline_comment = false;
-                } else {
-                    let n = match lt[x..].find("/*") {
-                        None => break,
-                        Some(n) => n,
-                    };
-                    x += 2 + n;
-                    in_multiline_comment = true;
-                }
+        let body = match tokens.next() {
+            Some(body) => {
+                assert!(!body.kind.is_trivial());
+                body
             }
-            leading.push(line_text);
-            continue;
+            None => break,
+        };
+
+        // トークンの直後にあって同じ行にあるトリビアは後続トリビアとする。
+        let row = body.loc.end_row();
+        while tokens
+            .peek()
+            .map_or(false, |t| t.kind.is_trivial() && t.loc.end_row() == row)
+        {
+            trailing.push(tokens.next().unwrap());
         }
 
-        if in_multiline_str || lt.contains("{\"") {
-            let mut x = 0;
-            loop {
-                if in_multiline_str {
-                    let n = match lt[x..].find("\"}") {
-                        None => break,
-                        Some(n) => n,
-                    };
-                    x += n + 2;
-                    in_multiline_str = false;
-                } else {
-                    let n = match lt[x..].find("{\"") {
-                        None => break,
-                        Some(n) => n,
-                    };
-                    x += 2 + n;
-                    in_multiline_str = true;
-                }
+        p_tokens.push(PToken {
+            leading: leading.split_off(0),
+            body,
+            trailing: trailing.split_off(0),
+        });
+    }
+
+    assert!(leading.is_empty());
+    assert!(trailing.is_empty());
+
+    p_tokens
+}
+
+fn make_lines(doc: ADoc, tokens: Vec<PToken>, lines: &mut Vec<Line>) {
+    let mut tokens = tokens.into_iter().peekable();
+    let mut leading = vec![];
+    let mut words = vec![];
+
+    while let Some(token) = tokens.next() {
+        let preproc = match token.kind() {
+            TokenKind::Eof => break,
+            TokenKind::Hash => true,
+            _ => false,
+        };
+
+        let row = token.body.loc.start_row();
+
+        leading.extend(token.leading.into_iter().filter_map(|token| {
+            if token.kind == TokenKind::Comment {
+                Some(token.text)
+            } else {
+                None
             }
-            continue;
+        }));
+
+        let body = token.body;
+        words.push((body.loc.start(), body.loc.end(), body.text));
+
+        loop {
+            if tokens
+                .peek()
+                .map_or(false, |t| t.body.loc.start_row() == row)
+            {
+                let body = tokens.next().unwrap().body;
+                words.push((body.loc.start(), body.loc.end(), body.text));
+            } else {
+                break;
+            }
         }
 
+        let kind = if preproc {
+            LineKind::PreProc
+        } else {
+            LineKind::Ground
+        };
         lines.push(Line {
-            kind: LineKind::Ground,
+            kind,
             doc,
             row,
-            text: line_text.clone(),
-            leading: leading.clone(),
-            trailing: vec![],
-            words: vec![],
+            leading: leading.split_off(0),
+            words: words.split_off(0),
             module_start: None,
             module_end: None,
             command_start: None,
             command_end: None,
         });
-        leading.clear();
     }
 }
 
-pub(crate) fn parse_as_words(lines: &mut Vec<Line>) {
-    for line in lines.iter_mut() {
-        let mut words = vec![];
-
-        let mut i = 0;
-        let mut y = 0;
-        let mut text = line.text.clone();
-
-        loop {
-            while let Some(c) = text.as_str()[i..]
-                .chars()
-                .take_while(|&c| char_is_nonident(c))
-                .next()
-            {
-                if text.as_str()[i..].starts_with(";") || text.as_str()[i..].starts_with("//") {
-                    i = text.len();
-                    break;
-                }
-
-                if text.as_str()[i..].starts_with("\"") {
-                    i += 1;
-                    while let Some(c) = text.as_str()[i..].chars().take_while(|&c| c != '"').next()
-                    {
-                        if c == '\\' {
-                            i += text.as_str()[i..]
-                                .chars()
-                                .take(2)
-                                .map(|c| c.len_utf8())
-                                .sum::<usize>();
-                            continue;
-                        }
-                        i += c.len_utf8();
-                    }
-                    continue;
-                }
-
-                i += c.len_utf8();
-            }
-
-            let start = i;
-
-            while let Some(c) = text.as_str()[i..]
-                .chars()
-                .take_while(|&c| !char_is_nonident(c))
-                .next()
-            {
-                i += c.len_utf8();
-            }
-
-            let end = i;
-
-            if start == end {
-                if y >= line.trailing.len() {
-                    break;
-                }
-
-                text = line.trailing[y].clone();
-                i = 0;
-                y += 1;
-                continue;
-            }
-
-            if text.as_str()[start..end]
-                .chars()
-                .next()
-                .map_or(true, |c| c.is_ascii_digit())
-            {
-                continue;
-            }
-
-            let row = line.row + y;
-            words.push((
-                APos { row, column: start },
-                APos { row, column: end },
-                text.slice(start, end),
-            ));
-        }
-
-        line.words = words.clone();
-    }
+pub(crate) fn tokenize(doc: ADoc, text: RcStr, lines: &mut Vec<Line>, line_count: &mut usize) {
+    let tokens = crate::token::tokenize(doc, text);
+    *line_count = tokens
+        .last()
+        .as_ref()
+        .map_or(0, |token| token.loc.end_row());
+    let tokens = convert_tokens(tokens);
+    make_lines(doc, tokens, lines)
 }
 
 // module/deffunc の範囲を計算する。
@@ -346,10 +286,10 @@ pub(crate) fn analyze_pp_scopes(
 
     for line in lines.iter_mut() {
         if line.kind == LineKind::PreProc {
-            if line.text.as_str().contains("#module") {
+            if line.is_module_decl() {
                 module_start = Some(line.row);
             }
-            if line.text.as_str().contains("#global") {
+            if line.is_global_decl() {
                 if let Some(module_start) = module_start {
                     module_ranges.insert(module_start, line.row);
                 }
@@ -501,34 +441,18 @@ pub(crate) fn collect_commands(
     symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
 ) {
     for line in lines.iter_mut() {
-        if line.kind != LineKind::PreProc {
-            continue;
-        }
-
-        if !line.is_command_decl() {
+        if !(line.kind == LineKind::PreProc && line.is_command_decl() && line.words.len() >= 2) {
             continue;
         }
 
         let mut first = true;
         let mut global = false;
         let mut local = false;
-        let ctype = line.text.as_str().contains("cfunc");
+        let ctype = line.is_cfunc_decl();
 
-        for &(start, end, ref word) in &line.words {
+        for &(start, end, ref word) in &line.words[2..] {
             let is_keyword = [
-                "#deffunc",
-                "#defcfunc",
-                "#modfunc",
-                "#modcfunc",
-                "global",
-                "local",
-                "int",
-                "str",
-                "double",
-                "label",
-                "var",
-                "array",
-                "modvar",
+                "global", "local", "int", "str", "double", "label", "var", "array", "modvar",
                 "onexit",
             ]
             .contains(&word.as_str());
@@ -579,22 +503,15 @@ pub(crate) fn collect_macro(
     symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
 ) {
     for line in lines.iter_mut() {
-        if line.kind != LineKind::PreProc {
-            continue;
-        }
-
-        if !line.is_macro_decl() {
+        if !(line.kind == LineKind::PreProc && line.is_macro_decl() && line.words.len() >= 2) {
             continue;
         }
 
         let mut global = false;
         let mut ctype = false;
 
-        for &(start, end, ref word) in &line.words {
-            let is_keyword = [
-                "#define", "#enum", "#const", "global", "local", "ctype", "double", "int",
-            ]
-            .contains(&word.as_str());
+        for &(start, end, ref word) in &line.words[2..] {
+            let is_keyword = ["global", "local", "ctype", "double", "int"].contains(&word.as_str());
 
             if is_keyword {
                 global = global || word.as_str() == "global";
@@ -632,40 +549,14 @@ pub(crate) fn collect_labels(
     symbol_defs: &mut HashMap<usize, Vec<ALoc>>,
 ) {
     for line in lines.iter_mut() {
-        if line.kind != LineKind::Ground {
+        if !(line.kind == LineKind::Ground
+            && line.words.len() >= 2
+            && line.words[0].2.as_str() == "*")
+        {
             continue;
         }
 
-        let text = line.text.as_str();
-
-        if !text.trim_start().starts_with("*") {
-            continue;
-        }
-
-        let mut x = match text.find("*") {
-            None => continue,
-            Some(x) => x,
-        };
-
-        for c in text[x..].chars().take_while(|&c| char_is_nonident(c)) {
-            x += c.len_utf8();
-        }
-
-        let start = APos {
-            row: line.row,
-            column: x,
-        };
-
-        for c in text[x..].chars().take_while(|&c| !char_is_nonident(c)) {
-            x += c.len_utf8();
-        }
-
-        let end = APos {
-            row: line.row,
-            column: x,
-        };
-
-        let name = line.text.slice(start.column, end.column);
+        let (start, end, name) = line.words[1].clone();
         let kind = SymbolKind::Label;
         let loc = ALoc::new3(doc, start, end);
         let symbol_id = {
@@ -702,35 +593,20 @@ pub(crate) fn collect_static_vars(
     ];
 
     for line in lines.iter() {
-        if line.kind != LineKind::Ground {
+        if !(line.kind == LineKind::Ground && line.words.len() >= 2) {
             continue;
         }
 
-        let text = line.text.as_str();
-        if !KEYWORDS
-            .iter()
-            .any(|keyword| text.contains(keyword) || text.contains("="))
-        {
-            continue;
-        }
-
-        let candidate = if line.words.len() >= 2 && KEYWORDS.contains(&line.words[0].2.as_str()) {
-            Some(line.words[1].clone())
-        } else if line.words.len() >= 1 && text[line.words[0].1.column..].trim().starts_with("=") {
-            Some(line.words[0].clone())
+        let (start, end, name) = if KEYWORDS.contains(&line.words[0].2.as_str()) {
+            line.words[1].clone()
+        } else if line.words[1].2.as_str() == "=" {
+            line.words[0].clone()
         } else {
-            None
+            continue;
         };
-
-        let (start, end, word) = match candidate {
-            None => continue,
-            Some(x) => x,
-        };
-
-        let loc = ALoc::new3(doc, start, end);
 
         if symbol_map
-            .get(word.as_str())
+            .get(name.as_str())
             .unwrap_or(&vec![])
             .iter()
             .any(|symbol| symbol_is_in_scope(symbol, doc, line.row))
@@ -738,7 +614,7 @@ pub(crate) fn collect_static_vars(
             continue;
         }
 
-        let name = word.clone();
+        let loc = ALoc::new3(doc, start, end);
         let kind = SymbolKind::Static;
         let symbol_id = {
             *last_symbol_id += 1;
@@ -746,17 +622,14 @@ pub(crate) fn collect_static_vars(
         };
         let symbol = Rc::new(Symbol {
             symbol_id,
-            name,
+            name: name.clone(),
             kind,
             details: calculate_details(&line.leading),
             scope: calculate_scope(doc, kind, line.module_start, line.module_end),
         });
         symbols.insert(symbol_id, symbol.clone());
         symbol_defs.insert(symbol_id, vec![loc]);
-        symbol_map
-            .entry(word.clone())
-            .or_insert(vec![])
-            .push(symbol);
+        symbol_map.entry(name).or_insert(vec![]).push(symbol);
     }
 }
 
@@ -813,8 +686,7 @@ pub(crate) fn analyze_doc(doc: ADoc, text: RcStr, last_symbol_id: &mut usize) ->
     let mut pp_symbols = HashMap::new();
     let mut pp_symbol_defs = HashMap::new();
 
-    parse_as_lines(doc, text.clone(), &mut lines, &mut line_count);
-    parse_as_words(&mut lines);
+    tokenize(doc, text.clone(), &mut lines, &mut line_count);
     analyze_pp_scopes(
         line_count,
         &mut lines,

@@ -20,6 +20,8 @@ mod analysis {
     pub(crate) mod a_scope;
     pub(crate) mod a_symbol;
 
+    mod analysis_tests;
+
     #[allow(unused)]
     pub(crate) use self::{
         a_doc::ADoc,
