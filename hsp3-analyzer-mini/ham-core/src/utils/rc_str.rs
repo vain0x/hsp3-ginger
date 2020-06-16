@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::cmp::{min, Ordering};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
 
 #[derive(Clone)]
 pub(crate) struct RcStr {
@@ -115,5 +115,13 @@ impl Debug for RcStr {
 impl Display for RcStr {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         <str as Display>::fmt(self.as_str(), f)
+    }
+}
+
+impl Deref for RcStr {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        self.as_str()
     }
 }
