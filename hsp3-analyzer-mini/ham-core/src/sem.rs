@@ -948,46 +948,96 @@ mod tests {
     use super::{tokenize, LineKind};
     use crate::analysis::ADoc;
 
-    #[test]
-    fn test_escaped_eol() {
+    fn to_strings(words: &[&str]) -> Vec<String> {
+        words.iter().copied().map(Into::into).collect()
+    }
+
+    fn analyze(source_code: &str) -> Vec<(LineKind, Vec<String>)> {
         let doc = ADoc::new(1);
         let mut lines = vec![];
         let mut line_count = 0;
 
+        tokenize(
+            doc,
+            source_code.to_string().into(),
+            &mut lines,
+            &mut line_count,
+        );
+
+        lines
+            .into_iter()
+            .map(|line| {
+                (
+                    line.kind,
+                    line.words
+                        .into_iter()
+                        .map(|word| word.2.to_string())
+                        .collect(),
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn preproc_statement_is_not_separated_by_colon_or_braces() {
+        let text = r#"
+            #define lnln if 0 { mes : mes }
+        "#;
+        assert_eq!(
+            analyze(text),
+            vec![(
+                LineKind::PreProc,
+                to_strings(&["#", "define", "lnln", "if", "0", "{", "mes", ":", "mes", "}"])
+            )]
+        );
+    }
+
+    #[test]
+    fn statement_is_separated_by_colons() {
+        let text = r#"
+            pos 10, 10 : mes 1 : mes 2
+        "#;
+        assert_eq!(
+            analyze(text),
+            vec![
+                (LineKind::Ground, to_strings(&["pos", "10", ",", "10"])),
+                (LineKind::Ground, to_strings(&["mes", "1"])),
+                (LineKind::Ground, to_strings(&["mes", "2"])),
+            ],
+        );
+    }
+
+    #[test]
+    fn statement_is_separated_by_braces() {
+        let text = r#"
+            if 0 { mes 1 } mes 2
+        "#;
+        assert_eq!(
+            analyze(text),
+            vec![
+                (LineKind::Ground, to_strings(&["if", "0"])),
+                (LineKind::Ground, to_strings(&["mes", "1"])),
+                (LineKind::Ground, to_strings(&["mes", "2"])),
+            ]
+        );
+    }
+
+    #[test]
+    fn escaped_eol() {
         let text = r#"
             #deffunc foo int name, \
                 local a
 
                 return
-        "#
-        .to_string();
-
-        tokenize(doc, text.into(), &mut lines, &mut line_count);
-
-        assert_eq!(lines.len(), 2);
+        "#;
         assert_eq!(
-            lines
-                .iter()
-                .map(|line| (
-                    line.kind,
-                    line.words
-                        .iter()
-                        .map(|word| word.2.to_string())
-                        .collect::<Vec<_>>()
-                ))
-                .collect::<Vec<_>>(),
+            analyze(text),
             vec![
                 (
                     LineKind::PreProc,
-                    vec!["#", "deffunc", "foo", "int", "name", ",", "local", "a"]
-                        .into_iter()
-                        .map(Into::into)
-                        .collect()
+                    to_strings(&["#", "deffunc", "foo", "int", "name", ",", "local", "a"])
                 ),
-                (
-                    LineKind::Ground,
-                    vec!["return"].into_iter().map(Into::into).collect()
-                )
+                (LineKind::Ground, to_strings(&["return"]))
             ]
         );
     }
