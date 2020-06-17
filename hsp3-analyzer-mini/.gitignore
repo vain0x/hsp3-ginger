@@ -1,5 +1,7 @@
 ham-lsp.log
 tests/analyze/*.txt
+tests/parse/*.txt
+tests/tokenize/*.txt
 
 
 

@@ -1,7 +1,5 @@
 //! 字句解析のルール
 
-#![allow(unused)]
-
 use super::{tokenize_context::TokenizeContext, TokenData, TokenKind};
 use crate::{analysis::ADoc, utils::rc_str::RcStr};
 

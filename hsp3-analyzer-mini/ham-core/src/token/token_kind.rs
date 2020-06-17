@@ -1,5 +1,6 @@
 /// 字句の種類
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[must_use]
 pub(crate) enum TokenKind {
     /// ファイルの終わり (end of file)
     Eof,

@@ -4,6 +4,7 @@ use std::fmt;
 
 /// 字句データ
 #[derive(Clone)]
+#[must_use]
 pub(crate) struct TokenData {
     pub(crate) kind: TokenKind,
     pub(crate) text: RcStr,

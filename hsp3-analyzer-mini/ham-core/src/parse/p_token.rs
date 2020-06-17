@@ -1,8 +1,10 @@
 use crate::analysis::ALoc;
 use crate::token::{TokenData, TokenKind};
+use std::fmt::Debug;
 
 /// トリビアでないトークンに、前後のトリビアをくっつけたもの。
-#[derive(Clone, Debug)]
+#[derive(Clone)]
+#[must_use]
 pub(crate) struct PToken {
     pub(crate) leading: Vec<TokenData>,
     pub(crate) body: TokenData,
@@ -14,12 +16,24 @@ impl PToken {
         self.body.kind
     }
 
+    pub(crate) fn body_text(&self) -> &str {
+        self.body.text.as_str()
+    }
+
     /// このトークンの末尾の位置 (後続トリビアを含む)
     pub(crate) fn behind(&self) -> ALoc {
         match self.trailing.last() {
             Some(last) => last.loc.behind(),
             None => self.body.loc.behind(),
         }
+    }
+
+    pub(crate) fn is_jump_modifier(&self) -> bool {
+        self.kind() == TokenKind::Ident
+            && match self.body.text.as_str() {
+                "goto" | "gosub" => true,
+                _ => false,
+            }
     }
 
     pub(crate) fn from_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
@@ -77,5 +91,43 @@ impl PToken {
         assert!(trailing.is_empty());
 
         p_tokens
+    }
+}
+
+impl Debug for PToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self
+            .leading
+            .iter()
+            .any(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space)
+        {
+            let mut list = f.debug_list();
+            list.entries(
+                self.leading
+                    .iter()
+                    .filter(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space),
+            );
+            list.finish()?;
+            write!(f, "> ")?;
+        }
+
+        Debug::fmt(&self.body, f)?;
+
+        if self
+            .trailing
+            .iter()
+            .any(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space)
+        {
+            write!(f, " <")?;
+            let mut list = f.debug_list();
+            list.entries(
+                self.trailing
+                    .iter()
+                    .filter(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space),
+            );
+            list.finish()?;
+        }
+
+        Ok(())
     }
 }
