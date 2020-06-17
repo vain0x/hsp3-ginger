@@ -10,6 +10,7 @@ type Tx = TokenizeContext;
 #[derive(PartialEq, Eq)]
 enum Lookahead {
     Eof,
+    Cr,
     CrLf,
     Lf,
     EscapedCrLf,
@@ -36,7 +37,7 @@ fn lookahead(tx: &mut Tx) -> Lookahead {
         '\0' => Lookahead::Eof,
         '\r' => match tx.nth(1) {
             '\n' => Lookahead::CrLf,
-            _ => Lookahead::Space,
+            _ => Lookahead::Cr,
         },
         '\n' => Lookahead::Lf,
         ' ' | '\t' | '\u{3000}' => {
@@ -228,6 +229,11 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
                 tx.commit(TokenKind::Eol);
                 break;
             }
+            Lookahead::Cr => {
+                tx.bump();
+                eat_spaces(tx);
+                tx.commit(TokenKind::Space);
+            }
             Lookahead::CrLf => {
                 tx.bump_many(2);
 
@@ -403,6 +409,11 @@ mod tests {
             tokenize_str_to_kinds(" \r\n\t\u{3000}　"),
             vec![TokenKind::Space, TokenKind::Eol, TokenKind::Space]
         );
+    }
+
+    #[test]
+    fn cr() {
+        assert_eq!(tokenize_str_to_kinds("\r"), vec![TokenKind::Space]);
     }
 
     #[test]
