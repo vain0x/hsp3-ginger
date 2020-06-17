@@ -3,9 +3,9 @@
 pub(crate) enum TokenKind {
     /// ファイルの終わり (end of file)
     Eof,
-    /// 改行やファイル終端の直前 (end of line)
+    /// 改行やファイル終端の直前 (end of statement)
     Eos,
-    /// 改行
+    /// 改行 (end of line)
     Eol,
     /// 改行でない空白
     Space,
@@ -57,8 +57,7 @@ pub(crate) enum TokenKind {
     Equal,
     /// `==`
     EqualEqual,
-    /// 行頭にある `#`。
-    /// 行頭にない `#` は Other になる。
+    /// `#`
     Hash,
     /// `^`
     Hat,
