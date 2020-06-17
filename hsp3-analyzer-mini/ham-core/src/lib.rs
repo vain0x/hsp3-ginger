@@ -33,6 +33,14 @@ mod analysis {
     };
 }
 
+mod parse {
+    //! 構文木・構文解析
+
+    pub(crate) mod p_token;
+
+    pub(crate) use p_token::PToken;
+}
+
 mod token {
     //! 字句・字句解析
 

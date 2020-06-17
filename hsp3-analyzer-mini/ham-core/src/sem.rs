@@ -2,7 +2,8 @@
 
 use crate::{
     analysis::{ADoc, ALoc, APos},
-    token::{TokenData, TokenKind},
+    parse::PToken,
+    token::TokenKind,
     utils::rc_str::RcStr,
 };
 use std::{collections::HashMap, rc::Rc};
@@ -139,20 +140,6 @@ impl Line {
 }
 
 impl TokenKind {
-    fn is_leading_trivial(self) -> bool {
-        match self {
-            TokenKind::Eol | TokenKind::Space | TokenKind::Comment | TokenKind::Other => true,
-            _ => false,
-        }
-    }
-
-    fn is_trailing_trivial(self) -> bool {
-        match self {
-            TokenKind::Space | TokenKind::Comment | TokenKind::Other => true,
-            _ => false,
-        }
-    }
-
     /// 文の終わりを表す字句か？
     ///
     /// プリプロセッサ行では改行で文が終わる。(エスケープされた改行は字句解析の段階で処理している。)
@@ -166,89 +153,6 @@ impl TokenKind {
             _ => false,
         }
     }
-}
-
-/// トリビアでないトークンに前後のトリビアをくっつけたものをPトークンと呼ぶ。
-#[derive(Clone, Debug)]
-struct PToken {
-    leading: Vec<TokenData>,
-    body: TokenData,
-    trailing: Vec<TokenData>,
-}
-
-impl PToken {
-    pub(crate) fn kind(&self) -> TokenKind {
-        self.body.kind
-    }
-
-    fn behind(&self) -> ALoc {
-        match self.trailing.last() {
-            Some(last) => last.loc.behind(),
-            None => self.body.loc.behind(),
-        }
-    }
-}
-
-fn convert_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
-    let empty_text = {
-        let eof = tokens.last().unwrap();
-        eof.text.slice(0, 0)
-    };
-
-    // 空白やコメントなど、構文上の役割を持たないトークンをトリビアと呼ぶ。
-    // トリビアは解析の邪魔なので、トリビアでないトークンの前後にくっつける。
-    let mut tokens = tokens.into_iter().peekable();
-    let mut p_tokens = vec![];
-    let mut leading = vec![];
-    let mut trailing = vec![];
-
-    loop {
-        // トークンの前にあるトリビアは先行トリビアとする。
-        while tokens.peek().map_or(false, |t| t.kind.is_leading_trivial()) {
-            leading.push(tokens.next().unwrap());
-        }
-
-        let body = match tokens.next() {
-            Some(body) => {
-                assert!(!body.kind.is_leading_trivial());
-                body
-            }
-            None => break,
-        };
-
-        while tokens
-            .peek()
-            .map_or(false, |t| t.kind.is_trailing_trivial())
-        {
-            trailing.push(tokens.next().unwrap());
-        }
-
-        p_tokens.push(PToken {
-            leading: leading.split_off(0),
-            body,
-            trailing: trailing.split_off(0),
-        });
-
-        // 改行の前に文の終わりを挿入する。
-        if tokens.peek().map_or(false, |t| t.kind == TokenKind::Eol) {
-            let loc = p_tokens.last().map(|t| t.behind()).unwrap_or_default();
-
-            p_tokens.push(PToken {
-                leading: vec![],
-                body: TokenData {
-                    kind: TokenKind::Eos,
-                    text: empty_text.clone(),
-                    loc,
-                },
-                trailing: vec![],
-            });
-        }
-    }
-
-    assert!(leading.is_empty());
-    assert!(trailing.is_empty());
-
-    p_tokens
 }
 
 fn make_lines(doc: ADoc, tokens: Vec<PToken>, lines: &mut Vec<Line>) {
@@ -320,7 +224,7 @@ pub(crate) fn tokenize(doc: ADoc, text: RcStr, lines: &mut Vec<Line>, line_count
         .last()
         .as_ref()
         .map_or(0, |token| token.loc.end_row());
-    let tokens = convert_tokens(tokens);
+    let tokens = PToken::from_tokens(tokens);
     make_lines(doc, tokens, lines)
 }
 

@@ -102,3 +102,24 @@ pub(crate) enum TokenKind {
     /// `*=`
     StarEqual,
 }
+
+impl TokenKind {
+    /// 先行トリビアか？
+    /// 先行トリビアには改行も含まれる。
+    /// (空白やコメントなど、構文上の役割を持たないトークンをトリビアと呼ぶ。)
+    pub(crate) fn is_leading_trivia(self) -> bool {
+        match self {
+            TokenKind::Eol | TokenKind::Space | TokenKind::Comment | TokenKind::Other => true,
+            _ => false,
+        }
+    }
+
+    /// 後続トリビアか？
+    /// 先行トリビアと違って、改行は含まない。
+    pub(crate) fn is_trailing_trivia(self) -> bool {
+        match self {
+            TokenKind::Space | TokenKind::Comment | TokenKind::Other => true,
+            _ => false,
+        }
+    }
+}
