@@ -334,7 +334,11 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
             Lookahead::Ident => {
                 tx.bump();
 
-                while let Lookahead::Ident | Lookahead::Digit = lookahead(tx) {
+                while let Lookahead::Ident
+                | Lookahead::ZeroB
+                | Lookahead::ZeroX
+                | Lookahead::Digit = lookahead(tx)
+                {
                     tx.bump();
                 }
 
@@ -551,6 +555,11 @@ mod tests {
             tokenize_str_to_kinds("こんにちはhello你好"),
             vec![TokenKind::Ident]
         );
+    }
+
+    #[test]
+    fn ident_with_digits() {
+        assert_eq!(tokenize_str_to_kinds("a0b0B0x0X42"), vec![TokenKind::Ident]);
     }
 
     #[test]
