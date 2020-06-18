@@ -442,6 +442,7 @@ pub(crate) struct PIncludeStmt {
 #[must_use]
 pub(crate) struct PUnknownPreProcStmt {
     pub(crate) hash: PToken,
+    pub(crate) tokens: Vec<PToken>,
 }
 
 #[must_use]

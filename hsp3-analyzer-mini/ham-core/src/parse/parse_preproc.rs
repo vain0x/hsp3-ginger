@@ -167,6 +167,14 @@ fn parse_macro_params(px: &mut Px) -> Vec<PMacroParam> {
     params
 }
 
+fn eat_arbitrary_tokens(px: &mut Px) -> Vec<PToken> {
+    let mut tokens = vec![];
+    while !px.next().is_end_of_preproc() {
+        tokens.push(px.bump());
+    }
+    tokens
+}
+
 fn parse_define_stmt(hash: PToken, px: &mut Px) -> PDefineStmt {
     assert_eq!(px.next_token().body_text(), "define");
     let keyword = px.bump();
@@ -191,10 +199,7 @@ fn parse_define_stmt(hash: PToken, px: &mut Px) -> PDefineStmt {
         (None, vec![], None)
     };
 
-    let mut tokens = vec![];
-    while !px.next().is_end_of_preproc() {
-        tokens.push(px.bump());
-    }
+    let tokens = eat_arbitrary_tokens(px);
 
     PDefineStmt {
         hash,
@@ -437,7 +442,10 @@ pub(crate) fn parse_preproc_stmt(px: &mut Px) -> Option<PStmt> {
         keyword if DEFFUNC_LIKE_KEYWORDS.contains(&keyword) => {
             PStmt::DefFunc(parse_deffunc_like_stmt(hash, px))
         }
-        _ => PStmt::UnknownPreProc(PUnknownPreProcStmt { hash }),
+        _ => {
+            let tokens = eat_arbitrary_tokens(px);
+            PStmt::UnknownPreProc(PUnknownPreProcStmt { hash, tokens })
+        }
     };
     Some(stmt)
 }
