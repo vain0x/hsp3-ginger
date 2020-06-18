@@ -95,7 +95,7 @@ impl TokenKind {
         }
     }
 
-    pub(crate) fn at_end_of_stmt(self) -> bool {
+    pub(crate) fn is_end_of_stmt(self) -> bool {
         match self {
             TokenKind::Eof
             | TokenKind::Eos
@@ -108,7 +108,7 @@ impl TokenKind {
 }
 
 fn parse_end_of_stmt(px: &mut Px) {
-    while !px.next().at_end_of_stmt() {
+    while !px.next().is_end_of_stmt() {
         px.skip();
     }
 }
@@ -150,7 +150,7 @@ fn lookahead_after_paren(mut i: usize, px: &mut Px) -> ExprLikeStmtKind {
             _ if kind.to_operator_kind() == OperatorKind::Assign => {
                 return ExprLikeStmtKind::Assign;
             }
-            _ if kind.at_end_of_stmt() => break,
+            _ if kind.is_end_of_stmt() => break,
             _ if i >= LOOKAHEAD_LIMIT => {
                 // 長い文はたぶん命令文。
                 return ExprLikeStmtKind::Command;
@@ -160,11 +160,11 @@ fn lookahead_after_paren(mut i: usize, px: &mut Px) -> ExprLikeStmtKind {
     }
 
     match px.nth(i) {
-        TokenKind::Plus | TokenKind::Minus if px.nth(i + 1).at_end_of_stmt() => {
+        TokenKind::Plus | TokenKind::Minus if px.nth(i + 1).is_end_of_stmt() => {
             // `x+`
             ExprLikeStmtKind::Assign
         }
-        kind if kind.at_end_of_stmt() => ExprLikeStmtKind::Command,
+        kind if kind.is_end_of_stmt() => ExprLikeStmtKind::Command,
         kind => match kind.to_operator_kind() {
             OperatorKind::None | OperatorKind::Infix | OperatorKind::InfixOrAssign => {
                 ExprLikeStmtKind::Command
@@ -184,7 +184,7 @@ fn lookahead_stmt(px: &mut Px) -> ExprLikeStmtKind {
             OperatorKind::Infix | OperatorKind::InfixOrAssign | OperatorKind::Assign => {
                 ExprLikeStmtKind::Assign
             }
-            OperatorKind::PrefixOrInfixOrAssign if px.nth(2).at_end_of_stmt() => {
+            OperatorKind::PrefixOrInfixOrAssign if px.nth(2).is_end_of_stmt() => {
                 // `x-`
                 ExprLikeStmtKind::Assign
             }

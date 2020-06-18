@@ -7,7 +7,7 @@ use crate::token::TokenKind;
 static DEFFUNC_LIKE_KEYWORDS: &[&str] = &["deffunc", "defcfunc", "modfunc", "modcfunc"];
 
 impl TokenKind {
-    fn at_end_of_preproc(self) -> bool {
+    fn is_end_of_preproc(self) -> bool {
         match self {
             TokenKind::Eof | TokenKind::Eos => true,
             _ => false,
@@ -17,7 +17,7 @@ impl TokenKind {
 
 impl PToken {
     /// `deffunc` 系の命令の領域を分割するプリプロセッサ命令の名前
-    fn at_deffunc_terminator(&self) -> bool {
+    fn is_deffunc_terminator(&self) -> bool {
         self.kind() == TokenKind::Ident
             && (DEFFUNC_LIKE_KEYWORDS.contains(&self.body_text())
                 || self.body_text() == "module"
@@ -62,7 +62,7 @@ fn parse_param_ty(px: &mut Px) -> Option<(PParamTy, PToken)> {
 }
 
 fn parse_end_of_preproc(px: &mut Px) {
-    while !px.next().at_end_of_preproc() {
+    while !px.next().is_end_of_preproc() {
         px.skip();
     }
 }
@@ -124,7 +124,7 @@ fn parse_deffunc_like_stmt(hash: PToken, px: &mut Px) -> PDefFuncStmt {
             TokenKind::Eos | TokenKind::LeftBrace | TokenKind::RightBrace | TokenKind::Colon => {
                 px.skip();
             }
-            TokenKind::Hash if px.nth_token(1).at_deffunc_terminator() => break,
+            TokenKind::Hash if px.nth_token(1).is_deffunc_terminator() => break,
             _ => match parse_stmt(px) {
                 Some(stmt) => stmts.push(stmt),
                 None => px.skip(),
