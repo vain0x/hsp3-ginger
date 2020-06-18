@@ -1,8 +1,8 @@
 use super::{
     p_token::PToken, parse_context::Px, parse_stmt::parse_stmt, PDefFuncStmt, PGlobalStmt,
-    PModuleStmt, PParam, PStmt,
+    PModuleStmt, PParam, PParamTy, PStmt,
 };
-use crate::{analysis::AParamTy, token::TokenKind};
+use crate::token::TokenKind;
 use std::str::FromStr;
 
 static DEFFUNC_LIKE_KEYWORDS: &[&str] = &["deffunc", "defcfunc", "modfunc", "modcfunc"];
@@ -50,7 +50,7 @@ fn eat_param_ty(px: &mut Px) -> Option<PToken> {
         return None;
     }
 
-    match AParamTy::from_str(px.next_token().body_text()) {
+    match PParamTy::from_str(px.next_token().body_text()) {
         Ok(_) => Some(px.bump()),
         Err(_) => None,
     }

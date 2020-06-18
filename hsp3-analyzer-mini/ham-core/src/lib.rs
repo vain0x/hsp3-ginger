@@ -15,7 +15,6 @@ pub use crate::lsp_server::lsp_main::start_lsp_server;
 mod analysis {
     pub(crate) mod a_doc;
     pub(crate) mod a_loc;
-    pub(crate) mod a_param_ty;
     pub(crate) mod a_pos;
     pub(crate) mod a_range;
     pub(crate) mod a_scope;
@@ -27,7 +26,6 @@ mod analysis {
     pub(crate) use self::{
         a_doc::ADoc,
         a_loc::ALoc,
-        a_param_ty::AParamTy,
         a_pos::APos,
         a_range::ARange,
         a_scope::AScope,
@@ -40,6 +38,7 @@ mod parse {
 
     #![allow(dead_code)]
 
+    pub(crate) mod p_param_ty;
     pub(crate) mod p_token;
     pub(crate) mod p_tree;
     pub(crate) mod parse_context;
@@ -49,6 +48,7 @@ mod parse {
 
     mod parse_tests;
 
+    pub(crate) use p_param_ty::PParamTy;
     pub(crate) use p_token::PToken;
     pub(crate) use p_tree::*;
 
