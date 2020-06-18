@@ -2,14 +2,18 @@ use std::str::FromStr;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum PParamTy {
-    Label,
     Str,
     Double,
     Int,
     Var,
+
+    // `#deffunc` など
+    Label,
     Array,
     Modvar,
     Local,
+
+    // `#func` など
     Nullptr,
     WStr,
     Float,
@@ -19,6 +23,11 @@ pub(crate) enum PParamTy {
     Bmscr,
     PRefstr,
     PExinfo,
+
+    // `#comfunc`
+    Hwnd,
+    Hdc,
+    HInst,
 }
 
 impl PParamTy {
@@ -41,6 +50,9 @@ impl PParamTy {
             "bmscr" => PParamTy::Bmscr,
             "prefstr" => PParamTy::PRefstr,
             "pexinfo" => PParamTy::PExinfo,
+            "hwnd" => PParamTy::Hwnd,
+            "hdc" => PParamTy::Hdc,
+            "hinst" => PParamTy::HInst,
             _ => return None,
         };
         Some(param_ty)

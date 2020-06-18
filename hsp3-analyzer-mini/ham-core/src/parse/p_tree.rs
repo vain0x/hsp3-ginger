@@ -1,6 +1,17 @@
 use super::{p_token::PToken, PJumpModifier, PParamTy, PPrivacy};
 use std::fmt::{self, Debug, Formatter};
 
+fn debug_fmt_opt<T: Debug>(
+    opt: Option<&T>,
+    placeholder: &str,
+    f: &mut Formatter<'_>,
+) -> fmt::Result {
+    match opt {
+        Some(value) => Debug::fmt(value, f),
+        None => write!(f, "?{}?", placeholder),
+    }
+}
+
 #[must_use]
 pub(crate) struct PLabel {
     pub(crate) star: PToken,
@@ -10,10 +21,7 @@ pub(crate) struct PLabel {
 impl Debug for PLabel {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "*")?;
-        match &self.name_opt {
-            Some(name) => write!(f, "{:?}", name),
-            None => write!(f, "?name?"),
-        }
+        debug_fmt_opt(self.name_opt.as_ref(), "name", f)
     }
 }
 
@@ -25,11 +33,8 @@ pub(crate) struct PArg {
 
 impl Debug for PArg {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self.expr_opt {
-            Some(expr) => Debug::fmt(&expr, f)?,
-            None => write!(f, "?expr?")?,
-        }
-        write!(f, "{}", if self.comma_opt.is_some() { "," } else { "?,?" })
+        debug_fmt_opt(self.expr_opt.as_ref(), "expr", f)?;
+        debug_fmt_opt(self.comma_opt.as_ref(), ",", f)
     }
 }
 
@@ -42,10 +47,7 @@ pub(crate) struct PDotArg {
 impl Debug for PDotArg {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, ".")?;
-        match &self.expr_opt {
-            Some(expr) => Debug::fmt(&expr, f),
-            None => write!(f, "?expr?"),
-        }
+        debug_fmt_opt(self.expr_opt.as_ref(), "expr", f)
     }
 }
 
@@ -122,11 +124,7 @@ pub(crate) struct PGroupExpr {
 impl Debug for PGroupExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "group(")?;
-
-        match &self.body_opt {
-            Some(body) => Debug::fmt(body, f)?,
-            None => write!(f, "?expr?")?,
-        }
+        debug_fmt_opt(self.body_opt.as_ref(), "expr", f)?;
         write!(f, ")")
     }
 }
@@ -143,11 +141,7 @@ impl Debug for PPrefixExpr {
         write!(f, "prefix ")?;
         Debug::fmt(&self.prefix, f)?;
         write!(f, " ")?;
-
-        match &self.arg_opt {
-            Some(arg) => Debug::fmt(arg, f),
-            None => write!(f, "?expr?"),
-        }
+        debug_fmt_opt(self.arg_opt.as_ref(), "expr", f)
     }
 }
 
@@ -210,18 +204,11 @@ pub(crate) struct PAssignStmt {
 
 impl Debug for PAssignStmt {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self.op_opt {
-            Some(op) => {
-                write!(f, "assign ")?;
-                Debug::fmt(&op, f)?
-            }
-            None => write!(f, "?assign?")?,
-        }
+        write!(f, "assign ")?;
+        debug_fmt_opt(self.op_opt.as_ref(), "op", f)?;
         write!(f, " ")?;
-
         Debug::fmt(&self.left, f)?;
         write!(f, " ")?;
-
         f.debug_list().entries(&self.args).finish()
     }
 }
@@ -268,7 +255,26 @@ pub(crate) struct PConstStmt {
     /// `int` or `double`
     pub(crate) ty_opt: Option<PToken>,
     pub(crate) name_opt: Option<PToken>,
-    pub(crate) body_opt: Option<PExpr>,
+    pub(crate) init_opt: Option<PExpr>,
+}
+
+#[must_use]
+pub(crate) struct PMacroParam {
+    pub(crate) percent_opt: Option<PToken>,
+    pub(crate) number_opt: Option<PToken>,
+    pub(crate) equal_opt: Option<PToken>,
+    pub(crate) init: Vec<PToken>,
+    pub(crate) comma_opt: Option<PToken>,
+}
+
+impl Debug for PMacroParam {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        debug_fmt_opt(self.percent_opt.as_ref(), "%", f)?;
+        debug_fmt_opt(self.number_opt.as_ref(), "number", f)?;
+        debug_fmt_opt(self.equal_opt.as_ref(), "=", f)?;
+        Debug::fmt(&self.init, f)?;
+        debug_fmt_opt(self.comma_opt.as_ref(), ",", f)
+    }
 }
 
 #[derive(Debug)]
@@ -279,6 +285,9 @@ pub(crate) struct PDefineStmt {
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) ctype_opt: Option<PToken>,
     pub(crate) name_opt: Option<PToken>,
+    pub(crate) left_paren_opt: Option<PToken>,
+    pub(crate) params: Vec<PMacroParam>,
+    pub(crate) right_paren_opt: Option<PToken>,
     pub(crate) tokens: Vec<PToken>,
 }
 
@@ -319,6 +328,7 @@ impl Debug for PParam {
     }
 }
 
+/// `#deffunc`, etc.
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PDefFuncStmt {
@@ -331,6 +341,72 @@ pub(crate) struct PDefFuncStmt {
     pub(crate) stmts: Vec<PStmt>,
 }
 
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PUseLibStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) file_path_opt: Option<PToken>,
+}
+
+/// `#func` or `#cfunc`
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PLibFuncStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
+    pub(crate) name_opt: Option<PToken>,
+    pub(crate) onexit_opt: Option<PToken>,
+    /// DLL からエクスポートされる関数の名前 (識別子または文字列)
+    pub(crate) func_name_opt: Option<PToken>,
+    /// 関数の引数の型を表す整数リテラル
+    /// (HSP2.x 時代の機能)
+    pub(crate) type_id_opt: Option<PToken>,
+    pub(crate) params: Vec<PParam>,
+}
+
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PUseComStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
+    /// インターフェイス名
+    pub(crate) name_opt: Option<PToken>,
+    pub(crate) args: Vec<PArg>,
+}
+
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PComFuncStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
+    pub(crate) name_opt: Option<PToken>,
+    pub(crate) index_opt: Option<PToken>,
+    pub(crate) params: Vec<PParam>,
+}
+
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PRegCmdStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) args: Vec<PArg>,
+}
+
+/// `#cmd`
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PCmdStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
+    pub(crate) name_opt: Option<PToken>,
+    pub(crate) command_id_opt: Option<PToken>,
+}
+
 /// モジュール文。
 /// `#module` から `#global` まで。
 /// ファイル内に対応する `#global` がなければファイルの末尾まで。
@@ -340,6 +416,7 @@ pub(crate) struct PModuleStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
     pub(crate) name_opt: Option<PToken>,
+    pub(crate) fields: Vec<PParam>,
     pub(crate) stmts: Vec<PStmt>,
     pub(crate) global_opt: Option<PGlobalStmt>,
 }
@@ -349,6 +426,22 @@ pub(crate) struct PModuleStmt {
 pub(crate) struct PGlobalStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
+}
+
+/// `#include` or `#addition`
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PIncludeStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) file_path_opt: Option<PToken>,
+    pub(crate) is_optional: bool,
+}
+
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PUnknownPreProcStmt {
+    pub(crate) hash: PToken,
 }
 
 #[must_use]
@@ -361,8 +454,16 @@ pub(crate) enum PStmt {
     Define(PDefineStmt),
     Enum(PEnumStmt),
     DefFunc(PDefFuncStmt),
+    UseLib(PUseLibStmt),
+    LibFunc(PLibFuncStmt),
+    UseCom(PUseComStmt),
+    ComFunc(PComFuncStmt),
+    RegCmd(PRegCmdStmt),
+    Cmd(PCmdStmt),
     Module(PModuleStmt),
     Global(PGlobalStmt),
+    Include(PIncludeStmt),
+    UnknownPreProc(PUnknownPreProcStmt),
 }
 
 impl Debug for PStmt {
@@ -376,8 +477,16 @@ impl Debug for PStmt {
             PStmt::Define(it) => Debug::fmt(it, f),
             PStmt::Enum(it) => Debug::fmt(it, f),
             PStmt::DefFunc(it) => Debug::fmt(it, f),
+            PStmt::UseLib(it) => Debug::fmt(it, f),
+            PStmt::LibFunc(it) => Debug::fmt(it, f),
+            PStmt::UseCom(it) => Debug::fmt(it, f),
+            PStmt::ComFunc(it) => Debug::fmt(it, f),
+            PStmt::RegCmd(it) => Debug::fmt(it, f),
+            PStmt::Cmd(it) => Debug::fmt(it, f),
             PStmt::Module(it) => Debug::fmt(it, f),
             PStmt::Global(it) => Debug::fmt(it, f),
+            PStmt::Include(it) => Debug::fmt(it, f),
+            PStmt::UnknownPreProc(it) => Debug::fmt(it, f),
         }
     }
 }

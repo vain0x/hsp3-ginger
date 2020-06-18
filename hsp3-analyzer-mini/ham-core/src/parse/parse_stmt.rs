@@ -132,6 +132,8 @@ fn parse_assign_stmt(px: &mut Px) -> Option<PAssignStmt> {
     };
 
     let args = parse_args(px);
+    parse_end_of_stmt(px);
+
     Some(PAssignStmt { left, op_opt, args })
 }
 
@@ -139,6 +141,8 @@ fn parse_command_stmt(px: &mut Px) -> Option<PCommandStmt> {
     let command = px.bump();
     let jump_modifier_opt = parse_jump_modifier(px);
     let args = parse_args(px);
+    parse_end_of_stmt(px);
+
     Some(PCommandStmt {
         command,
         jump_modifier_opt,
@@ -151,6 +155,8 @@ fn parse_invoke_stmt(px: &mut Px) -> Option<PInvokeStmt> {
     let arrow_opt = px.eat(TokenKind::SlimArrow);
     let method_opt = parse_atomic_expr(px);
     let args = parse_args(px);
+    parse_end_of_stmt(px);
+
     Some(PInvokeStmt {
         left,
         arrow_opt,
@@ -166,8 +172,6 @@ pub(crate) fn parse_stmt(px: &mut Px) -> Option<PStmt> {
         TokenKind::Hash => parse_preproc_stmt(px),
         _ => return None,
     };
-
-    parse_end_of_stmt(px);
     stmt_opt
 }
 
@@ -178,11 +182,9 @@ pub(crate) fn parse_root(tokens: Vec<PToken>) -> PRoot {
     loop {
         match px.next() {
             TokenKind::Eof => break,
-            TokenKind::Eos
-            | TokenKind::Eol
-            | TokenKind::Colon
-            | TokenKind::LeftBrace
-            | TokenKind::RightBrace => px.skip(),
+            TokenKind::Eos | TokenKind::Colon | TokenKind::LeftBrace | TokenKind::RightBrace => {
+                px.skip()
+            }
             _ => match parse_stmt(&mut px) {
                 Some(stmt) => {
                     stmts.push(stmt);
