@@ -1,4 +1,4 @@
-use super::p_token::PToken;
+use super::{p_token::PToken, PJumpModifier};
 use std::fmt::{self, Debug, Formatter};
 
 #[must_use]
@@ -230,8 +230,7 @@ impl Debug for PAssignStmt {
 #[must_use]
 pub(crate) struct PCommandStmt {
     pub(crate) command: PToken,
-    /// oncmd や button の直後の goto/gosub
-    pub(crate) jump_modifier_opt: Option<PToken>,
+    pub(crate) jump_modifier_opt: Option<(PJumpModifier, PToken)>,
     pub(crate) args: Vec<PArg>,
 }
 
@@ -241,7 +240,7 @@ impl Debug for PCommandStmt {
         Debug::fmt(&self.command, f)?;
         write!(f, " ")?;
 
-        if let Some(token) = &self.jump_modifier_opt {
+        if let Some((_, token)) = &self.jump_modifier_opt {
             Debug::fmt(token, f)?;
             write!(f, " ")?;
         }

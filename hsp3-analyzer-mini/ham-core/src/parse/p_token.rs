@@ -28,14 +28,6 @@ impl PToken {
         }
     }
 
-    pub(crate) fn is_jump_modifier(&self) -> bool {
-        self.kind() == TokenKind::Ident
-            && match self.body.text.as_str() {
-                "goto" | "gosub" => true,
-                _ => false,
-            }
-    }
-
     pub(crate) fn from_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
         let empty_text = {
             let eof = tokens.last().unwrap();

@@ -2,7 +2,7 @@ use super::{
     parse_context::Px,
     parse_expr::{parse_args, parse_atomic_expr, parse_compound, parse_label},
     parse_preproc::parse_preproc_stmt,
-    PAssignStmt, PCommandStmt, PInvokeStmt, PRoot, PStmt, PToken,
+    PAssignStmt, PCommandStmt, PInvokeStmt, PJumpModifier, PRoot, PStmt, PToken,
 };
 use crate::token::TokenKind;
 
@@ -113,6 +113,20 @@ fn parse_end_of_stmt(px: &mut Px) {
     }
 }
 
+fn parse_jump_modifier(px: &mut Px) -> Option<(PJumpModifier, PToken)> {
+    if px.next() != TokenKind::Ident {
+        return None;
+    }
+
+    match px.next_token().body_text().parse::<PJumpModifier>() {
+        Ok(jump_modifier) => {
+            let token = px.bump();
+            Some((jump_modifier, token))
+        }
+        Err(()) => None,
+    }
+}
+
 fn lookahead_after_paren(mut i: usize, px: &mut Px) -> ExprLikeStmtKind {
     let mut balance = 1;
 
@@ -207,13 +221,7 @@ fn parse_assign_stmt(px: &mut Px) -> Option<PAssignStmt> {
 
 fn parse_command_stmt(px: &mut Px) -> Option<PCommandStmt> {
     let command = px.bump();
-
-    let jump_modifier_opt = if px.next_token().is_jump_modifier() {
-        Some(px.bump())
-    } else {
-        None
-    };
-
+    let jump_modifier_opt = parse_jump_modifier(px);
     let args = parse_args(px);
     Some(PCommandStmt {
         command,
