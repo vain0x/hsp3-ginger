@@ -259,26 +259,6 @@ pub(crate) struct PInvokeStmt {
     pub(crate) args: Vec<PArg>,
 }
 
-/// モジュール文。
-/// `#module` から `#global` まで。ファイル内に `#global` がなければ末尾まで。
-#[derive(Debug)]
-#[must_use]
-pub(crate) struct PModuleStmt {
-    pub(crate) hash: PToken,
-    pub(crate) keyword: PToken,
-    pub(crate) name_opt: Option<PToken>,
-    pub(crate) stmts: Vec<PStmt>,
-    pub(crate) global_opt: Option<PGlobalStmt>,
-}
-
-/// グローバル文。
-#[derive(Debug)]
-#[must_use]
-pub(crate) struct PGlobalStmt {
-    pub(crate) hash: PToken,
-    pub(crate) keyword: PToken,
-}
-
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PConstStmt {
@@ -351,18 +331,38 @@ pub(crate) struct PDefFuncStmt {
     pub(crate) stmts: Vec<PStmt>,
 }
 
+/// モジュール文。
+/// `#module` から `#global` まで。
+/// ファイル内に対応する `#global` がなければファイルの末尾まで。
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PModuleStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) name_opt: Option<PToken>,
+    pub(crate) stmts: Vec<PStmt>,
+    pub(crate) global_opt: Option<PGlobalStmt>,
+}
+
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PGlobalStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+}
+
 #[must_use]
 pub(crate) enum PStmt {
     Label(PLabel),
     Assign(PAssignStmt),
     Command(PCommandStmt),
     Invoke(PInvokeStmt),
-    Module(PModuleStmt),
-    Global(PGlobalStmt),
     Const(PConstStmt),
     Define(PDefineStmt),
     Enum(PEnumStmt),
     DefFunc(PDefFuncStmt),
+    Module(PModuleStmt),
+    Global(PGlobalStmt),
 }
 
 impl Debug for PStmt {
@@ -372,12 +372,12 @@ impl Debug for PStmt {
             PStmt::Assign(it) => Debug::fmt(it, f),
             PStmt::Command(it) => Debug::fmt(it, f),
             PStmt::Invoke(it) => Debug::fmt(it, f),
-            PStmt::Module(it) => Debug::fmt(it, f),
-            PStmt::Global(it) => Debug::fmt(it, f),
             PStmt::Const(it) => Debug::fmt(it, f),
             PStmt::Define(it) => Debug::fmt(it, f),
             PStmt::Enum(it) => Debug::fmt(it, f),
             PStmt::DefFunc(it) => Debug::fmt(it, f),
+            PStmt::Module(it) => Debug::fmt(it, f),
+            PStmt::Global(it) => Debug::fmt(it, f),
         }
     }
 }
