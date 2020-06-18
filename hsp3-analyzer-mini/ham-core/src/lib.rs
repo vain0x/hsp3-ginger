@@ -40,6 +40,7 @@ mod parse {
 
     pub(crate) mod p_jump_modifier;
     pub(crate) mod p_param_ty;
+    pub(crate) mod p_privacy;
     pub(crate) mod p_token;
     pub(crate) mod p_tree;
     pub(crate) mod parse_context;
@@ -51,6 +52,7 @@ mod parse {
 
     pub(crate) use p_jump_modifier::PJumpModifier;
     pub(crate) use p_param_ty::PParamTy;
+    pub(crate) use p_privacy::PPrivacy;
     pub(crate) use p_token::PToken;
     pub(crate) use p_tree::*;
 

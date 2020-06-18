@@ -1,4 +1,4 @@
-use super::{p_token::PToken, PJumpModifier, PParamTy};
+use super::{p_token::PToken, PJumpModifier, PParamTy, PPrivacy};
 use std::fmt::{self, Debug, Formatter};
 
 #[must_use]
@@ -284,8 +284,7 @@ pub(crate) struct PGlobalStmt {
 pub(crate) struct PConstStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
-    /// `local` or `global`
-    pub(crate) privacy_opt: Option<PToken>,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     /// `int` or `double`
     pub(crate) ty_opt: Option<PToken>,
     pub(crate) name_opt: Option<PToken>,
@@ -297,8 +296,7 @@ pub(crate) struct PConstStmt {
 pub(crate) struct PDefineStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
-    /// `local` or `global`
-    pub(crate) privacy_opt: Option<PToken>,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) ctype_opt: Option<PToken>,
     pub(crate) name_opt: Option<PToken>,
     pub(crate) tokens: Vec<PToken>,
@@ -309,11 +307,10 @@ pub(crate) struct PDefineStmt {
 pub(crate) struct PEnumStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
-    /// `local` or `global`
-    pub(crate) privacy_opt: Option<PToken>,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
-    pub(crate) init_opt: Option<PExpr>,
     pub(crate) equal_opt: Option<PToken>,
+    pub(crate) init_opt: Option<PExpr>,
 }
 
 #[must_use]
@@ -347,8 +344,7 @@ impl Debug for PParam {
 pub(crate) struct PDefFuncStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
-    /// `local` or `global`
-    pub(crate) privacy_opt: Option<PToken>,
+    pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
     pub(crate) params: Vec<PParam>,
     pub(crate) onexit_opt: Option<PToken>,

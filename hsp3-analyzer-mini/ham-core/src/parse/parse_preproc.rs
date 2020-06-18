@@ -1,6 +1,6 @@
 use super::{
     p_token::PToken, parse_context::Px, parse_stmt::parse_stmt, PDefFuncStmt, PGlobalStmt,
-    PModuleStmt, PParam, PParamTy, PStmt,
+    PModuleStmt, PParam, PParamTy, PPrivacy, PStmt,
 };
 use crate::token::TokenKind;
 
@@ -33,14 +33,17 @@ fn eat_ident(pattern: &str, px: &mut Px) -> Option<PToken> {
     }
 }
 
-fn eat_privacy(px: &mut Px) -> Option<PToken> {
+fn parse_privacy(px: &mut Px) -> Option<(PPrivacy, PToken)> {
     if px.next() != TokenKind::Ident {
         return None;
     }
 
-    match px.next_token().body_text() {
-        "global" | "local" => Some(px.bump()),
-        _ => None,
+    match px.next_token().body_text().parse::<PPrivacy>() {
+        Ok(privacy) => {
+            let token = px.bump();
+            Some((privacy, token))
+        }
+        Err(()) => None,
     }
 }
 
@@ -107,7 +110,7 @@ fn parse_deffunc_like_stmt(hash: PToken, px: &mut Px) -> PDefFuncStmt {
 
     let keyword = px.bump();
 
-    let privacy_opt = eat_privacy(px);
+    let privacy_opt = parse_privacy(px);
     let name_opt = px.eat(TokenKind::Ident);
 
     let onexit_opt = eat_ident("onexit", px);
