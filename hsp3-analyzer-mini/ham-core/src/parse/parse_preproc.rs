@@ -3,7 +3,6 @@ use super::{
     PModuleStmt, PParam, PParamTy, PStmt,
 };
 use crate::token::TokenKind;
-use std::str::FromStr;
 
 static DEFFUNC_LIKE_KEYWORDS: &[&str] = &["deffunc", "defcfunc", "modfunc", "modcfunc"];
 
@@ -45,13 +44,16 @@ fn eat_privacy(px: &mut Px) -> Option<PToken> {
     }
 }
 
-fn eat_param_ty(px: &mut Px) -> Option<PToken> {
+fn parse_param_ty(px: &mut Px) -> Option<(PParamTy, PToken)> {
     if px.next() != TokenKind::Ident {
         return None;
     }
 
-    match PParamTy::from_str(px.next_token().body_text()) {
-        Ok(_) => Some(px.bump()),
+    match px.next_token().body_text().parse::<PParamTy>() {
+        Ok(param_ty) => {
+            let token = px.bump();
+            Some((param_ty, token))
+        }
         Err(_) => None,
     }
 }
@@ -78,7 +80,7 @@ fn parse_deffunc_params(px: &mut Px) -> Vec<PParam> {
                 });
             }
             TokenKind::Ident => {
-                let param_ty_opt = eat_param_ty(px);
+                let param_ty_opt = parse_param_ty(px);
                 let name_opt = px.eat(TokenKind::Ident);
                 let comma_opt = px.eat(TokenKind::Comma);
                 let comma_seen = comma_opt.is_some();

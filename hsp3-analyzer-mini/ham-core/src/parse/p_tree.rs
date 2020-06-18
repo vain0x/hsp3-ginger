@@ -1,4 +1,4 @@
-use super::{p_token::PToken, PJumpModifier};
+use super::{p_token::PToken, PJumpModifier, PParamTy};
 use std::fmt::{self, Debug, Formatter};
 
 #[must_use]
@@ -318,7 +318,7 @@ pub(crate) struct PEnumStmt {
 
 #[must_use]
 pub(crate) struct PParam {
-    pub(crate) param_ty_opt: Option<PToken>,
+    pub(crate) param_ty_opt: Option<(PParamTy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
     pub(crate) comma_opt: Option<PToken>,
 }
@@ -326,7 +326,7 @@ pub(crate) struct PParam {
 impl Debug for PParam {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self.param_ty_opt {
-            Some(param_ty) => {
+            Some((_, param_ty)) => {
                 Debug::fmt(param_ty, f)?;
                 write!(f, " ")?;
             }
