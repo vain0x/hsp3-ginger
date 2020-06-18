@@ -20,6 +20,7 @@ impl TokenKind {
             TokenKind::LeftAngle
             | TokenKind::RightAngle
             | TokenKind::AndAnd
+            | TokenKind::BangEqual
             | TokenKind::EqualEqual
             | TokenKind::LeftEqual
             | TokenKind::RightEqual
@@ -36,7 +37,6 @@ impl TokenKind {
             | TokenKind::Slash => POpKind::InfixOrAssign,
             TokenKind::AndEqual
             | TokenKind::BackslashEqual
-            | TokenKind::BangEqual
             | TokenKind::HatEqual
             | TokenKind::MinusEqual
             | TokenKind::MinusMinus
