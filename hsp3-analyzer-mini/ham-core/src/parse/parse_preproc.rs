@@ -6,15 +6,6 @@ use crate::token::TokenKind;
 
 static DEFFUNC_LIKE_KEYWORDS: &[&str] = &["deffunc", "defcfunc", "modfunc", "modcfunc"];
 
-impl TokenKind {
-    fn is_end_of_preproc(self) -> bool {
-        match self {
-            TokenKind::Eof | TokenKind::Eos => true,
-            _ => false,
-        }
-    }
-}
-
 impl PToken {
     /// `deffunc` 系の命令の領域を分割するプリプロセッサ命令の名前
     fn is_deffunc_terminator(&self) -> bool {
@@ -62,8 +53,11 @@ fn parse_param_ty(px: &mut Px) -> Option<(PParamTy, PToken)> {
 }
 
 fn parse_end_of_preproc(px: &mut Px) {
-    while !px.next().is_end_of_preproc() {
-        px.skip();
+    loop {
+        match px.next() {
+            TokenKind::Eof | TokenKind::Eos => break,
+            _ => px.skip(),
+        }
     }
 }
 

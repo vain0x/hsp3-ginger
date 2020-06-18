@@ -39,6 +39,7 @@ mod parse {
     #![allow(dead_code)]
 
     pub(crate) mod p_jump_modifier;
+    pub(crate) mod p_op_kind;
     pub(crate) mod p_param_ty;
     pub(crate) mod p_privacy;
     pub(crate) mod p_token;

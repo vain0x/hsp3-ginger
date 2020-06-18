@@ -4,33 +4,6 @@ use super::{
 };
 use crate::token::TokenKind;
 
-impl TokenKind {
-    fn is_binary_op(self) -> bool {
-        match self {
-            TokenKind::LeftAngle
-            | TokenKind::RightAngle
-            | TokenKind::And
-            | TokenKind::AndAnd
-            | TokenKind::Backslash
-            | TokenKind::Bang
-            | TokenKind::Equal
-            | TokenKind::EqualEqual
-            | TokenKind::Hat
-            | TokenKind::LeftEqual
-            | TokenKind::LeftShift
-            | TokenKind::Minus
-            | TokenKind::Pipe
-            | TokenKind::PipePipe
-            | TokenKind::Plus
-            | TokenKind::RightEqual
-            | TokenKind::RightShift
-            | TokenKind::Slash
-            | TokenKind::Star => true,
-            _ => false,
-        }
-    }
-}
-
 pub(crate) fn parse_label(px: &mut Px) -> Option<PLabel> {
     let star = px.eat(TokenKind::Star)?;
     let name_opt = px.eat(TokenKind::Ident);
@@ -142,7 +115,7 @@ fn parse_infix_expr(px: &mut Px) -> Option<PExpr> {
 
     loop {
         // 二項演算の優先順位はいまのところ無視する。
-        if px.next().is_binary_op() {
+        if px.next().is_infix_op() {
             let infix = px.bump();
             let right_opt = parse_prefix_expr(px).map(Box::new);
             left = PExpr::Infix(PInfixExpr {

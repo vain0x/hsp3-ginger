@@ -1,4 +1,5 @@
 use super::{
+    p_op_kind::POpKind,
     parse_context::Px,
     parse_expr::{parse_args, parse_atomic_expr, parse_compound, parse_label},
     parse_preproc::parse_preproc_stmt,
@@ -15,87 +16,8 @@ enum ExprLikeStmtKind {
     Invoke,
 }
 
-/// あるトークンを演算子として解釈するとき、どのような構文としてパースできるか？
-#[derive(PartialEq, Eq)]
-enum OperatorKind {
-    /// 演算子ではない
-    None,
-    /// 中置のみ
-    Infix,
-    /// 代入のみ
-    Assign,
-    /// 中置または代入
-    InfixOrAssign,
-    /// 前置、中置、複合代入
-    PrefixOrInfixOrAssign,
-}
-
 impl TokenKind {
-    fn is_plus_or_minus(self) -> bool {
-        match self {
-            TokenKind::Minus | TokenKind::Plus => true,
-            _ => false,
-        }
-    }
-
-    fn to_operator_kind(self) -> OperatorKind {
-        match self {
-            TokenKind::Minus | TokenKind::Star => OperatorKind::PrefixOrInfixOrAssign,
-            TokenKind::AndAnd | TokenKind::PipePipe | TokenKind::EqualEqual => OperatorKind::Infix,
-            TokenKind::LeftAngle
-            | TokenKind::RightAngle
-            | TokenKind::And
-            | TokenKind::Backslash
-            | TokenKind::Bang
-            | TokenKind::Equal
-            | TokenKind::Hat
-            | TokenKind::LeftEqual
-            | TokenKind::LeftShift
-            | TokenKind::Pipe
-            | TokenKind::Plus
-            | TokenKind::RightEqual
-            | TokenKind::RightShift
-            | TokenKind::Slash => OperatorKind::InfixOrAssign,
-            TokenKind::AndEqual
-            | TokenKind::BackslashEqual
-            | TokenKind::BangEqual
-            | TokenKind::HatEqual
-            | TokenKind::MinusEqual
-            | TokenKind::MinusMinus
-            | TokenKind::PipeEqual
-            | TokenKind::PlusEqual
-            | TokenKind::PlusPlus
-            | TokenKind::SlashEqual
-            | TokenKind::StarEqual => OperatorKind::Assign,
-            _ => OperatorKind::None,
-        }
-    }
-
-    /// 複合代入演算子
-    pub(crate) fn is_compound_assignment_operator(self) -> bool {
-        match self {
-            TokenKind::AndEqual
-            | TokenKind::BackslashEqual
-            | TokenKind::HatEqual
-            | TokenKind::MinusEqual
-            | TokenKind::MinusMinus
-            | TokenKind::PipeEqual
-            | TokenKind::PlusEqual
-            | TokenKind::PlusPlus
-            | TokenKind::SlashEqual
-            | TokenKind::StarEqual => true,
-            _ => false,
-        }
-    }
-
-    pub(crate) fn is_assignment_operator(self) -> bool {
-        match self.to_operator_kind() {
-            OperatorKind::Assign | OperatorKind::InfixOrAssign => true,
-            _ => false,
-        }
-    }
-
-    pub(crate) fn is_end_of_stmt(self) -> bool {
+    fn is_end_of_stmt(self) -> bool {
         match self {
             TokenKind::Eof
             | TokenKind::Eos
@@ -147,7 +69,7 @@ fn lookahead_after_paren(mut i: usize, px: &mut Px) -> ExprLikeStmtKind {
             TokenKind::SlimArrow => {
                 return ExprLikeStmtKind::Invoke;
             }
-            _ if kind.to_operator_kind() == OperatorKind::Assign => {
+            _ if kind.to_op_kind() == Some(POpKind::Assign) => {
                 return ExprLikeStmtKind::Assign;
             }
             _ if kind.is_end_of_stmt() => break,
@@ -164,12 +86,13 @@ fn lookahead_after_paren(mut i: usize, px: &mut Px) -> ExprLikeStmtKind {
             // `x+`
             ExprLikeStmtKind::Assign
         }
+        TokenKind::SlimArrow => ExprLikeStmtKind::Invoke,
         kind if kind.is_end_of_stmt() => ExprLikeStmtKind::Command,
-        kind => match kind.to_operator_kind() {
-            OperatorKind::None | OperatorKind::Infix | OperatorKind::InfixOrAssign => {
-                ExprLikeStmtKind::Command
+        kind => match kind.to_op_kind() {
+            None | Some(POpKind::Infix) | Some(POpKind::InfixOrAssign) => ExprLikeStmtKind::Command,
+            Some(POpKind::Assign) | Some(POpKind::PrefixOrInfixOrAssign) => {
+                ExprLikeStmtKind::Assign
             }
-            OperatorKind::Assign | OperatorKind::PrefixOrInfixOrAssign => ExprLikeStmtKind::Assign,
         },
     }
 }
@@ -179,21 +102,14 @@ fn lookahead_stmt(px: &mut Px) -> ExprLikeStmtKind {
         TokenKind::LeftParen => lookahead_after_paren(2, px),
         TokenKind::Dot => ExprLikeStmtKind::Assign,
         TokenKind::SlimArrow => ExprLikeStmtKind::Invoke,
-        second => match second.to_operator_kind() {
-            OperatorKind::None => ExprLikeStmtKind::Command,
-            OperatorKind::Infix | OperatorKind::InfixOrAssign | OperatorKind::Assign => {
-                ExprLikeStmtKind::Assign
-            }
-            OperatorKind::PrefixOrInfixOrAssign if px.nth(2).is_end_of_stmt() => {
-                // `x-`
-                ExprLikeStmtKind::Assign
-            }
-            OperatorKind::PrefixOrInfixOrAssign => {
-                // `x-a...`
-                // マイナスが前置演算子なのか複合代入演算子なのか判断できない。
-                // ここでは前置演算子と仮定してパースする。(複合代入には `-=` を推奨)
+        TokenKind::Plus | TokenKind::Minus if px.nth(2).is_end_of_stmt() => {
+            ExprLikeStmtKind::Assign
+        }
+        second => match second.to_op_kind() {
+            None | Some(POpKind::Infix) | Some(POpKind::PrefixOrInfixOrAssign) => {
                 ExprLikeStmtKind::Command
             }
+            Some(POpKind::InfixOrAssign) | Some(POpKind::Assign) => ExprLikeStmtKind::Assign,
         },
     }
 }
@@ -209,7 +125,7 @@ fn parse_expr_like_stmt(px: &mut Px) -> Option<PStmt> {
 fn parse_assign_stmt(px: &mut Px) -> Option<PAssignStmt> {
     let left = parse_compound(px)?;
 
-    let op_opt = if px.next().is_assignment_operator() {
+    let op_opt = if px.next().is_assign_op() {
         Some(px.bump())
     } else {
         None
