@@ -12,6 +12,31 @@ fn debug_fmt_opt<T: Debug>(
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub(crate) enum PIncludeKind {
+    Include,
+    Addition,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub(crate) enum PDefFuncKind {
+    DefFunc,
+    DefCFunc,
+    ModFunc,
+    ModCFunc,
+    ModInit,
+    ModTerm,
+}
+
+impl PDefFuncKind {
+    pub(crate) fn is_anonymous(&self) -> bool {
+        match self {
+            PDefFuncKind::ModInit | PDefFuncKind::ModTerm => true,
+            _ => false,
+        }
+    }
+}
+
 #[must_use]
 pub(crate) struct PLabel {
     pub(crate) star: PToken,
@@ -333,6 +358,7 @@ impl Debug for PParam {
 pub(crate) struct PDefFuncStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
+    pub(crate) kind: PDefFuncKind,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
     pub(crate) params: Vec<PParam>,
@@ -371,7 +397,6 @@ pub(crate) struct PUseComStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
-    /// インターフェイス名
     pub(crate) name_opt: Option<PToken>,
     pub(crate) args: Vec<PArg>,
 }
@@ -433,8 +458,8 @@ pub(crate) struct PGlobalStmt {
 pub(crate) struct PIncludeStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
+    pub(crate) kind: PIncludeKind,
     pub(crate) file_path_opt: Option<PToken>,
-    pub(crate) is_optional: bool,
 }
 
 #[derive(Debug)]

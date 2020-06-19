@@ -3,9 +3,9 @@ use super::{
     parse_context::Px,
     parse_expr::{parse_args, parse_expr},
     parse_stmt::parse_stmt,
-    PCmdStmt, PConstStmt, PConstTy, PDefFuncStmt, PDefineStmt, PEnumStmt, PGlobalStmt,
-    PIncludeStmt, PLibFuncStmt, PMacroParam, PModuleStmt, PParam, PParamTy, PPrivacy, PRegCmdStmt,
-    PStmt, PUnknownPreProcStmt, PUseLibStmt,
+    PCmdStmt, PConstStmt, PConstTy, PDefFuncKind, PDefFuncStmt, PDefineStmt, PEnumStmt,
+    PGlobalStmt, PIncludeKind, PIncludeStmt, PLibFuncStmt, PMacroParam, PModuleStmt, PParam,
+    PParamTy, PPrivacy, PRegCmdStmt, PStmt, PUnknownPreProcStmt, PUseLibStmt,
 };
 use crate::token::TokenKind;
 
@@ -258,13 +258,17 @@ fn parse_deffunc_params(px: &mut Px) -> Vec<PParam> {
     params
 }
 
-fn parse_deffunc_like_stmt(hash: PToken, px: &mut Px) -> PDefFuncStmt {
+fn parse_deffunc_like_stmt(hash: PToken, kind: PDefFuncKind, px: &mut Px) -> PDefFuncStmt {
     assert!(DEFFUNC_LIKE_KEYWORDS.contains(&px.next_token().body_text()));
 
     let keyword = px.bump();
 
     let privacy_opt = parse_privacy(px);
-    let name_opt = px.eat(TokenKind::Ident);
+    let name_opt = if kind.is_anonymous() {
+        None
+    } else {
+        px.eat(TokenKind::Ident)
+    };
 
     let onexit_opt = eat_ident("onexit", px);
     let params = parse_deffunc_params(px);
@@ -288,6 +292,7 @@ fn parse_deffunc_like_stmt(hash: PToken, px: &mut Px) -> PDefFuncStmt {
     PDefFuncStmt {
         hash,
         keyword,
+        kind,
         privacy_opt,
         name_opt,
         params,
@@ -417,7 +422,7 @@ fn parse_global_stmt(hash: PToken, px: &mut Px) -> PGlobalStmt {
     PGlobalStmt { hash, keyword }
 }
 
-fn parse_include_stmt(hash: PToken, is_optional: bool, px: &mut Px) -> PIncludeStmt {
+fn parse_include_stmt(hash: PToken, kind: PIncludeKind, px: &mut Px) -> PIncludeStmt {
     let keyword = px.bump();
     let file_path_opt = px.eat(TokenKind::Str);
     parse_end_of_preproc(px);
@@ -425,29 +430,35 @@ fn parse_include_stmt(hash: PToken, is_optional: bool, px: &mut Px) -> PIncludeS
     PIncludeStmt {
         hash,
         keyword,
+        kind,
         file_path_opt,
-        is_optional,
     }
 }
 
 pub(crate) fn parse_preproc_stmt(px: &mut Px) -> Option<PStmt> {
+    const USE_NAME: bool = true;
+    const IS_OPTIONAL: bool = true;
+
     let hash = px.eat(TokenKind::Hash)?;
 
     let stmt = match px.next_token().body_text() {
         "const" => PStmt::Const(parse_const_stmt(hash, px)),
         "enum" => PStmt::Enum(parse_enum_stmt(hash, px)),
         "define" => PStmt::Define(parse_define_stmt(hash, px)),
+        "deffunc" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::DefFunc, px)),
+        "defcfunc" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::DefCFunc, px)),
+        "modfunc" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::ModFunc, px)),
+        "modcfunc" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::ModCFunc, px)),
+        "modinit" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::ModInit, px)),
+        "modterm" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::ModTerm, px)),
         "uselib" => PStmt::UseLib(parse_uselib_stmt(hash, px)),
         "func" | "cfunc" => PStmt::LibFunc(parse_lib_func_stmt(hash, px)),
         "regcmd" => PStmt::RegCmd(parse_regcmd_stmt(hash, px)),
         "cmd" => PStmt::Cmd(parse_cmd_stmt(hash, px)),
         "module" => PStmt::Module(parse_module_stmt(hash, px)),
         "global" => PStmt::Global(parse_global_stmt(hash, px)),
-        "include" => PStmt::Include(parse_include_stmt(hash, false, px)),
-        "addition" => PStmt::Include(parse_include_stmt(hash, true, px)),
-        keyword if DEFFUNC_LIKE_KEYWORDS.contains(&keyword) => {
-            PStmt::DefFunc(parse_deffunc_like_stmt(hash, px))
-        }
+        "include" => PStmt::Include(parse_include_stmt(hash, PIncludeKind::Include, px)),
+        "addition" => PStmt::Include(parse_include_stmt(hash, PIncludeKind::Addition, px)),
         _ => {
             let tokens = eat_arbitrary_tokens(px);
             PStmt::UnknownPreProc(PUnknownPreProcStmt { hash, tokens })

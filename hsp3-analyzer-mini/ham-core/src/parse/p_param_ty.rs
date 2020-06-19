@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum PParamTy {
     Str,
     Double,
