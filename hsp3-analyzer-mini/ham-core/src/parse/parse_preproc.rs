@@ -3,9 +3,9 @@ use super::{
     parse_context::Px,
     parse_expr::{parse_args, parse_expr},
     parse_stmt::parse_stmt,
-    PCmdStmt, PConstStmt, PDefFuncStmt, PDefineStmt, PEnumStmt, PGlobalStmt, PIncludeStmt,
-    PLibFuncStmt, PMacroParam, PModuleStmt, PParam, PParamTy, PPrivacy, PRegCmdStmt, PStmt,
-    PUnknownPreProcStmt, PUseLibStmt,
+    PCmdStmt, PConstStmt, PConstTy, PDefFuncStmt, PDefineStmt, PEnumStmt, PGlobalStmt,
+    PIncludeStmt, PLibFuncStmt, PMacroParam, PModuleStmt, PParam, PParamTy, PPrivacy, PRegCmdStmt,
+    PStmt, PUnknownPreProcStmt, PUseLibStmt,
 };
 use crate::token::TokenKind;
 
@@ -64,7 +64,7 @@ fn parse_param_ty(px: &mut Px) -> Option<(PParamTy, PToken)> {
             let token = px.bump();
             Some((param_ty, token))
         }
-        Err(_) => None,
+        Err(()) => None,
     }
 }
 
@@ -74,11 +74,17 @@ fn parse_end_of_preproc(px: &mut Px) {
     }
 }
 
-fn parse_const_ty(px: &mut Px) -> Option<PToken> {
-    if px.next() == TokenKind::Ident && ["double", "int"].contains(&px.next_token().body_text()) {
-        Some(px.bump())
-    } else {
-        None
+fn parse_const_ty(px: &mut Px) -> Option<(PConstTy, PToken)> {
+    if px.next() != TokenKind::Ident {
+        return None;
+    }
+
+    match px.next_token().body_text().parse::<PConstTy>() {
+        Ok(const_ty) => {
+            let token = px.bump();
+            Some((const_ty, token))
+        }
+        Err(()) => None,
     }
 }
 

@@ -38,6 +38,7 @@ mod parse {
 
     #![allow(dead_code)]
 
+    pub(crate) mod p_const_ty;
     pub(crate) mod p_jump_modifier;
     pub(crate) mod p_op_kind;
     pub(crate) mod p_param_ty;
@@ -51,6 +52,7 @@ mod parse {
 
     mod parse_tests;
 
+    pub(crate) use p_const_ty::PConstTy;
     pub(crate) use p_jump_modifier::PJumpModifier;
     pub(crate) use p_param_ty::PParamTy;
     pub(crate) use p_privacy::PPrivacy;

@@ -1,4 +1,4 @@
-use super::{p_token::PToken, PJumpModifier, PParamTy, PPrivacy};
+use super::{p_token::PToken, PConstTy, PJumpModifier, PParamTy, PPrivacy};
 use std::fmt::{self, Debug, Formatter};
 
 fn debug_fmt_opt<T: Debug>(
@@ -252,8 +252,7 @@ pub(crate) struct PConstStmt {
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
-    /// `int` or `double`
-    pub(crate) ty_opt: Option<PToken>,
+    pub(crate) ty_opt: Option<(PConstTy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
     pub(crate) init_opt: Option<PExpr>,
 }
