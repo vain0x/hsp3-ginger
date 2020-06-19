@@ -380,7 +380,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
             });
 
             let parent_deffunc_opt = take(&mut ax.deffunc_opt);
-            let parent_module_opt = take(&mut ax.module_opt);
+            let parent_module_opt = replace(&mut ax.module_opt, Some(module));
 
             if let Some(name) = name_opt {
                 ax.modules[module.get()].name_opt = Some(name.body.text.clone());
