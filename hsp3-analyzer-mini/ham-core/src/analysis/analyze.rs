@@ -300,8 +300,8 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
             let parent_deffunc = replace(&mut ax.deffunc_opt, Some(deffunc));
 
             for param in params {
-                if let Some((_, token)) = &param.param_ty_opt {
-                    ax.add_symbol(ASymbolKind::Param, token, PPrivacy::Local, hash);
+                if let Some(name) = &param.name_opt {
+                    ax.add_symbol(ASymbolKind::Param, name, PPrivacy::Local, hash);
                 }
             }
 
