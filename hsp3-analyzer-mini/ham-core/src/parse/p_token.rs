@@ -20,6 +20,13 @@ impl PToken {
         self.body.text.as_str()
     }
 
+    pub(crate) fn ahead(&self) -> ALoc {
+        match self.leading.first() {
+            Some(first) => first.loc.ahead(),
+            None => self.body.loc.ahead(),
+        }
+    }
+
     /// このトークンの末尾の位置 (後続トリビアを含む)
     pub(crate) fn behind(&self) -> ALoc {
         match self.trailing.last() {

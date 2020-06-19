@@ -44,6 +44,16 @@ impl ALoc {
         self.doc == doc && self.range.is_touched(pos)
     }
 
+    pub(crate) fn ahead(&self) -> ALoc {
+        ALoc {
+            doc: self.doc,
+            range: ARange {
+                start: self.start(),
+                end: self.end(),
+            },
+        }
+    }
+
     pub(crate) fn behind(&self) -> ALoc {
         ALoc {
             doc: self.doc,
@@ -51,6 +61,17 @@ impl ALoc {
                 start: self.end(),
                 end: self.end(),
             },
+        }
+    }
+
+    pub(crate) fn unite(&self, other: &Self) -> ALoc {
+        if self.doc != other.doc {
+            return *self;
+        }
+
+        ALoc {
+            doc: self.doc,
+            range: self.range.unite(&other.range),
         }
     }
 }

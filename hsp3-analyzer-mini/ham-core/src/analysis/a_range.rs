@@ -19,4 +19,11 @@ impl ARange {
     pub(crate) fn is_touched(&self, pos: APos) -> bool {
         self.start <= pos && pos <= self.end
     }
+
+    pub(crate) fn unite(&self, other: &Self) -> Self {
+        ARange {
+            start: self.start.min(other.start),
+            end: self.end.max(other.end),
+        }
+    }
 }

@@ -275,19 +275,21 @@ fn parse_deffunc_like_stmt(hash: PToken, kind: PDefFuncKind, px: &mut Px) -> PDe
     parse_end_of_preproc(px);
 
     let mut stmts = vec![];
-    loop {
+    let behind = loop {
         match px.next() {
-            TokenKind::Eof => break,
+            TokenKind::Eof => break px.next_token().behind(),
             TokenKind::Eos | TokenKind::LeftBrace | TokenKind::RightBrace | TokenKind::Colon => {
                 px.skip();
             }
-            TokenKind::Hash if px.nth_token(1).is_deffunc_terminator() => break,
+            TokenKind::Hash if px.nth_token(1).is_deffunc_terminator() => {
+                break px.next_token().body.loc.ahead()
+            }
             _ => match parse_stmt(px) {
                 Some(stmt) => stmts.push(stmt),
                 None => px.skip(),
             },
         }
-    }
+    };
 
     PDefFuncStmt {
         hash,
@@ -298,6 +300,7 @@ fn parse_deffunc_like_stmt(hash: PToken, kind: PDefFuncKind, px: &mut Px) -> PDe
         params,
         onexit_opt,
         stmts,
+        behind,
     }
 }
 
@@ -388,15 +391,20 @@ fn parse_module_stmt(hash: PToken, px: &mut Px) -> PModuleStmt {
     parse_end_of_preproc(px);
 
     let mut stmts = vec![];
-    let global_opt = loop {
+    let (global_opt, behind) = loop {
         match px.next() {
-            TokenKind::Eof => break None,
+            TokenKind::Eof => break (None, px.next_token().behind()),
             TokenKind::Eos | TokenKind::LeftBrace | TokenKind::RightBrace | TokenKind::Colon => {
                 px.skip();
             }
-            TokenKind::Hash if px.nth_token(1).body_text() == "module" => break None,
+            TokenKind::Hash if px.nth_token(1).body_text() == "module" => {
+                break (None, px.next_token().body.loc.ahead())
+            }
             _ => match parse_stmt(px) {
-                Some(PStmt::Global(global)) => break Some(global),
+                Some(PStmt::Global(global)) => {
+                    let behind = global.keyword.behind();
+                    break (Some(global), behind);
+                }
                 Some(stmt) => stmts.push(stmt),
                 None => px.skip(),
             },
@@ -410,6 +418,7 @@ fn parse_module_stmt(hash: PToken, px: &mut Px) -> PModuleStmt {
         fields,
         stmts,
         global_opt,
+        behind,
     }
 }
 

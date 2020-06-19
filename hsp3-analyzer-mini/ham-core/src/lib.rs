@@ -19,6 +19,8 @@ mod analysis {
     pub(crate) mod a_range;
     pub(crate) mod a_scope;
     pub(crate) mod a_symbol;
+    pub(crate) mod analyze;
+    pub(crate) mod comment;
 
     mod analysis_tests;
 

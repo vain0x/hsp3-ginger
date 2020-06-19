@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::{analysis::ADoc, utils::rc_str::RcStr};
+use crate::{analysis::ADoc, parse::PToken};
 use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
 use std::{
     fs,
@@ -56,40 +56,15 @@ fn analyze_standard_files() {
             }
         }
 
-        let mut output = Vec::new();
         let doc = {
             last_id += 1;
             ADoc::new(last_id)
         };
-        let mut lines = vec![];
-        let mut line_count = 0;
-        crate::sem::tokenize(
-            doc,
-            RcStr::new(text.clone(), 0, text.len()),
-            &mut lines,
-            &mut line_count,
-        );
-        for (i, mut line) in lines.into_iter().enumerate() {
-            use std::io::Write;
-            if i != 0 {
-                writeln!(output).unwrap();
-            }
-
-            for line in line.leading.drain(..) {
-                writeln!(output, "> {}", line.as_str()).unwrap();
-            }
-            writeln!(
-                output,
-                "{}",
-                line.words
-                    .into_iter()
-                    .map(|word| format!("{:?}", word.2))
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            )
-            .unwrap();
-        }
-        let output = String::from_utf8_lossy(&output);
+        let tokens = crate::token::tokenize(doc, text.clone().into());
+        let tokens = PToken::from_tokens(tokens);
+        let root = crate::parse::parse_root(tokens);
+        let analysis = crate::analysis::analyze::analyze(&root);
+        let output = format!("{:#?}\n", analysis);
 
         if previous_output_opt.map_or(true, |previous| &previous != &output) {
             fs::write(output_path, output.as_bytes()).unwrap();
