@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -eu
+
+npm ci
+
+cp '../language-hsp3/grammars/hsp3.json' 'syntaxes/hsp3.json'
