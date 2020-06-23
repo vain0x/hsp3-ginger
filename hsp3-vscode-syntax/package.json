@@ -1,8 +1,8 @@
 {
     "name": "hsp3-vscode-syntax",
-    "displayName": "HSP3 Syntax for VSCode",
-    "description": "HSP3 言語・文法の定義",
-    "version": "0.1.0",
+    "displayName": "HSP3 構文定義",
+    "description": "HSP3 言語を登録し、構文強調などの機能を提供します。",
+    "version": "0.2.0",
     "author": {
         "name": "vain0x",
         "email": "vainzerox@gmail.com"

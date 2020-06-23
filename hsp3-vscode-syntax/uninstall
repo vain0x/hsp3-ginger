@@ -1,3 +1,5 @@
-#!/bin/pwsh
+#!/bin/bash
+
+set -eu
 
 code --uninstall-extension 'vain0x.hsp3-vscode-syntax'
