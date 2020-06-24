@@ -66,12 +66,9 @@ impl Ax {
             })
             .collect();
 
-        let scope = {
-            let scope = self.current_scope();
-            match privacy {
-                PPrivacy::Global => AScope::Global,
-                PPrivacy::Local => scope,
-            }
+        let scope = match privacy {
+            PPrivacy::Global => AScope::Global,
+            PPrivacy::Local => self.current_scope(),
         };
 
         let symbol_id = self.symbols.len();
