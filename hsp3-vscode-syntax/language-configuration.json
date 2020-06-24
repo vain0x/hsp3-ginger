@@ -84,5 +84,5 @@
 		"decreaseIndentPattern": "^\\s*(loop|next|until|wend)",
 		"indentNextLinePattern": "(^\\s*\\*)|(^\\s*#\\s*(deffunc|defcfunc|modfunc|modcfunc|modinit|modterm))"
 	},
-	"wordPattern": "((0[xX]|\\$)[0-9A-Fa-f]{0,8})|((0[bB]|%)[01]{0,99})|(-?\\d{1,20}(\\.\\d{0,20})?([eE][-+]?\\d{0,9})?)|([^-\\/\\[\\](){}.?*+|^$\\\\\\s'\"`~!#%&=;:,<>]{1,99})"
+	"wordPattern": "((0[xX]|\\$)[0-9A-Fa-f]{0,8})|((0[bB]|%)[01]{0,99})|(-?\\d{1,20}(\\.\\d{0,20})?([eE][-+]?\\d{0,9})?)|([^-\\/\\[\\](){}.?*+|^$\\\\\\s'\"~!#%&=;:,<>]{1,99})"
 }
