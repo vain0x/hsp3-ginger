@@ -1,6 +1,7 @@
 pub(crate) mod docs;
 
 use crate::{
+    analysis::integrate::AWorkspaceAnalysis,
     assists,
     help_source::collect_all_symbols,
     sem::{self, ProjectSem},
@@ -13,6 +14,7 @@ use std::{mem::take, path::PathBuf, rc::Rc};
 #[derive(Default)]
 pub(super) struct LangService {
     sem: ProjectSem,
+    wa: AWorkspaceAnalysis,
     hsp_root: PathBuf,
     docs_opt: Option<Docs>,
     doc_changes: Vec<DocChange>,
@@ -85,9 +87,14 @@ impl LangService {
         for change in doc_changes.drain(..) {
             match change {
                 DocChange::Opened { doc, text } | DocChange::Changed { doc, text } => {
-                    self.sem.update_doc(doc, RcStr::from(text));
+                    let text = RcStr::from(text);
+                    self.sem.update_doc(doc, text.clone());
+                    self.wa.update_doc(doc, text);
                 }
-                DocChange::Closed { doc } => self.sem.close_doc(doc),
+                DocChange::Closed { doc } => {
+                    self.sem.close_doc(doc);
+                    self.wa.close_doc(doc);
+                }
             }
         }
 
@@ -164,7 +171,7 @@ impl LangService {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            assists::document_highlight::document_highlight(uri, position, docs, &mut self.sem)
+            assists::document_highlight::document_highlight(uri, position, docs, &mut self.wa)
         };
         go().unwrap_or(vec![])
     }

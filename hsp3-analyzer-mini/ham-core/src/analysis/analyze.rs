@@ -1,10 +1,13 @@
 use super::{
     a_scope::{ADefFunc, ADefFuncData, ALocalScope, AModule, AModuleData},
-    a_symbol::ASymbolData,
-    ALoc, AScope, ASymbol, ASymbolKind,
+    a_symbol::{ASymbolData, AWsSymbol},
+    ADoc, ALoc, APos, AScope, ASymbol, ASymbolKind,
 };
 use crate::{parse::*, token::TokenKind, utils::rc_str::RcStr};
-use std::mem::{replace, take};
+use std::{
+    collections::HashMap,
+    mem::{replace, take},
+};
 
 #[derive(Copy, Clone, Debug)]
 enum ACandidateKind {
@@ -210,7 +213,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
             jump_modifier_opt: _,
             args,
         }) => {
-            on_symbol_def(&command, ACandidateKind::Command, ax);
+            on_symbol_use(&command, ACandidateKind::Command, ax);
             on_args(&args, ax);
         }
         PStmt::Invoke(PInvokeStmt {
@@ -410,7 +413,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
 pub(crate) struct AAnalysis {
     symbols: Vec<ASymbolData>,
     def_candidates: Vec<ACandidateData>,
-    use_candidates: Vec<ACandidateData>,
+    use_candidates_opt: Option<Vec<ACandidateData>>,
     deffuncs: Vec<ADefFuncData>,
     modules: Vec<AModuleData>,
 }
@@ -426,8 +429,70 @@ pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
     AAnalysis {
         symbols: ax.symbols,
         def_candidates: ax.def_candidates,
-        use_candidates: ax.use_candidates,
+        use_candidates_opt: Some(ax.use_candidates),
         deffuncs: ax.deffuncs,
         modules: ax.modules,
+    }
+}
+
+pub(crate) fn do_collect_global_symbols(
+    doc: ADoc,
+    symbols: &[ASymbolData],
+    global_env: &mut HashMap<RcStr, AWsSymbol>,
+) {
+    for (i, symbol_data) in symbols.iter().enumerate() {
+        match symbol_data.scope {
+            AScope::Local(_) => continue,
+            AScope::Global => {}
+        }
+
+        let symbol = ASymbol::new(i);
+        global_env.insert(symbol_data.name.clone(), AWsSymbol { doc, symbol });
+    }
+}
+
+fn do_resolve_symbol_use(
+    use_candidates: Vec<ACandidateData>,
+    global_env: &HashMap<RcStr, AWsSymbol>,
+    use_sites: &mut Vec<(AWsSymbol, ALoc)>,
+) {
+    // eprintln!("use_candidates={:?}", use_candidates);
+
+    for candidate in use_candidates {
+        let ws_symbol = match global_env.get(&candidate.name) {
+            None => continue,
+            Some(&x) => x,
+        };
+
+        use_sites.push((ws_symbol, candidate.loc));
+    }
+}
+
+impl AAnalysis {
+    pub(crate) fn symbol_name(&self, symbol: ASymbol) -> Option<&str> {
+        let symbol = self.symbols.get(symbol.get())?;
+        Some(&symbol.name)
+    }
+
+    pub(crate) fn collect_global_symbols(
+        &self,
+        doc: ADoc,
+        global_env: &mut HashMap<RcStr, AWsSymbol>,
+    ) {
+        do_collect_global_symbols(doc, &self.symbols, global_env);
+    }
+
+    pub(crate) fn resolve_symbol_use(
+        &mut self,
+        global_env: &HashMap<RcStr, AWsSymbol>,
+        use_sites: &mut Vec<(AWsSymbol, ALoc)>,
+    ) -> bool {
+        match self.use_candidates_opt.take() {
+            Some(use_candidates) => {
+                do_resolve_symbol_use(use_candidates, global_env, use_sites);
+                true
+            }
+            None => false,
+        }
     }
 }

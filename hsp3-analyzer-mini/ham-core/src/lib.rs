@@ -21,6 +21,7 @@ mod analysis {
     pub(crate) mod a_symbol;
     pub(crate) mod analyze;
     pub(crate) mod comment;
+    pub(crate) mod integrate;
 
     mod analysis_tests;
 

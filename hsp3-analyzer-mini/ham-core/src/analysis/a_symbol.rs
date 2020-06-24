@@ -1,4 +1,4 @@
-use super::{ALoc, AScope};
+use super::{ADoc, ALoc, AScope};
 use crate::utils::{id::Id, rc_str::RcStr};
 
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -48,4 +48,10 @@ pub(crate) struct ASymbolData {
 pub(crate) struct ASymbolDetails {
     pub(crate) desc: Option<RcStr>,
     pub(crate) docs: Vec<String>,
+}
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+pub(crate) struct AWsSymbol {
+    pub(crate) doc: ADoc,
+    pub(crate) symbol: ASymbol,
 }
