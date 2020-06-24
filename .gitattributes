@@ -7,3 +7,6 @@
 *.hsp -text linguist-language=hsp3
 *.as -text linguist-language=hsp3
 *.hs -text linguist-language=hdl
+
+# <https://github.com/github/linguist#vendored-code>
+language-hsp3       linguist-vendored
