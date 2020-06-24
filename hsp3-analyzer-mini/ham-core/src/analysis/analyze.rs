@@ -1,5 +1,5 @@
 use super::{
-    a_scope::{ADefFunc, ADefFuncData, AModule, AModuleData},
+    a_scope::{ADefFunc, ADefFuncData, ALocalScope, AModule, AModuleData},
     a_symbol::ASymbolData,
     ALoc, AScope, ASymbol, ASymbolKind,
 };
@@ -41,11 +41,10 @@ impl Ax {
     }
 
     fn current_scope(&self) -> AScope {
-        AScope {
+        AScope::Local(ALocalScope {
             deffunc_opt: self.deffunc_opt,
             module_opt: self.module_opt,
-            is_global: false,
-        }
+        })
     }
 
     fn add_symbol(
@@ -70,10 +69,7 @@ impl Ax {
         let scope = {
             let scope = self.current_scope();
             match privacy {
-                PPrivacy::Global => AScope {
-                    is_global: true,
-                    ..scope
-                },
+                PPrivacy::Global => AScope::Global,
                 PPrivacy::Local => scope,
             }
         };

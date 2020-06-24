@@ -4,12 +4,18 @@ use crate::{
     utils::{id::Id, rc_str::RcStr},
 };
 
-#[derive(Clone, Debug)]
-pub(crate) struct AScope {
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct ALocalScope {
     pub(crate) module_opt: Option<AModule>,
     pub(crate) deffunc_opt: Option<ADefFunc>,
-    pub(crate) is_global: bool,
 }
+
+#[derive(Copy, Clone, Debug)]
+pub(crate) enum AScope {
+    Global,
+    Local(ALocalScope),
+}
+
 pub(crate) type ADefFunc = Id<ADefFuncData>;
 
 #[derive(Debug)]
