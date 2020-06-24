@@ -1,29 +1,33 @@
 use super::{ALoc, AScope};
 use crate::utils::{id::Id, rc_str::RcStr};
 
-#[allow(unused)]
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum ASymbolKind {
-    None,
+    Unresolved,
+    /// `#deffunc` etc.
     Command,
+    /// `#func`
     CommandOrFunc,
+    /// `#cmd`
     CommandOrFuncOrVar,
     Const,
     Directory,
     Enum,
     Field,
     File,
+    /// `#defcfunc` etc.
     Func,
     Label,
     Module,
     Param,
     PreProc,
+    StaticVar,
     Type,
 }
 
 impl Default for ASymbolKind {
     fn default() -> Self {
-        ASymbolKind::None
+        ASymbolKind::Unresolved
     }
 }
 
