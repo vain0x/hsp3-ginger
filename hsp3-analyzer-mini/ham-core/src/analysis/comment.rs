@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use super::ASymbolDetails;
 use crate::utils::rc_str::RcStr;
 

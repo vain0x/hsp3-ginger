@@ -11,17 +11,24 @@ pub(crate) enum ASymbolKind {
     /// `#cmd`
     CommandOrFuncOrVar,
     Const,
+    #[allow(unused)]
     Directory,
+    #[allow(unused)]
     Enum,
+    #[allow(unused)]
     Field,
+    #[allow(unused)]
     File,
     /// `#defcfunc` etc.
+    #[allow(unused)]
     Func,
     Label,
     Module,
     Param,
+    #[allow(unused)]
     PreProc,
     StaticVar,
+    #[allow(unused)]
     Type,
 }
 

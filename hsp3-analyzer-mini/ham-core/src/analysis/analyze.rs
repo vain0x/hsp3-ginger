@@ -1,9 +1,13 @@
 use super::{
     a_scope::{ADefFunc, ADefFuncData, ALocalScope, AModule, AModuleData},
     a_symbol::{ASymbolData, AWsSymbol},
-    ADoc, ALoc, APos, AScope, ASymbol, ASymbolKind,
+    ADoc, ALoc, AScope, ASymbol, ASymbolKind,
 };
-use crate::{parse::*, token::TokenKind, utils::rc_str::RcStr};
+use crate::{
+    parse::*,
+    token::{TokenData, TokenKind},
+    utils::rc_str::RcStr,
+};
 use std::{
     collections::HashMap,
     mem::{replace, take},
@@ -57,33 +61,11 @@ impl Ax {
         privacy: PPrivacy,
         definer: &PToken,
     ) -> ASymbol {
-        let comments = definer
-            .leading
-            .iter()
-            .filter_map(|t| {
-                if t.kind == TokenKind::Comment && !str_is_ornament_comment(&t.text) {
-                    Some(t.text.clone())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
         let scope = match privacy {
             PPrivacy::Global => AScope::Global,
             PPrivacy::Local => self.current_scope(),
         };
-
-        let symbol_id = self.symbols.len();
-        self.symbols.push(ASymbolData {
-            kind,
-            name: token.body.text.clone(),
-            def_sites: vec![token.body.loc.clone()],
-            use_sites: vec![],
-            comments,
-            scope,
-        });
-        ASymbol::from(symbol_id)
+        add_symbol(kind, token, definer, scope, &mut self.symbols)
     }
 }
 
@@ -93,6 +75,37 @@ fn str_is_ornament_comment(s: &str) -> bool {
         .all(|c| c.is_control() || c.is_whitespace() || c.is_ascii_punctuation())
 }
 
+fn add_symbol(
+    kind: ASymbolKind,
+    token: &PToken,
+    definer: &PToken,
+    scope: AScope,
+    symbols: &mut Vec<ASymbolData>,
+) -> ASymbol {
+    let comments = definer
+        .leading
+        .iter()
+        .filter_map(|t| {
+            if t.kind == TokenKind::Comment && !str_is_ornament_comment(&t.text) {
+                Some(t.text.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let symbol_id = symbols.len();
+    symbols.push(ASymbolData {
+        kind,
+        name: token.body.text.clone(),
+        def_sites: vec![token.body.loc.clone()],
+        use_sites: vec![],
+        comments,
+        scope,
+    });
+    ASymbol::new(symbol_id)
+}
+
 fn get_privacy_or_local(privacy_opt: &Option<(PPrivacy, PToken)>) -> PPrivacy {
     match privacy_opt {
         Some((privacy, _)) => *privacy,
@@ -100,6 +113,7 @@ fn get_privacy_or_local(privacy_opt: &Option<(PPrivacy, PToken)>) -> PPrivacy {
     }
 }
 
+#[allow(unused)]
 fn on_symbol_def(name: &PToken, kind: ACandidateKind, ax: &mut Ax) {
     ax.def_candidates.push(ACandidateData {
         kind,
@@ -118,6 +132,7 @@ fn on_symbol_use(name: &PToken, kind: ACandidateKind, ax: &mut Ax) {
     });
 }
 
+#[allow(unused)]
 fn on_compound_def(compound: &PCompound, ax: &mut Ax) {
     match compound {
         PCompound::Name(name) => on_symbol_def(name, ACandidateKind::VarOrArray, ax),
@@ -201,11 +216,11 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
         }
         PStmt::Assign(PAssignStmt {
             left,
-            op_opt: op,
+            op_opt: _,
             args,
         }) => {
             // FIXME: def/use は演算子の種類による
-            // on_compound_def(left, ax);
+            on_compound_def(left, ax);
             on_args(args, ax);
         }
         PStmt::Command(PCommandStmt {
@@ -412,7 +427,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
 #[derive(Debug, Default)]
 pub(crate) struct AAnalysis {
     symbols: Vec<ASymbolData>,
-    def_candidates: Vec<ACandidateData>,
+    def_candidates_opt: Option<Vec<ACandidateData>>,
     use_candidates_opt: Option<Vec<ACandidateData>>,
     deffuncs: Vec<ADefFuncData>,
     modules: Vec<AModuleData>,
@@ -428,7 +443,7 @@ pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
 
     AAnalysis {
         symbols: ax.symbols,
-        def_candidates: ax.def_candidates,
+        def_candidates_opt: Some(ax.def_candidates),
         use_candidates_opt: Some(ax.use_candidates),
         deffuncs: ax.deffuncs,
         modules: ax.modules,
@@ -448,6 +463,39 @@ pub(crate) fn do_collect_global_symbols(
 
         let symbol = ASymbol::new(i);
         global_env.insert(symbol_data.name.clone(), AWsSymbol { doc, symbol });
+    }
+}
+
+fn do_resolve_symbol_def(
+    doc: ADoc,
+    def_candidates: Vec<ACandidateData>,
+    symbols: &mut Vec<ASymbolData>,
+    def_sites: &mut Vec<(AWsSymbol, ALoc)>,
+) {
+    for candidate in def_candidates {
+        // FIXME: name, definer のトークンへの参照がほしい
+        let token = PToken {
+            leading: vec![],
+            body: TokenData {
+                kind: TokenKind::Ident,
+                text: candidate.name.clone(),
+                loc: candidate.loc.clone(),
+            },
+            trailing: vec![],
+        };
+
+        // FIXME: 環境に追加する
+        // 登録済みのシンボルなら同じシンボル ID をつける
+        let symbol = add_symbol(
+            ASymbolKind::StaticVar,
+            &token,
+            &token,
+            candidate.scope,
+            symbols,
+        );
+
+        let ws_symbol = AWsSymbol { doc, symbol };
+        def_sites.push((ws_symbol, candidate.loc));
     }
 }
 
@@ -480,6 +528,34 @@ impl AAnalysis {
         global_env: &mut HashMap<RcStr, AWsSymbol>,
     ) {
         do_collect_global_symbols(doc, &self.symbols, global_env);
+    }
+
+    pub(crate) fn resolve_symbol_def(
+        &mut self,
+        doc: ADoc,
+        def_sites: &mut Vec<(AWsSymbol, ALoc)>,
+    ) -> bool {
+        match self.def_candidates_opt.take() {
+            Some(def_candidates) => {
+                for (i, symbol_data) in self.symbols.iter().enumerate() {
+                    let ws_symbol = AWsSymbol {
+                        doc,
+                        symbol: ASymbol::new(i),
+                    };
+
+                    // FIXME: local シンボルを環境に登録する
+                    if let AScope::Global = symbol_data.scope {
+                        for loc in &symbol_data.def_sites {
+                            def_sites.push((ws_symbol, loc.clone()));
+                        }
+                    }
+                }
+
+                do_resolve_symbol_def(doc, def_candidates, &mut self.symbols, def_sites);
+                true
+            }
+            None => false,
+        }
     }
 
     pub(crate) fn resolve_symbol_use(
