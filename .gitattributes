@@ -9,4 +9,5 @@
 *.hs -text linguist-language=hdl
 
 # <https://github.com/github/linguist#vendored-code>
+hspsdk/             linguist-vendored
 language-hsp3/      linguist-vendored
