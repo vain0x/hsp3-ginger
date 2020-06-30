@@ -1,10 +1,14 @@
+// int64 型の実装
+// 参考: <https://github.com/onitama/OpenHSP/blob/master/src/hsp3/hspvar_int.cpp> (int 型の実装)
+
 #include "pch.h"
+
 #include "vartype_int64.h"
 
 static char s_type_name[] = "int64";
 
 // int64 の型ID (vartype("int64"))
-static auto s_type_id = int{};
+static auto s_int64_flag = short{};
 
 // 型変換の結果を一時的に保存しておくための変数
 static char s_string_result[100];
@@ -24,9 +28,7 @@ static auto array_element_count(PVal const* pval) -> int {
 	return count;
 }
 
-static int int64_value_size(PDAT const* pval) {
-	return sizeof(std::int64_t);
-}
+static int int64_value_size(PDAT const*) { return sizeof(std::int64_t); }
 
 // int64_t 型の配列変数がいま指している要素のデータへのポインタを取得する。
 static auto int64_element_ptr(PVal* pval) -> PDAT* {
@@ -38,7 +40,7 @@ static auto int64_element_ptr(PVal* pval) -> PDAT* {
 // pval2 != nullptr のときは、pval が保持しているデータを維持しながら、配列を拡張する。
 static void int64_alloc(PVal* pval, PVal const* pval2) {
 	assert(pval != nullptr);
-	assert(pval->flag == s_type_id);
+	assert(pval->flag == s_int64_flag);
 
 	// 配列の長さは 1 以上にする。
 	if (pval->len[1] < 1) {
@@ -49,10 +51,12 @@ static void int64_alloc(PVal* pval, PVal const* pval2) {
 
 	char* new_data;
 	if (pval2 != nullptr) {
-		if (size > 64 && size > pval->size) {
-			size += size / 8;
-		} else {
+		if (size < pval->size) {
 			size = pval->size;
+		} else if (size < 64) {
+			size = 64;
+		} else {
+			size += size / 8;
 		}
 
 		new_data = exinfo->HspFunc_expand(pval->pt, size);
@@ -61,7 +65,7 @@ static void int64_alloc(PVal* pval, PVal const* pval2) {
 		std::memset(new_data, 0, (std::size_t)size);
 	}
 
-	pval->flag = (short)s_type_id;
+	pval->flag = s_int64_flag;
 	pval->pt = new_data;
 	pval->size = size;
 	pval->mode = HSPVAR_MODE_MALLOC;
@@ -72,7 +76,7 @@ static void int64_free(PVal* pval) {
 	auto pt = pval->pt;
 
 	pval->mode = HSPVAR_MODE_NONE;
-	pval->pt = NULL;
+	pval->pt = nullptr;
 
 	exinfo->HspFunc_free(pt);
 }
@@ -82,35 +86,31 @@ static void* int64_block_size(PVal* pval, PDAT* pdat, int* size) {
 	return pdat;
 }
 
-static void int64_alloc_block(PVal* pval, PDAT* pdat, int size) {
+static void int64_alloc_block(PVal*, PDAT*, int) {
 	// pass
 }
 
 // 代入 (=)
-static void int64_assign(PVal* pval, PDAT* pdat, void const* ptr) {
-	assert(pval != nullptr);
-	assert(pval->flag == (short)s_type_id);
-	assert(pdat != nullptr);
-
+static void int64_assign(PVal*, PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat = *static_cast<std::int64_t const*>(ptr);
 }
 
 // 加算 (+=)
 static void int64_add_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat += *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 減算 (-=)
 static void int64_sub_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat -= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 乗算 (*=)
 static void int64_mul_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat *= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 除算 (/=)
@@ -121,7 +121,7 @@ static void int64_div_assign(PDAT* pdat, void const* ptr) {
 	}
 
 	*(std::int64_t*)pdat /= right;
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 剰余 (\=)
@@ -132,43 +132,44 @@ static void int64_mod_assign(PDAT* pdat, void const* ptr) {
 	}
 
 	*(std::int64_t*)pdat %= right;
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // ビット AND (&)
 static void int64_bit_and_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat &= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // ビット OR (|)
 static void int64_bit_or_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat |= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // ビット XOR (^)
 static void int64_bit_xor_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat ^= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 左シフト (<<)
 static void int64_left_shift_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat <<= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 右シフト (>>)
 static void int64_right_shift_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat >>= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 比較
 // CompareFn: 比較関数
-template<typename CompareFn>
-static void int64_do_compare_assign(PDAT* pdat, void const* ptr, CompareFn compare_fn) {
+template <typename CompareFn>
+static void int64_do_compare_assign(PDAT* pdat, void const* ptr,
+                                    CompareFn compare_fn) {
 	auto left = *(std::int64_t const*)pdat;
 	auto right = *static_cast<std::int64_t const*>(ptr);
 
@@ -232,7 +233,7 @@ auto int64_convert_from(void const* buffer, int flag) -> void* {
 		break;
 	}
 	default:
-		if (flag == s_type_id) {
+		if (flag == s_int64_flag) {
 			s_int64_result = *static_cast<std::int64_t const*>(buffer);
 			break;
 		}
@@ -251,7 +252,8 @@ static auto int64_convert_to(void const* buffer, int flag) -> void* {
 
 	switch (flag) {
 	case HSPVAR_FLAG_STR: {
-		auto result = std::to_chars(s_string_result, s_string_result + sizeof(s_string_result), value);
+		auto result = std::to_chars(
+		    s_string_result, s_string_result + sizeof(s_string_result), value);
 		assert(result.ec == std::errc{});
 
 		*result.ptr = '\0';
@@ -266,7 +268,7 @@ static auto int64_convert_to(void const* buffer, int flag) -> void* {
 		return &s_double_result;
 	}
 	default:
-		if (flag == s_type_id) {
+		if (flag == s_int64_flag) {
 			s_int64_result = value;
 			return &s_int64_result;
 		}
@@ -275,13 +277,11 @@ static auto int64_convert_to(void const* buffer, int flag) -> void* {
 }
 
 // int64 型の型IDを取得する。
-EXPORT auto vartype_int64_id() -> int {
-	return s_type_id;
-}
+EXPORT auto vartype_int64_flag() -> short { return s_int64_flag; }
 
 // プラグインの初期化時に呼ばれる。
 EXPORT void vartype_int64_init(HspVarProc* p) {
-	s_type_id = p->flag;
+	s_int64_flag = p->flag;
 	s_aftertype = &p->aftertype;
 
 	p->vartype_name = s_type_name;
@@ -307,7 +307,7 @@ EXPORT void vartype_int64_init(HspVarProc* p) {
 	p->DivI = int64_div_assign;
 	p->ModI = int64_mod_assign;
 	p->AndI = int64_bit_and_assign;
-	p->OrI  = int64_bit_or_assign;
+	p->OrI = int64_bit_or_assign;
 	p->XorI = int64_bit_xor_assign;
 	p->LrI = int64_left_shift_assign;
 	p->RrI = int64_right_shift_assign;

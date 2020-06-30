@@ -3,15 +3,65 @@
 #include "hsp3utf.as"
 #include "vartype_int64.hsp"
 
+	// 2^0 ～ 2^60 を計算
+	n(0) = int64(1)
+	repeat 60, 1
+		n(cnt) = n(cnt - 1) * 2
+
+		logmes strf("2^%d = %s", cnt, n(cnt))
+	loop
+
+	// int との相互変換
+	mes "2^30 = " + int(n(30))
+	assert int(n(30)) == 1 << 30
+	assert int64(1 << 30) == n(30)
+
+	// double との相互変換
+	mes "2^10 = " + double(n(10))
+	assert double(n(10)) == 1024.0
+
+	assert int64(42.195) == 42
+
+	// str との相互変換
+	assert str(n(60)) == "1152921504606846976"
+	assert int64("1152921504606846976") == n(60)
+
+	assert int64("-1") == -1
+
+	// その他の計算
+	assert int64(13) + 6 == 19
+	assert int64(13) - 6 == 7
+	assert int64(13) * 6 == 78
+	assert int64(13) / 6 == 2
+	assert int64(13) \ 6 == 1
+	assert (int64(13) & 6) == 4
+	assert (int64(13) | 6) == 15
+	assert (int64(13) ^ 6) == 11
+	assert int64(13) << 6 == 13 << 6
+	assert int64(1024) >> 5 == 32
+
+	assert int64(0) == 0
+	assert int64(1) == 1
+	assert int64(0) != 1
+	assert (int64(0) < 0) == 0
+	assert int64(0) < 1
+	assert int64(0) <= 0
+	assert int64(0) <= 1
+	assert (int64(0) > 0) == 0
+	assert int64(1) > 0
+	assert int64(0) >= 0
+	assert int64(1) >= 0
+
+	// 配列の確保
+	dimtype a, int64, 128
+	assert length(a) == 128
+	assert varsize(a) == 128 * 8
+
+	dimtype z, int64, 0
+	assert length(z) == 1
+
+	// 型IDの表示
 	mes {"vartype("int64") = "} + vartype("int64")
 	assert(int64 == vartype("int64"))
 
-	// 2^60 を計算して表示
-	n = int64(2)
-	repeat 60
-		n *= 2
-	loop
-
-	mes str(n)
-	logmes str(n)
-	assert str(n) == "2305843009213693952"
+	logmes "OK"
