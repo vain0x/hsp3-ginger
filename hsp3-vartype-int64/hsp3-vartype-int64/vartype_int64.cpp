@@ -1,3 +1,6 @@
+// int64 型の実装
+// 参考: <https://github.com/onitama/OpenHSP/blob/master/src/hsp3/hspvar_int.cpp> (int 型の実装)
+
 #include "pch.h"
 
 #include "vartype_int64.h"
