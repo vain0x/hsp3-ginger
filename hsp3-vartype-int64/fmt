@@ -1,0 +1,11 @@
+#!/bin/bash
+# Prerequisites:
+#   clang-format をインストールすること。
+#   Visual Studio 2019 がインストール済みなら次の位置にあるので、パスを通せば OK:
+#       "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\Llvm\bin"
+
+set -eu
+
+SRC=$PWD/hsp3-vartype-int64
+
+clang-format -style=file -i $SRC/**.cpp $SRC/**.h
