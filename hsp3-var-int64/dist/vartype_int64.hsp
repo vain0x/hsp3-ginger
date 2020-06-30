@@ -1,0 +1,7 @@
+#ifndef included_vartype_int64_hsp
+#define included_vartype_int64_hsp
+
+#regcmd "_hsp3_plugin_init@4", "hsp3_var_int64.dll", 1
+#cmd global int64 0x00
+
+#endif

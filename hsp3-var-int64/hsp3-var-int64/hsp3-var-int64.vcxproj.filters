@@ -13,5 +13,48 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="hspsdk">
+      <UniqueIdentifier>{368d20c3-8519-46cd-ba83-2c2253186664}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\hspsdk\hsp3debug.h">
+      <Filter>hspsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hspsdk\hsp3struct.h">
+      <Filter>hspsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hspsdk\hspvar_core.h">
+      <Filter>hspsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hspsdk\hsp3plugin.h">
+      <Filter>hspsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="vartype_int64.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="commands.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hspsdk\hsp3plugin.cpp">
+      <Filter>hspsdk</Filter>
+    </ClCompile>
+    <ClCompile Include="vartype_int64.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="commands.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
