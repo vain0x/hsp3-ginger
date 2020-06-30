@@ -10,10 +10,10 @@ static auto s_result_int64 = std::int64_t{};
 
 // `code_getprm` の結果
 enum class GetParamStatus {
-	// 引数を正常に取得した。まだ引数は残っている。
+	// 引数を正常に取得した。(次の字句は ')' でない。)
 	Ok = PARAM_OK,
 
-	// 引数を正常に取得した。引数は残っていない。
+	// 引数を正常に取得した。(次の字句は ')' になる。)
 	OkFinal = PARAM_SPLIT,
 
 	// 命令の引数リストの末尾 (':' または改行) に達した。引数は取得できなかった。
