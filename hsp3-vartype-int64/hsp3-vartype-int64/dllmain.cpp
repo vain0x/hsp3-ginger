@@ -2,7 +2,7 @@
 #include "commands.h"
 #include "vartype_int64.h"
 
-int WINAPI DllMain(HINSTANCE hInstance, DWORD fdwReason, PVOID pvReserved) {
+int WINAPI DllMain(HINSTANCE, DWORD, PVOID) {
 	return TRUE;
 }
 

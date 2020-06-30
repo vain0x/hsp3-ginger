@@ -104,7 +104,7 @@ static auto reffunc(int* result_flag, int cmd) -> void* {
 }
 
 // アプリケーション終了時に呼ばれる。
-static int termfunc(int _option) {
+static int termfunc(int) {
 	return 0;
 }
 

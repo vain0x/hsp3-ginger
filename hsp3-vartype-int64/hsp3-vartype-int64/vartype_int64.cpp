@@ -24,7 +24,7 @@ static auto array_element_count(PVal const* pval) -> int {
 	return count;
 }
 
-static int int64_value_size(PDAT const* pval) {
+static int int64_value_size(PDAT const*) {
 	return sizeof(std::int64_t);
 }
 
@@ -82,16 +82,12 @@ static void* int64_block_size(PVal* pval, PDAT* pdat, int* size) {
 	return pdat;
 }
 
-static void int64_alloc_block(PVal* pval, PDAT* pdat, int size) {
+static void int64_alloc_block(PVal*, PDAT*, int) {
 	// pass
 }
 
 // 代入 (=)
-static void int64_assign(PVal* pval, PDAT* pdat, void const* ptr) {
-	assert(pval != nullptr);
-	assert(pval->flag == s_int64_flag);
-	assert(pdat != nullptr);
-
+static void int64_assign(PVal*, PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat = *static_cast<std::int64_t const*>(ptr);
 }
 
