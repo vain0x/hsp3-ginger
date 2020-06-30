@@ -20,32 +20,32 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{DB8432A0-40ED-4527-9E82-3FEB257E712E}</ProjectGuid>
-    <RootNamespace>hsp3varint64</RootNamespace>
+    <ProjectGuid>{753B289F-6AD9-4D9C-B258-7B84DEB03DFF}</ProjectGuid>
+    <RootNamespace>hsp3vartypeint64</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,37 +71,33 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetExt>.dll</TargetExt>
-    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin</OutDir>
-    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj</IntDir>
-    <TargetName>hsp3_var_int64</TargetName>
+    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
+    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
+    <TargetName>hsp3_vartype_int64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetExt>.dll</TargetExt>
-    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin</OutDir>
-    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj</IntDir>
-    <TargetName>hsp3_var_int64</TargetName>
+    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
+    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
+    <TargetName>hsp3_vartype_int64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetExt>.dll</TargetExt>
-    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin</OutDir>
-    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj</IntDir>
-    <TargetName>hsp3_var_int64</TargetName>
+    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
+    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
+    <TargetName>hsp3_vartype_int64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetExt>.dll</TargetExt>
-    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin</OutDir>
-    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj</IntDir>
-    <TargetName>hsp3_var_int64</TargetName>
+    <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
+    <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
+    <TargetName>hsp3_vartype_int64</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WINDOWS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -115,9 +111,9 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WINDOWS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -131,11 +127,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -151,11 +147,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -169,15 +165,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\hspsdk\hsp3debug.h" />
-    <ClInclude Include="..\hspsdk\hsp3plugin.h" />
-    <ClInclude Include="..\hspsdk\hsp3struct.h" />
-    <ClInclude Include="..\hspsdk\hspvar_core.h" />
-    <ClInclude Include="commands.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="vartype_int64.h" />
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\hspsdk\hsp3plugin.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -194,6 +181,15 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="vartype_int64.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\hspsdk\hsp3debug.h" />
+    <ClInclude Include="..\hspsdk\hsp3plugin.h" />
+    <ClInclude Include="..\hspsdk\hsp3struct.h" />
+    <ClInclude Include="..\hspsdk\hspvar_core.h" />
+    <ClInclude Include="commands.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="vartype_int64.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

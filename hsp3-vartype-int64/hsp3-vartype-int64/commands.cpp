@@ -58,7 +58,7 @@ static auto process_command_as_func(int cmd) -> CommandResult {
 		return { vartype_int64_id(), &s_result_int64 };
 	}
 	default:
-		// 「サポートされていない機能」のエラー
+		assert(false);
 		throw HSPERR_UNSUPPORTED_FUNCTION;
 	}
 }
@@ -71,7 +71,7 @@ static auto process_command_as_system_var(int cmd) -> CommandResult {
 		return { HSPVAR_FLAG_INT, &s_result_int };
 
 	default:
-		// 「サポートされていない機能」のエラー
+		assert(false);
 		throw HSPERR_UNSUPPORTED_FUNCTION;
 	}
 }
@@ -89,7 +89,7 @@ static auto reffunc(int* result_type, int cmd) -> void* {
 	code_next();
 
 	auto result = process_command_as_func(cmd);
-		
+
 	// ')' をスキップする。
 	if (*type != TYPE_MARK || *val != ')') {
 		throw HSPERR_INVALID_FUNCPARAM;
@@ -108,6 +108,4 @@ static int termfunc(int _option) {
 void commands_init(HSP3TYPEINFO* info) {
 	info->reffunc = reffunc;
 	info->termfunc = termfunc;
-
-	registvar(-1, vartype_int64_init);
 }
