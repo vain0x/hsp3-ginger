@@ -72,7 +72,7 @@ static void int64_free(PVal* pval) {
 	auto pt = pval->pt;
 
 	pval->mode = HSPVAR_MODE_NONE;
-	pval->pt = NULL;
+	pval->pt = nullptr;
 
 	exinfo->HspFunc_free(pt);
 }
