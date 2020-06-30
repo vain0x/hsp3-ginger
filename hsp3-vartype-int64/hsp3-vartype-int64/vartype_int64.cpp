@@ -4,7 +4,7 @@
 static char s_type_name[] = "int64";
 
 // int64 の型ID (vartype("int64"))
-static auto s_type_id = int{};
+static auto s_int64_flag = short{};
 
 // 型変換の結果を一時的に保存しておくための変数
 static char s_string_result[100];
@@ -38,7 +38,7 @@ static auto int64_element_ptr(PVal* pval) -> PDAT* {
 // pval2 != nullptr のときは、pval が保持しているデータを維持しながら、配列を拡張する。
 static void int64_alloc(PVal* pval, PVal const* pval2) {
 	assert(pval != nullptr);
-	assert(pval->flag == s_type_id);
+	assert(pval->flag == s_int64_flag);
 
 	// 配列の長さは 1 以上にする。
 	if (pval->len[1] < 1) {
@@ -61,7 +61,7 @@ static void int64_alloc(PVal* pval, PVal const* pval2) {
 		std::memset(new_data, 0, (std::size_t)size);
 	}
 
-	pval->flag = (short)s_type_id;
+	pval->flag = s_int64_flag;
 	pval->pt = new_data;
 	pval->size = size;
 	pval->mode = HSPVAR_MODE_MALLOC;
@@ -89,7 +89,7 @@ static void int64_alloc_block(PVal* pval, PDAT* pdat, int size) {
 // 代入 (=)
 static void int64_assign(PVal* pval, PDAT* pdat, void const* ptr) {
 	assert(pval != nullptr);
-	assert(pval->flag == (short)s_type_id);
+	assert(pval->flag == s_int64_flag);
 	assert(pdat != nullptr);
 
 	*(std::int64_t*)pdat = *static_cast<std::int64_t const*>(ptr);
@@ -98,19 +98,19 @@ static void int64_assign(PVal* pval, PDAT* pdat, void const* ptr) {
 // 加算 (+=)
 static void int64_add_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat += *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 減算 (-=)
 static void int64_sub_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat -= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 乗算 (*=)
 static void int64_mul_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat *= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 除算 (/=)
@@ -121,7 +121,7 @@ static void int64_div_assign(PDAT* pdat, void const* ptr) {
 	}
 
 	*(std::int64_t*)pdat /= right;
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 剰余 (\=)
@@ -132,37 +132,37 @@ static void int64_mod_assign(PDAT* pdat, void const* ptr) {
 	}
 
 	*(std::int64_t*)pdat %= right;
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // ビット AND (&)
 static void int64_bit_and_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat &= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // ビット OR (|)
 static void int64_bit_or_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat |= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // ビット XOR (^)
 static void int64_bit_xor_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat ^= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 左シフト (<<)
 static void int64_left_shift_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat <<= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 右シフト (>>)
 static void int64_right_shift_assign(PDAT* pdat, void const* ptr) {
 	*(std::int64_t*)pdat >>= *static_cast<std::int64_t const*>(ptr);
-	*s_aftertype = (short)s_type_id;
+	*s_aftertype = s_int64_flag;
 }
 
 // 比較
@@ -232,7 +232,7 @@ auto int64_convert_from(void const* buffer, int flag) -> void* {
 		break;
 	}
 	default:
-		if (flag == s_type_id) {
+		if (flag == s_int64_flag) {
 			s_int64_result = *static_cast<std::int64_t const*>(buffer);
 			break;
 		}
@@ -266,7 +266,7 @@ static auto int64_convert_to(void const* buffer, int flag) -> void* {
 		return &s_double_result;
 	}
 	default:
-		if (flag == s_type_id) {
+		if (flag == s_int64_flag) {
 			s_int64_result = value;
 			return &s_int64_result;
 		}
@@ -275,13 +275,13 @@ static auto int64_convert_to(void const* buffer, int flag) -> void* {
 }
 
 // int64 型の型IDを取得する。
-EXPORT auto vartype_int64_id() -> int {
-	return s_type_id;
+EXPORT auto vartype_int64_flag() -> short {
+	return s_int64_flag;
 }
 
 // プラグインの初期化時に呼ばれる。
 EXPORT void vartype_int64_init(HspVarProc* p) {
-	s_type_id = p->flag;
+	s_int64_flag = p->flag;
 	s_aftertype = &p->aftertype;
 
 	p->vartype_name = s_type_name;

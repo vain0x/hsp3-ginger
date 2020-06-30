@@ -28,7 +28,10 @@ enum class GetParamStatus {
 
 // 関数やシステム変数の処理結果
 struct CommandResult {
-	int type;
+	// 結果の型
+	short flag;
+
+	// 結果値へのポインタ
 	void* ptr;
 };
 
@@ -55,7 +58,7 @@ static auto process_command_as_func(int cmd) -> CommandResult {
 			throw HSPERR_UNKNOWN_CODE;
 		}
 
-		return { vartype_int64_id(), &s_result_int64 };
+		return { vartype_int64_flag(), &s_result_int64 };
 	}
 	default:
 		assert(false);
@@ -67,7 +70,7 @@ static auto process_command_as_system_var(int cmd) -> CommandResult {
 	switch (cmd) {
 	case CMD_INT64:
 		// 型IDを返す。
-		s_result_int = vartype_int64_id();
+		s_result_int = vartype_int64_flag();
 		return { HSPVAR_FLAG_INT, &s_result_int };
 
 	default:
@@ -77,11 +80,11 @@ static auto process_command_as_system_var(int cmd) -> CommandResult {
 }
 
 // コマンドが関数やシステム変数として使用されたときに呼ばれる。
-static auto reffunc(int* result_type, int cmd) -> void* {
+static auto reffunc(int* result_flag, int cmd) -> void* {
 	if (*type != TYPE_MARK || *val != '(') {
 		// システム変数として記述されている。(後ろに '(' がない。)
 		auto result = process_command_as_system_var(cmd);
-		*result_type = result.type;
+		*result_flag = result.flag;
 		return result.ptr;
 	}
 
@@ -96,7 +99,7 @@ static auto reffunc(int* result_type, int cmd) -> void* {
 	}
 	code_next();
 
-	*result_type = result.type;
+	*result_flag = result.flag;
 	return result.ptr;
 }
 
