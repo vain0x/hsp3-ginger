@@ -1,8 +1,31 @@
 # HSP3 GINGER
 
-HSP3 開発ツールを作るプロジェクト。
+HSP3 の開発ツールを作るプロジェクト。
 
-## プロジェクト
+## 開発ツール
+
+### hsp3-ginger
+
+[hsp3-ginger](hsp3-ginger)
+
+- コマンドラインで HSP3 スクリプトのコンパイルや実行を行うためのユーティリティーです。
+- 言語: HSP3
+
+### hsp3-vscode-syntax
+
+[hsp3-vscode-syntax](hsp3-vscode-syntax)
+
+- HSP3 言語・文法を提供する VSCode 拡張機能
+- 状況: HSP 3.51 に対応
+
+### hsp3-debug-window-adapter
+
+[hsp3-debug-window-adapter](hsp3-debug-window-adapter)
+
+- HSP3 のデバッグ実行を起動・終了するだけの Debug Adapter Protocol (DAP) 実装です。
+- VSCode などの DAP に対応したエディタにて、標準のデバッグウィンドウを用いてデバッグ実行するのに使用します。
+- 言語: TypeScript
+- 状況: リリース済み。
 
 ### hsp3-analyzer-mini
 
@@ -11,15 +34,14 @@ HSP3 開発ツールを作るプロジェクト。
 - HSP3 の実用最小限な静的解析ツールです。Language Server Protocol (LSP) 準拠。
 - VSCode に拡張機能をインストールすることで入力補完やホバーなどの支援を受けられます。
 - 言語: Rust
-- 状況: 最低限の実用可能なレベルです。解析の精度は不十分なので、ご了承ください。マクロや複数行文字列などの機能に対応していません。
+- 状況: 最低限の実用可能なレベル
 
-### hsp3-debug-empty
+----
+----
 
-[hsp3-debug-empty](hsp3-debug-empty)
+以下のプロジェクトは実用段階にはありません。
 
-- 何もしないデバッガー
-- 新しいデバッガーを作るときの土台
-- 言語: C++
+## 開発ツール [開発中]
 
 ### hsp3-debug-ginger
 
@@ -29,6 +51,24 @@ HSP3 開発ツールを作るプロジェクト。
 - Debug Adapter Protocol 対応
 - 言語: Rust
 - 状況: アルファ版リリース済み。まだ実用レベルではありません。
+
+### hsp3-forgery
+
+[hsp3-forgery](hsp3-forgery)
+
+- 静的解析ツール
+- 言語: Rust
+- 状況: まだ構文解析の一部しか動きません。
+
+## 開発ツール [サンプル]
+
+### hsp3-debug-empty
+
+[hsp3-debug-empty](hsp3-debug-empty)
+
+- 何もしないデバッガー
+- 新しいデバッガーを作るときの土台
+- 言語: C++
 
 ### hsp3-debug-self
 
@@ -47,38 +87,7 @@ HSP3 開発ツールを作るプロジェクト。
 - 言語: Rust (サーバー),　JavaScript (クライアント), C# (ブラウザ)
 - 状況: 概念実証 (proof-of-concept) 済み。実用レベルではありません。
 
-### hsp3-debug-window-adapter
-
-[hsp3-debug-window-adapter](hsp3-debug-window-adapter)
-
-- HSP3 のデバッグ実行を起動・終了するだけの Debug Adapter Protocol (DAP) の実装です。
-- VSCode などの DAP に対応したエディタにて、標準のデバッグウィンドウを用いてデバッグ実行するのに使用します。
-- 言語: TypeScript
-- 状況: リリース済み。
-
-### hsp3-forgery
-
-[hsp3-forgery](hsp3-forgery)
-
-- 静的解析ツール
-- 言語: Rust
-- 状況: まだ構文解析の一部しか動きません。開発中。
-
-### hsp3-ginger
-
-[hsp3-ginger](hsp3-ginger)
-
-- コマンドラインで HSP3 スクリプトのコンパイルや実行を行うためのユーティリティーです。
-- 言語: HSP3
-- 状況: 最低限の実用可能なレベルです。
-
-### hsp3-vscode-syntax
-
-[hsp3-vscode-syntax](hsp3-vscode-syntax)
-
-- HSP3 言語・文法を提供する VSCode 拡張機能
-- 言語: 設定ファイル等のみ
-- 状況: HSP 3.51 に対応。
+### 拡張プラグイン [開発中]
 
 ### hsp3-vartype-int64
 
