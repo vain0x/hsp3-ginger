@@ -17,7 +17,7 @@ static auto s_aftertype = (short*)nullptr;
 
 // 配列変数の総要素数を数える。
 static auto array_element_count(PVal const* pval) -> int {
-	auto count = 0;
+	auto count = 1;
 	for (auto i = 1; i <= 4 && pval->len[i] > 0; i++) {
 		count *= pval->len[i];
 	}
