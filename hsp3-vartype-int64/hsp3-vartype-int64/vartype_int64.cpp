@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include "vartype_int64.h"
 
 static char s_type_name[] = "int64";
@@ -24,9 +25,7 @@ static auto array_element_count(PVal const* pval) -> int {
 	return count;
 }
 
-static int int64_value_size(PDAT const*) {
-	return sizeof(std::int64_t);
-}
+static int int64_value_size(PDAT const*) { return sizeof(std::int64_t); }
 
 // int64_t 型の配列変数がいま指している要素のデータへのポインタを取得する。
 static auto int64_element_ptr(PVal* pval) -> PDAT* {
@@ -163,8 +162,9 @@ static void int64_right_shift_assign(PDAT* pdat, void const* ptr) {
 
 // 比較
 // CompareFn: 比較関数
-template<typename CompareFn>
-static void int64_do_compare_assign(PDAT* pdat, void const* ptr, CompareFn compare_fn) {
+template <typename CompareFn>
+static void int64_do_compare_assign(PDAT* pdat, void const* ptr,
+                                    CompareFn compare_fn) {
 	auto left = *(std::int64_t const*)pdat;
 	auto right = *static_cast<std::int64_t const*>(ptr);
 
@@ -247,7 +247,8 @@ static auto int64_convert_to(void const* buffer, int flag) -> void* {
 
 	switch (flag) {
 	case HSPVAR_FLAG_STR: {
-		auto result = std::to_chars(s_string_result, s_string_result + sizeof(s_string_result), value);
+		auto result = std::to_chars(
+		    s_string_result, s_string_result + sizeof(s_string_result), value);
 		assert(result.ec == std::errc{});
 
 		*result.ptr = '\0';
@@ -271,9 +272,7 @@ static auto int64_convert_to(void const* buffer, int flag) -> void* {
 }
 
 // int64 型の型IDを取得する。
-EXPORT auto vartype_int64_flag() -> short {
-	return s_int64_flag;
-}
+EXPORT auto vartype_int64_flag() -> short { return s_int64_flag; }
 
 // プラグインの初期化時に呼ばれる。
 EXPORT void vartype_int64_init(HspVarProc* p) {
@@ -303,7 +302,7 @@ EXPORT void vartype_int64_init(HspVarProc* p) {
 	p->DivI = int64_div_assign;
 	p->ModI = int64_mod_assign;
 	p->AndI = int64_bit_and_assign;
-	p->OrI  = int64_bit_or_assign;
+	p->OrI = int64_bit_or_assign;
 	p->XorI = int64_bit_xor_assign;
 	p->LrI = int64_left_shift_assign;
 	p->RrI = int64_right_shift_assign;

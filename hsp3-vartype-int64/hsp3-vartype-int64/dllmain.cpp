@@ -1,10 +1,9 @@
 #include "pch.h"
+
 #include "commands.h"
 #include "vartype_int64.h"
 
-int WINAPI DllMain(HINSTANCE, DWORD, PVOID) {
-	return TRUE;
-}
+int WINAPI DllMain(HINSTANCE, DWORD, PVOID) { return TRUE; }
 
 EXPORT void WINAPI hsp3_plugin_init(HSP3TYPEINFO* info) {
 	hsp3sdk_init(info);

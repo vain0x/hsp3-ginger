@@ -43,7 +43,8 @@ static auto process_command_as_func(int cmd) -> CommandResult {
 		case GetParamStatus::Ok:
 		case GetParamStatus::OkFinal: {
 			// 受け取った値を int64 型に変換する。
-			s_result_int64 = *(std::int64_t const*)int64_convert_from(mpval->pt, mpval->flag);
+			s_result_int64 = *(std::int64_t const*)int64_convert_from(
+			    mpval->pt, mpval->flag);
 			break;
 		}
 		case GetParamStatus::Default:
@@ -58,7 +59,7 @@ static auto process_command_as_func(int cmd) -> CommandResult {
 			throw HSPERR_UNKNOWN_CODE;
 		}
 
-		return { vartype_int64_flag(), &s_result_int64 };
+		return {vartype_int64_flag(), &s_result_int64};
 	}
 	default:
 		assert(false);
@@ -71,7 +72,7 @@ static auto process_command_as_system_var(int cmd) -> CommandResult {
 	case CMD_INT64:
 		// 型IDを返す。
 		s_result_int = vartype_int64_flag();
-		return { HSPVAR_FLAG_INT, &s_result_int };
+		return {HSPVAR_FLAG_INT, &s_result_int};
 
 	default:
 		assert(false);
@@ -104,9 +105,7 @@ static auto reffunc(int* result_flag, int cmd) -> void* {
 }
 
 // アプリケーション終了時に呼ばれる。
-static int termfunc(int) {
-	return 0;
-}
+static int termfunc(int) { return 0; }
 
 void commands_init(HSP3TYPEINFO* info) {
 	info->reffunc = reffunc;
