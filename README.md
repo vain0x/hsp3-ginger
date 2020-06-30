@@ -25,7 +25,6 @@ HSP3 の開発ツールを作るプロジェクト。
 - HSP3 のデバッグ実行を起動・終了するだけの Debug Adapter Protocol (DAP) 実装です。
 - VSCode などの DAP に対応したエディタにて、標準のデバッグウィンドウを用いてデバッグ実行するのに使用します。
 - 言語: TypeScript
-- 状況: リリース済み。
 
 ### hsp3-analyzer-mini
 
