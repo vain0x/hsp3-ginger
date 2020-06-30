@@ -48,10 +48,12 @@ static void int64_alloc(PVal* pval, PVal const* pval2) {
 
 	char* new_data;
 	if (pval2 != nullptr) {
-		if (size > 64 && size > pval->size) {
-			size += size / 8;
-		} else {
+		if (size < pval->size) {
 			size = pval->size;
+		} else if (size < 64) {
+			size = 64;
+		} else {
+			size += size / 8;
 		}
 
 		new_data = exinfo->HspFunc_expand(pval->pt, size);
