@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -eu
+
+./scripts/build
+
+cp target/hsp3-vartype-int64/Win32-Debug/bin/hsp3_vartype_int64.dll ./dist/hsp3_vartype_int64.dll
+
+(
+    cd dist
+    ginger run vartype_int64_example.hsp
+)
