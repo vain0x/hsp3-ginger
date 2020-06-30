@@ -1,0 +1,22 @@
+#!/bin/bash
+# USAGE: ./scripts/build
+
+set -eu
+
+if test ! $(which MSBuild.exe 2>/dev/null)
+then
+    echo 'MSBuild.exe にパスを通してください。' >&2
+    exit 1
+fi
+
+build() {
+    SLN='./hsp3-vartype-int64.sln'
+    CONFIG=$1
+
+    MSBuild.exe $SLN '-t:Build' $CONFIG
+}
+
+build '-p:Configuration=Debug;Platform=x86'
+build '-p:Configuration=Debug;Platform=x64'
+build '-p:Configuration=Release;Platform=x86'
+build '-p:Configuration=Release;Platform=x64'
