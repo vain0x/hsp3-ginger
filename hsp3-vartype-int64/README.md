@@ -1,4 +1,4 @@
-# hsp3-var-int64
+# hsp3-vartype-int64
 
 int64 型を提供する HSP3 の拡張プラグイン。
 
