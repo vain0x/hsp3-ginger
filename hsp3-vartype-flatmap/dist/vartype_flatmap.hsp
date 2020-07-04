@@ -1,9 +1,0 @@
-#ifndef included_vartype_flatmap_hsp
-#define included_vartype_flatmap_hsp
-
-#regcmd "_hsp3_plugin_init@4", "hsp3_vartype_flatmap.dll", 1
-#cmd __flatmap@vartype_flatmap  0x00
-
-#define global flatmap __flatmap@vartype_flatmap
-
-#endif

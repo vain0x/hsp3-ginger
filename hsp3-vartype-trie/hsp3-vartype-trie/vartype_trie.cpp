@@ -1,4 +1,4 @@
-//　flatmap 型の実装
+//　trie 型の実装
 // 参考: 標準の str 型の実装
 //  <https://github.com/onitama/OpenHSP/blob/master/src/hsp3/hspvar_str.cpp>
 // 参考: var_assoc.hpi の assoc 型の実装
@@ -8,14 +8,14 @@
 
 #include "pch.h"
 
-#include "flatmap.h"
 #include "hsx_arg_reader.h"
-#include "vartype_flatmap.h"
+#include "trie.h"
+#include "vartype_trie.h"
 
-static char s_type_name[] = "flatmap";
+static char s_type_name[] = "trie";
 
 // 型ID
-static auto s_flatmap_flag = short{};
+static auto s_trie_flag = short{};
 
 // 計算の結果の型
 static auto s_aftertype = (short*)nullptr;
@@ -29,43 +29,41 @@ static auto array_element_count(PVal const* pval) -> int {
 	return count;
 }
 
-// flatmap 型の変数が常に満たすべき条件を表明する。
-inline void assert_flatmap_invariant([[maybe_unused]] PVal const* pval) {
+// trie 型の変数が常に満たすべき条件を表明する。
+inline void assert_trie_invariant([[maybe_unused]] PVal const* pval) {
 	assert(pval != nullptr);
-	assert(pval->flag == s_flatmap_flag);
+	assert(pval->flag == s_trie_flag);
 	assert(pval->pt != nullptr);
 	assert(pval->master != nullptr);
 	assert(pval->offset >= 0);
 	assert(pval->offset < array_element_count(pval));
 }
 
-static auto flatmap_element(PVal* pval, std::size_t index) -> FlatMap* {
-	assert_flatmap_invariant(pval);
+static auto trie_element(PVal* pval, std::size_t index) -> Trie* {
+	assert_trie_invariant(pval);
 	assert((int)index < array_element_count(pval));
 
-	return (FlatMap*)pval->master + index;
+	return (Trie*)pval->master + index;
 }
 
-static auto flatmap_value_size(PDAT const*) -> int {
-	return (int)sizeof(FlatMap*);
-}
+static auto trie_value_size(PDAT const*) -> int { return (int)sizeof(Trie*); }
 
-// flatmap_t 型の配列変数がいま指している要素のデータへのポインタを取得する。
-static auto flatmap_element_ptr(PVal* pval) -> PDAT* {
-	assert_flatmap_invariant(pval);
+// trie_t 型の配列変数がいま指している要素のデータへのポインタを取得する。
+static auto trie_element_ptr(PVal* pval) -> PDAT* {
+	assert_trie_invariant(pval);
 
-	auto flatmap = flatmap_element(pval, (std::size_t)pval->offset);
+	auto trie = trie_element(pval, (std::size_t)pval->offset);
 
-	pval->pt = (char*)flatmap;
+	pval->pt = (char*)trie;
 	return (PDAT*)&pval->pt;
 }
 
 // 変数に必要なメモリを確保する。
 //
 // pval2 != nullptr のときは、pval が保持しているデータを維持しながら、配列を拡張する。
-static void flatmap_alloc(PVal* pval, PVal const* pval2) {
+static void trie_alloc(PVal* pval, PVal const* pval2) {
 	assert(pval != nullptr);
-	assert(pval->flag == s_flatmap_flag);
+	assert(pval->flag == s_trie_flag);
 
 	// 配列の長さは 1 以上にする。
 	if (pval->len[1] < 1) {
@@ -76,12 +74,12 @@ static void flatmap_alloc(PVal* pval, PVal const* pval2) {
 
 	int old_count;
 	int new_size;
-	FlatMap* new_data;
+	Trie* new_data;
 	if (pval2 != nullptr) {
-		assert_flatmap_invariant(pval2);
+		assert_trie_invariant(pval2);
 
 		// いまの配列の要素数をバッファサイズから逆算する。
-		old_count = pval->size / (int)sizeof(FlatMap);
+		old_count = pval->size / (int)sizeof(Trie);
 
 		// 要素数が増える場合は指数的に増やす。要素数は減少させない。
 		if (new_count > old_count) {
@@ -90,32 +88,31 @@ static void flatmap_alloc(PVal* pval, PVal const* pval2) {
 			new_count = old_count;
 		}
 
-		new_size = new_count * (int)sizeof(FlatMap);
-		new_data =
-		    (FlatMap*)exinfo->HspFunc_expand((char*)pval->master, new_size);
+		new_size = new_count * (int)sizeof(Trie);
+		new_data = (Trie*)exinfo->HspFunc_expand((char*)pval->master, new_size);
 	} else {
 		old_count = 0;
-		new_size = new_count * (int)sizeof(FlatMap);
-		new_data = (FlatMap*)exinfo->HspFunc_malloc(new_size);
+		new_size = new_count * (int)sizeof(Trie);
+		new_data = (Trie*)exinfo->HspFunc_malloc(new_size);
 	}
 
 	// 新しく確保された要素を初期化する。
 	for (auto i = old_count; i < new_count; i++) {
 		// placement-new
-		new (new_data + i) FlatMap{};
+		new (new_data + i) Trie{};
 	}
 
-	pval->flag = s_flatmap_flag;
+	pval->flag = s_trie_flag;
 	pval->size = new_size;
 	pval->master = new_data;
 	pval->pt = (char*)pval->master;
 	pval->mode = HSPVAR_MODE_MALLOC;
 
-	assert_flatmap_invariant(pval);
+	assert_trie_invariant(pval);
 }
 
 // 変数が確保したメモリを解放する。
-static void flatmap_free(PVal* pval) {
+static void trie_free(PVal* pval) {
 	if (pval->mode != HSPVAR_MODE_MALLOC) {
 		pval->mode = HSPVAR_MODE_NONE;
 		pval->pt = nullptr;
@@ -123,13 +120,13 @@ static void flatmap_free(PVal* pval) {
 		return;
 	}
 
-	auto data = (FlatMap*)pval->master;
-	auto count = pval->size / (int)sizeof(FlatMap);
+	auto data = (Trie*)pval->master;
+	auto count = pval->size / (int)sizeof(Trie);
 
 	// 新しく確保された要素を初期化する。
 	for (auto i = 0; i < count; i++) {
 		// placement-delete
-		data[i].~FlatMap();
+		data[i].~Trie();
 	}
 
 	pval->mode = HSPVAR_MODE_NONE;
@@ -139,12 +136,12 @@ static void flatmap_free(PVal* pval) {
 	exinfo->HspFunc_free((char*)data);
 }
 
-static void* flatmap_block_size(PVal* pval, PDAT* pdat, int* size) {
+static void* trie_block_size(PVal* pval, PDAT* pdat, int* size) {
 	*size = pval->size - (int)((char*)pdat - pval->pt);
 	return pdat;
 }
 
-static void flatmap_alloc_block(PVal*, PDAT*, int) {
+static void trie_alloc_block(PVal*, PDAT*, int) {
 	// pass
 }
 
@@ -159,8 +156,8 @@ static auto var_to_string(short flag, void const* ptr) -> std::string {
 
 // 配列要素の指定 (読み込み時)
 // '(' を読んだ直後の状態で呼ばれる。
-static auto flatmap_element_read(PVal* pval, int* mptype) -> void* {
-	assert_flatmap_invariant(pval);
+static auto trie_element_read(PVal* pval, int* mptype) -> void* {
+	assert_trie_invariant(pval);
 
 	// キーを受け取る。
 	auto status = (GetParamStatus)code_getprm();
@@ -170,7 +167,7 @@ static auto flatmap_element_read(PVal* pval, int* mptype) -> void* {
 
 	auto key = var_to_string(mpval->flag, mpval->pt);
 
-	auto value_opt = (*(FlatMap*)pval->master).find(key);
+	auto value_opt = (*(Trie*)pval->master).find(key);
 	if (!value_opt) {
 		static auto const s_empty_string = std::string{""};
 		*mptype = HSPVAR_FLAG_STR;
@@ -183,8 +180,8 @@ static auto flatmap_element_read(PVal* pval, int* mptype) -> void* {
 
 // 配列要素の指定 (書き込み時)
 // '(' を読んだ直後の状態で呼ばれる。
-static void flatmap_element_write(PVal* pval) {
-	assert_flatmap_invariant(pval);
+static void trie_element_write(PVal* pval) {
+	assert_trie_invariant(pval);
 
 	auto status = (GetParamStatus)code_getprm();
 	if (!param_status_is_ok(status)) {
@@ -194,32 +191,32 @@ static void flatmap_element_write(PVal* pval) {
 	static auto s_key = std::string{};
 	s_key = var_to_string(mpval->flag, mpval->pt);
 
-	flatmap_element(pval, (std::size_t)pval->offset)->select_key(s_key);
+	trie_element(pval, (std::size_t)pval->offset)->select_key(s_key);
 }
 
 // 配列要素への代入 (HSPVAR_SUPPORT_NOCONVERT 指定時のみ)
-static void flatmap_element_assign(PVal* pval, void* data, int flag) {
-	assert_flatmap_invariant(pval);
+static void trie_element_assign(PVal* pval, void* data, int flag) {
+	assert_trie_invariant(pval);
 
-	auto flatmap = flatmap_element(pval, (std::size_t)pval->offset);
-	auto key = flatmap->selected_key();
+	auto trie = trie_element(pval, (std::size_t)pval->offset);
+	auto key = trie->selected_key();
 	auto value = var_to_string((short)flag, data);
-	flatmap->insert(std::string{key}, std::move(value));
+	trie->insert(std::string{key}, std::move(value));
 }
 
 // 代入 (=)
-static void flatmap_assign(PVal*, PDAT* pdat, void const* ptr) {
+static void trie_assign(PVal*, PDAT* pdat, void const* ptr) {
 	// deep copy (すべての要素をコピーした新しいマップを構築する。)
-	**(FlatMap**)pdat = **static_cast<FlatMap const* const*>(ptr);
+	**(Trie**)pdat = **static_cast<Trie const* const*>(ptr);
 }
 
 // 比較
 // CompareFn: 比較関数
 template <typename CompareFn>
-static void flatmap_do_compare_assign(PDAT* pdat, void const* ptr,
-                                      CompareFn compare_fn) {
-	auto left = (FlatMap const* const*)pdat;
-	auto right = static_cast<FlatMap const* const*>(ptr);
+static void trie_do_compare_assign(PDAT* pdat, void const* ptr,
+                                   CompareFn compare_fn) {
+	auto left = (Trie const* const*)pdat;
+	auto right = static_cast<Trie const* const*>(ptr);
 
 	// 比較が成立するなら 1、しないなら 0 を代入する。
 	auto ok = compare_fn(**left, **right) ? 1 : 0;
@@ -231,69 +228,69 @@ static void flatmap_do_compare_assign(PDAT* pdat, void const* ptr,
 }
 
 // 比較 (==)
-static void flatmap_equal_assign(PDAT* pdat, void const* ptr) {
-	flatmap_do_compare_assign(pdat, ptr, std::equal_to<FlatMap>{});
+static void trie_equal_assign(PDAT* pdat, void const* ptr) {
+	trie_do_compare_assign(pdat, ptr, std::equal_to<Trie>{});
 }
 
 // 比較 (!=)
-static void flatmap_not_equal_assign(PDAT* pdat, void const* ptr) {
-	flatmap_do_compare_assign(pdat, ptr, std::not_equal_to<FlatMap>{});
+static void trie_not_equal_assign(PDAT* pdat, void const* ptr) {
+	trie_do_compare_assign(pdat, ptr, std::not_equal_to<Trie>{});
 }
 
 // 比較 (<)
-static void flatmap_less_than_assign(PDAT* pdat, void const* ptr) {
-	flatmap_do_compare_assign(pdat, ptr, std::less<FlatMap>{});
+static void trie_less_than_assign(PDAT* pdat, void const* ptr) {
+	trie_do_compare_assign(pdat, ptr, std::less<Trie>{});
 }
 
 // 比較 (<=)
-static void flatmap_less_equal_assign(PDAT* pdat, void const* ptr) {
-	flatmap_do_compare_assign(pdat, ptr, std::less_equal<FlatMap>{});
+static void trie_less_equal_assign(PDAT* pdat, void const* ptr) {
+	trie_do_compare_assign(pdat, ptr, std::less_equal<Trie>{});
 }
 
 // 比較 (>)
-static void flatmap_greater_than_assign(PDAT* pdat, void const* ptr) {
-	flatmap_do_compare_assign(pdat, ptr, std::greater<FlatMap>{});
+static void trie_greater_than_assign(PDAT* pdat, void const* ptr) {
+	trie_do_compare_assign(pdat, ptr, std::greater<Trie>{});
 }
 
 // 比較 (>=)
-static void flatmap_greater_equal_assign(PDAT* pdat, void const* ptr) {
-	flatmap_do_compare_assign(pdat, ptr, std::greater_equal<FlatMap>{});
+static void trie_greater_equal_assign(PDAT* pdat, void const* ptr) {
+	trie_do_compare_assign(pdat, ptr, std::greater_equal<Trie>{});
 }
 
-EXPORT auto vartype_flatmap_flag() -> short { return s_flatmap_flag; }
+EXPORT auto vartype_trie_flag() -> short { return s_trie_flag; }
 
 // プラグインの初期化時に呼ばれる。
-EXPORT void vartype_flatmap_init(HspVarProc* p) {
-	s_flatmap_flag = p->flag;
+EXPORT void vartype_trie_init(HspVarProc* p) {
+	s_trie_flag = p->flag;
 	s_aftertype = &p->aftertype;
 
 	p->vartype_name = s_type_name;
 	p->version = 0x001;
 	p->support = HSPVAR_SUPPORT_STORAGE | HSPVAR_SUPPORT_FLEXARRAY |
 	             HSPVAR_SUPPORT_ARRAYOBJ | HSPVAR_SUPPORT_NOCONVERT;
-	p->basesize = sizeof(FlatMap);
+	p->basesize = sizeof(Trie);
 
 	// メモリ確保など
-	p->GetSize = flatmap_value_size;
-	p->GetPtr = flatmap_element_ptr;
-	p->Alloc = flatmap_alloc;
-	p->Free = flatmap_free;
-	p->GetBlockSize = flatmap_block_size;
-	p->AllocBlock = flatmap_alloc_block;
+	p->GetSize = trie_value_size;
+	p->GetPtr = trie_element_ptr;
+	p->Alloc = trie_alloc;
+	p->Free = trie_free;
+	p->GetBlockSize = trie_block_size;
+	p->AllocBlock = trie_alloc_block;
 
 	// 連想配列
-	p->ArrayObjectRead = flatmap_element_read;
-	p->ArrayObject = flatmap_element_write;
+	p->ArrayObjectRead = trie_element_read;
+	p->ArrayObject = trie_element_write;
 
 	// 代入
-	p->ObjectWrite = flatmap_element_assign;
-	p->Set = flatmap_assign;
+	p->ObjectWrite = trie_element_assign;
+	p->Set = trie_assign;
 
 	// 比較
-	p->EqI = flatmap_equal_assign;
-	p->NeI = flatmap_not_equal_assign;
-	p->LtI = flatmap_less_than_assign;
-	p->LtEqI = flatmap_less_equal_assign;
-	p->GtI = flatmap_greater_than_assign;
-	p->GtEqI = flatmap_greater_equal_assign;
+	p->EqI = trie_equal_assign;
+	p->NeI = trie_not_equal_assign;
+	p->LtI = trie_less_than_assign;
+	p->LtEqI = trie_less_equal_assign;
+	p->GtI = trie_greater_than_assign;
+	p->GtEqI = trie_greater_equal_assign;
 }

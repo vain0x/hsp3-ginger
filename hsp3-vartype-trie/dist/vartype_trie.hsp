@@ -1,0 +1,9 @@
+#ifndef included_vartype_trie_hsp
+#define included_vartype_trie_hsp
+
+#regcmd "_hsp3_plugin_init@4", "hsp3_vartype_trie.dll", 1
+#cmd __trie@vartype_trie  0x00
+
+#define global trie __trie@vartype_trie
+
+#endif

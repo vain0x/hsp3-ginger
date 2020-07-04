@@ -1,0 +1,15 @@
+#!/bin/bash
+# ginger コマンドが必要です
+
+set -eu
+
+./build --debug
+
+TARGET_BIN_DLL='target/hsp3-vartype-trie/Win32-Debug/bin/hsp3_vartype_trie.dll'
+DIST_DLL='dist/hsp3_vartype_trie.dll'
+cp $TARGET_BIN_DLL $DIST_DLL
+
+(
+    cd dist
+    ginger run vartype_trie_example.hsp
+)

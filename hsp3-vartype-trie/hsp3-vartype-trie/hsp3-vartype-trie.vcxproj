@@ -18,11 +18,41 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\hspsdk\hsp3debug.h" />
+    <ClInclude Include="..\hspsdk\hsp3plugin.h" />
+    <ClInclude Include="..\hspsdk\hsp3struct.h" />
+    <ClInclude Include="..\hspsdk\hspvar_core.h" />
+    <ClInclude Include="commands.h" />
+    <ClInclude Include="hsx_arg_reader.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="trie.h" />
+    <ClInclude Include="vartype_trie.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\hspsdk\hsp3plugin.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="commands.cpp" />
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="hsx_arg_reader.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="trie.cpp" />
+    <ClCompile Include="vartype_trie.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{1DDDBB8E-DF98-4FDA-AA61-FAB9942BE915}</ProjectGuid>
+    <ProjectGuid>{60CB3770-B004-4E8E-976B-39C11932661A}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>hsp3vartypeflatmap</RootNamespace>
+    <RootNamespace>hsp3vartypetrie</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -74,32 +104,32 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
     <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
-    <TargetName>hsp3_vartype_flatmap</TargetName>
+    <TargetName>hsp3-vartype-trie</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
     <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
-    <TargetName>hsp3_vartype_flatmap</TargetName>
+    <TargetName>hsp3-vartype-trie</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
     <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
-    <TargetName>hsp3_vartype_flatmap</TargetName>
+    <TargetName>hsp3-vartype-trie</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\bin\</OutDir>
     <IntDir>$(SolutionDir)target\$(ProjectName)\$(Platform)-$(Configuration)\obj\</IntDir>
-    <TargetName>hsp3_vartype_flatmap</TargetName>
+    <TargetName>hsp3-vartype-trie</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;HSP3VARTYPEFLATMAP_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;HSP3VARTYPETRIE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -114,9 +144,9 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;HSP3VARTYPEFLATMAP_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;HSP3VARTYPETRIE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -131,11 +161,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;HSP3VARTYPEFLATMAP_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;HSP3VARTYPETRIE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -152,11 +182,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;HSP3VARTYPEFLATMAP_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;HSP3VARTYPETRIE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -170,36 +200,6 @@
       <EnableUAC>false</EnableUAC>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\hspsdk\hsp3debug.h" />
-    <ClInclude Include="..\hspsdk\hsp3plugin.h" />
-    <ClInclude Include="..\hspsdk\hsp3struct.h" />
-    <ClInclude Include="..\hspsdk\hspvar_core.h" />
-    <ClInclude Include="commands.h" />
-    <ClInclude Include="flatmap.h" />
-    <ClInclude Include="hsx_arg_reader.h" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="vartype_flatmap.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\hspsdk\hsp3plugin.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="commands.cpp" />
-    <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="flatmap.cpp" />
-    <ClCompile Include="hsx_arg_reader.cpp" />
-    <ClCompile Include="pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="vartype_flatmap.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

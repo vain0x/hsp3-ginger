@@ -42,8 +42,8 @@ function ensureHomeBin() {
 }
 
 # デバッグ版の DLL にシンボリックリンクを張る。
-$targetBinDll = "$PWD/target/hsp3-vartype-flatmap/Win32-Debug/bin/hsp3_vartype_flatmap.dll"
-$distDll = "$PWD/dist/hsp3_vartype_flatmap.dll"
+$targetBinDll = "$PWD/target/hsp3-vartype-trie/Win32-Debug/bin/hsp3_vartype_trie.dll"
+$distDll = "$PWD/dist/hsp3_vartype_trie.dll"
 
 if (!$(test-path $distDll)) {
     escalate './setup.ps1'

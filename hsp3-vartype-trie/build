@@ -1,5 +1,6 @@
 #!/bin/bash
 # EXAMPLE: ./build
+# EXAMPLE: ./build --debug
 
 set -eu
 
@@ -16,6 +17,8 @@ build() {
 }
 
 FLAG="${1:-''}"
+
+./fmt || :
 
 build '-p:Configuration=Debug;Platform=x86'
 if test "$FLAG" = '--debug'

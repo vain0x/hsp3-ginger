@@ -2,16 +2,16 @@
 
 #include "pch.h"
 
-#include "flatmap.h"
 #include "hsx_arg_reader.h"
-#include "vartype_flatmap.h"
+#include "trie.h"
+#include "vartype_trie.h"
 
-// `flatmap` コマンドの番号
-constexpr auto CMD_FLATMAP = 0x00;
+// `trie` コマンドの番号
+constexpr auto CMD_TRIE = 0x00;
 
 // 関数やシステム変数の結果を一時的に保存しておくための変数。
 static auto s_result_int = int{};
-static auto s_result_flatmap = FlatMap{};
+static auto s_result_trie = Trie{};
 
 // 関数やシステム変数の処理結果
 struct CommandResult {
@@ -24,7 +24,7 @@ struct CommandResult {
 
 static auto process_command(int cmd) -> int {
 	switch (cmd) {
-	case CMD_FLATMAP: {
+	case CMD_TRIE: {
 		// dim と同様
 
 		auto pval = (PVal*)nullptr;
@@ -35,7 +35,7 @@ static auto process_command(int cmd) -> int {
 			len[i] = code_getdi(0);
 		}
 
-		exinfo->HspFunc_dim(pval, vartype_flatmap_flag(), 0, len[0], len[1],
+		exinfo->HspFunc_dim(pval, vartype_trie_flag(), 0, len[0], len[1],
 		                    len[2], len[3]);
 		break;
 	}
@@ -48,16 +48,17 @@ static auto process_command(int cmd) -> int {
 }
 
 static auto var_to_string(short flag, void const* ptr) -> std::string {
-	auto s = (char const*)exinfo->HspFunc_getproc(flag)->CnvCustom(ptr, HSPVAR_FLAG_STR);
-	return std::string{ s };
+	auto s = (char const*)exinfo->HspFunc_getproc(flag)->CnvCustom(
+	    ptr, HSPVAR_FLAG_STR);
+	return std::string{s};
 }
 
 static auto process_command_as_func(int cmd) -> CommandResult {
 	switch (cmd) {
-	case CMD_FLATMAP: {
-		// flatmap(キー1, 値1, キー2, 値2, ...)
+	case CMD_TRIE: {
+		// trie(キー1, 値1, キー2, 値2, ...)
 
-		s_result_flatmap.clear();
+		s_result_trie.clear();
 		while (true) {
 			auto at_end = false;
 
@@ -105,14 +106,14 @@ static auto process_command_as_func(int cmd) -> CommandResult {
 				}
 			}
 
-			s_result_flatmap.insert(std::move(key), std::move(value));
+			s_result_trie.insert(std::move(key), std::move(value));
 
 			if (at_end) {
 				break;
 			}
 		}
 
-		return {vartype_flatmap_flag(), &s_result_flatmap};
+		return {vartype_trie_flag(), &s_result_trie};
 	}
 
 	default:
@@ -123,9 +124,9 @@ static auto process_command_as_func(int cmd) -> CommandResult {
 
 static auto process_command_as_system_var(int cmd) -> CommandResult {
 	switch (cmd) {
-	case CMD_FLATMAP:
+	case CMD_TRIE:
 		// 型IDを返す。
-		s_result_int = vartype_flatmap_flag();
+		s_result_int = vartype_trie_flag();
 		return {HSPVAR_FLAG_INT, &s_result_int};
 
 	default:
