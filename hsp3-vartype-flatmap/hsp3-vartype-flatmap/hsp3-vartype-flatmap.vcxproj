@@ -171,10 +171,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h" />
+    <ClInclude Include="..\hspsdk\hsp3debug.h" />
+    <ClInclude Include="..\hspsdk\hsp3plugin.h" />
+    <ClInclude Include="..\hspsdk\hsp3struct.h" />
+    <ClInclude Include="..\hspsdk\hspvar_core.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\hspsdk\hsp3plugin.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -13,13 +13,25 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="hspsdk">
+      <UniqueIdentifier>{5868be12-e75f-4f85-9b2c-d30d2b3e13cb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hspsdk\hsp3plugin.h">
+      <Filter>hspsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hspsdk\hsp3struct.h">
+      <Filter>hspsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hspsdk\hspvar_core.h">
+      <Filter>hspsdk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hspsdk\hsp3debug.h">
+      <Filter>hspsdk</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -28,6 +40,9 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\hspsdk\hsp3plugin.cpp">
+      <Filter>hspsdk</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
