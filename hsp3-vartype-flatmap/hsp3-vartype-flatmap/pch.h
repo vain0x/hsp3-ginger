@@ -18,7 +18,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <optional>
 #include <string>
+#include <vector>
 
 // hspsdk
 #include "../hspsdk/hsp3plugin.h"

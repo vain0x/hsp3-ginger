@@ -1,3 +1,5 @@
+// flatmap 型の値の実装
+
 #include "pch.h"
 
 #include "flatmap.h"

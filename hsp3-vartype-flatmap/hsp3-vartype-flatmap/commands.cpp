@@ -1,3 +1,5 @@
+// `#cmd` で定義されるコマンドの処理
+
 #include "pch.h"
 
 #include "flatmap.h"

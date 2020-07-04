@@ -1,4 +1,4 @@
-// flatmap 型の実装
+//　flatmap 型の実装
 // 参考: 標準の str 型の実装
 //  <https://github.com/onitama/OpenHSP/blob/master/src/hsp3/hspvar_str.cpp>
 // 参考: var_assoc.hpi の assoc 型の実装

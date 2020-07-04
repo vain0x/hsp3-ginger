@@ -1,3 +1,5 @@
+// コマンドや配列の引数を読み込む処理
+
 #pragma once
 
 #include "../hspsdk/hsp3plugin.h"
@@ -20,6 +22,8 @@ enum class GetParamStatus {
 	EndFunc = PARAM_ENDSPLIT,
 };
 
+// `code_getprm` の結果として引数を取得したか？
+// true なら `mpval` の値を利用できる。
 inline auto param_status_is_ok(GetParamStatus status) -> bool {
 	switch (status) {
 	case GetParamStatus::Ok:
@@ -31,5 +35,8 @@ inline auto param_status_is_ok(GetParamStatus status) -> bool {
 	}
 }
 
+// flag 型のデータ ptr を target_flag 型に変換する。
+// 変換できないときは、型不一致のランタイムエラーが発生することがある。
+// (int() 関数などに対応する。HspVarProc::Cnv, CnvCustom が使われる。)
 auto hsx_value_convert(short flag, void const* ptr, short target_flag,
-                       HSPEXINFO* exinfo) -> void const*;
+                       HSPEXINFO*) -> void const*;
