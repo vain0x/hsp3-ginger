@@ -1,0 +1,21 @@
+#!/bin/bash
+# EXAMPLE: ./build
+
+set -eu
+
+if test ! $(which MSBuild.exe)
+then
+    echo 'MSBuild.exe にパスを通してください。' >&2
+    exit 1
+fi
+
+build() {
+    CONFIG=$1
+
+    MSBuild.exe '-t:Build' $CONFIG
+}
+
+build '-p:Configuration=Debug;Platform=x86'
+build '-p:Configuration=Debug;Platform=x64'
+build '-p:Configuration=Release;Platform=x86'
+build '-p:Configuration=Release;Platform=x64'

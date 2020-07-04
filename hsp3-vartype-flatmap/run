@@ -1,0 +1,13 @@
+#!/bin/bash
+# ginger コマンドが必要です
+
+set -eu
+
+./build
+
+cp target/hsp3-vartype-flatmap/Win32-Debug/bin/hsp3_vartype_flatmap.dll ./dist/hsp3_vartype_flatmap.dll
+
+(
+    cd dist
+    ginger run vartype_flatmap_example.hsp
+)
