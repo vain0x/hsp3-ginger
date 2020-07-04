@@ -59,9 +59,6 @@
     <ClCompile Include="pch.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="trie.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="vartype_trie.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
