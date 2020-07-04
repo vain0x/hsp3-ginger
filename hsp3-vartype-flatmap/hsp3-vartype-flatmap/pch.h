@@ -1,13 +1,31 @@
-﻿// pch.h: プリコンパイル済みヘッダー ファイルです。
-// 次のファイルは、その後のビルドのビルド パフォーマンスを向上させるため 1 回だけコンパイルされます。
-// コード補完や多くのコード参照機能などの IntelliSense パフォーマンスにも影響します。
-// ただし、ここに一覧表示されているファイルは、ビルド間でいずれかが更新されると、すべてが再コンパイルされます。
-// 頻繁に更新するファイルをここに追加しないでください。追加すると、パフォーマンス上の利点がなくなります。
+// プリコンパイル済みヘッダー
 
-#ifndef PCH_H
-#define PCH_H
+// ライブラリのヘッダーファイルをまとめて include する。
+// このプロジェクトのヘッダーファイルは include しないこと。
 
-// プリコンパイルするヘッダーをここに追加します
-#include "framework.h"
+// プロジェクトに含まれるすべての *.cpp ファイルの先頭で、このヘッダーファイルを include すること。
+// そうしない場合はこのプロパティを設定する:
+//     C/C++ > プリコンパイル済みヘッダー > プリコンパイル済みヘッダーを使用しない
 
-#endif //PCH_H
+#pragma once
+
+// 標準ライブラリ
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <cassert>
+#include <charconv>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <map>
+#include <string>
+
+// hspsdk
+#include "../hspsdk/hsp3plugin.h"
+#include "../hspsdk/hsp3struct.h"
+#include "../hspsdk/hspvar_core.h"
+
+// 衝突しやすい名前のマクロを無効化する。
+#undef min
+#undef max
+#undef stat

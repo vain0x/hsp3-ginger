@@ -1,0 +1,36 @@
+// 使用例
+
+#include "hsp3utf.as"
+#include "vartype_flatmap.hsp"
+
+	assert
+	// flatmap 命令 (dim と同様)
+	flatmap m
+
+	// 値の追加
+	m("hello") = "こんにちは"
+
+	// 値の取得
+	message = m("hello")
+	mes message
+	assert message == "こんにちは"
+
+	// 値の更新
+	m("hello") = "guten morgen"
+
+	message = m("hello")
+	mes message
+	assert message == "guten morgen"
+
+	// int 型の値
+	m("count") = 0
+
+	count = m("count")
+	// assert vartype(count) == vartype("int")
+	// assert count == 0
+
+	// 複合代入演算
+	// m("count")++
+	// assert m("count") == 1
+
+	logmes "OK"

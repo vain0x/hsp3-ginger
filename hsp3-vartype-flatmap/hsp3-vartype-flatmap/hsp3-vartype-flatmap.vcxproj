@@ -175,17 +175,30 @@
     <ClInclude Include="..\hspsdk\hsp3plugin.h" />
     <ClInclude Include="..\hspsdk\hsp3struct.h" />
     <ClInclude Include="..\hspsdk\hspvar_core.h" />
+    <ClInclude Include="commands.h" />
+    <ClInclude Include="flatmap.h" />
+    <ClInclude Include="hsx_arg_reader.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="vartype_flatmap.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\hspsdk\hsp3plugin.cpp" />
+    <ClCompile Include="..\hspsdk\hsp3plugin.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="commands.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="flatmap.cpp" />
+    <ClCompile Include="hsx_arg_reader.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="vartype_flatmap.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

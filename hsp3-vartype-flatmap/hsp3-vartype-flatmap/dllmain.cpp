@@ -1,19 +1,14 @@
-﻿// dllmain.cpp : DLL アプリケーションのエントリ ポイントを定義します。
 #include "pch.h"
 
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
-{
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
-    }
-    return TRUE;
-}
+#include "commands.h"
+#include "vartype_flatmap.h"
 
+int WINAPI DllMain(HINSTANCE, DWORD, PVOID) { return TRUE; }
+
+EXPORT void WINAPI hsp3_plugin_init(HSP3TYPEINFO* info) {
+	hsp3sdk_init(info);
+
+	registvar(-1, vartype_flatmap_init);
+
+	commands_init(info);
+}
