@@ -10,12 +10,19 @@ then
 fi
 
 build() {
-    CONFIG=$1
+    CONFIG="$1"
 
-    MSBuild.exe '-t:Build' $CONFIG
+    MSBuild.exe '-t:Build' "$CONFIG"
 }
 
+FLAG="${1:-''}"
+
 build '-p:Configuration=Debug;Platform=x86'
+if test "$FLAG" = '--debug'
+then
+    exit 0
+fi
+
 build '-p:Configuration=Debug;Platform=x64'
 build '-p:Configuration=Release;Platform=x86'
 build '-p:Configuration=Release;Platform=x64'

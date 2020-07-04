@@ -3,9 +3,11 @@
 
 set -eu
 
-./build
+./build --debug
 
-cp target/hsp3-vartype-flatmap/Win32-Debug/bin/hsp3_vartype_flatmap.dll ./dist/hsp3_vartype_flatmap.dll
+TARGET_BIN_DLL='target/hsp3-vartype-flatmap/Win32-Debug/bin/hsp3_vartype_flatmap.dll'
+DIST_DLL='dist/hsp3_vartype_flatmap.dll'
+cp  $TARGET_BIN_DLL $DIST_DLL
 
 (
     cd dist
