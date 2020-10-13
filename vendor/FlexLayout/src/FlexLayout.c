@@ -98,9 +98,13 @@ size_t _FlexVector_size_##type(FlexVectorRef(type) vector) {                    
 #define FLEX_VECTOR_EQUALS_FUNC(a, b) (a == b)
 #define FLEX_VECTOR_INIT(type) FLEX_VECTOR_INIT_WITH_EQUALS(type, FLEX_VECTOR_EQUALS_FUNC)
 
-
+#ifdef _WINDOWS
+#define FLEX_WIDTH FlexHorizontal
+#define FLEX_HEIGHT FlexVertical
+#else
 static const FlexDirection FLEX_WIDTH = FlexHorizontal;
 static const FlexDirection FLEX_HEIGHT = FlexVertical;
+#endif
 
 typedef enum {
     FLEX_LEFT = 0,
@@ -198,8 +202,14 @@ typedef struct FlexNode {
 
 } FlexNode;
 
-
+#ifdef _WINDOWS
+static FlexNode defaultFlexNode;
+// Call this function at first.
+void Flex_initialize() {
+    defaultFlexNode = (FlexNode){
+#else
 static const FlexNode defaultFlexNode = {
+#endif // _WINDOWS
     .wrap = FlexNoWrap,
     .direction = FlexHorizontal,
     .alignItems = FlexStretch,
@@ -207,7 +217,7 @@ static const FlexNode defaultFlexNode = {
     .alignContent = FlexStretch,
     .justifyContent = FlexStart,
     .flexBasis = FlexLengthAuto,
-    .flexGrow  = 0,
+    .flexGrow = 0,
     .flexShrink = 1,
     .size = { FlexLengthAuto, FlexLengthAuto },
     .minSize = { FlexLengthZero, FlexLengthZero },
@@ -239,7 +249,9 @@ static const FlexNode defaultFlexNode = {
     .measuredSizeCache = NULL,
     .lastConstrainedSize = FlexCacheSizeUndefined,
 };
-
+#ifdef _WINDOWS
+}
+#endif
 
 void flex_markDirty(FlexNodeRef node) {
     node->lastConstrainedSize = FlexCacheSizeUndefined;
