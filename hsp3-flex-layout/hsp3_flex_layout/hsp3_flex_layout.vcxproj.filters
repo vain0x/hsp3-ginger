@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="vendor">
+      <UniqueIdentifier>{58f06cbc-2d72-4ebd-8e84-9bb43e70d30d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor\FlexLayout">
+      <UniqueIdentifier>{c1d008f2-a70e-43a5-8689-c0a64567e988}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -21,6 +27,9 @@
     <ClInclude Include="pch.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\vendor\FlexLayout\src\FlexLayout.h">
+      <Filter>vendor\FlexLayout</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -28,6 +37,9 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\vendor\FlexLayout\src\FlexLayout.c">
+      <Filter>vendor\FlexLayout</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
