@@ -96,10 +96,7 @@ HSP3 の開発ツールを作るプロジェクト。
 
 ## その他
 
-以下は他のリポジトリのコードの再配布です。
+vendor ディレクトリは他のリポジトリのコードの再配布です。
 
-### language-hsp3
-
-[language-hsp3](https://github.com/honobonosun/language-hsp3)
-
-- hsp3-vscode-syntax から参照されます。
+- [language-hsp3](https://github.com/honobonosun/language-hsp3)
+    - hsp3-vscode-syntax から参照されます。
