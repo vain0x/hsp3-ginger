@@ -2,8 +2,19 @@ target/
 
 
 
-# Created by https://www.toptal.com/developers/gitignore/api/visualstudio
-# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudio
+# Created by https://www.toptal.com/developers/gitignore/api/HSP,visualstudio
+# Edit at https://www.toptal.com/developers/gitignore?templates=HSP,visualstudio
+
+### HSP ###
+# Object files
+hsptmp*
+packfile
+obj
+*.ax
+
+# Binaries
+*.exe
+*.dpm
 
 ### VisualStudio ###
 ## Ignore Visual Studio temporary files, build results, and
@@ -360,4 +371,4 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
-# End of https://www.toptal.com/developers/gitignore/api/visualstudio
+# End of https://www.toptal.com/developers/gitignore/api/HSP,visualstudio
