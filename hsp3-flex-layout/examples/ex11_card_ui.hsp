@@ -1,0 +1,164 @@
+// いわゆるカード UI
+// エクスプローラのアイコン表示みたいな感じ。
+
+#include "../dist/mod_hflex.hsp"
+
+#const false 0
+#const true 1
+
+	gosub *l_init
+	repeat
+		gosub *l_update
+		gosub *l_render
+		await 1000 / 60
+	loop
+
+*l_init
+
+	gsel , -1
+	screen 2, ginfo_dispx, ginfo_dispy, screen_hide, , , 640, 480
+
+	oncmd gosub *l_on_size, 0x0005 // WM_SIZE
+
+	// カレントディレクトリのファイル一覧を取得する。
+	sdim file_name_list
+	sdim file_names
+	dirlist file_name_list, "*.*"
+	file_count = stat
+
+	// 同じファイルの繰り返しにする。(カードが少ないと動きが分かりにくいため。)
+	split file_name_list, "\n", file_names
+	repeat (10 - 1) * file_count, file_count
+		file_names(cnt) = file_names(cnt \ file_count)
+	loop
+	file_count *= 10
+
+	// ウィンドウ全体をおおうフレックスボックス。
+	fbox = hflex_new_node()
+	window_box = fbox
+	hflex_set_flex_flow         fbox, 0, 1 // row wrap
+	hflex_set_justify_content   fbox, 2 // flex-start
+	hflex_set_align_items       fbox, 2 // flex-start
+	hflex_set_align_content     fbox, 2 // flex-start
+
+	// ファイル1つにつき1個のカードを表示する。
+	card_count = file_count
+
+	// カードを表すフレックスボックス
+	dim card_flexboxes, card_count
+	// 拡張子 (.txt など。本当はアイコンを表示したいけど実装がめんどいため)
+	sdim card_extensions, , card_count
+	// ディレクトリ部分を除く、ファイル名
+	// (例えば C:/foo/bar.txt -> bar.txt)
+	sdim card_file_names, , card_count
+	// dim card_is_hovers, card_count
+	// 選択状態
+	dim card_is_selected, card_count
+	// 位置と大きさ
+	ddim card_px, card_count
+	ddim card_py, card_count
+	ddim card_sx, card_count
+	ddim card_sy, card_count
+
+	repeat card_count
+		fbox = hflex_new_node()
+		card_flexboxes(cnt) = fbox
+		hflex_set_flex_basis    fbox, 100
+		hflex_set_height        fbox, 100
+		hflex_set_margin        fbox, 16, 16, 0, 16 // 左、上、右、下
+		hflex_add_child window_box, fbox
+
+		// 表示用にファイル名の一部を取り出す。
+		card_extensions(cnt) = getpath(file_names(cnt), 2)
+		card_file_names(cnt) = getpath(file_names(cnt), 8)
+	loop
+
+	gsel 2, 1
+	return
+
+*l_update
+
+	screen_sy = double(ginfo_dispy)
+	window_sx = double(ginfo_winx)
+	window_sy = double(ginfo_winy)
+
+	// スクロール
+	window_vx = 0
+	window_vy = limitf(window_vy - mousew, 0, window_sy - 10)
+
+	// マウス位置
+	mouse_px = double(mousex) + window_vx
+	mouse_py = double(mousey) + window_vy
+
+	// レイアウトを再計算する。
+	scale = 1.0
+	hflex_layout window_box, window_sx, screen_sy, scale
+
+	// レイアウトの計算結果を取り出す。
+	repeat card_count
+		hflex_get_result_rect card_flexboxes(cnt), card_px(cnt), card_py(cnt), card_sx(cnt), card_sy(cnt)
+	loop
+	return
+
+*l_render
+	groll window_vx, window_vy
+
+	redraw 2
+
+	hsvcolor ,, 255
+	boxf
+
+	font "MS Gothic", 12
+
+	stick stick_state
+	left_click = (stick_state & 0x100) != false // 左クリック
+
+	repeat card_count
+		px = card_px(cnt)
+		py = card_py(cnt)
+		sx = card_sx(cnt)
+		sy = card_sy(cnt)
+
+		// hover (マウスが上にある?) 検査
+		ok = true
+		ok = ok && px < mouse_px && mouse_px < px + sx
+		ok = ok && py < mouse_py && mouse_py < py + sy
+		hover = ok
+
+		// 選択状態ならボーダーラインを描く。
+		if card_is_selected(cnt) {
+			hsvcolor 10, 250, 250 // オレンジ
+			boxf px - 2, py - 2, px + sx + 2, py + sy + 2
+		}
+
+		// 背景色
+		if hover {
+			hsvcolor 110, 30, 230 // うすい青
+		} else {
+			hsvcolor 0, 0, 230 // うすい灰色
+		}
+		boxf px, py, px + sx, py + sy
+
+		pos px + 8, py + 8
+		hsvcolor , , 33 // 黒
+		mes card_extensions(cnt)
+
+		pos px + 8, py + sy - 16
+		mes card_file_names(cnt)
+
+		// クリックされたら選択あるいは選択解除。
+		if hover && left_click {
+			card_is_selected(cnt) ^= true
+		}
+	loop
+
+	redraw
+	return
+
+// ウィンドウのサイズが変わったときに呼ばれる。
+*l_on_size
+
+	// サイズの変更中も自動で再描画する。
+	gosub *l_update
+	gosub *l_render
+	return

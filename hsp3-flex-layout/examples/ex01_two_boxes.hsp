@@ -1,0 +1,57 @@
+// 2つの矩形がウィンドウの中央にいい感じの位置取りで表示される。
+// ウィンドウの大きさが変わってもいい感じの位置になる。
+
+#include "../dist/mod_hflex.hsp"
+
+	// ウィンドウ全体をおおうフレックスボックスを作る。
+	flexbox = hflex_new_node()
+	window_box = flexbox
+
+	// ウィンドウの中身を水平方向 (X) に適度に間隔を開けて配置する設定。
+	hflex_set_justify_content  flexbox, 6 // space-around
+	// ウィンドウの中身を垂直方向 (Y) に中央寄せする設定。
+	hflex_set_align_items      flexbox, 3 // center
+
+	// 矩形を2つ追加する。
+	dim rect_boxes, 2
+	repeat 2
+		flexbox = hflex_new_node()
+		rect_boxes(cnt) = flexbox
+		hflex_add_child window_box, flexbox
+
+		// 矩形の大きさを設定する。
+		hflex_set_flex_basis flexbox, 50.0
+		hflex_set_height     flexbox, 50.0
+	loop
+
+	gsel , -1
+	screen 2, ginfo_dispx, ginfo_dispy, , , , 640, 480
+
+	repeat
+		// レイアウトを計算する。
+		hflex_layout window_box, ginfo_winx, ginfo_winy, 1.0
+
+		// 再描画:
+		redraw 2
+
+		hsvcolor ,, 255 // 白
+		boxf
+
+		// 2個の矩形の描画:
+		repeat 2
+			px = 0.0
+			py = 0.0
+			sx = 0.0
+			sy = 0.0
+
+			// レイアウトの計算結果から、この矩形の位置と大きさを取り出す。
+			hflex_get_result_rect rect_boxes(cnt), px, py, sx, sy
+
+			// 指定された位置に矩形を描画する。
+			hsvcolor ,, 33 // 黒
+			boxf px, py, px + sx, py + sy
+		loop
+
+		redraw
+		await 1000 / 60
+	loop

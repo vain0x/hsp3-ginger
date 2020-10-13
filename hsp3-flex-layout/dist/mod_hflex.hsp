@@ -1,0 +1,38 @@
+#ifndef included_mod_hflex_hsp
+#define included_mod_hflex_hsp
+
+// target/Win32-Debug/bin/hsp3_flex_layout.dll をパスの通ったディレクトリに置く。
+#uselib "hsp3_flex_layout.dll"
+#func global hflex_init                 "_hflex_init@0"
+#func global hflex_get_error            "_hflex_get_error@0"
+#func global hflex_new_node             "_hflex_new_node@0"
+#func global hflex_free_node            "_hflex_free_node@4" sptr
+#func global hflex_free_node_recursive  "_hflex_free_nodeRecursive@4" sptr
+#func global hflex_insert_child         "_hflex_insert_child@12" sptr, sptr, int
+#func global hflex_add_child            "_hflex_add_child@8" sptr, sptr
+#func global hflex_remove_child         "_hflex_remove_child@8"
+#func global hflex_get_child            "_hflex_get_child@8" sptr, int
+#func global hflex_get_children_count   "_hflex_get_children_count@4" sptr
+#func global hflex_layout               "_hflex_layout@28" sptr, double, double, double
+#func global hflex_print                "_hflex_print@8" sptr, int
+
+#func global hflex_set_margin           "_hflex_set_margin@36" sptr, double, double, double, double
+
+#func global hflex_set_flex_flow        "_hflex_set_flex_flow@12" sptr, int, int
+#func global hflex_set_justify_content  "_hflex_set_justify_content@8" sptr, int
+#func global hflex_set_align_items      "_hflex_set_align_items@8" sptr, int
+#func global hflex_set_align_content    "_hflex_set_align_content@8" sptr, int
+
+#func global hflex_set_flex             "_hflex_set_flex@16" sptr, double, double, double
+#func global hflex_set_flex_basis       "_hflex_set_flex_basis@12" sptr, double
+#func global hflex_set_width            "_hflex_set_width@12" sptr, double
+#func global hflex_set_height           "_hflex_set_height@12" sptr, double
+
+#func global hflex_get_result_rect      "_hflex_get_result_rect@20" sptr, var, var, var, var
+
+#module m_hflex
+#global
+
+	hflex_init
+
+#endif
