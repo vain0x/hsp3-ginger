@@ -28,21 +28,19 @@
         "url": "https://github.com/vain0x/hsp3-ginger/issues"
     },
     "scripts": {
-        "prepublish": "tsc -b",
-        "postinstall": "node ./node_modules/vscode/bin/install",
         "build": "tsc -b",
         "watch": "tsc -w",
         "vsce:package": "vsce package --out hsp3-debug-window-adapter.vsix"
     },
     "dependencies": {
         "await-notify": "^1.0.1",
-        "vscode-debugadapter": "^1.37.1"
+        "vscode-debugadapter": "^1.44.0"
     },
     "devDependencies": {
-        "@types/node": "^12.12.12",
-        "typescript": "^3.7.2",
-        "vsce": "^1.69.0",
-        "vscode": "^1.1.36"
+        "@types/node": "^14.14.25",
+        "@types/vscode": "^1.53.0",
+        "typescript": "^4.1.3",
+        "vsce": "^1.85.0"
     },
     "main": "./out/extension",
     "activationEvents": [
