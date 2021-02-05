@@ -8,7 +8,7 @@ import {
 } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
 import { createHsptmp } from "./ext_command_create_hsptmp"
-import { withNotify, DomainError } from "./extension"
+import { withNotify } from "./extension"
 import { HSP3_LANG_ID } from "./ext_constants"
 
 /**
