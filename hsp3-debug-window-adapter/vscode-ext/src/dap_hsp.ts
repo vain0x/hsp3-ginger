@@ -159,7 +159,7 @@ const compileHsp = async (program: string, hsp3Root: string, extensionRoot: stri
     writeTrace("spawn builder", { builderExe, builderArgs, workDir })
 
     // ビルドツールを起動・監視する。これによりオブジェクトファイルが生成されるはず。
-    const [stdout, stderr, exitCode] = await new Promise<[string, string, number]>((resolve, reject) => {
+    const [stdout, stderr, exitCode] = await new Promise<[string, string, number | null]>((resolve, reject) => {
         const builderProcess = spawn(
             builderExe,
             builderArgs,
