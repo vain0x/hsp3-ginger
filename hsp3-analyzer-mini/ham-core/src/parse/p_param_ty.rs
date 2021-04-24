@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum PParamTy {
     Str,
@@ -31,7 +29,7 @@ pub(crate) enum PParamTy {
 }
 
 impl PParamTy {
-    fn parse(s: &str) -> Option<PParamTy> {
+    pub(crate) fn parse(s: &str) -> Option<PParamTy> {
         let param_ty = match s {
             "label" => PParamTy::Label,
             "str" => PParamTy::Str,
@@ -56,13 +54,5 @@ impl PParamTy {
             _ => return None,
         };
         Some(param_ty)
-    }
-}
-
-impl FromStr for PParamTy {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, ()> {
-        PParamTy::parse(s).ok_or(())
     }
 }

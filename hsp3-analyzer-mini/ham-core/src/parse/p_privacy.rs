@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum PPrivacy {
     Global,
@@ -7,20 +5,12 @@ pub(crate) enum PPrivacy {
 }
 
 impl PPrivacy {
-    fn parse(s: &str) -> Option<PPrivacy> {
+    pub(crate) fn parse(s: &str) -> Option<PPrivacy> {
         let it = match s {
             "global" => PPrivacy::Global,
             "local" => PPrivacy::Local,
             _ => return None,
         };
         Some(it)
-    }
-}
-
-impl FromStr for PPrivacy {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<PPrivacy, ()> {
-        PPrivacy::parse(s).ok_or(())
     }
 }

@@ -45,13 +45,9 @@ fn parse_privacy(px: &mut Px) -> Option<(PPrivacy, PToken)> {
         return None;
     }
 
-    match px.next_token().body_text().parse::<PPrivacy>() {
-        Ok(privacy) => {
-            let token = px.bump();
-            Some((privacy, token))
-        }
-        Err(()) => None,
-    }
+    let privacy = PPrivacy::parse(px.next_token().body_text())?;
+    let token = px.bump();
+    Some((privacy, token))
 }
 
 fn parse_param_ty(px: &mut Px) -> Option<(PParamTy, PToken)> {
@@ -59,13 +55,9 @@ fn parse_param_ty(px: &mut Px) -> Option<(PParamTy, PToken)> {
         return None;
     }
 
-    match px.next_token().body_text().parse::<PParamTy>() {
-        Ok(param_ty) => {
-            let token = px.bump();
-            Some((param_ty, token))
-        }
-        Err(()) => None,
-    }
+    let param_ty = PParamTy::parse(px.next_token().body_text())?;
+    let token = px.bump();
+    Some((param_ty, token))
 }
 
 fn parse_end_of_preproc(px: &mut Px) {
@@ -79,13 +71,9 @@ fn parse_const_ty(px: &mut Px) -> Option<(PConstTy, PToken)> {
         return None;
     }
 
-    match px.next_token().body_text().parse::<PConstTy>() {
-        Ok(const_ty) => {
-            let token = px.bump();
-            Some((const_ty, token))
-        }
-        Err(()) => None,
-    }
+    let const_ty = PConstTy::parse(px.next_token().body_text())?;
+    let token = px.bump();
+    Some((const_ty, token))
 }
 
 fn parse_const_stmt(hash: PToken, px: &mut Px) -> PConstStmt {

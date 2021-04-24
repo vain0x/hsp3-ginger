@@ -40,13 +40,9 @@ fn parse_jump_modifier(px: &mut Px) -> Option<(PJumpModifier, PToken)> {
         return None;
     }
 
-    match px.next_token().body_text().parse::<PJumpModifier>() {
-        Ok(jump_modifier) => {
-            let token = px.bump();
-            Some((jump_modifier, token))
-        }
-        Err(()) => None,
-    }
+    let jump_modifier = PJumpModifier::parse(px.next_token().body_text())?;
+    let token = px.bump();
+    Some((jump_modifier, token))
 }
 
 fn lookahead_after_paren(mut i: usize, px: &mut Px) -> ExprLikeStmtKind {
