@@ -41,9 +41,13 @@
       "type": "object",
       "title": "hsp3-analyzer-mini config",
       "properties": {
+        "hsp3-analyzer-mini.hsp3-home": {
+          "type": "string",
+          "description": "HSP3のインストールディレクトリへの絶対パス。未設定のときは環境変数 HSP3_HOME を参照します。"
+        },
         "hsp3-analyzer-mini.hsp3-root": {
           "type": "string",
-          "description": "HSP のディレクトリへの絶対パス。未指定時は、環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。"
+          "description": "[廃止予定] 'hsp3-analyzer-mini.hsp3-home' を使ってください。"
         },
         "hsp3-analyzer-mini.lsp-bin": {
           "type": "string",

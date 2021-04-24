@@ -24,23 +24,25 @@ const getLspBin = (context: ExtensionContext) => {
   return context.asAbsolutePath(relativePath)
 }
 
-const getHspRoot = () => {
+const getHsp3Home = () => {
   // 現在の最新版の既定のインストールディレクトリ
   const DEFAULT_DIR = "C:/Program Files (x86)/hsp351"
 
   const config = workspace.getConfiguration("hsp3-analyzer-mini")
-  return config.get("hsp3-root") as string | undefined
+  return config.get<string>("hsp3-home")
+    || process.env.HSP3_HOME
+    || config.get<string>("hsp3-root")
     || process.env.HSP3_ROOT
     || DEFAULT_DIR
 }
 
 const startLspClient = (context: ExtensionContext) => {
   const lspFullPath = getLspBin(context)
-  const hspRoot = getHspRoot()
+  const hsp3Home = getHsp3Home()
 
   let serverOptions: ServerOptions = {
     command: lspFullPath,
-    args: ["--hsp", hspRoot, "lsp"],
+    args: ["--hsp", hsp3Home, "lsp"],
   }
 
   let clientOptions: LanguageClientOptions = {
