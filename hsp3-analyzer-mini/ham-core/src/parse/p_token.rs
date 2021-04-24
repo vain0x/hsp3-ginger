@@ -70,8 +70,10 @@ impl PToken {
                 trailing: trailing.split_off(0),
             });
 
-            // 改行の前に文の終わりを挿入する。
-            if tokens.peek().map_or(false, |t| t.kind == TokenKind::Eol) {
+            // 行末に文の終わりを挿入する。
+            if tokens.peek().map_or(false, |t| {
+                t.kind == TokenKind::Newlines || t.kind == TokenKind::Eof
+            }) {
                 let loc = p_tokens.last().map(|t| t.behind()).unwrap_or_default();
 
                 p_tokens.push(PToken {
@@ -95,35 +97,19 @@ impl PToken {
 
 impl Debug for PToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self
-            .leading
-            .iter()
-            .any(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space)
-        {
+        if self.leading.iter().any(|token| !token.kind.is_space()) {
             let mut list = f.debug_list();
-            list.entries(
-                self.leading
-                    .iter()
-                    .filter(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space),
-            );
+            list.entries(self.leading.iter().filter(|token| !token.kind.is_space()));
             list.finish()?;
             write!(f, "> ")?;
         }
 
         Debug::fmt(&self.body, f)?;
 
-        if self
-            .trailing
-            .iter()
-            .any(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space)
-        {
+        if self.trailing.iter().any(|token| !token.kind.is_space()) {
             write!(f, " <")?;
             let mut list = f.debug_list();
-            list.entries(
-                self.trailing
-                    .iter()
-                    .filter(|token| token.kind != TokenKind::Eol && token.kind != TokenKind::Space),
-            );
+            list.entries(self.trailing.iter().filter(|token| !token.kind.is_space()));
             list.finish()?;
         }
 

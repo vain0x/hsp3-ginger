@@ -17,7 +17,6 @@ pub(crate) fn parse_args(px: &mut Px) -> Vec<PArg> {
         match px.next() {
             TokenKind::Eof
             | TokenKind::Eos
-            | TokenKind::Eol
             | TokenKind::LeftBrace
             | TokenKind::RightBrace
             | TokenKind::Colon

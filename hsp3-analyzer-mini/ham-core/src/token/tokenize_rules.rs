@@ -5,6 +5,7 @@ use crate::{analysis::ADoc, utils::rc_str::RcStr};
 
 type Tx = TokenizeContext;
 
+/// 先読みの結果
 #[derive(PartialEq, Eq)]
 enum Lookahead {
     Eof,
@@ -13,7 +14,7 @@ enum Lookahead {
     Lf,
     EscapedCrLf,
     EscapedLf,
-    Space,
+    Blank,
     Semi,
     SlashSlash,
     SlashStar,
@@ -26,10 +27,10 @@ enum Lookahead {
     HereDocument,
     Ident,
     Token(TokenKind, usize),
-    Other,
+    Bad,
 }
 
-/// 何文字か先読みして、次の字句を推測する。
+/// 何文字か先読みして、次の字句を決定する。
 fn lookahead(tx: &mut Tx) -> Lookahead {
     match tx.next() {
         '\0' => Lookahead::Eof,
@@ -40,7 +41,7 @@ fn lookahead(tx: &mut Tx) -> Lookahead {
         '\n' => Lookahead::Lf,
         ' ' | '\t' | '\u{3000}' => {
             // U+3000: 全角空白
-            Lookahead::Space
+            Lookahead::Blank
         }
         '0' => match tx.nth(1) {
             'b' | 'B' => Lookahead::ZeroB,
@@ -126,26 +127,31 @@ fn lookahead(tx: &mut Tx) -> Lookahead {
             _ => Lookahead::Token(TokenKind::Star, 1),
         },
         '1'..='9' => Lookahead::Digit,
-        'A'..='Z' | 'a'..='z' | '_' | '@' => Lookahead::Ident,
+        'A'..='Z' | 'a'..='z' | '_' | '@' | '`' => Lookahead::Ident,
         c if c.is_whitespace() => {
             // 全角空白
-            Lookahead::Space
+            Lookahead::Blank
         }
         c if !c.is_control() && !c.is_ascii_punctuation() => {
-            // 制御文字や、上記に列挙されていない記号を除いて、ほとんどの文字は識別子として認める。
+            // 制御文字や記号を除いて、ほとんどの文字は識別子として認める。
             Lookahead::Ident
         }
-        _ => Lookahead::Other,
+        _ => Lookahead::Bad,
     }
 }
 
-fn eat_spaces(tx: &mut Tx) {
+/// 改行でない空白文字を読み飛ばす。
+fn eat_blank(tx: &mut Tx) {
     loop {
         match tx.next() {
             ' ' | '\t' | '\u{3000}' => {
                 tx.bump();
             }
-            '\r' | '\n' => break,
+            '\r' => match tx.nth(1) {
+                '\n' => break,
+                _ => tx.bump(),
+            },
+            '\n' => break,
             c if c.is_whitespace() => {
                 tx.bump();
             }
@@ -165,6 +171,8 @@ fn eat_line(tx: &mut Tx) {
 
             tx.bump_many(len)
         }
+
+        // 改行が見つからない場合は、いま最終行なので、ファイルの末尾まで読む。
         None => tx.bump_all(),
     }
 }
@@ -206,6 +214,7 @@ fn tokenize_digit_suffix(tx: &mut TokenizeContext) {
     }
 }
 
+/// エスケープシーケンスを含む引用符の中身を読み進める。`quote` が出てきたら終わり。
 fn eat_escaped_text(quote: char, tx: &mut Tx) {
     loop {
         match tx.next() {
@@ -223,40 +232,38 @@ fn eat_escaped_text(quote: char, tx: &mut Tx) {
 pub(crate) fn do_tokenize(tx: &mut Tx) {
     loop {
         match lookahead(tx) {
-            Lookahead::Eof => {
-                tx.commit(TokenKind::Eol);
-                break;
-            }
+            Lookahead::Eof => break,
             Lookahead::Cr => {
                 tx.bump();
-                eat_spaces(tx);
-                tx.commit(TokenKind::Space);
+
+                eat_blank(tx);
+                tx.commit(TokenKind::Blank);
             }
             Lookahead::CrLf => {
                 tx.bump_many(2);
 
-                tx.commit(TokenKind::Eol);
+                tx.commit(TokenKind::Newlines);
             }
             Lookahead::Lf => {
                 tx.bump();
 
-                tx.commit(TokenKind::Eol);
+                tx.commit(TokenKind::Newlines);
             }
             Lookahead::EscapedCrLf => {
                 tx.bump_many(3);
 
-                eat_spaces(tx);
-                tx.commit(TokenKind::Space);
+                eat_blank(tx);
+                tx.commit(TokenKind::Blank);
             }
             Lookahead::EscapedLf => {
                 tx.bump_many(2);
 
-                eat_spaces(tx);
-                tx.commit(TokenKind::Space);
+                eat_blank(tx);
+                tx.commit(TokenKind::Blank);
             }
-            Lookahead::Space => {
-                eat_spaces(tx);
-                tx.commit(TokenKind::Space);
+            Lookahead::Blank => {
+                eat_blank(tx);
+                tx.commit(TokenKind::Blank);
             }
             Lookahead::Semi => {
                 tx.bump();
@@ -353,15 +360,15 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
                 tx.bump_many(len);
                 tx.commit(kind);
             }
-            Lookahead::Other => {
+            Lookahead::Bad => {
                 tx.bump();
 
-                while let Lookahead::Other = lookahead(tx) {
+                while let Lookahead::Bad = lookahead(tx) {
                     tx.bump();
                 }
 
                 assert!(!tx.current_text().is_empty());
-                tx.commit(TokenKind::Other);
+                tx.commit(TokenKind::Bad);
             }
         }
     }
@@ -386,12 +393,9 @@ mod tests {
                 .collect::<Vec<_>>()
         };
 
-        // 末尾には必ず Eol, Eof がつく。個々の表明に含める必要はないので、ここで削除しておく。
+        // 末尾には必ず Eof がつく。個々の表明に含める必要はないので、ここで削除しておく。
         let eof = kinds.pop();
         assert_eq!(eof, Some(TokenKind::Eof));
-
-        let eol = kinds.pop();
-        assert_eq!(eol, Some(TokenKind::Eol));
 
         kinds
     }
@@ -405,13 +409,14 @@ mod tests {
     fn space() {
         assert_eq!(
             tokenize_str_to_kinds(" \r\n\t\u{3000}　"),
-            vec![TokenKind::Space, TokenKind::Eol, TokenKind::Space]
+            vec![TokenKind::Blank, TokenKind::Newlines, TokenKind::Blank]
         );
     }
 
     #[test]
     fn cr() {
-        assert_eq!(tokenize_str_to_kinds("\r"), vec![TokenKind::Space]);
+        assert_eq!(tokenize_str_to_kinds("\r"), vec![TokenKind::Blank]);
+        assert_eq!(tokenize_str_to_kinds("\r\r"), vec![TokenKind::Blank]);
     }
 
     #[test]
@@ -423,7 +428,7 @@ mod tests {
     fn comment_semi_with_eol() {
         assert_eq!(
             tokenize_str_to_kinds("; comment\n    "),
-            vec![TokenKind::Comment, TokenKind::Eol, TokenKind::Space]
+            vec![TokenKind::Comment, TokenKind::Newlines, TokenKind::Blank]
         );
     }
 
@@ -436,7 +441,7 @@ mod tests {
     fn comment_slash_with_eol() {
         assert_eq!(
             tokenize_str_to_kinds("// 🐧\n"),
-            vec![TokenKind::Comment, TokenKind::Eol]
+            vec![TokenKind::Comment, TokenKind::Newlines]
         );
     }
 
@@ -572,6 +577,11 @@ mod tests {
     }
 
     #[test]
+    fn ident_with_backticks() {
+        assert_eq!(tokenize_str_to_kinds("`"), vec![TokenKind::Ident]);
+    }
+
+    #[test]
     fn punctuations() {
         assert_eq!(
             tokenize_str_to_kinds("(){}=->"),
@@ -593,13 +603,13 @@ mod tests {
             vec![
                 TokenKind::Hash,
                 TokenKind::Ident,
-                TokenKind::Space,
-                TokenKind::Space,
+                TokenKind::Blank,
+                TokenKind::Blank,
                 TokenKind::Ident,
-                TokenKind::Space,
+                TokenKind::Blank,
                 TokenKind::Number,
-                TokenKind::Space,
-                TokenKind::Eol,
+                TokenKind::Blank,
+                TokenKind::Newlines,
                 TokenKind::Ident,
             ]
         )

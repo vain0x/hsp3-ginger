@@ -14,13 +14,14 @@ pub(crate) struct TokenData {
 impl fmt::Debug for TokenData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
-            TokenKind::Space => write!(f, "Space({})", self.text.len()),
+            TokenKind::Blank => write!(f, "Blank({})", self.text.len()),
+            TokenKind::Newlines => write!(f, "Newlines({:?})", self.text),
             TokenKind::Comment
             | TokenKind::Number
             | TokenKind::Char
             | TokenKind::Str
             | TokenKind::Ident
-            | TokenKind::Other => fmt::Debug::fmt(&self.text, f),
+            | TokenKind::Bad => fmt::Debug::fmt(&self.text, f),
             _ => write!(f, "{:?}", self.kind),
         }
     }
