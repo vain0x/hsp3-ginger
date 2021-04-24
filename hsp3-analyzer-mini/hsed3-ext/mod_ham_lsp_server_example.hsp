@@ -23,15 +23,15 @@
     sdim s_hover_text, s_hover_text_capacity
     dim s_hover_text_len
 
-    s_hsp3_root = dir_exe
-    s_hsp3_root_len = strlen(s_hsp3_root)
+    s_hsp3_home = dir_exe
+    s_hsp3_home_len = strlen(s_hsp3_home)
 
 	s_uri = "hsed:///footies/1/"
     s_uri_len = strlen(s_uri)
     s_version = 1
 
     // 言語サーバーを生成する。
-    ham_create s_hsp3_root, s_hsp3_root_len
+    ham_create s_hsp3_home, s_hsp3_home_len
     s_ham = stat
     if s_ham == 0 {
         mes "ham_create に失敗しました。"
