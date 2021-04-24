@@ -18,6 +18,7 @@ pub(super) struct LangService {
     hsp3_home: PathBuf,
     docs_opt: Option<Docs>,
     doc_changes: Vec<DocChange>,
+    hsphelp_symbols: Vec<CompletionItem>,
 }
 
 impl LangService {
@@ -71,6 +72,34 @@ impl LangService {
             .collect::<Vec<_>>();
 
         self.sem.last_symbol_id += symbols.len();
+
+        self.hsphelp_symbols = symbols
+            .iter()
+            .map(|symbol| {
+                let kind = match symbol.kind {
+                    sem::SymbolKind::Label => CompletionItemKind::Value,
+                    sem::SymbolKind::Static | sem::SymbolKind::Param { .. } => {
+                        CompletionItemKind::Variable
+                    }
+                    sem::SymbolKind::Macro { .. } | sem::SymbolKind::Command { .. } => {
+                        CompletionItemKind::Function
+                    }
+                };
+                CompletionItem {
+                    kind: Some(kind),
+                    label: symbol.name.to_string(),
+                    detail: symbol.details.description.as_ref().map(|s| s.to_string()),
+                    documentation: if symbol.details.documentation.is_empty() {
+                        None
+                    } else {
+                        Some(Documentation::String(
+                            symbol.details.documentation.join("\r\n\r\n"),
+                        ))
+                    },
+                    ..Default::default()
+                }
+            })
+            .collect();
 
         self.sem.add_hs_symbols(doc, symbols);
 
@@ -152,7 +181,13 @@ impl LangService {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            assists::completion::completion(uri, position, docs, &mut self.wa)
+            assists::completion::completion(
+                uri,
+                position,
+                docs,
+                &mut self.wa,
+                &self.hsphelp_symbols,
+            )
         };
         go().unwrap_or_else(assists::completion::incomplete_completion_list)
     }

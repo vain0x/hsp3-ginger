@@ -20,6 +20,7 @@ pub(crate) fn completion(
     position: Position,
     docs: &Docs,
     wa: &mut AWorkspaceAnalysis,
+    other_items: &[CompletionItem],
 ) -> Option<CompletionList> {
     let mut items = vec![];
 
@@ -64,6 +65,8 @@ pub(crate) fn completion(
             }
         }
     }
+
+    items.extend(other_items.iter().cloned());
 
     Some(CompletionList {
         is_incomplete: false,
