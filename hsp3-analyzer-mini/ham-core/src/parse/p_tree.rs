@@ -141,13 +141,13 @@ impl Debug for PCompound {
 
 /// 丸カッコで囲まれた式
 #[must_use]
-pub(crate) struct PGroupExpr {
+pub(crate) struct PParenExpr {
     pub(crate) left_paren: PToken,
     pub(crate) body_opt: Option<Box<PExpr>>,
     pub(crate) right_paren_opt: Option<PToken>,
 }
 
-impl Debug for PGroupExpr {
+impl Debug for PParenExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "group(")?;
         debug_fmt_opt(self.body_opt.as_ref(), "expr", f)?;
@@ -202,7 +202,7 @@ pub(crate) enum PExpr {
     Literal(PToken),
     Label(PLabel),
     Compound(PCompound),
-    Group(PGroupExpr),
+    Paren(PParenExpr),
     Prefix(PPrefixExpr),
     Infix(PInfixExpr),
 }
@@ -213,7 +213,7 @@ impl Debug for PExpr {
             PExpr::Literal(it) => Debug::fmt(it, f),
             PExpr::Label(it) => Debug::fmt(it, f),
             PExpr::Compound(it) => Debug::fmt(it, f),
-            PExpr::Group(it) => Debug::fmt(it, f),
+            PExpr::Paren(it) => Debug::fmt(it, f),
             PExpr::Prefix(it) => Debug::fmt(it, f),
             PExpr::Infix(it) => Debug::fmt(it, f),
         }

@@ -182,7 +182,7 @@ fn on_expr(expr: &PExpr, ax: &mut Ax) {
             }
         }
         PExpr::Compound(compound) => on_compound_use(compound, ax),
-        PExpr::Group(PGroupExpr { body_opt, .. }) => on_expr_opt(body_opt.as_deref(), ax),
+        PExpr::Paren(PParenExpr { body_opt, .. }) => on_expr_opt(body_opt.as_deref(), ax),
         PExpr::Prefix(PPrefixExpr { prefix: _, arg_opt }) => on_expr_opt(arg_opt.as_deref(), ax),
         PExpr::Infix(PInfixExpr {
             infix: _,

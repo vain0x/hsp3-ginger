@@ -1,6 +1,6 @@
 use super::{
-    p_token::PToken, parse_context::Px, PArg, PCompound, PDotArg, PExpr, PGroupExpr, PInfixExpr,
-    PLabel, PNameDot, PNameParen, PPrefixExpr,
+    p_token::PToken, parse_context::Px, PArg, PCompound, PDotArg, PExpr, PInfixExpr, PLabel,
+    PNameDot, PNameParen, PParenExpr, PPrefixExpr,
 };
 use crate::token::TokenKind;
 
@@ -77,11 +77,11 @@ pub(crate) fn parse_compound(px: &mut Px) -> Option<PCompound> {
     }
 }
 
-fn parse_group_expr(px: &mut Px) -> Option<PGroupExpr> {
+fn parse_paren_expr(px: &mut Px) -> Option<PParenExpr> {
     let left_paren = px.eat(TokenKind::LeftParen)?;
     let body_opt = parse_expr(px).map(Box::new);
     let right_paren_opt = px.eat(TokenKind::RightParen);
-    Some(PGroupExpr {
+    Some(PParenExpr {
         left_paren,
         body_opt,
         right_paren_opt,
@@ -91,7 +91,7 @@ fn parse_group_expr(px: &mut Px) -> Option<PGroupExpr> {
 pub(crate) fn parse_atomic_expr(px: &mut Px) -> Option<PExpr> {
     match px.next() {
         TokenKind::Ident => parse_compound(px).map(PExpr::Compound),
-        TokenKind::LeftParen => parse_group_expr(px).map(PExpr::Group),
+        TokenKind::LeftParen => parse_paren_expr(px).map(PExpr::Paren),
         TokenKind::Star => parse_label(px).map(PExpr::Label),
         TokenKind::Number | TokenKind::Char | TokenKind::Str => Some(PExpr::Literal(px.bump())),
         _ => None,
