@@ -1,7 +1,10 @@
 use super::to_loc;
 use crate::{
+    analysis::{
+        analyze::ACompletionItem, comment::calculate_details, integrate::AWorkspaceAnalysis,
+        ASymbolKind,
+    },
     lang_service::docs::Docs,
-    sem::{self, ProjectSem},
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 
@@ -16,43 +19,50 @@ pub(crate) fn completion(
     uri: Url,
     position: Position,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut AWorkspaceAnalysis,
 ) -> Option<CompletionList> {
     let mut items = vec![];
-    let mut symbols = vec![];
 
     let loc = to_loc(&uri, position, docs)?;
 
-    sem.get_symbol_list(loc.doc, loc.start(), &mut symbols);
+    for item in wa.collect_completion_items(loc) {
+        match item {
+            ACompletionItem::Symbol(symbol) => {
+                let details = calculate_details(&symbol.comments);
 
-    for symbol in symbols {
-        let kind = match symbol.kind {
-            sem::SymbolKind::Macro { ctype: true, .. }
-            | sem::SymbolKind::Command { ctype: true, .. } => CompletionItemKind::Function,
-            sem::SymbolKind::Label | sem::SymbolKind::Macro { .. } => CompletionItemKind::Constant,
-            sem::SymbolKind::Command { .. } => CompletionItemKind::Method, // :thinking_face:
-            sem::SymbolKind::Param { .. } | sem::SymbolKind::Static => CompletionItemKind::Variable,
-        };
+                use CompletionItemKind as K;
 
-        items.push(CompletionItem {
-            kind: Some(kind),
-            label: symbol.name.to_string(),
-            detail: symbol.details.description.as_ref().map(|s| s.to_string()),
-            documentation: if symbol.details.documentation.is_empty() {
-                None
-            } else {
-                Some(Documentation::String(
-                    symbol.details.documentation.join("\r\n\r\n"),
-                ))
-            },
-            filter_text: if symbol.name.as_str().starts_with("#") {
-                Some(symbol.name.as_str().chars().skip(1).collect::<String>())
-            } else {
-                None
-            },
-            data: Some(serde_json::to_value(&symbol.symbol_id).unwrap()),
-            ..CompletionItem::default()
-        })
+                let kind = match symbol.kind {
+                    ASymbolKind::Unresolved => K::Text,
+                    ASymbolKind::Command | ASymbolKind::CommandOrFunc | ASymbolKind::Func => {
+                        K::Function
+                    }
+                    ASymbolKind::CommandOrFuncOrVar | ASymbolKind::PreProc => K::Keyword,
+                    ASymbolKind::Const => K::Constant,
+                    ASymbolKind::Directory => K::Folder,
+                    ASymbolKind::Enum => K::EnumMember,
+                    ASymbolKind::Field => K::Field,
+                    ASymbolKind::File => K::File,
+                    ASymbolKind::Label => K::Reference, // ?
+                    ASymbolKind::Module => K::Module,
+                    ASymbolKind::Param => K::Variable, // FIXME: intなどの値のパラメータはconstant、変数などの参照渡しパラメータはvariable
+                    ASymbolKind::StaticVar => K::Variable,
+                    ASymbolKind::Type => K::Class,
+                };
+
+                items.push(CompletionItem {
+                    kind: Some(kind),
+                    label: symbol.name.to_string(),
+                    detail: details.desc.map(|s| s.to_string()),
+                    documentation: if details.docs.is_empty() {
+                        None
+                    } else {
+                        Some(Documentation::String(details.docs.join("\r\n\r\n")))
+                    },
+                    ..CompletionItem::default()
+                });
+            }
+        }
     }
 
     Some(CompletionList {

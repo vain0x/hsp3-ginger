@@ -12,7 +12,7 @@ fn str_is_ornament_comment(s: &str) -> bool {
     s.chars().all(char_is_ornament_comment)
 }
 
-fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
+pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
     let mut description = None;
     let mut documentation = vec![];
 

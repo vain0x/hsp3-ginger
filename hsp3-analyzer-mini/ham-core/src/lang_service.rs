@@ -152,7 +152,7 @@ impl LangService {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            assists::completion::completion(uri, position, docs, &mut self.sem)
+            assists::completion::completion(uri, position, docs, &mut self.wa)
         };
         go().unwrap_or_else(assists::completion::incomplete_completion_list)
     }

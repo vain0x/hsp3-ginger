@@ -1,7 +1,7 @@
 use super::{
     a_scope::{ADefFunc, ADefFuncData, ALocalScope, AModule, AModuleData},
     a_symbol::{ASymbolData, AWsSymbol},
-    ADoc, ALoc, AScope, ASymbol, ASymbolKind,
+    ADoc, ALoc, APos, AScope, ASymbol, ASymbolKind,
 };
 use crate::{
     parse::*,
@@ -571,4 +571,56 @@ impl AAnalysis {
             None => false,
         }
     }
+
+    pub(crate) fn resolve_scope_at(&self, pos: APos) -> ALocalScope {
+        let module_opt: Option<AModule> = self
+            .modules
+            .iter()
+            .position(|m| m.content_loc.range.is_touched(pos))
+            .map(AModule::new);
+
+        let deffunc_opt: Option<ADefFunc> = self
+            .deffuncs
+            .iter()
+            .position(|d| d.content_loc.range.is_touched(pos))
+            .map(ADefFunc::new);
+
+        ALocalScope {
+            module_opt,
+            deffunc_opt,
+        }
+    }
+
+    pub(crate) fn collect_local_completion_items<'a>(
+        &'a self,
+        current_scope: ALocalScope,
+        completion_items: &mut Vec<ACompletionItem<'a>>,
+    ) {
+        for s in &self.symbols {
+            match s.scope {
+                AScope::Local(scope) if scope.is_visible_to(current_scope) => {
+                    completion_items.push(ACompletionItem::Symbol(s));
+                }
+                AScope::Global | AScope::Local(_) => continue,
+            }
+        }
+    }
+
+    pub(crate) fn collect_global_completion_items<'a>(
+        &'a self,
+        completion_items: &mut Vec<ACompletionItem<'a>>,
+    ) {
+        for s in &self.symbols {
+            match s.scope {
+                AScope::Global => {
+                    completion_items.push(ACompletionItem::Symbol(s));
+                }
+                AScope::Local(_) => continue,
+            }
+        }
+    }
+}
+
+pub(crate) enum ACompletionItem<'a> {
+    Symbol(&'a ASymbolData),
 }

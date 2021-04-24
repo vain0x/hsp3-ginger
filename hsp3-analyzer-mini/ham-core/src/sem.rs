@@ -803,6 +803,7 @@ impl ProjectSem {
         self.last_symbol_id = last_symbol_id;
     }
 
+    #[cfg(unused)]
     pub(crate) fn get_symbol_list(&mut self, doc: ADoc, pos: APos, symbols: &mut Vec<Rc<Symbol>>) {
         self.compute();
 

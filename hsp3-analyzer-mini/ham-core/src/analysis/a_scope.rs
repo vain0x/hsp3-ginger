@@ -4,10 +4,24 @@ use crate::{
     utils::{id::Id, rc_str::RcStr},
 };
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub(crate) struct ALocalScope {
     pub(crate) module_opt: Option<AModule>,
     pub(crate) deffunc_opt: Option<ADefFunc>,
+}
+
+impl ALocalScope {
+    pub(crate) fn is_outside_module(self) -> bool {
+        self.module_opt.is_none()
+    }
+
+    /// スコープselfで定義されたシンボルが、スコープotherにおいてみえるか？
+    pub(crate) fn is_visible_to(self, other: ALocalScope) -> bool {
+        // 異なるモジュールに定義されたものはみえない。
+        // deffuncの中で定義されたものは、その中でしかみえないが、外で定義されたものは中からもみえる。
+        self.module_opt == other.module_opt
+            && (self.deffunc_opt.is_none() || self.deffunc_opt == other.deffunc_opt)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

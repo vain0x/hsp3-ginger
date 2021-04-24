@@ -1,5 +1,9 @@
-use super::{a_symbol::AWsSymbol, analyze::AAnalysis, ADoc, ALoc, APos};
-use crate::utils::rc_str::RcStr;
+use super::{
+    a_symbol::AWsSymbol,
+    analyze::{AAnalysis, ACompletionItem},
+    ADoc, ALoc, APos,
+};
+use crate::{analysis::a_scope::ALocalScope, utils::rc_str::RcStr};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
@@ -108,6 +112,34 @@ impl AWorkspaceAnalysis {
                 locs.push(loc);
             }
         }
+    }
+
+    pub(crate) fn collect_completion_items(&mut self, loc: ALoc) -> Vec<ACompletionItem> {
+        self.compute();
+
+        let mut completion_items = vec![];
+
+        let mut scope = ALocalScope::default();
+
+        if let Some(doc_analysis) = self.doc_analysis_map.get(&loc.doc) {
+            let pos = loc.start();
+            scope = doc_analysis.resolve_scope_at(pos);
+            doc_analysis.collect_local_completion_items(scope, &mut completion_items);
+        }
+
+        if scope.is_outside_module() {
+            for (&doc, doc_analysis) in &self.doc_analysis_map {
+                if doc != loc.doc {
+                    doc_analysis.collect_local_completion_items(scope, &mut completion_items);
+                }
+            }
+        }
+
+        for doc_analysis in self.doc_analysis_map.values() {
+            doc_analysis.collect_global_completion_items(&mut completion_items);
+        }
+
+        completion_items
     }
 }
 
