@@ -2,7 +2,7 @@ use super::to_loc;
 use crate::{
     analysis::{
         analyze::ACompletionItem, comment::calculate_details, integrate::AWorkspaceAnalysis,
-        ASymbolKind,
+        AScope, ASymbolKind,
     },
     lang_service::docs::Docs,
 };
@@ -44,11 +44,23 @@ pub(crate) fn completion(
                     ASymbolKind::Enum => K::EnumMember,
                     ASymbolKind::Field => K::Field,
                     ASymbolKind::File => K::File,
-                    ASymbolKind::Label => K::Reference, // ?
+                    ASymbolKind::Label => K::Value,
                     ASymbolKind::Module => K::Module,
                     ASymbolKind::Param => K::Variable, // FIXME: intなどの値のパラメータはconstant、変数などの参照渡しパラメータはvariable
                     ASymbolKind::StaticVar => K::Variable,
                     ASymbolKind::Type => K::Class,
+                };
+
+                // 候補の順番を制御するための文字。(スコープが狭いものを上に出す。)
+                let sort_prefix = match (symbol.scope, symbol.kind) {
+                    (AScope::Local(local), _) => match (local.module_opt, local.deffunc_opt) {
+                        (Some(_), Some(_)) => 'a',
+                        (Some(_), None) => 'b',
+                        (None, None) => 'c',
+                        (None, Some(_)) => 'd',
+                    },
+                    (_, ASymbolKind::Module) => 'f',
+                    (AScope::Global, _) => 'e',
                 };
 
                 items.push(CompletionItem {
@@ -60,6 +72,7 @@ pub(crate) fn completion(
                     } else {
                         Some(Documentation::String(details.docs.join("\r\n\r\n")))
                     },
+                    sort_text: Some(format!("{}{}", sort_prefix, symbol.name)),
                     ..CompletionItem::default()
                 });
             }

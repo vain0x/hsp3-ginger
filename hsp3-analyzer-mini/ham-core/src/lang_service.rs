@@ -85,6 +85,21 @@ impl LangService {
                         CompletionItemKind::Function
                     }
                 };
+
+                // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
+                let sort_prefix = if symbol.name.starts_with("#") || symbol.name.starts_with("_") {
+                    'y'
+                } else if symbol
+                    .details
+                    .documentation
+                    .last()
+                    .map_or(false, |s| s.contains("標準命令") || s.contains("標準関数"))
+                {
+                    'x'
+                } else {
+                    'z'
+                };
+
                 CompletionItem {
                     kind: Some(kind),
                     label: symbol.name.to_string(),
@@ -95,6 +110,12 @@ impl LangService {
                         Some(Documentation::String(
                             symbol.details.documentation.join("\r\n\r\n"),
                         ))
+                    },
+                    sort_text: Some(format!("{}{}", sort_prefix, symbol.name)),
+                    filter_text: if symbol.name.as_str().starts_with("#") {
+                        Some(symbol.name.as_str().chars().skip(1).collect::<String>())
+                    } else {
+                        None
                     },
                     ..Default::default()
                 }
