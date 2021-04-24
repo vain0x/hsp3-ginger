@@ -83,6 +83,11 @@ fn lookahead_after_paren(mut i: usize, px: &mut Px) -> ExprLikeStmtKind {
             ExprLikeStmtKind::Assign
         }
         TokenKind::SlimArrow => ExprLikeStmtKind::Invoke,
+
+        // HACK: `=` は二項演算子としても使えるが、ここでは代入演算子とみなす。
+        //       これがないと `a(i) = x` が命令文になってしまう。
+        TokenKind::Equal => ExprLikeStmtKind::Assign,
+
         kind if kind.is_end_of_stmt() => ExprLikeStmtKind::Command,
         kind => match kind.to_op_kind() {
             None | Some(POpKind::Infix) | Some(POpKind::InfixOrAssign) => ExprLikeStmtKind::Command,
