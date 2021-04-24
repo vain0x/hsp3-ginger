@@ -1,3 +1,5 @@
+/vendor/hsp3
+
 ham-lsp.log
 tests/analyze/*.txt
 tests/parse/*.txt
