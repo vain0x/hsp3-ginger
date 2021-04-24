@@ -10,12 +10,7 @@ use std::{
 
 #[test]
 fn analyze_standard_files() {
-    // FIXME: 環境変数から読む？
-    let hsp3_root: &str = if cfg!(windows) {
-        "C:/bin/hsp36b2"
-    } else {
-        concat!(env!("HOME"), "/bin/hsp36beta")
-    };
+    let hsp3_root: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3");
 
     let tests_dir = {
         let project_dir: &'static str = env!("CARGO_MANIFEST_DIR");
