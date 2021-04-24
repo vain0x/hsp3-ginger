@@ -15,30 +15,35 @@ use std::{mem::take, path::PathBuf, rc::Rc};
 pub(super) struct LangService {
     sem: ProjectSem,
     wa: AWorkspaceAnalysis,
-    hsp_root: PathBuf,
+    hsp3_home: PathBuf,
     docs_opt: Option<Docs>,
     doc_changes: Vec<DocChange>,
 }
 
 impl LangService {
-    pub(super) fn new(hsp_root: PathBuf) -> Self {
+    pub(super) fn new(hsp3_home: PathBuf) -> Self {
         Self {
-            hsp_root,
+            hsp3_home,
             sem: sem::ProjectSem::new(),
             ..Default::default()
         }
     }
 
     pub(super) fn did_initialize(&mut self) {
-        let mut docs = Docs::new(self.hsp_root.clone());
+        let mut docs = Docs::new(self.hsp3_home.clone());
 
         debug!("hsphelp ファイルからシンボルを探索します。");
         let mut file_count = 0;
         let mut symbols = vec![];
         let mut warnings = vec![];
-        collect_all_symbols(&self.hsp_root, &mut file_count, &mut symbols, &mut warnings)
-            .map_err(|e| warn!("{}", e))
-            .ok();
+        collect_all_symbols(
+            &self.hsp3_home,
+            &mut file_count,
+            &mut symbols,
+            &mut warnings,
+        )
+        .map_err(|e| warn!("{}", e))
+        .ok();
         for w in warnings {
             warn!("{}", w);
         }

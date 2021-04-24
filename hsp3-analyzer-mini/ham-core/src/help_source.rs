@@ -220,12 +220,12 @@ fn parse_for_symbols(
 
 /// ディレクトリに含まれるすべてのヘルプソースファイルからすべてのシンボル情報を抽出する。
 pub(crate) fn collect_all_symbols(
-    hsp_root: &Path,
+    hsp3_home: &Path,
     file_count: &mut usize,
     symbols: &mut Vec<HsSymbol>,
     warnings: &mut Vec<String>,
 ) -> io::Result<()> {
-    let hsphelp_dir = hsp_root.join("hsphelp");
+    let hsphelp_dir = hsp3_home.join("hsphelp");
 
     let mut help_files = vec![];
     read_dir(&hsphelp_dir, &mut help_files)?;

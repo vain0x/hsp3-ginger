@@ -32,7 +32,7 @@ pub(crate) fn init_log() {
     WriteLogger::init(log_filter, Config::default(), file).expect("init log");
 }
 
-pub fn start_lsp_server(hsp_root: PathBuf) {
+pub fn start_lsp_server(hsp3_home: PathBuf) {
     init_log();
 
     let stdin = stdin();
@@ -41,7 +41,7 @@ pub fn start_lsp_server(hsp_root: PathBuf) {
     let stdout = stdout();
     let stdout = stdout.lock();
     let sender = LspSender::new(stdout);
-    let lang_service = LangService::new(hsp_root);
+    let lang_service = LangService::new(hsp3_home);
     let handler = LspHandler::new(sender, lang_service);
     handler.main(receiver);
 }

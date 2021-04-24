@@ -34,16 +34,16 @@ pub(crate) struct Docs {
     doc_versions: HashMap<ADoc, TextDocumentVersion>,
     // hsphelp や common の下をウォッチするのに使う
     #[allow(unused)]
-    hsp_root: PathBuf,
+    hsp3_home: PathBuf,
     file_watcher: Option<RecommendedWatcher>,
     file_event_rx: Option<Receiver<DebouncedEvent>>,
     doc_changes: Vec<DocChange>,
 }
 
 impl Docs {
-    pub(super) fn new(hsp_root: PathBuf) -> Self {
+    pub(super) fn new(hsp3_home: PathBuf) -> Self {
         Self {
-            hsp_root,
+            hsp3_home,
             ..Default::default()
         }
     }
