@@ -254,7 +254,7 @@ impl LangService {
 
         let go = || {
             let docs = self.docs_opt.as_ref()?;
-            assists::references::references(uri, position, include_definition, docs, &mut self.sem)
+            assists::references::references(uri, position, include_definition, docs, &mut self.wa)
         };
         go().unwrap_or(vec![])
     }

@@ -1,5 +1,5 @@
 use super::{loc_to_location, to_loc};
-use crate::{lang_service::docs::Docs, sem::ProjectSem};
+use crate::{analysis::integrate::AWorkspaceAnalysis, lang_service::docs::Docs};
 use lsp_types::{Location, Position, Url};
 
 pub(crate) fn references(
@@ -7,18 +7,16 @@ pub(crate) fn references(
     position: Position,
     include_definition: bool,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut AWorkspaceAnalysis,
 ) -> Option<Vec<Location>> {
     let loc = to_loc(&uri, position, docs)?;
-    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start())?;
-    let symbol_id = symbol.symbol_id;
+    let (symbol, _) = wa.locate_symbol(loc.doc, loc.start())?;
 
     let mut locs = vec![];
-
     if include_definition {
-        sem.get_symbol_defs(symbol_id, &mut locs);
+        wa.collect_symbol_defs(symbol, &mut locs);
     }
-    sem.get_symbol_uses(symbol_id, &mut locs);
+    wa.collect_symbol_uses(symbol, &mut locs);
 
     Some(
         locs.into_iter()
