@@ -108,7 +108,6 @@ fn get_privacy_or_local(privacy_opt: &Option<(PPrivacy, PToken)>) -> PPrivacy {
     }
 }
 
-#[allow(unused)]
 fn on_symbol_def(name: &PToken, kind: ACandidateKind, ax: &mut Ax) {
     ax.def_candidates.push(ACandidateData {
         kind,
@@ -127,7 +126,6 @@ fn on_symbol_use(name: &PToken, kind: ACandidateKind, ax: &mut Ax) {
     });
 }
 
-#[allow(unused)]
 fn on_compound_def(compound: &PCompound, ax: &mut Ax) {
     match compound {
         PCompound::Name(name) => on_symbol_def(name, ACandidateKind::VarOrArray, ax),
@@ -445,19 +443,21 @@ pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
     }
 }
 
-pub(crate) fn do_collect_global_symbols(
+pub(crate) fn do_extend_public_env(
     doc: ADoc,
     symbols: &[ASymbolData],
     global_env: &mut HashMap<RcStr, AWsSymbol>,
+    toplevel_env: &mut HashMap<RcStr, AWsSymbol>,
 ) {
     for (i, symbol_data) in symbols.iter().enumerate() {
-        match symbol_data.scope {
+        let env = match symbol_data.scope {
+            AScope::Global => &mut *global_env,
+            AScope::Local(scope) if scope.is_outside_module() => &mut *toplevel_env,
             AScope::Local(_) => continue,
-            AScope::Global => {}
-        }
+        };
 
         let symbol = ASymbol::new(i);
-        global_env.insert(symbol_data.name.clone(), AWsSymbol { doc, symbol });
+        env.insert(symbol_data.name.clone(), AWsSymbol { doc, symbol });
     }
 }
 
@@ -517,12 +517,13 @@ impl AAnalysis {
         Some(&symbol.name)
     }
 
-    pub(crate) fn collect_global_symbols(
+    pub(crate) fn extend_public_env(
         &self,
         doc: ADoc,
         global_env: &mut HashMap<RcStr, AWsSymbol>,
+        toplevel_env: &mut HashMap<RcStr, AWsSymbol>,
     ) {
-        do_collect_global_symbols(doc, &self.symbols, global_env);
+        do_extend_public_env(doc, &self.symbols, global_env, toplevel_env);
     }
 
     pub(crate) fn resolve_symbol_def(

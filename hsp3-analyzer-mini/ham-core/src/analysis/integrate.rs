@@ -10,10 +10,16 @@ use std::collections::{HashMap, HashSet};
 pub(crate) struct AWorkspaceAnalysis {
     pub(crate) dirty_docs: HashSet<ADoc>,
     pub(crate) doc_texts: HashMap<ADoc, RcStr>,
+
+    /// ドキュメントごとの解析結果。
     pub(crate) doc_analysis_map: HashMap<ADoc, AAnalysis>,
 
-    // すべてのドキュメントの解析結果を使って構築される情報
+    // すべてのドキュメントの解析結果を使って構築される情報:
+    /// `global` で定義されたシンボルの名前を解決するためのマップ。
     pub(crate) global_env: HashMap<RcStr, AWsSymbol>,
+    /// `global` を除く、モジュールの外でのみ使えるシンボルの名前を解決するためのマップ。
+    pub(crate) toplevel_env: HashMap<RcStr, AWsSymbol>,
+
     pub(crate) def_sites: Vec<(AWsSymbol, ALoc)>,
     pub(crate) use_sites: Vec<(AWsSymbol, ALoc)>,
 }
@@ -52,10 +58,11 @@ impl AWorkspaceAnalysis {
             self.doc_analysis_map.insert(doc, analysis);
         }
 
-        // build global env
+        // 複数ファイルに渡る環境を構築する。
         self.global_env.clear();
+        self.toplevel_env.clear();
         for (&doc, analysis) in &self.doc_analysis_map {
-            analysis.collect_global_symbols(doc, &mut self.global_env);
+            analysis.extend_public_env(doc, &mut self.global_env, &mut self.toplevel_env);
         }
 
         // resolve symbols
