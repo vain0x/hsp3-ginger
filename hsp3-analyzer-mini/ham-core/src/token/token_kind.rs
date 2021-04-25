@@ -22,7 +22,7 @@ pub(crate) enum TokenKind {
     Char,
     /// 文字列リテラル
     Str,
-    /// 識別子
+    /// 識別子 (`@` も含む)
     Ident,
     /// `(`
     LeftParen,
