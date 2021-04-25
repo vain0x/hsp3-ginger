@@ -1,20 +1,18 @@
-use super::{loc_to_location, to_loc};
-use crate::{lang_service::docs::Docs, sem::ProjectSem};
+use super::loc_to_location;
+use crate::{analysis::integrate::AWorkspaceAnalysis, assists::to_loc, lang_service::docs::Docs};
 use lsp_types::{Location, Position, Url};
 
 pub(crate) fn definitions(
     uri: Url,
     position: Position,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut AWorkspaceAnalysis,
 ) -> Option<Vec<Location>> {
     let loc = to_loc(&uri, position, docs)?;
-    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start())?;
-    let symbol_id = symbol.symbol_id;
+    let (ws_symbol, _) = wa.locate_symbol(loc.doc, loc.start())?;
 
     let mut locs = vec![];
-
-    sem.get_symbol_defs(symbol_id, &mut locs);
+    wa.collect_symbol_defs(ws_symbol, &mut locs);
 
     Some(
         locs.into_iter()

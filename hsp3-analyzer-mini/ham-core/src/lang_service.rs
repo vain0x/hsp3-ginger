@@ -216,11 +216,11 @@ impl LangService {
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
 
-        let go = || {
+        (|| {
             let docs = self.docs_opt.as_ref()?;
-            assists::definitions::definitions(uri, position, docs, &mut self.sem)
-        };
-        go().unwrap_or(vec![])
+            assists::definitions::definitions(uri, position, docs, &mut self.wa)
+        })()
+        .unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
