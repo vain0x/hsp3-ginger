@@ -1,6 +1,7 @@
 use super::{
     a_scope::{ADefFunc, ADefFuncData, ALocalScope, AModule, AModuleData},
     a_symbol::{ASymbolData, AWsSymbol},
+    integrate::APublicEnv,
     ADoc, ALoc, APos, AScope, ASymbol, ASymbolKind,
 };
 use crate::{
@@ -15,7 +16,21 @@ use std::{
 };
 
 #[derive(Copy, Clone, Debug)]
-enum ACandidateKind {
+enum ADefCandidateKind {
+    VarOrArray,
+    ArrayOrFunc,
+}
+
+#[derive(Debug)]
+struct ADefCandidateData {
+    kind: ADefCandidateKind,
+    name: RcStr,
+    loc: ALoc,
+    scope: ALocalScope,
+}
+
+#[derive(Copy, Clone, Debug)]
+enum AUseCandidateKind {
     Label,
     Command,
     VarOrArray,
@@ -23,11 +38,11 @@ enum ACandidateKind {
 }
 
 #[derive(Debug)]
-struct ACandidateData {
-    kind: ACandidateKind,
+struct AUseCandidateData {
+    kind: AUseCandidateKind,
     name: RcStr,
     loc: ALoc,
-    scope: AScope,
+    scope: ALocalScope,
 }
 
 /// Analysis context.
@@ -35,8 +50,8 @@ struct ACandidateData {
 struct Ax {
     eof_loc: ALoc,
     symbols: Vec<ASymbolData>,
-    def_candidates: Vec<ACandidateData>,
-    use_candidates: Vec<ACandidateData>,
+    def_candidates: Vec<ADefCandidateData>,
+    use_candidates: Vec<AUseCandidateData>,
     deffuncs: Vec<ADefFuncData>,
     deffunc_opt: Option<ADefFunc>,
     modules: Vec<AModuleData>,
@@ -48,11 +63,15 @@ impl Ax {
         Self::default()
     }
 
-    fn current_scope(&self) -> AScope {
-        AScope::Local(ALocalScope {
+    fn current_local_scope(&self) -> ALocalScope {
+        ALocalScope {
             deffunc_opt: self.deffunc_opt,
             module_opt: self.module_opt,
-        })
+        }
+    }
+
+    fn current_scope(&self) -> AScope {
+        AScope::Local(self.current_local_scope())
     }
 
     fn add_symbol(
@@ -108,36 +127,36 @@ fn get_privacy_or_local(privacy_opt: &Option<(PPrivacy, PToken)>) -> PPrivacy {
     }
 }
 
-fn on_symbol_def(name: &PToken, kind: ACandidateKind, ax: &mut Ax) {
-    ax.def_candidates.push(ACandidateData {
+fn on_symbol_def(name: &PToken, kind: ADefCandidateKind, ax: &mut Ax) {
+    ax.def_candidates.push(ADefCandidateData {
         kind,
         name: name.body.text.clone(),
         loc: name.body.loc.clone(),
-        scope: ax.current_scope(),
+        scope: ax.current_local_scope(),
     });
 }
 
-fn on_symbol_use(name: &PToken, kind: ACandidateKind, ax: &mut Ax) {
-    ax.use_candidates.push(ACandidateData {
+fn on_symbol_use(name: &PToken, kind: AUseCandidateKind, ax: &mut Ax) {
+    ax.use_candidates.push(AUseCandidateData {
         kind,
         name: name.body.text.clone(),
         loc: name.body.loc.clone(),
-        scope: ax.current_scope(),
+        scope: ax.current_local_scope(),
     });
 }
 
 fn on_compound_def(compound: &PCompound, ax: &mut Ax) {
     match compound {
-        PCompound::Name(name) => on_symbol_def(name, ACandidateKind::VarOrArray, ax),
+        PCompound::Name(name) => on_symbol_def(name, ADefCandidateKind::VarOrArray, ax),
         PCompound::Paren(PNameParen { name, args, .. }) => {
-            on_symbol_def(name, ACandidateKind::ArrayOrFunc, ax);
+            on_symbol_def(name, ADefCandidateKind::ArrayOrFunc, ax);
 
             for arg in args {
                 on_expr_opt(arg.expr_opt.as_ref(), ax);
             }
         }
         PCompound::Dots(PNameDot { name, args }) => {
-            on_symbol_def(name, ACandidateKind::ArrayOrFunc, ax);
+            on_symbol_def(name, ADefCandidateKind::ArrayOrFunc, ax);
 
             for arg in args {
                 on_expr_opt(arg.expr_opt.as_ref(), ax);
@@ -148,16 +167,16 @@ fn on_compound_def(compound: &PCompound, ax: &mut Ax) {
 
 fn on_compound_use(compound: &PCompound, ax: &mut Ax) {
     match compound {
-        PCompound::Name(name) => on_symbol_use(name, ACandidateKind::VarOrArray, ax),
+        PCompound::Name(name) => on_symbol_use(name, AUseCandidateKind::VarOrArray, ax),
         PCompound::Paren(PNameParen { name, args, .. }) => {
-            on_symbol_use(name, ACandidateKind::ArrayOrFunc, ax);
+            on_symbol_use(name, AUseCandidateKind::ArrayOrFunc, ax);
 
             for arg in args {
                 on_expr_opt(arg.expr_opt.as_ref(), ax);
             }
         }
         PCompound::Dots(PNameDot { name, args }) => {
-            on_symbol_use(name, ACandidateKind::ArrayOrFunc, ax);
+            on_symbol_use(name, AUseCandidateKind::ArrayOrFunc, ax);
 
             for arg in args {
                 on_expr_opt(arg.expr_opt.as_ref(), ax);
@@ -171,7 +190,7 @@ fn on_expr(expr: &PExpr, ax: &mut Ax) {
         PExpr::Literal(_) => {}
         PExpr::Label(PLabel { star: _, name_opt }) => {
             if let Some(name) = name_opt {
-                on_symbol_use(name, ACandidateKind::Label, ax);
+                on_symbol_use(name, AUseCandidateKind::Label, ax);
             }
         }
         PExpr::Compound(compound) => on_compound_use(compound, ax),
@@ -221,7 +240,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
             jump_modifier_opt: _,
             args,
         }) => {
-            on_symbol_use(&command, ACandidateKind::Command, ax);
+            on_symbol_use(&command, AUseCandidateKind::Command, ax);
             on_args(&args, ax);
         }
         PStmt::Invoke(PInvokeStmt {
@@ -420,10 +439,13 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
 #[derive(Debug, Default)]
 pub(crate) struct AAnalysis {
     symbols: Vec<ASymbolData>,
-    def_candidates_opt: Option<Vec<ACandidateData>>,
-    use_candidates_opt: Option<Vec<ACandidateData>>,
+    def_candidates: Vec<ADefCandidateData>,
+    use_candidates: Vec<AUseCandidateData>,
     deffuncs: Vec<ADefFuncData>,
     modules: Vec<AModuleData>,
+
+    /// 定義箇所候補を解決する前のシンボルの個数。
+    base_symbol_len: usize,
 }
 
 pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
@@ -434,16 +456,19 @@ pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
         on_stmt(stmt, &mut ax);
     }
 
+    let base_symbol_len = ax.symbols.len();
+
     AAnalysis {
         symbols: ax.symbols,
-        def_candidates_opt: Some(ax.def_candidates),
-        use_candidates_opt: Some(ax.use_candidates),
+        base_symbol_len,
+        def_candidates: ax.def_candidates,
+        use_candidates: ax.use_candidates,
         deffuncs: ax.deffuncs,
         modules: ax.modules,
     }
 }
 
-pub(crate) fn do_extend_public_env(
+fn do_extend_public_env(
     doc: ADoc,
     symbols: &[ASymbolData],
     global_env: &mut HashMap<RcStr, AWsSymbol>,
@@ -461,13 +486,38 @@ pub(crate) fn do_extend_public_env(
     }
 }
 
-fn do_resolve_symbol_def(
+fn do_collect_explicit_def_sites(
     doc: ADoc,
-    def_candidates: Vec<ACandidateData>,
-    symbols: &mut Vec<ASymbolData>,
+    symbols: &[ASymbolData],
     def_sites: &mut Vec<(AWsSymbol, ALoc)>,
 ) {
+    for (i, symbol) in symbols.iter().enumerate() {
+        let symbol_id = ASymbol::new(i);
+        let ws_symbol = AWsSymbol {
+            doc,
+            symbol: symbol_id,
+        };
+        def_sites.extend(symbol.def_sites.iter().map(|&loc| (ws_symbol, loc)));
+    }
+}
+
+fn do_resolve_symbol_def_candidates(
+    doc: ADoc,
+    def_candidates: &[ADefCandidateData],
+    public_env: &APublicEnv,
+    symbols: &mut Vec<ASymbolData>,
+    def_sites: &mut Vec<(AWsSymbol, ALoc)>,
+    use_sites: &mut Vec<(AWsSymbol, ALoc)>,
+) {
     for candidate in def_candidates {
+        match public_env.resolve(&candidate.name, candidate.scope.is_outside_module()) {
+            None => {}
+            Some(ws_symbol) => {
+                use_sites.push((ws_symbol, candidate.loc));
+                continue;
+            }
+        }
+
         // FIXME: name, definer のトークンへの参照がほしい
         let token = PToken {
             leading: vec![],
@@ -479,13 +529,13 @@ fn do_resolve_symbol_def(
             trailing: vec![],
         };
 
-        // FIXME: 環境に追加する
+        // FIXME: モジュール内のシンボルならモジュールの環境にインポートする
         // 登録済みのシンボルなら同じシンボル ID をつける
         let symbol = add_symbol(
             ASymbolKind::StaticVar,
             &token,
             &token,
-            candidate.scope,
+            AScope::Local(candidate.scope),
             symbols,
         );
 
@@ -494,18 +544,24 @@ fn do_resolve_symbol_def(
     }
 }
 
-fn do_resolve_symbol_use(
-    use_candidates: Vec<ACandidateData>,
-    global_env: &HashMap<RcStr, AWsSymbol>,
+fn do_resolve_symbol_use_candidates(
+    use_candidates: &[AUseCandidateData],
+    public_env: &APublicEnv,
     use_sites: &mut Vec<(AWsSymbol, ALoc)>,
 ) {
     // eprintln!("use_candidates={:?}", use_candidates);
 
     for candidate in use_candidates {
-        let ws_symbol = match global_env.get(&candidate.name) {
-            None => continue,
-            Some(&x) => x,
-        };
+        // FIXME: globalの前にモジュールの環境から探す
+
+        let ws_symbol =
+            match public_env.resolve(&candidate.name, candidate.scope.is_outside_module()) {
+                None => {
+                    // 未解決シンボルとして定義する
+                    continue;
+                }
+                Some(it) => it,
+            };
 
         use_sites.push((ws_symbol, candidate.loc));
     }
@@ -517,6 +573,10 @@ impl AAnalysis {
         Some(&symbol.name)
     }
 
+    pub(crate) fn invalidate_previous_workspace_analysis(&mut self) {
+        self.symbols.drain(self.base_symbol_len..);
+    }
+
     pub(crate) fn extend_public_env(
         &self,
         doc: ADoc,
@@ -526,46 +586,37 @@ impl AAnalysis {
         do_extend_public_env(doc, &self.symbols, global_env, toplevel_env);
     }
 
-    pub(crate) fn resolve_symbol_def(
+    pub(crate) fn collect_explicit_def_sites(
         &mut self,
         doc: ADoc,
         def_sites: &mut Vec<(AWsSymbol, ALoc)>,
-    ) -> bool {
-        match self.def_candidates_opt.take() {
-            Some(def_candidates) => {
-                for (i, symbol_data) in self.symbols.iter().enumerate() {
-                    let ws_symbol = AWsSymbol {
-                        doc,
-                        symbol: ASymbol::new(i),
-                    };
-
-                    // FIXME: local シンボルを環境に登録する
-                    if let AScope::Global = symbol_data.scope {
-                        for loc in &symbol_data.def_sites {
-                            def_sites.push((ws_symbol, loc.clone()));
-                        }
-                    }
-                }
-
-                do_resolve_symbol_def(doc, def_candidates, &mut self.symbols, def_sites);
-                true
-            }
-            None => false,
-        }
+    ) {
+        do_collect_explicit_def_sites(doc, &self.symbols, def_sites);
     }
 
-    pub(crate) fn resolve_symbol_use(
+    pub(crate) fn resolve_symbol_def_candidates(
         &mut self,
-        global_env: &HashMap<RcStr, AWsSymbol>,
+        doc: ADoc,
+        public_env: &APublicEnv,
+        def_sites: &mut Vec<(AWsSymbol, ALoc)>,
         use_sites: &mut Vec<(AWsSymbol, ALoc)>,
-    ) -> bool {
-        match self.use_candidates_opt.take() {
-            Some(use_candidates) => {
-                do_resolve_symbol_use(use_candidates, global_env, use_sites);
-                true
-            }
-            None => false,
-        }
+    ) {
+        do_resolve_symbol_def_candidates(
+            doc,
+            &self.def_candidates,
+            public_env,
+            &mut self.symbols,
+            def_sites,
+            use_sites,
+        );
+    }
+
+    pub(crate) fn resolve_symbol_use_candidates(
+        &mut self,
+        public_env: &APublicEnv,
+        use_sites: &mut Vec<(AWsSymbol, ALoc)>,
+    ) {
+        do_resolve_symbol_use_candidates(&self.use_candidates, public_env, use_sites);
     }
 
     pub(crate) fn resolve_scope_at(&self, pos: APos) -> ALocalScope {

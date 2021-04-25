@@ -58,6 +58,10 @@ impl AWorkspaceAnalysis {
             self.doc_analysis_map.insert(doc, analysis);
         }
 
+        for analysis in self.doc_analysis_map.values_mut() {
+            analysis.invalidate_previous_workspace_analysis();
+        }
+
         // 複数ファイルに渡る環境を構築する。
         self.global_env.clear();
         self.toplevel_env.clear();
@@ -65,16 +69,30 @@ impl AWorkspaceAnalysis {
             analysis.extend_public_env(doc, &mut self.global_env, &mut self.toplevel_env);
         }
 
-        // resolve symbols
+        let public_env = APublicEnv {
+            global: &self.global_env,
+            toplevel: &self.toplevel_env,
+        };
+
+        // シンボルの定義・参照箇所を決定する。
         self.def_sites.clear();
         self.use_sites.clear();
 
         for (&doc, analysis) in &mut self.doc_analysis_map {
-            analysis.resolve_symbol_def(doc, &mut self.def_sites);
+            analysis.collect_explicit_def_sites(doc, &mut self.def_sites);
+        }
+
+        for (&doc, analysis) in &mut self.doc_analysis_map {
+            analysis.resolve_symbol_def_candidates(
+                doc,
+                &public_env,
+                &mut self.def_sites,
+                &mut self.use_sites,
+            );
         }
 
         for (_, analysis) in &mut self.doc_analysis_map {
-            analysis.resolve_symbol_use(&self.global_env, &mut self.use_sites);
+            analysis.resolve_symbol_use_candidates(&public_env, &mut self.use_sites);
         }
 
         // eprintln!("global_env={:#?}", &self.global_env);
@@ -147,6 +165,32 @@ impl AWorkspaceAnalysis {
         }
 
         completion_items
+    }
+}
+
+pub(crate) struct APublicEnv<'a> {
+    global: &'a HashMap<RcStr, AWsSymbol>,
+    toplevel: &'a HashMap<RcStr, AWsSymbol>,
+}
+
+impl<'a> APublicEnv<'a> {
+    pub(crate) fn in_global(&self, name: &str) -> Option<AWsSymbol> {
+        self.global.get(name).cloned()
+    }
+
+    pub(crate) fn in_toplevel(&self, name: &str) -> Option<AWsSymbol> {
+        match self.toplevel.get(name) {
+            Some(symbol) => Some(*symbol),
+            None => self.in_global(name),
+        }
+    }
+
+    pub(crate) fn resolve(&self, name: &str, is_toplevel: bool) -> Option<AWsSymbol> {
+        if is_toplevel {
+            self.in_toplevel(name)
+        } else {
+            self.in_global(name)
+        }
     }
 }
 
