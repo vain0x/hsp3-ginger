@@ -267,7 +267,7 @@ impl LangService {
         self.poll();
 
         let docs = self.docs_opt.as_ref()?;
-        assists::rename::prepare_rename(uri, position, docs, &mut self.sem)
+        assists::rename::prepare_rename(uri, position, docs, &mut self.wa)
     }
 
     pub(super) fn rename(
@@ -279,7 +279,7 @@ impl LangService {
         self.poll();
 
         let docs = self.docs_opt.as_ref()?;
-        assists::rename::rename(uri, position, new_name, docs, &mut self.sem)
+        assists::rename::rename(uri, position, new_name, docs, &mut self.wa)
     }
 
     pub(super) fn validate(&mut self, _uri: &Url) -> (Option<i64>, Vec<Diagnostic>) {

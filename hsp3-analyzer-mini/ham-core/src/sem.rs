@@ -841,6 +841,7 @@ impl ProjectSem {
         locs.extend(self.all_symbol_defs.get(&symbol_id).into_iter().flatten());
     }
 
+    #[cfg(unused)]
     pub(crate) fn get_symbol_uses(&mut self, symbol_id: usize, locs: &mut Vec<ALoc>) {
         self.compute();
 
