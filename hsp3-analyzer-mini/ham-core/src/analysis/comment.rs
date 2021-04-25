@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use super::ASymbolDetails;
 use crate::utils::rc_str::RcStr;
 
@@ -8,7 +6,7 @@ fn char_is_ornament_comment(c: char) -> bool {
 }
 
 /// 装飾コメント (// ---- とか) や空行など
-fn str_is_ornament_comment(s: &str) -> bool {
+pub(crate) fn str_is_ornament_comment(s: &str) -> bool {
     s.chars().all(char_is_ornament_comment)
 }
 

@@ -4,6 +4,7 @@ use super::{
     ADoc, ALoc, APos, AScope, ASymbol, ASymbolKind,
 };
 use crate::{
+    analysis::comment::str_is_ornament_comment,
     parse::*,
     token::{TokenData, TokenKind},
     utils::rc_str::RcStr,
@@ -67,12 +68,6 @@ impl Ax {
         };
         add_symbol(kind, token, definer, scope, &mut self.symbols)
     }
-}
-
-/// 装飾コメント (// ---- とか) や空行など
-fn str_is_ornament_comment(s: &str) -> bool {
-    s.chars()
-        .all(|c| c.is_control() || c.is_whitespace() || c.is_ascii_punctuation())
 }
 
 fn add_symbol(
