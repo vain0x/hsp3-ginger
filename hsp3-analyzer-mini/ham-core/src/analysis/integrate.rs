@@ -3,13 +3,18 @@ use super::{
     analyze::{AAnalysis, ACompletionItem},
     ADoc, ALoc, APos,
 };
-use crate::{analysis::a_scope::ALocalScope, utils::rc_str::RcStr};
+use crate::{
+    analysis::a_scope::ALocalScope,
+    parse::{PRoot, PToken},
+    utils::{rc_slice::RcSlice, rc_str::RcStr},
+};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub(crate) struct AWorkspaceAnalysis {
     pub(crate) dirty_docs: HashSet<ADoc>,
     pub(crate) doc_texts: HashMap<ADoc, RcStr>,
+    pub(crate) doc_syntax_map: HashMap<ADoc, ASyntax>,
 
     /// ドキュメントごとの解析結果。
     pub(crate) doc_analysis_map: HashMap<ADoc, AAnalysis>,
@@ -28,12 +33,14 @@ impl AWorkspaceAnalysis {
     pub(crate) fn update_doc(&mut self, doc: ADoc, text: RcStr) {
         self.dirty_docs.insert(doc);
         self.doc_texts.insert(doc, text);
+        self.doc_syntax_map.remove(&doc);
         self.doc_analysis_map.remove(&doc);
     }
 
     pub(crate) fn close_doc(&mut self, doc: ADoc) {
         self.dirty_docs.insert(doc);
         self.doc_texts.remove(&doc);
+        self.doc_syntax_map.remove(&doc);
         self.doc_analysis_map.remove(&doc);
     }
 
@@ -49,12 +56,20 @@ impl AWorkspaceAnalysis {
                 None => continue,
             };
 
-            let analysis = {
+            let (syntax, analysis) = {
                 let tokens = crate::token::tokenize(doc, text.clone());
-                let tokens = crate::parse::PToken::from_tokens(tokens.into());
-                let root = crate::parse::parse_root(tokens);
-                super::analyze::analyze(&root)
+                let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
+                let root = crate::parse::parse_root(p_tokens.to_owned());
+                let analysis = super::analyze::analyze(&root);
+
+                let syntax = ASyntax {
+                    tokens: p_tokens,
+                    tree: root,
+                };
+                (syntax, analysis)
             };
+
+            self.doc_syntax_map.insert(doc, syntax);
             self.doc_analysis_map.insert(doc, analysis);
         }
 
@@ -166,6 +181,12 @@ impl AWorkspaceAnalysis {
 
         completion_items
     }
+}
+
+#[allow(unused)]
+pub(crate) struct ASyntax {
+    pub(crate) tokens: RcSlice<PToken>,
+    pub(crate) tree: PRoot,
 }
 
 pub(crate) struct APublicEnv<'a> {

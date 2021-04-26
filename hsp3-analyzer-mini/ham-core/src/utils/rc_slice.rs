@@ -119,7 +119,6 @@ impl<T> RcSlice<T> {
     }
 }
 
-#[cfg(unused)]
 impl<T: Clone> RcSlice<T> {
     /// 要素をすべてクローンしてベクタを作る。
     pub(crate) fn to_owned(&self) -> Vec<T> {
