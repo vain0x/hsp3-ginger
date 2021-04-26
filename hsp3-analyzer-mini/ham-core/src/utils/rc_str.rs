@@ -103,6 +103,16 @@ impl From<String> for RcStr {
     }
 }
 
+impl<'a> From<&'a str> for RcStr {
+    fn from(it: &'a str) -> RcStr {
+        if it.is_empty() {
+            RcStr::EMPTY
+        } else {
+            RcStr::from(Rc::new(it.to_string()))
+        }
+    }
+}
+
 impl AsRef<str> for RcStr {
     fn as_ref(&self) -> &str {
         self.as_str()

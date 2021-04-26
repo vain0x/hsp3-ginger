@@ -1,7 +1,7 @@
 use crate::{
     analysis::ALoc,
     token::{TokenData, TokenKind},
-    utils::{rc_item::RcItem, rc_slice::RcSlice, rc_str::RcStr},
+    utils::{rc_item::RcItem, rc_slice::RcSlice},
 };
 use std::fmt::Debug;
 
@@ -92,7 +92,7 @@ impl PToken {
                     leading: RcSlice::EMPTY,
                     body: TokenData {
                         kind: TokenKind::Eos,
-                        text: RcStr::EMPTY,
+                        text: "".into(),
                         loc,
                     }
                     .into(),
