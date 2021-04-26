@@ -89,14 +89,14 @@ impl PToken {
                 let loc = p_tokens.last().map(|t| t.behind()).unwrap_or_default();
 
                 p_tokens.push(PToken {
-                    leading: RcSlice::EMPTY,
+                    leading: [].into(),
                     body: TokenData {
                         kind: TokenKind::Eos,
                         text: "".into(),
                         loc,
                     }
                     .into(),
-                    trailing: RcSlice::EMPTY,
+                    trailing: [].into(),
                 });
             }
         }
