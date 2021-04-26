@@ -4,6 +4,8 @@ use std::{
     rc::Rc,
 };
 
+use super::rc_item::RcItem;
+
 /// 共有可能な配列を表す。
 ///
 /// - データはヒープ上に確保される。(空の配列はメモリを確保しない。)
@@ -95,6 +97,22 @@ impl<T> RcSlice<T> {
                 let new_start = (base_start + start).min(base_end);
                 let new_end = (base_start + end).min(base_end);
                 RcSlice::new(underlying.clone(), new_start, new_end)
+            }
+        }
+    }
+
+    /// `index` 番目の要素への参照を作る。
+    pub(crate) fn item(&self, index: usize) -> RcItem<T> {
+        match self.repr {
+            Repr::Empty => panic!(),
+            Repr::NonEmpty {
+                ref underlying,
+                start,
+                end,
+            } => {
+                let i = start + index;
+                assert!(i < end);
+                RcItem::new(underlying.clone(), i)
             }
         }
     }
