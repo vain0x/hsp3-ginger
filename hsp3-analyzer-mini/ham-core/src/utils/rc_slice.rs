@@ -63,6 +63,7 @@ impl<T> RcSlice<T> {
     }
 
     /// 長さ
+    #[cfg(unused)]
     pub(crate) fn len(&self) -> usize {
         match self.repr {
             Repr::Empty => 0,
@@ -118,6 +119,7 @@ impl<T> RcSlice<T> {
     }
 }
 
+#[cfg(unused)]
 impl<T: Clone> RcSlice<T> {
     /// 要素をすべてクローンしてベクタを作る。
     pub(crate) fn to_owned(&self) -> Vec<T> {
@@ -215,5 +217,17 @@ impl<T> Clone for RcSlice<T> {
                 },
             },
         }
+    }
+}
+
+impl<T> From<[T; 0]> for RcSlice<T> {
+    fn from(_: [T; 0]) -> Self {
+        Self::EMPTY
+    }
+}
+
+impl<T> From<Vec<T>> for RcSlice<T> {
+    fn from(vec: Vec<T>) -> Self {
+        Self::from_iter(vec.into_iter())
     }
 }
