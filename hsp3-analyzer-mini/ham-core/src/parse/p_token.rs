@@ -1,14 +1,17 @@
-use crate::analysis::ALoc;
-use crate::token::{TokenData, TokenKind};
+use crate::{
+    analysis::ALoc,
+    token::{TokenData, TokenKind},
+    utils::{rc_item::RcItem, rc_slice::RcSlice},
+};
 use std::fmt::Debug;
 
 /// トリビアでないトークンに、前後のトリビアをくっつけたもの。
 #[derive(Clone)]
 #[must_use]
 pub(crate) struct PToken {
-    pub(crate) leading: Vec<TokenData>,
-    pub(crate) body: TokenData,
-    pub(crate) trailing: Vec<TokenData>,
+    pub(crate) leading: RcSlice<TokenData>,
+    pub(crate) body: RcItem<TokenData>,
+    pub(crate) trailing: RcSlice<TokenData>,
 }
 
 impl PToken {
@@ -35,61 +38,73 @@ impl PToken {
         }
     }
 
-    pub(crate) fn from_tokens(tokens: Vec<TokenData>) -> Vec<PToken> {
+    pub(crate) fn from_tokens(tokens: RcSlice<TokenData>) -> Vec<PToken> {
         let empty_text = {
             let eof = tokens.last().unwrap();
             eof.text.slice(0, 0)
         };
 
-        let mut tokens = tokens.into_iter().peekable();
         let mut p_tokens = vec![];
-        let mut leading = vec![];
-        let mut trailing = vec![];
+        let mut index = 0;
 
         loop {
-            // トークンの前にあるトリビアは先行トリビアとする。
-            while tokens.peek().map_or(false, |t| t.kind.is_leading_trivia()) {
-                leading.push(tokens.next().unwrap());
-            }
+            let leading_start = index;
 
-            let body = match tokens.next() {
+            // トークンの前にあるトリビアは先行トリビアとする。
+            while tokens
+                .get(index)
+                .map_or(false, |t| t.kind.is_leading_trivia())
+            {
+                index += 1;
+            }
+            let leading = tokens.slice(leading_start, index);
+
+            let body = match tokens.get(index) {
                 Some(body) => {
                     assert!(!body.kind.is_leading_trivia());
+                    let body = tokens.item(index);
+                    index += 1;
                     body
                 }
-                None => break,
+                None => {
+                    debug_assert!(leading.is_empty());
+                    break;
+                }
             };
 
-            while tokens.peek().map_or(false, |t| t.kind.is_trailing_trivia()) {
-                trailing.push(tokens.next().unwrap());
+            let trailing_start = index;
+            while tokens
+                .get(index)
+                .map_or(false, |t| t.kind.is_trailing_trivia())
+            {
+                index += 1;
             }
+            let trailing = tokens.slice(trailing_start, index);
 
             p_tokens.push(PToken {
-                leading: leading.split_off(0),
+                leading,
                 body,
-                trailing: trailing.split_off(0),
+                trailing,
             });
 
             // 行末に文の終わりを挿入する。
-            if tokens.peek().map_or(false, |t| {
+            if tokens.get(index).map_or(false, |t| {
                 t.kind == TokenKind::Newlines || t.kind == TokenKind::Eof
             }) {
                 let loc = p_tokens.last().map(|t| t.behind()).unwrap_or_default();
 
                 p_tokens.push(PToken {
-                    leading: vec![],
+                    leading: RcSlice::EMPTY,
                     body: TokenData {
                         kind: TokenKind::Eos,
                         text: empty_text.clone(),
                         loc,
-                    },
-                    trailing: vec![],
+                    }
+                    .into(),
+                    trailing: RcSlice::EMPTY,
                 });
             }
         }
-
-        assert!(leading.is_empty());
-        assert!(trailing.is_empty());
 
         p_tokens
     }

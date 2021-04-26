@@ -171,14 +171,14 @@ fn make_lines(doc: ADoc, tokens: Vec<PToken>, lines: &mut Vec<Line>) {
 
         leading.extend(token.leading.into_iter().filter_map(|token| {
             if token.kind == TokenKind::Comment {
-                Some(token.text)
+                Some(token.text.clone())
             } else {
                 None
             }
         }));
 
         let body = token.body;
-        words.push((body.loc.start(), body.loc.end(), body.text));
+        words.push((body.loc.start(), body.loc.end(), body.text.clone()));
 
         loop {
             if tokens
@@ -189,7 +189,7 @@ fn make_lines(doc: ADoc, tokens: Vec<PToken>, lines: &mut Vec<Line>) {
             }
 
             let body = tokens.next().unwrap().body;
-            words.push((body.loc.start(), body.loc.end(), body.text));
+            words.push((body.loc.start(), body.loc.end(), body.text.clone()));
         }
 
         while tokens
@@ -224,7 +224,7 @@ pub(crate) fn tokenize(doc: ADoc, text: RcStr, lines: &mut Vec<Line>, line_count
         .last()
         .as_ref()
         .map_or(0, |token| token.loc.end_row());
-    let tokens = PToken::from_tokens(tokens);
+    let tokens = PToken::from_tokens(tokens.into());
     make_lines(doc, tokens, lines)
 }
 

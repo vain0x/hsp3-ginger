@@ -59,7 +59,7 @@ fn parse_standard_files() {
                 ADoc::new(last_id)
             };
             let tokens = crate::token::tokenize(doc, RcStr::new(text.clone(), 0, text.len()));
-            let tokens = PToken::from_tokens(tokens);
+            let tokens = PToken::from_tokens(tokens.into());
             let root = parse_root(tokens);
             format!("{:#?}\n", root)
         };

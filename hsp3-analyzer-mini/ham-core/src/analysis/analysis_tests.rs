@@ -56,7 +56,7 @@ fn analyze_standard_files() {
             ADoc::new(last_id)
         };
         let tokens = crate::token::tokenize(doc, text.clone().into());
-        let tokens = PToken::from_tokens(tokens);
+        let tokens = PToken::from_tokens(tokens.into());
         let root = crate::parse::parse_root(tokens);
         let analysis = crate::analysis::analyze::analyze(&root);
         let output = format!("{:#?}\n", analysis);

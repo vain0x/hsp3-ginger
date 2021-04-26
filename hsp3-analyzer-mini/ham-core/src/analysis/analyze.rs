@@ -520,13 +520,14 @@ fn do_resolve_symbol_def_candidates(
 
         // FIXME: name, definer のトークンへの参照がほしい
         let token = PToken {
-            leading: vec![],
+            leading: [].into(),
             body: TokenData {
                 kind: TokenKind::Ident,
                 text: candidate.name.clone(),
                 loc: candidate.loc.clone(),
-            },
-            trailing: vec![],
+            }
+            .into(),
+            trailing: [].into(),
         };
 
         // FIXME: モジュール内のシンボルならモジュールの環境にインポートする

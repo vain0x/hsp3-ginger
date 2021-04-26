@@ -51,7 +51,7 @@ impl AWorkspaceAnalysis {
 
             let analysis = {
                 let tokens = crate::token::tokenize(doc, text.clone());
-                let tokens = crate::parse::PToken::from_tokens(tokens);
+                let tokens = crate::parse::PToken::from_tokens(tokens.into());
                 let root = crate::parse::parse_root(tokens);
                 super::analyze::analyze(&root)
             };
