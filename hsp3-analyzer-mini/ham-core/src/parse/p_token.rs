@@ -1,7 +1,7 @@
 use crate::{
     analysis::ALoc,
     token::{TokenData, TokenKind},
-    utils::{rc_item::RcItem, rc_slice::RcSlice},
+    utils::{rc_item::RcItem, rc_slice::RcSlice, rc_str::RcStr},
 };
 use std::fmt::Debug;
 
@@ -39,11 +39,6 @@ impl PToken {
     }
 
     pub(crate) fn from_tokens(tokens: RcSlice<TokenData>) -> Vec<PToken> {
-        let empty_text = {
-            let eof = tokens.last().unwrap();
-            eof.text.slice(0, 0)
-        };
-
         let mut p_tokens = vec![];
         let mut index = 0;
 
@@ -97,7 +92,7 @@ impl PToken {
                     leading: RcSlice::EMPTY,
                     body: TokenData {
                         kind: TokenKind::Eos,
-                        text: empty_text.clone(),
+                        text: RcStr::EMPTY,
                         loc,
                     }
                     .into(),
