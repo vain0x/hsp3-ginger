@@ -83,5 +83,6 @@ mod token {
 mod utils {
     pub(crate) mod canonical_uri;
     pub(crate) mod id;
+    pub(crate) mod rc_slice;
     pub(crate) mod rc_str;
 }
