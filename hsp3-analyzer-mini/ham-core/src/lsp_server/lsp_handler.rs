@@ -7,7 +7,7 @@ use lsp_types::{
     InitializeParams, InitializeResult, Location, PrepareRenameResponse, PublishDiagnosticsParams,
     ReferenceParams, RenameOptions, RenameParams, RenameProviderCapability, ServerCapabilities,
     ServerInfo, TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, Url, WorkDoneProgressOptions, WorkspaceEdit,
+    TextDocumentSyncOptions, WorkDoneProgressOptions, WorkspaceEdit,
 };
 use std::io;
 
@@ -66,25 +66,9 @@ impl<W: io::Write> LspHandler<W> {
         std::process::exit(0)
     }
 
-    fn send_publish_diagnostics(&mut self, uri: Url) {
-        let (version, diagnostics) = self.model.validate(&uri);
-
-        self.sender.send_notification(
-            "textDocument/publishDiagnostics",
-            PublishDiagnosticsParams {
-                uri,
-                version,
-                diagnostics,
-            },
-        );
-    }
-
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
-        let uri = doc.uri.to_owned();
         self.model.open_doc(doc.uri, doc.version, doc.text);
-
-        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
@@ -94,12 +78,9 @@ impl<W: io::Write> LspHandler<W> {
             .unwrap_or("".to_string());
 
         let doc = params.text_document;
-        let uri = doc.uri.to_owned();
         let version = doc.version.unwrap_or(0);
 
         self.model.change_doc(doc.uri, version, text);
-
-        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
@@ -176,6 +157,21 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
+    fn diagnose(&mut self) {
+        let diagnostics = self.model.diagnose();
+
+        for (uri, version, diagnostics) in diagnostics {
+            self.sender.send_notification(
+                "textDocument/publishDiagnostics",
+                PublishDiagnosticsParams {
+                    uri,
+                    version,
+                    diagnostics,
+                },
+            );
+        }
+    }
+
     fn did_receive(&mut self, json: &str) {
         let msg = serde_json::from_str::<LspMessageOpaque>(json).unwrap();
 
@@ -223,6 +219,7 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.completion_item_resolve(msg.params);
                 self.sender.send_response(msg_id, response);
+                self.diagnose();
             }
             "textDocument/definition" => {
                 let msg =
@@ -230,6 +227,7 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_definition(msg.params);
                 self.sender.send_response(msg_id, response);
+                self.diagnose();
             }
             "textDocument/documentHighlight" => {
                 let msg =
@@ -244,6 +242,7 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_hover(msg.params);
                 self.sender.send_response(msg_id, response);
+                self.diagnose();
             }
             request::PrepareRenameRequest::METHOD => {
                 let msg: LspRequest<TextDocumentPositionParams> =
@@ -257,12 +256,14 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_references(msg.params);
                 self.sender.send_response(msg_id, response);
+                self.diagnose();
             }
             request::Rename::METHOD => {
                 let msg: LspRequest<RenameParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_rename(msg.params);
                 self.sender.send_response(msg_id, response);
+                self.diagnose();
             }
             _ => warn!("Msg unresolved."),
         }

@@ -6,7 +6,7 @@ use crate::{
     help_source::{collect_all_symbols, HsSymbol},
     utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
 };
-use docs::{DocChange, Docs, NO_VERSION};
+use docs::{DocChange, Docs};
 use lsp_types::*;
 use std::{mem::take, path::PathBuf};
 
@@ -260,8 +260,13 @@ impl LangService {
         assists::rename::rename(uri, position, new_name, docs, &mut self.wa)
     }
 
-    pub(super) fn validate(&mut self, _uri: &Url) -> (Option<i64>, Vec<Diagnostic>) {
-        // FIXME: 実装
-        (Some(NO_VERSION), vec![])
+    pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
+        // WHY-NOT: 他のリクエストの後にしか呼ばれないのでpollする必要はない。
+
+        let docs = match self.docs_opt.as_ref() {
+            Some(it) => it,
+            None => return vec![],
+        };
+        assists::diagnose::diagnose(docs, &mut self.wa)
     }
 }

@@ -7,6 +7,7 @@ use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};
 
 pub(crate) mod completion;
 pub(crate) mod definitions;
+pub(crate) mod diagnose;
 pub(crate) mod document_highlight;
 pub(crate) mod hover;
 pub(crate) mod references;

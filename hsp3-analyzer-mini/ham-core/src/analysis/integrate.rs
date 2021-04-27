@@ -158,6 +158,10 @@ impl AWorkspaceAnalysis {
             .get_symbol_details(wa_symbol.symbol)
     }
 
+    pub(crate) fn diagnose(&mut self) {
+        self.compute();
+    }
+
     pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<ALoc>) {
         self.compute();
 
