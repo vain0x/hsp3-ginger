@@ -636,7 +636,7 @@ fn do_resolve_symbol_use_candidates(
                     ..candidate.scope
                 };
                 let symbol = add_symbol(
-                    ASymbolKind::StaticVar,
+                    ASymbolKind::Unresolved,
                     &token,
                     &token,
                     AScope::Local(defined_scope),
