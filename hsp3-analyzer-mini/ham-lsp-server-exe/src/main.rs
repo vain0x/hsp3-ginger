@@ -23,7 +23,10 @@ fn get_help() -> String {
     OPTIONS:
         -h, --help      Print help
         -V, --version   Print Version
-            --hsp       HSP インストールディレクトリ (必須)"#,
+            --hsp       HSP インストールディレクトリ (必須)
+            
+    ENV:
+        HAM_LINT=1      リントを有効化する (既定: 無効)"#,
         version = get_version()
     )
 }
