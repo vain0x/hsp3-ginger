@@ -11,10 +11,7 @@ use crate::{
     token::{TokenData, TokenKind},
     utils::rc_str::RcStr,
 };
-use std::{
-    collections::HashMap,
-    mem::{replace, take},
-};
+use std::mem::{replace, take};
 
 #[derive(Copy, Clone, Debug)]
 enum ADefCandidateKind {
@@ -469,16 +466,11 @@ pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
     }
 }
 
-fn do_extend_public_env(
-    doc: ADoc,
-    symbols: &[ASymbolData],
-    global_env: &mut HashMap<RcStr, AWsSymbol>,
-    toplevel_env: &mut HashMap<RcStr, AWsSymbol>,
-) {
+fn do_extend_public_env(doc: ADoc, symbols: &[ASymbolData], public_env: &mut APublicEnv) {
     for (i, symbol_data) in symbols.iter().enumerate() {
         let env = match symbol_data.scope {
-            AScope::Global => &mut *global_env,
-            AScope::Local(scope) if scope.is_outside_module() => &mut *toplevel_env,
+            AScope::Global => &mut public_env.global,
+            AScope::Local(scope) if scope.is_outside_module() => &mut public_env.toplevel,
             AScope::Local(_) => continue,
         };
 
@@ -588,13 +580,8 @@ impl AAnalysis {
         self.symbols.drain(self.base_symbol_len..);
     }
 
-    pub(crate) fn extend_public_env(
-        &self,
-        doc: ADoc,
-        global_env: &mut HashMap<RcStr, AWsSymbol>,
-        toplevel_env: &mut HashMap<RcStr, AWsSymbol>,
-    ) {
-        do_extend_public_env(doc, &self.symbols, global_env, toplevel_env);
+    pub(crate) fn extend_public_env(&self, doc: ADoc, public_env: &mut APublicEnv) {
+        do_extend_public_env(doc, &self.symbols, public_env);
     }
 
     pub(crate) fn collect_explicit_def_sites(

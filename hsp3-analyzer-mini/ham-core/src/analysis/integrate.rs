@@ -21,10 +21,7 @@ pub(crate) struct AWorkspaceAnalysis {
     pub(crate) doc_analysis_map: HashMap<ADoc, AAnalysis>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
-    /// `global` で定義されたシンボルの名前を解決するためのマップ。
-    pub(crate) global_env: HashMap<RcStr, AWsSymbol>,
-    /// `global` を除く、モジュールの外でのみ使えるシンボルの名前を解決するためのマップ。
-    pub(crate) toplevel_env: HashMap<RcStr, AWsSymbol>,
+    pub(crate) public_env: APublicEnv,
 
     pub(crate) def_sites: Vec<(AWsSymbol, ALoc)>,
     pub(crate) use_sites: Vec<(AWsSymbol, ALoc)>,
@@ -79,16 +76,10 @@ impl AWorkspaceAnalysis {
         }
 
         // 複数ファイルに渡る環境を構築する。
-        self.global_env.clear();
-        self.toplevel_env.clear();
+        self.public_env.clear();
         for (&doc, analysis) in &self.doc_analysis_map {
-            analysis.extend_public_env(doc, &mut self.global_env, &mut self.toplevel_env);
+            analysis.extend_public_env(doc, &mut self.public_env);
         }
-
-        let public_env = APublicEnv {
-            global: &self.global_env,
-            toplevel: &self.toplevel_env,
-        };
 
         // シンボルの定義・参照箇所を決定する。
         self.def_sites.clear();
@@ -101,14 +92,14 @@ impl AWorkspaceAnalysis {
         for (&doc, analysis) in &mut self.doc_analysis_map {
             analysis.resolve_symbol_def_candidates(
                 doc,
-                &public_env,
+                &self.public_env,
                 &mut self.def_sites,
                 &mut self.use_sites,
             );
         }
 
         for (_, analysis) in &mut self.doc_analysis_map {
-            analysis.resolve_symbol_use_candidates(&public_env, &mut self.use_sites);
+            analysis.resolve_symbol_use_candidates(&self.public_env, &mut self.use_sites);
         }
 
         // eprintln!("global_env={:#?}", &self.global_env);
@@ -222,21 +213,42 @@ pub(crate) struct ASyntax {
     pub(crate) tree: PRoot,
 }
 
-pub(crate) struct APublicEnv<'a> {
-    global: &'a HashMap<RcStr, AWsSymbol>,
-    toplevel: &'a HashMap<RcStr, AWsSymbol>,
+/// 環境。名前からシンボルへのマップ。
+#[derive(Default)]
+pub(crate) struct AEnv {
+    map: HashMap<RcStr, AWsSymbol>,
 }
 
-impl<'a> APublicEnv<'a> {
+impl AEnv {
+    pub(crate) fn get(&self, name: &str) -> Option<AWsSymbol> {
+        self.map.get(name).cloned()
+    }
+
+    pub(crate) fn insert(&mut self, name: RcStr, symbol: AWsSymbol) {
+        self.map.insert(name, symbol);
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.map.clear();
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct APublicEnv {
+    /// あらゆる場所で使えるシンボルが属す環境。(標準命令や `#define global` で定義されたマクロなど)
+    pub(crate) global: AEnv,
+
+    /// モジュールの外で使えるシンボルの名前を解決するためのマップ。(`global` は除く。)
+    pub(crate) toplevel: AEnv,
+}
+
+impl APublicEnv {
     pub(crate) fn in_global(&self, name: &str) -> Option<AWsSymbol> {
-        self.global.get(name).cloned()
+        self.global.get(name)
     }
 
     pub(crate) fn in_toplevel(&self, name: &str) -> Option<AWsSymbol> {
-        match self.toplevel.get(name) {
-            Some(symbol) => Some(*symbol),
-            None => self.in_global(name),
-        }
+        self.toplevel.get(name).or_else(|| self.in_global(name))
     }
 
     pub(crate) fn resolve(&self, name: &str, is_toplevel: bool) -> Option<AWsSymbol> {
@@ -245,6 +257,11 @@ impl<'a> APublicEnv<'a> {
         } else {
             self.in_global(name)
         }
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.global.clear();
+        self.toplevel.clear();
     }
 }
 
