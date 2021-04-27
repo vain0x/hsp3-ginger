@@ -604,9 +604,11 @@ fn do_resolve_symbol_def_candidates(
 }
 
 fn do_resolve_symbol_use_candidates(
+    doc: ADoc,
     use_candidates: &[AUseCandidateData],
     public_env: &APublicEnv,
-    local_env: &HashMap<ALocalScope, AEnv>,
+    local_env: &mut HashMap<ALocalScope, AEnv>,
+    symbols: &mut Vec<ASymbolData>,
     use_sites: &mut Vec<(AWsSymbol, ALoc)>,
 ) {
     // eprintln!("use_candidates={:?}", use_candidates);
@@ -614,8 +616,34 @@ fn do_resolve_symbol_use_candidates(
     for candidate in use_candidates {
         match resolve_candidate(&candidate.name, candidate.scope, public_env, local_env) {
             None => {
-                // 未解決シンボルとして定義する
-                continue;
+                // FIXME: name, definer のトークンへの参照がほしい
+                let token = PToken {
+                    leading: [].into(),
+                    body: TokenData {
+                        kind: TokenKind::Ident,
+                        text: candidate.name.clone(),
+                        loc: candidate.loc.clone(),
+                    }
+                    .into(),
+                    trailing: [].into(),
+                };
+                let defined_scope = ALocalScope {
+                    deffunc_opt: None,
+                    ..candidate.scope
+                };
+                let symbol = add_symbol(
+                    ASymbolKind::StaticVar,
+                    &token,
+                    &token,
+                    AScope::Local(defined_scope),
+                    symbols,
+                );
+                let ws_symbol = AWsSymbol { doc, symbol };
+                local_env
+                    .entry(defined_scope)
+                    .or_default()
+                    .insert(candidate.name.clone(), ws_symbol);
+                use_sites.push((ws_symbol, candidate.loc));
             }
             Some(ws_symbol) => {
                 use_sites.push((ws_symbol, candidate.loc));
@@ -676,13 +704,16 @@ impl AAnalysis {
 
     pub(crate) fn resolve_symbol_use_candidates(
         &mut self,
+        doc: ADoc,
         public_env: &APublicEnv,
         use_sites: &mut Vec<(AWsSymbol, ALoc)>,
     ) {
         do_resolve_symbol_use_candidates(
+            doc,
             &self.use_candidates,
             public_env,
-            &self.local_env,
+            &mut self.local_env,
+            &mut self.symbols,
             use_sites,
         );
     }

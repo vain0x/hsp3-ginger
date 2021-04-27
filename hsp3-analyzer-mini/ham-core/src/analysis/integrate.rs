@@ -98,8 +98,8 @@ impl AWorkspaceAnalysis {
             );
         }
 
-        for (_, analysis) in &mut self.doc_analysis_map {
-            analysis.resolve_symbol_use_candidates(&self.public_env, &mut self.use_sites);
+        for (&doc, analysis) in &mut self.doc_analysis_map {
+            analysis.resolve_symbol_use_candidates(doc, &self.public_env, &mut self.use_sites);
         }
 
         // eprintln!("global_env={:#?}", &self.global_env);
