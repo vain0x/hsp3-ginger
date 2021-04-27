@@ -42,6 +42,13 @@ pub(crate) enum ASymbolKind {
 }
 
 impl ASymbolKind {
+    pub(crate) fn is_param(self) -> bool {
+        match self {
+            Self::Param(_) => true,
+            _ => false,
+        }
+    }
+
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             ASymbolKind::Unresolved => "不明",

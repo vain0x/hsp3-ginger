@@ -495,7 +495,9 @@ fn do_extend_public_env(doc: ADoc, symbols: &[ASymbolData], public_env: &mut APu
     for (i, symbol_data) in symbols.iter().enumerate() {
         let env = match symbol_data.scope {
             AScope::Global => &mut public_env.global,
-            AScope::Local(scope) if scope.is_outside_module() => &mut public_env.toplevel,
+            AScope::Local(scope) if scope.is_outside_module() && !symbol_data.kind.is_param() => {
+                &mut public_env.toplevel
+            }
             AScope::Local(_) => continue,
         };
 
@@ -517,7 +519,7 @@ fn do_collect_explicit_def_sites(
         };
 
         match symbol.scope {
-            AScope::Local(scope) if !scope.is_outside_module() => {
+            AScope::Local(scope) if !scope.is_outside_module() || symbol.kind.is_param() => {
                 local_env
                     .entry(scope)
                     .or_default()
