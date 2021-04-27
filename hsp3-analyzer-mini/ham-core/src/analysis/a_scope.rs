@@ -4,9 +4,11 @@ use crate::{
     utils::{id::Id, rc_str::RcStr},
 };
 
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub(crate) struct ALocalScope {
     pub(crate) module_opt: Option<AModule>,
+
+    /// `#deffunc` 系命令の下の部分。(このスコープに属して定義されるのはパラメータだけ。)
     pub(crate) deffunc_opt: Option<ADefFunc>,
 }
 

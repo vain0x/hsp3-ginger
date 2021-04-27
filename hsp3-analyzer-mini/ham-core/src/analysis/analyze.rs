@@ -2,7 +2,7 @@ use super::{
     a_scope::{ADefFunc, ADefFuncData, ALocalScope, AModule, AModuleData},
     a_symbol::{ASymbolData, AWsSymbol},
     comment::calculate_details,
-    integrate::APublicEnv,
+    integrate::{AEnv, APublicEnv},
     ADoc, ALoc, APos, AScope, ASymbol, ASymbolDetails, ASymbolKind,
 };
 use crate::{
@@ -11,7 +11,10 @@ use crate::{
     token::{TokenData, TokenKind},
     utils::rc_str::RcStr,
 };
-use std::mem::{replace, take};
+use std::{
+    collections::HashMap,
+    mem::{replace, take},
+};
 
 #[derive(Copy, Clone, Debug)]
 enum ADefCandidateKind {
@@ -61,15 +64,18 @@ impl Ax {
         Self::default()
     }
 
-    fn current_local_scope(&self) -> ALocalScope {
+    fn current_deffunc_scope(&self) -> ALocalScope {
         ALocalScope {
             deffunc_opt: self.deffunc_opt,
             module_opt: self.module_opt,
         }
     }
 
-    fn current_scope(&self) -> AScope {
-        AScope::Local(self.current_local_scope())
+    fn current_module_scope(&self) -> ALocalScope {
+        ALocalScope {
+            deffunc_opt: None,
+            module_opt: self.module_opt,
+        }
     }
 
     fn add_symbol(
@@ -81,7 +87,7 @@ impl Ax {
     ) -> ASymbol {
         let scope = match privacy {
             PPrivacy::Global => AScope::Global,
-            PPrivacy::Local => self.current_scope(),
+            PPrivacy::Local => AScope::Local(self.current_module_scope()),
         };
         add_symbol(kind, token, definer, scope, &mut self.symbols)
     }
@@ -130,7 +136,7 @@ fn on_symbol_def(name: &PToken, kind: ADefCandidateKind, ax: &mut Ax) {
         kind,
         name: name.body.text.clone(),
         loc: name.body.loc.clone(),
-        scope: ax.current_local_scope(),
+        scope: ax.current_deffunc_scope(),
     });
 }
 
@@ -139,7 +145,7 @@ fn on_symbol_use(name: &PToken, kind: AUseCandidateKind, ax: &mut Ax) {
         kind,
         name: name.body.text.clone(),
         loc: name.body.loc.clone(),
-        scope: ax.current_local_scope(),
+        scope: ax.current_deffunc_scope(),
     });
 }
 
@@ -322,7 +328,13 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
 
             for param in params {
                 if let Some(name) = &param.name_opt {
-                    ax.add_symbol(ASymbolKind::Param, name, PPrivacy::Local, hash);
+                    add_symbol(
+                        ASymbolKind::Param,
+                        name,
+                        hash,
+                        AScope::Local(ax.current_deffunc_scope()),
+                        &mut ax.symbols,
+                    );
                 }
             }
 
@@ -444,6 +456,9 @@ pub(crate) struct AAnalysis {
 
     /// 定義箇所候補を解決する前のシンボルの個数。
     base_symbol_len: usize,
+
+    /// モジュールやdeffunc内部の環境
+    local_env: HashMap<ALocalScope, AEnv>,
 }
 
 pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
@@ -463,6 +478,7 @@ pub(crate) fn analyze(root: &PRoot) -> AAnalysis {
         use_candidates: ax.use_candidates,
         deffuncs: ax.deffuncs,
         modules: ax.modules,
+        local_env: HashMap::new(),
     }
 }
 
@@ -482,28 +498,69 @@ fn do_extend_public_env(doc: ADoc, symbols: &[ASymbolData], public_env: &mut APu
 fn do_collect_explicit_def_sites(
     doc: ADoc,
     symbols: &[ASymbolData],
+    local_env: &mut HashMap<ALocalScope, AEnv>,
     def_sites: &mut Vec<(AWsSymbol, ALoc)>,
 ) {
     for (i, symbol) in symbols.iter().enumerate() {
-        let symbol_id = ASymbol::new(i);
         let ws_symbol = AWsSymbol {
             doc,
-            symbol: symbol_id,
+            symbol: ASymbol::new(i),
         };
+
+        match symbol.scope {
+            AScope::Local(scope) if !scope.is_outside_module() => {
+                local_env
+                    .entry(scope)
+                    .or_default()
+                    .insert(symbol.name.clone(), ws_symbol);
+            }
+            AScope::Local(_) | AScope::Global => {
+                // すでにpublic_envに入ってる。
+            }
+        }
+
         def_sites.extend(symbol.def_sites.iter().map(|&loc| (ws_symbol, loc)));
     }
+}
+
+/// 暗黙のシンボルの出現を解決する。
+fn resolve_candidate(
+    name: &str,
+    scope: ALocalScope,
+    public_env: &APublicEnv,
+    local_env: &HashMap<ALocalScope, AEnv>,
+) -> Option<AWsSymbol> {
+    // ローカル環境で探す
+    if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(name)) {
+        return it;
+    }
+
+    // deffuncの外からも探す。
+    if scope.deffunc_opt.is_some() {
+        let scope = ALocalScope {
+            deffunc_opt: None,
+            ..scope
+        };
+        if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(name)) {
+            return it;
+        }
+    }
+
+    // globalで探す。
+    public_env.resolve(name, scope.is_outside_module())
 }
 
 fn do_resolve_symbol_def_candidates(
     doc: ADoc,
     def_candidates: &[ADefCandidateData],
     public_env: &APublicEnv,
+    local_env: &mut HashMap<ALocalScope, AEnv>,
     symbols: &mut Vec<ASymbolData>,
     def_sites: &mut Vec<(AWsSymbol, ALoc)>,
     use_sites: &mut Vec<(AWsSymbol, ALoc)>,
 ) {
     for candidate in def_candidates {
-        match public_env.resolve(&candidate.name, candidate.scope.is_outside_module()) {
+        match resolve_candidate(&candidate.name, candidate.scope, public_env, local_env) {
             None => {}
             Some(ws_symbol) => {
                 use_sites.push((ws_symbol, candidate.loc));
@@ -522,18 +579,26 @@ fn do_resolve_symbol_def_candidates(
             .into(),
             trailing: [].into(),
         };
-
-        // FIXME: モジュール内のシンボルならモジュールの環境にインポートする
-        // 登録済みのシンボルなら同じシンボル ID をつける
+        let defined_scope = ALocalScope {
+            deffunc_opt: None,
+            ..candidate.scope
+        };
         let symbol = add_symbol(
             ASymbolKind::StaticVar,
             &token,
             &token,
-            AScope::Local(candidate.scope),
+            AScope::Local(defined_scope),
             symbols,
         );
-
         let ws_symbol = AWsSymbol { doc, symbol };
+
+        if !candidate.scope.is_outside_module() {
+            local_env
+                .entry(defined_scope)
+                .or_default()
+                .insert(candidate.name.clone(), ws_symbol);
+        }
+
         def_sites.push((ws_symbol, candidate.loc));
     }
 }
@@ -541,23 +606,21 @@ fn do_resolve_symbol_def_candidates(
 fn do_resolve_symbol_use_candidates(
     use_candidates: &[AUseCandidateData],
     public_env: &APublicEnv,
+    local_env: &HashMap<ALocalScope, AEnv>,
     use_sites: &mut Vec<(AWsSymbol, ALoc)>,
 ) {
     // eprintln!("use_candidates={:?}", use_candidates);
 
     for candidate in use_candidates {
-        // FIXME: globalの前にモジュールの環境から探す
-
-        let ws_symbol =
-            match public_env.resolve(&candidate.name, candidate.scope.is_outside_module()) {
-                None => {
-                    // 未解決シンボルとして定義する
-                    continue;
-                }
-                Some(it) => it,
-            };
-
-        use_sites.push((ws_symbol, candidate.loc));
+        match resolve_candidate(&candidate.name, candidate.scope, public_env, local_env) {
+            None => {
+                // 未解決シンボルとして定義する
+                continue;
+            }
+            Some(ws_symbol) => {
+                use_sites.push((ws_symbol, candidate.loc));
+            }
+        }
     }
 }
 
@@ -578,6 +641,7 @@ impl AAnalysis {
 
     pub(crate) fn invalidate_previous_workspace_analysis(&mut self) {
         self.symbols.drain(self.base_symbol_len..);
+        self.local_env.clear();
     }
 
     pub(crate) fn extend_public_env(&self, doc: ADoc, public_env: &mut APublicEnv) {
@@ -589,7 +653,7 @@ impl AAnalysis {
         doc: ADoc,
         def_sites: &mut Vec<(AWsSymbol, ALoc)>,
     ) {
-        do_collect_explicit_def_sites(doc, &self.symbols, def_sites);
+        do_collect_explicit_def_sites(doc, &self.symbols, &mut self.local_env, def_sites);
     }
 
     pub(crate) fn resolve_symbol_def_candidates(
@@ -603,6 +667,7 @@ impl AAnalysis {
             doc,
             &self.def_candidates,
             public_env,
+            &mut self.local_env,
             &mut self.symbols,
             def_sites,
             use_sites,
@@ -614,7 +679,12 @@ impl AAnalysis {
         public_env: &APublicEnv,
         use_sites: &mut Vec<(AWsSymbol, ALoc)>,
     ) {
-        do_resolve_symbol_use_candidates(&self.use_candidates, public_env, use_sites);
+        do_resolve_symbol_use_candidates(
+            &self.use_candidates,
+            public_env,
+            &self.local_env,
+            use_sites,
+        );
     }
 
     pub(crate) fn resolve_scope_at(&self, pos: APos) -> ALocalScope {

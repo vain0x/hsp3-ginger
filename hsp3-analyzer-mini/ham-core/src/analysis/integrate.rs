@@ -214,7 +214,7 @@ pub(crate) struct ASyntax {
 }
 
 /// 環境。名前からシンボルへのマップ。
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct AEnv {
     map: HashMap<RcStr, AWsSymbol>,
 }
