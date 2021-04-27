@@ -15,7 +15,6 @@ pub(crate) enum ASymbolKind {
     Directory,
     #[allow(unused)]
     Enum,
-    #[allow(unused)]
     Field,
     #[allow(unused)]
     File,
@@ -38,7 +37,6 @@ impl Default for ASymbolKind {
     }
 }
 
-#[allow(unused)]
 pub(crate) type ASymbol = Id<ASymbolData>;
 
 #[derive(Debug)]

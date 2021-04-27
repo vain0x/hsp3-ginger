@@ -24,7 +24,6 @@ mod analysis {
 
     mod analysis_tests;
 
-    #[allow(unused)]
     pub(crate) use self::{
         a_doc::ADoc,
         a_loc::ALoc,
@@ -61,7 +60,6 @@ mod parse {
     pub(crate) use p_token::PToken;
     pub(crate) use p_tree::*;
 
-    #[allow(unused_imports)]
     pub(crate) use parse_stmt::parse_root;
 }
 
