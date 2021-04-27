@@ -1,13 +1,12 @@
 use super::{
-    a_symbol::{ASymbolData, AWsSymbol},
+    a_symbol::AWsSymbol,
     analyze::{AAnalysis, ACompletionItem},
-    comment::calculate_details,
     ADoc, ALoc, APos, ASymbolDetails,
 };
 use crate::{
     analysis::a_scope::ALocalScope,
     parse::{PRoot, PToken},
-    token::{TokenData, TokenKind},
+    token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
 use std::collections::{HashMap, HashSet};
@@ -139,10 +138,9 @@ impl AWorkspaceAnalysis {
             Ok(i) => tokens[i].body.as_ref(),
             Err(i) => tokens
                 .iter()
-                .enumerate()
                 .skip(i.saturating_sub(1))
                 .take(3)
-                .find_map(|(i, t)| {
+                .find_map(|t| {
                     if t.body.kind == TokenKind::Ident && t.body.loc.range.is_touched(pos) {
                         Some(t.body.as_ref())
                     } else {
@@ -153,6 +151,7 @@ impl AWorkspaceAnalysis {
         Some((token.text.clone(), token.loc))
     }
 
+    #[allow(unused)]
     pub(crate) fn symbol_name(&self, wa_symbol: AWsSymbol) -> Option<&str> {
         self.doc_analysis_map
             .get(&wa_symbol.doc)?

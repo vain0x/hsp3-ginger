@@ -570,6 +570,7 @@ fn do_resolve_symbol_use_candidates(
 }
 
 impl AAnalysis {
+    #[allow(unused)]
     pub(crate) fn symbol_name(&self, symbol: ASymbol) -> Option<&str> {
         let symbol = self.symbols.get(symbol.get())?;
         Some(&symbol.name)

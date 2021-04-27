@@ -3,17 +3,15 @@ pub(crate) mod docs;
 use crate::{
     analysis::integrate::AWorkspaceAnalysis,
     assists,
-    help_source::collect_all_symbols,
-    sem::{self, ProjectSem},
+    help_source::{collect_all_symbols, HsSymbol},
     utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
 };
 use docs::{DocChange, Docs, NO_VERSION};
 use lsp_types::*;
-use std::{mem::take, path::PathBuf, rc::Rc};
+use std::{mem::take, path::PathBuf};
 
 #[derive(Default)]
 pub(super) struct LangService {
-    sem: ProjectSem,
     wa: AWorkspaceAnalysis,
     hsp3_home: PathBuf,
     docs_opt: Option<Docs>,
@@ -25,7 +23,6 @@ impl LangService {
     pub(super) fn new(hsp3_home: PathBuf) -> Self {
         Self {
             hsp3_home,
-            sem: sem::ProjectSem::new(),
             ..Default::default()
         }
     }
@@ -49,49 +46,20 @@ impl LangService {
             warn!("{}", w);
         }
 
-        let doc = docs.fresh_doc();
-
-        let symbols = symbols
-            .into_iter()
-            .enumerate()
-            .map(|(i, symbol)| {
-                Rc::new(sem::Symbol {
-                    symbol_id: self.sem.last_symbol_id + i + 1,
-                    name: symbol.name.into(),
-                    kind: sem::SymbolKind::Command {
-                        local: false,
-                        ctype: false,
-                    },
-                    details: sem::SymbolDetails {
-                        description: symbol.description.map(|s| s.into()),
-                        documentation: symbol.documentation.clone(),
-                    },
-                    scope: sem::Scope::new_global(doc),
-                })
-            })
-            .collect::<Vec<_>>();
-
-        self.sem.last_symbol_id += symbols.len();
-
         self.hsphelp_symbols = symbols
-            .iter()
+            .into_iter()
             .map(|symbol| {
-                let kind = match symbol.kind {
-                    sem::SymbolKind::Label => CompletionItemKind::Value,
-                    sem::SymbolKind::Static | sem::SymbolKind::Param { .. } => {
-                        CompletionItemKind::Variable
-                    }
-                    sem::SymbolKind::Macro { .. } | sem::SymbolKind::Command { .. } => {
-                        CompletionItemKind::Function
-                    }
-                };
+                let kind = CompletionItemKind::Function;
+                let HsSymbol {
+                    name,
+                    description,
+                    documentation,
+                } = symbol;
 
                 // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
-                let sort_prefix = if symbol.name.starts_with("#") || symbol.name.starts_with("_") {
+                let sort_prefix = if name.starts_with("#") || name.starts_with("_") {
                     'y'
-                } else if symbol
-                    .details
-                    .documentation
+                } else if documentation
                     .last()
                     .map_or(false, |s| s.contains("標準命令") || s.contains("標準関数"))
                 {
@@ -102,18 +70,16 @@ impl LangService {
 
                 CompletionItem {
                     kind: Some(kind),
-                    label: symbol.name.to_string(),
-                    detail: symbol.details.description.as_ref().map(|s| s.to_string()),
-                    documentation: if symbol.details.documentation.is_empty() {
+                    label: name.to_string(),
+                    detail: description,
+                    documentation: if documentation.is_empty() {
                         None
                     } else {
-                        Some(Documentation::String(
-                            symbol.details.documentation.join("\r\n\r\n"),
-                        ))
+                        Some(Documentation::String(documentation.join("\r\n\r\n")))
                     },
-                    sort_text: Some(format!("{}{}", sort_prefix, symbol.name)),
-                    filter_text: if symbol.name.as_str().starts_with("#") {
-                        Some(symbol.name.as_str().chars().skip(1).collect::<String>())
+                    sort_text: Some(format!("{}{}", sort_prefix, name)),
+                    filter_text: if name.as_str().starts_with("#") {
+                        Some(name.as_str().chars().skip(1).collect::<String>())
                     } else {
                         None
                     },
@@ -121,8 +87,6 @@ impl LangService {
                 }
             })
             .collect();
-
-        self.sem.add_hs_symbols(doc, symbols);
 
         docs.did_initialize();
 
@@ -143,11 +107,9 @@ impl LangService {
             match change {
                 DocChange::Opened { doc, text } | DocChange::Changed { doc, text } => {
                     let text = RcStr::from(text);
-                    self.sem.update_doc(doc, text.clone());
                     self.wa.update_doc(doc, text);
                 }
                 DocChange::Closed { doc } => {
-                    self.sem.close_doc(doc);
                     self.wa.close_doc(doc);
                 }
             }
