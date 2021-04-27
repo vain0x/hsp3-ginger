@@ -1,7 +1,7 @@
 pub(crate) mod docs;
 
 use crate::{
-    analysis::integrate::AWorkspaceAnalysis,
+    analysis::{a_symbol::AWsSymbol, integrate::AWorkspaceAnalysis, ASymbol},
     assists,
     help_source::{collect_all_symbols, HsSymbol},
     utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
@@ -46,15 +46,27 @@ impl LangService {
             warn!("{}", w);
         }
 
+        let hsphelp_doc = docs.fresh_doc();
+
         self.hsphelp_symbols = symbols
             .into_iter()
-            .map(|symbol| {
+            .enumerate()
+            .map(|(i, symbol)| {
                 let kind = CompletionItemKind::Function;
                 let HsSymbol {
                     name,
                     description,
                     documentation,
                 } = symbol;
+
+                let wa_symbol = AWsSymbol {
+                    doc: hsphelp_doc,
+                    symbol: ASymbol::new(i),
+                };
+                self.wa
+                    .public_env
+                    .builtin
+                    .insert(name.clone().into(), wa_symbol);
 
                 // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
                 let sort_prefix = if name.starts_with("#") || name.starts_with("_") {

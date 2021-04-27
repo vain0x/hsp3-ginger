@@ -235,6 +235,9 @@ impl AEnv {
 
 #[derive(Default)]
 pub(crate) struct APublicEnv {
+    /// 標準命令などのシンボルが属す環境。(この環境はソースファイルの変更時に無効化しないので、globalと分けている。)
+    pub(crate) builtin: AEnv,
+
     /// あらゆる場所で使えるシンボルが属す環境。(標準命令や `#define global` で定義されたマクロなど)
     pub(crate) global: AEnv,
 
@@ -243,20 +246,14 @@ pub(crate) struct APublicEnv {
 }
 
 impl APublicEnv {
-    pub(crate) fn in_global(&self, name: &str) -> Option<AWsSymbol> {
-        self.global.get(name)
-    }
-
-    pub(crate) fn in_toplevel(&self, name: &str) -> Option<AWsSymbol> {
-        self.toplevel.get(name).or_else(|| self.in_global(name))
-    }
-
     pub(crate) fn resolve(&self, name: &str, is_toplevel: bool) -> Option<AWsSymbol> {
         if is_toplevel {
-            self.in_toplevel(name)
-        } else {
-            self.in_global(name)
+            if let it @ Some(_) = self.toplevel.get(name) {
+                return it;
+            }
         }
+
+        self.global.get(name).or_else(|| self.builtin.get(name))
     }
 
     pub(crate) fn clear(&mut self) {
