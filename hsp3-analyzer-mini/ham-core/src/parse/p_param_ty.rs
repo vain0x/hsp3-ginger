@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum PParamTy {
     Str,
     Double,
@@ -55,4 +55,71 @@ impl PParamTy {
         };
         Some(param_ty)
     }
+
+    pub(crate) fn to_str(self) -> &'static str {
+        match self {
+            PParamTy::Label => "label",
+            PParamTy::Str => "str",
+            PParamTy::Double => "double",
+            PParamTy::Int => "int",
+            PParamTy::Var => "var",
+            PParamTy::Array => "array",
+            PParamTy::Modvar => "modvar",
+            PParamTy::Local => "local",
+            PParamTy::Nullptr => "nullptr",
+            PParamTy::WStr => "wstr",
+            PParamTy::Float => "float",
+            PParamTy::SPtr => "sptr",
+            PParamTy::WPtr => "wptr",
+            PParamTy::Comobj => "comobj",
+            PParamTy::Bmscr => "bmscr",
+            PParamTy::PRefstr => "prefstr",
+            PParamTy::PExinfo => "pexinfo",
+            PParamTy::Hwnd => "hwnd",
+            PParamTy::Hdc => "hdc",
+            PParamTy::HInst => "hinst",
+        }
+    }
+
+    pub(crate) fn category(self) -> PParamCategory {
+        match self {
+            PParamTy::Str
+            | PParamTy::Double
+            | PParamTy::Int
+            | PParamTy::Label
+            | PParamTy::WStr
+            | PParamTy::Float
+            | PParamTy::SPtr
+            | PParamTy::WPtr => PParamCategory::ByValue,
+
+            PParamTy::Var | PParamTy::Array | PParamTy::Modvar | PParamTy::Comobj => {
+                PParamCategory::ByRef
+            }
+
+            PParamTy::Local => PParamCategory::Local,
+
+            PParamTy::Nullptr
+            | PParamTy::Bmscr
+            | PParamTy::PRefstr
+            | PParamTy::PExinfo
+            | PParamTy::Hwnd
+            | PParamTy::Hdc
+            | PParamTy::HInst => PParamCategory::Auto,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum PParamCategory {
+    /// 値渡し。エイリアスは書き換え不可。
+    ByValue,
+
+    /// 参照渡し。エイリアスへの変更は引数に影響する。
+    ByRef,
+
+    /// ローカル変数。(参照渡しと違って、エイリアスへの変更は引数に影響しない。)
+    Local,
+
+    /// システム変数の値が自動で渡される。
+    Auto,
 }

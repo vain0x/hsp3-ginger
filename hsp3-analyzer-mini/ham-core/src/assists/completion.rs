@@ -5,6 +5,7 @@ use crate::{
         AScope, ASymbolKind,
     },
     lang_service::docs::Docs,
+    parse::p_param_ty::PParamCategory,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 
@@ -35,20 +36,29 @@ pub(crate) fn completion(
 
                 let kind = match symbol.kind {
                     ASymbolKind::Unresolved => K::Text,
-                    ASymbolKind::Command | ASymbolKind::CommandOrFunc | ASymbolKind::Func => {
-                        K::Function
-                    }
-                    ASymbolKind::CommandOrFuncOrVar | ASymbolKind::PreProc => K::Keyword,
-                    ASymbolKind::Const => K::Constant,
-                    ASymbolKind::Directory => K::Folder,
-                    ASymbolKind::Enum => K::EnumMember,
-                    ASymbolKind::Field => K::Field,
-                    ASymbolKind::File => K::File,
                     ASymbolKind::Label => K::Value,
-                    ASymbolKind::Module => K::Module,
-                    ASymbolKind::Param => K::Variable, // FIXME: intなどの値のパラメータはconstant、変数などの参照渡しパラメータはvariable
                     ASymbolKind::StaticVar => K::Variable,
-                    ASymbolKind::Type => K::Class,
+                    ASymbolKind::Const => K::Constant,
+                    ASymbolKind::Enum => K::EnumMember,
+                    ASymbolKind::Macro { ctype: false } => K::Value,
+                    ASymbolKind::Macro { ctype: true } => K::Function,
+                    ASymbolKind::DefFunc => K::Method,
+                    ASymbolKind::DefCFunc => K::Function,
+                    ASymbolKind::ModFunc => K::Method,
+                    ASymbolKind::ModCFunc => K::Function,
+                    ASymbolKind::Param(None) => K::Variable,
+                    ASymbolKind::Param(Some(param)) => match param.category() {
+                        PParamCategory::ByValue => K::Value,
+                        PParamCategory::ByRef => K::Property,
+                        PParamCategory::Local => K::Variable,
+                        PParamCategory::Auto => K::Text,
+                    },
+                    ASymbolKind::Module => K::Module,
+                    ASymbolKind::Field => K::Field,
+                    ASymbolKind::LibFunc => K::Function,
+                    ASymbolKind::PluginCmd => K::Keyword,
+                    ASymbolKind::ComInterface => K::Interface,
+                    ASymbolKind::ComFunc => K::Method,
                 };
 
                 // 候補の順番を制御するための文字。(スコープが狭いものを上に出す。)

@@ -271,14 +271,14 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
         PStmt::Define(PDefineStmt {
             hash,
             privacy_opt,
+            ctype_opt,
             name_opt,
             ..
         }) => {
-            // FIXME: ctype などをみて kind を決定する。
-
             if let Some(name) = name_opt {
                 let privacy = get_privacy_or_local(privacy_opt);
-                ax.add_symbol(ASymbolKind::Const, name, privacy, hash);
+                let ctype = ctype_opt.is_some();
+                ax.add_symbol(ASymbolKind::Macro { ctype }, name, privacy, hash);
             }
         }
         PStmt::Enum(PEnumStmt {
@@ -289,7 +289,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
         }) => {
             if let Some(name) = name_opt {
                 let privacy = get_privacy_or_local(privacy_opt);
-                ax.add_symbol(ASymbolKind::Const, name, privacy, hash);
+                ax.add_symbol(ASymbolKind::Enum, name, privacy, hash);
             }
         }
         PStmt::DefFunc(PDefFuncStmt {
@@ -312,6 +312,15 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
                 content_loc: hash.body.loc.unite(behind),
             });
 
+            let kind = match *kind {
+                PDefFuncKind::DefFunc => ASymbolKind::DefFunc,
+                PDefFuncKind::DefCFunc => ASymbolKind::DefCFunc,
+                PDefFuncKind::ModInit | PDefFuncKind::ModTerm | PDefFuncKind::ModFunc => {
+                    ASymbolKind::ModFunc
+                }
+                PDefFuncKind::ModCFunc => ASymbolKind::ModCFunc,
+            };
+
             if let Some(name) = name_opt {
                 ax.deffuncs[deffunc.get()].name_opt = Some(name.body.text.clone());
 
@@ -320,7 +329,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
                         Some((privacy, _)) => *privacy,
                         None => PPrivacy::Global,
                     };
-                    ax.add_symbol(ASymbolKind::CommandOrFunc, name, privacy, hash);
+                    ax.add_symbol(kind, name, privacy, hash);
                 }
             }
 
@@ -329,7 +338,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
             for param in params {
                 if let Some(name) = &param.name_opt {
                     add_symbol(
-                        ASymbolKind::Param,
+                        ASymbolKind::Param(param.param_ty_opt.as_ref().map(|&(t, _)| t)),
                         name,
                         hash,
                         AScope::Local(ax.current_deffunc_scope()),
@@ -355,7 +364,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
             if let Some(name) = name_opt {
                 if onexit_opt.is_none() {
                     let privacy = get_privacy_or_local(privacy_opt);
-                    ax.add_symbol(ASymbolKind::CommandOrFunc, name, privacy, hash);
+                    ax.add_symbol(ASymbolKind::LibFunc, name, privacy, hash);
                 }
             }
         }
@@ -367,7 +376,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
         }) => {
             if let Some(name) = name_opt {
                 let privacy = get_privacy_or_local(privacy_opt);
-                ax.add_symbol(ASymbolKind::Const, name, privacy, hash);
+                ax.add_symbol(ASymbolKind::ComInterface, name, privacy, hash);
             }
         }
         PStmt::ComFunc(PComFuncStmt {
@@ -381,7 +390,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
                     Some((privacy, _)) => *privacy,
                     None => PPrivacy::Global,
                 };
-                ax.add_symbol(ASymbolKind::Command, name, privacy, hash);
+                ax.add_symbol(ASymbolKind::ComFunc, name, privacy, hash);
             }
         }
         PStmt::RegCmd(_) => {}
@@ -393,7 +402,7 @@ fn on_stmt(stmt: &PStmt, ax: &mut Ax) {
         }) => {
             if let Some(name) = name_opt {
                 let privacy = get_privacy_or_local(privacy_opt);
-                ax.add_symbol(ASymbolKind::CommandOrFuncOrVar, name, privacy, hash);
+                ax.add_symbol(ASymbolKind::PluginCmd, name, privacy, hash);
             }
         }
         PStmt::Module(PModuleStmt {
@@ -668,6 +677,7 @@ impl AAnalysis {
         symbol: ASymbol,
     ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
         let symbol_data = self.symbols.get(symbol.get())?;
+
         Some((
             symbol_data.name.clone(),
             symbol_data.kind.as_str(),
