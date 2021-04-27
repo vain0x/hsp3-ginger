@@ -553,7 +553,7 @@ fn resolve_candidate(
 fn do_resolve_symbol_def_candidates(
     doc: ADoc,
     def_candidates: &[ADefCandidateData],
-    public_env: &APublicEnv,
+    public_env: &mut APublicEnv,
     local_env: &mut HashMap<ALocalScope, AEnv>,
     symbols: &mut Vec<ASymbolData>,
     def_sites: &mut Vec<(AWsSymbol, ALoc)>,
@@ -596,6 +596,10 @@ fn do_resolve_symbol_def_candidates(
             local_env
                 .entry(defined_scope)
                 .or_default()
+                .insert(candidate.name.clone(), ws_symbol);
+        } else {
+            public_env
+                .toplevel
                 .insert(candidate.name.clone(), ws_symbol);
         }
 
@@ -687,7 +691,7 @@ impl AAnalysis {
     pub(crate) fn resolve_symbol_def_candidates(
         &mut self,
         doc: ADoc,
-        public_env: &APublicEnv,
+        public_env: &mut APublicEnv,
         def_sites: &mut Vec<(AWsSymbol, ALoc)>,
         use_sites: &mut Vec<(AWsSymbol, ALoc)>,
     ) {

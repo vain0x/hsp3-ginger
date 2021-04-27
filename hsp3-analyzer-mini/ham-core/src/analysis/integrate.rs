@@ -92,7 +92,7 @@ impl AWorkspaceAnalysis {
         for (&doc, analysis) in &mut self.doc_analysis_map {
             analysis.resolve_symbol_def_candidates(
                 doc,
-                &self.public_env,
+                &mut self.public_env,
                 &mut self.def_sites,
                 &mut self.use_sites,
             );
