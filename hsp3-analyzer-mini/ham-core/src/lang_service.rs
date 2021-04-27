@@ -68,6 +68,13 @@ impl LangService {
                     'z'
                 };
 
+                // '#' なし
+                let word = if name.as_str().starts_with("#") {
+                    Some(name.as_str().chars().skip(1).collect::<String>())
+                } else {
+                    None
+                };
+
                 CompletionItem {
                     kind: Some(kind),
                     label: name.to_string(),
@@ -78,11 +85,8 @@ impl LangService {
                         Some(Documentation::String(documentation.join("\r\n\r\n")))
                     },
                     sort_text: Some(format!("{}{}", sort_prefix, name)),
-                    filter_text: if name.as_str().starts_with("#") {
-                        Some(name.as_str().chars().skip(1).collect::<String>())
-                    } else {
-                        None
-                    },
+                    filter_text: word.clone(),
+                    insert_text: word,
                     ..Default::default()
                 }
             })
