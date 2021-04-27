@@ -11,18 +11,25 @@ use lsp_types::*;
 use std::{mem::take, path::PathBuf};
 
 #[derive(Default)]
+pub(crate) struct LangServiceOptions {
+    pub(crate) lint_enabled: bool,
+}
+
+#[derive(Default)]
 pub(super) struct LangService {
     wa: AWorkspaceAnalysis,
     hsp3_home: PathBuf,
+    options: LangServiceOptions,
     docs_opt: Option<Docs>,
     doc_changes: Vec<DocChange>,
     hsphelp_symbols: Vec<CompletionItem>,
 }
 
 impl LangService {
-    pub(super) fn new(hsp3_home: PathBuf) -> Self {
+    pub(super) fn new(hsp3_home: PathBuf, options: LangServiceOptions) -> Self {
         Self {
             hsp3_home,
+            options,
             ..Default::default()
         }
     }
@@ -262,6 +269,10 @@ impl LangService {
 
     pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
         // WHY-NOT: 他のリクエストの後にしか呼ばれないのでpollする必要はない。
+
+        if !self.options.lint_enabled {
+            return vec![];
+        }
 
         let docs = match self.docs_opt.as_ref() {
             Some(it) => it,

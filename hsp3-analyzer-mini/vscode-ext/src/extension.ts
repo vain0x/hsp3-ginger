@@ -36,13 +36,22 @@ const getHsp3Home = () => {
     || DEFAULT_DIR
 }
 
+const lintIsEnabled = () =>
+  workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("lint-enabled") ?? true
+
 const startLspClient = (context: ExtensionContext) => {
   const lspFullPath = getLspBin(context)
   const hsp3Home = getHsp3Home()
+  const lintEnabled = lintIsEnabled()
 
   let serverOptions: ServerOptions = {
     command: lspFullPath,
     args: ["--hsp", hsp3Home, "lsp"],
+    options: {
+      env: {
+        "HAM_LINT": lintEnabled ? "1" : "",
+      }
+    }
   }
 
   let clientOptions: LanguageClientOptions = {

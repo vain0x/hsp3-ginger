@@ -1,6 +1,6 @@
 //! C言語や HSP3 などから利用するための関数群
 
-use crate::lang_service::LangService;
+use crate::lang_service::{LangService, LangServiceOptions};
 use lsp_types::{HoverContents, MarkedString, Position, Url};
 use std::{os::raw::c_char, path::PathBuf, ptr::null_mut, slice, str};
 
@@ -83,6 +83,7 @@ pub extern "C" fn ham_init() {
     crate::lsp_server::lsp_main::init_log();
 }
 
+// FIXME: オプションを設定できるようにする。
 #[no_mangle]
 pub unsafe extern "C" fn ham_create(
     hsp3_home: *const c_char,
@@ -94,7 +95,7 @@ pub unsafe extern "C" fn ham_create(
     };
 
     let mut instance = HamInstance {
-        lang_service: LangService::new(hsp3_home),
+        lang_service: LangService::new(hsp3_home, LangServiceOptions::default()),
     };
 
     instance.lang_service.did_initialize();
