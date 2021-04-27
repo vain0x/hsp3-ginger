@@ -31,6 +31,29 @@ pub(crate) enum ASymbolKind {
     Type,
 }
 
+impl ASymbolKind {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            ASymbolKind::Unresolved => "定義がみつかりません",
+            ASymbolKind::Command => "命令",
+            ASymbolKind::CommandOrFunc => "関数",
+            ASymbolKind::CommandOrFuncOrVar => "コマンド",
+            ASymbolKind::Const => "定数",
+            ASymbolKind::Directory => "ディレクトリ",
+            ASymbolKind::Enum => "列挙子",
+            ASymbolKind::Field => "フィールド",
+            ASymbolKind::File => "ファイル",
+            ASymbolKind::Func => "関数",
+            ASymbolKind::Label => "ラベル",
+            ASymbolKind::Module => "モジュール",
+            ASymbolKind::Param => "パラメータ",
+            ASymbolKind::PreProc => "プリプロセッサ命令",
+            ASymbolKind::StaticVar => "変数",
+            ASymbolKind::Type => "型",
+        }
+    }
+}
+
 impl Default for ASymbolKind {
     fn default() -> Self {
         ASymbolKind::Unresolved

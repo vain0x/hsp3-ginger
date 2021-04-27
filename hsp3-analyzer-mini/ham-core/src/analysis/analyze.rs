@@ -663,10 +663,14 @@ impl AAnalysis {
         Some(&symbol.name)
     }
 
-    pub(crate) fn get_symbol_details(&self, symbol: ASymbol) -> Option<(RcStr, ASymbolDetails)> {
+    pub(crate) fn get_symbol_details(
+        &self,
+        symbol: ASymbol,
+    ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
         let symbol_data = self.symbols.get(symbol.get())?;
         Some((
             symbol_data.name.clone(),
+            symbol_data.kind.as_str(),
             calculate_details(&symbol_data.comments),
         ))
     }

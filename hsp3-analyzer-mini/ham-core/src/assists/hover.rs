@@ -19,9 +19,11 @@ pub(crate) fn hover(
 
     let (contents, loc) = (|| -> Option<_> {
         let (symbol, symbol_loc) = wa.locate_symbol(loc.doc, loc.start())?;
-        let (_, details) = wa.get_symbol_details(symbol)?;
+        let (name, kind, details) = wa.get_symbol_details(symbol)?;
 
         let mut contents = vec![];
+        contents.push(plain_text_to_marked_string(format!("{} ({})", name, kind)));
+
         if let Some(desc) = details.desc {
             contents.push(plain_text_to_marked_string(desc.to_string()));
         }
@@ -38,6 +40,8 @@ pub(crate) fn hover(
             .clone();
 
         let mut contents = vec![];
+        contents.push(plain_text_to_marked_string(name.to_string())); // FIXME: %prmの1行目を使ったほうがいい
+
         if let Some(d) = item.detail {
             contents.push(plain_text_to_marked_string(d));
         }

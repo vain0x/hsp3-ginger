@@ -152,10 +152,10 @@ impl AWorkspaceAnalysis {
     pub(crate) fn get_symbol_details(
         &self,
         wa_symbol: AWsSymbol,
-    ) -> Option<(RcStr, ASymbolDetails)> {
-        let doc_analysis = self.doc_analysis_map.get(&wa_symbol.doc)?;
-        let (name, details) = doc_analysis.get_symbol_details(wa_symbol.symbol)?;
-        Some((name, details))
+    ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
+        self.doc_analysis_map
+            .get(&wa_symbol.doc)?
+            .get_symbol_details(wa_symbol.symbol)
     }
 
     pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<ALoc>) {
