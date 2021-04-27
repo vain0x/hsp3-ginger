@@ -1,55 +1,70 @@
-use super::{loc_to_location, loc_to_range, plain_text_to_marked_string, to_loc};
-use crate::{lang_service::docs::Docs, sem::ProjectSem};
-use lsp_types::{Hover, HoverContents, MarkedString, Position, Url};
+use super::{loc_to_range, plain_text_to_marked_string, to_loc};
+use crate::{
+    analysis::integrate::AWorkspaceAnalysis, assists::markdown_marked_string,
+    lang_service::docs::Docs,
+};
+use lsp_types::{
+    CompletionItem, Documentation, Hover, HoverContents, MarkedString, MarkupContent, MarkupKind,
+    Position, Url,
+};
 
 pub(crate) fn hover(
     uri: Url,
     position: Position,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut AWorkspaceAnalysis,
+    hsphelp_symbols: &[CompletionItem],
 ) -> Option<Hover> {
     let loc = to_loc(&uri, position, docs)?;
-    let (symbol, symbol_loc) = sem.locate_symbol(loc.doc, loc.start())?;
-    let symbol_id = symbol.symbol_id;
 
-    let mut contents = vec![];
-    contents.push(plain_text_to_marked_string(symbol.name.to_string()));
+    let (contents, loc) = (|| -> Option<_> {
+        let (symbol, symbol_loc) = wa.locate_symbol(loc.doc, loc.start())?;
+        let (_, details) = wa.get_symbol_details(symbol)?;
 
-    if let Some(description) = symbol.details.description.as_ref() {
-        contents.push(plain_text_to_marked_string(description.to_string()));
-    }
-
-    contents.extend(
-        symbol
-            .details
-            .documentation
-            .iter()
-            .map(|text| plain_text_to_marked_string(text.to_string())),
-    );
-
-    {
-        let mut locs = vec![];
-        sem.get_symbol_defs(symbol_id, &mut locs);
-        let def_links = locs
-            .iter()
-            .filter_map(|&loc| {
-                let location = loc_to_location(loc, docs)?;
-                let uri = location
-                    .uri
-                    .to_string()
-                    .replace("%3A", ":")
-                    .replace("\\", "/");
-                let Position { line, character } = location.range.start;
-                Some(format!("- [{}:{}:{}]({})", uri, line, character, uri))
-            })
-            .collect::<Vec<_>>();
-        if !def_links.is_empty() {
-            contents.push(MarkedString::from_markdown(def_links.join("\r\n")));
+        let mut contents = vec![];
+        if let Some(desc) = details.desc {
+            contents.push(plain_text_to_marked_string(desc.to_string()));
         }
-    }
+
+        contents.extend(details.docs.into_iter().map(plain_text_to_marked_string));
+
+        Some((contents, symbol_loc))
+    })()
+    .or_else(|| {
+        let (name, loc) = wa.get_ident_at(loc.doc, loc.start())?;
+        let item = hsphelp_symbols
+            .iter()
+            .find(|s| s.label == name.as_str())?
+            .clone();
+
+        let mut contents = vec![];
+        if let Some(d) = item.detail {
+            contents.push(plain_text_to_marked_string(d));
+        }
+
+        if let Some(d) = item.documentation {
+            contents.push(documentation_to_marked_string(d));
+        }
+
+        Some((contents, loc))
+    })?;
 
     Some(Hover {
         contents: HoverContents::Array(contents),
-        range: Some(loc_to_range(symbol_loc)),
+        range: Some(loc_to_range(loc)),
     })
+}
+
+fn documentation_to_marked_string(d: Documentation) -> MarkedString {
+    match d {
+        Documentation::String(value)
+        | Documentation::MarkupContent(MarkupContent {
+            kind: MarkupKind::PlainText,
+            value,
+        }) => plain_text_to_marked_string(value),
+        Documentation::MarkupContent(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value,
+        }) => markdown_marked_string(value),
+    }
 }

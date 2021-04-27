@@ -1,8 +1,9 @@
 use super::{
     a_scope::{ADefFunc, ADefFuncData, ALocalScope, AModule, AModuleData},
     a_symbol::{ASymbolData, AWsSymbol},
+    comment::calculate_details,
     integrate::APublicEnv,
-    ADoc, ALoc, APos, AScope, ASymbol, ASymbolKind,
+    ADoc, ALoc, APos, AScope, ASymbol, ASymbolDetails, ASymbolKind,
 };
 use crate::{
     analysis::comment::str_is_ornament_comment,
@@ -572,6 +573,14 @@ impl AAnalysis {
     pub(crate) fn symbol_name(&self, symbol: ASymbol) -> Option<&str> {
         let symbol = self.symbols.get(symbol.get())?;
         Some(&symbol.name)
+    }
+
+    pub(crate) fn get_symbol_details(&self, symbol: ASymbol) -> Option<(RcStr, ASymbolDetails)> {
+        let symbol_data = self.symbols.get(symbol.get())?;
+        Some((
+            symbol_data.name.clone(),
+            calculate_details(&symbol_data.comments),
+        ))
     }
 
     pub(crate) fn invalidate_previous_workspace_analysis(&mut self) {

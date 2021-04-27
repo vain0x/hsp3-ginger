@@ -1,11 +1,13 @@
 use super::{
-    a_symbol::AWsSymbol,
+    a_symbol::{ASymbolData, AWsSymbol},
     analyze::{AAnalysis, ACompletionItem},
-    ADoc, ALoc, APos,
+    comment::calculate_details,
+    ADoc, ALoc, APos, ASymbolDetails,
 };
 use crate::{
     analysis::a_scope::ALocalScope,
     parse::{PRoot, PToken},
+    token::{TokenData, TokenKind},
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
 use std::collections::{HashMap, HashSet};
@@ -128,10 +130,42 @@ impl AWorkspaceAnalysis {
             .cloned()
     }
 
-    #[allow(unused)]
-    fn symbol_name(&self, ws_symbol: AWsSymbol) -> Option<&str> {
-        let analysis = &self.doc_analysis_map.get(&ws_symbol.doc)?;
-        analysis.symbol_name(ws_symbol.symbol)
+    pub(crate) fn get_ident_at(&mut self, doc: ADoc, pos: APos) -> Option<(RcStr, ALoc)> {
+        self.compute();
+
+        let syntax = self.doc_syntax_map.get(&doc)?;
+        let tokens = &syntax.tokens;
+        let token = match tokens.binary_search_by_key(&pos, |t| t.body.loc.start()) {
+            Ok(i) => tokens[i].body.as_ref(),
+            Err(i) => tokens
+                .iter()
+                .enumerate()
+                .skip(i.saturating_sub(1))
+                .take(3)
+                .find_map(|(i, t)| {
+                    if t.body.kind == TokenKind::Ident && t.body.loc.range.is_touched(pos) {
+                        Some(t.body.as_ref())
+                    } else {
+                        None
+                    }
+                })?,
+        };
+        Some((token.text.clone(), token.loc))
+    }
+
+    pub(crate) fn symbol_name(&self, wa_symbol: AWsSymbol) -> Option<&str> {
+        self.doc_analysis_map
+            .get(&wa_symbol.doc)?
+            .symbol_name(wa_symbol.symbol)
+    }
+
+    pub(crate) fn get_symbol_details(
+        &self,
+        wa_symbol: AWsSymbol,
+    ) -> Option<(RcStr, ASymbolDetails)> {
+        let doc_analysis = self.doc_analysis_map.get(&wa_symbol.doc)?;
+        let (name, details) = doc_analysis.get_symbol_details(wa_symbol.symbol)?;
+        Some((name, details))
     }
 
     pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<ALoc>) {

@@ -12,12 +12,17 @@ pub(crate) mod hover;
 pub(crate) mod references;
 pub(crate) mod rename;
 
-fn plain_text_to_marked_string(text: String) -> MarkedString {
-    const PLAIN_LANG_ID: &str = "plaintext";
-
+fn plain_text_to_marked_string(value: String) -> MarkedString {
     MarkedString::LanguageString(LanguageString {
-        language: PLAIN_LANG_ID.to_string(),
-        value: text,
+        language: "plaintext".to_string(),
+        value,
+    })
+}
+
+fn markdown_marked_string(value: String) -> MarkedString {
+    MarkedString::LanguageString(LanguageString {
+        language: "markdown".to_string(),
+        value,
     })
 }
 

@@ -241,7 +241,7 @@ impl LangService {
         self.poll();
 
         let docs = self.docs_opt.as_ref()?;
-        assists::hover::hover(uri, position, docs, &mut self.sem)
+        assists::hover::hover(uri, position, docs, &mut self.wa, &self.hsphelp_symbols)
     }
 
     pub(super) fn references(
