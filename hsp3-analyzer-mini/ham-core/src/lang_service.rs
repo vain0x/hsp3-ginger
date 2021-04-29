@@ -14,9 +14,18 @@ use crate::{
 use lsp_types::*;
 use std::{mem::take, path::PathBuf};
 
-#[derive(Default)]
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,
+    pub(crate) watcher_enabled: bool,
+}
+
+impl Default for LangServiceOptions {
+    fn default() -> Self {
+        Self {
+            lint_enabled: true,
+            watcher_enabled: true,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -121,14 +130,16 @@ impl LangService {
             })
             .collect();
 
-        if let Some(watched_dir) = self
-            .root_uri_opt
-            .as_ref()
-            .and_then(|uri| uri.to_file_path())
-        {
-            let mut watcher = FileWatcher::new(watched_dir);
-            watcher.start_watch();
-            self.file_watcher_opt = Some(watcher);
+        if self.options.watcher_enabled {
+            if let Some(watched_dir) = self
+                .root_uri_opt
+                .as_ref()
+                .and_then(|uri| uri.to_file_path())
+            {
+                let mut watcher = FileWatcher::new(watched_dir);
+                watcher.start_watch();
+                self.file_watcher_opt = Some(watcher);
+            }
         }
     }
 

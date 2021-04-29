@@ -35,6 +35,7 @@ pub(crate) fn init_log() {
 fn get_options_from_env() -> LangServiceOptions {
     LangServiceOptions {
         lint_enabled: std::env::var("HAM_LINT").map_or(true, |s| !s.is_empty()),
+        watcher_enabled: true,
     }
 }
 
