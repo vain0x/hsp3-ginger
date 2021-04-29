@@ -21,7 +21,9 @@ impl<W: io::Write> LspHandler<W> {
         Self { sender, model }
     }
 
-    fn initialize<'a>(&'a mut self, _params: InitializeParams) -> InitializeResult {
+    fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
+        self.model.initialize(params.root_uri);
+
         InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Options(

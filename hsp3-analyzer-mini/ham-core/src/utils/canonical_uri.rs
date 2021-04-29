@@ -1,5 +1,8 @@
 use lsp_types::Url;
-use std::{env::current_dir, path::Path};
+use std::{
+    env::current_dir,
+    path::{Path, PathBuf},
+};
 
 // 正規化処理を行った後の uniform resource identifier (URI)
 //
@@ -63,5 +66,9 @@ impl CanonicalUri {
 
     pub(crate) fn into_url(self) -> Url {
         self.uri
+    }
+
+    pub(crate) fn to_file_path(&self) -> Option<PathBuf> {
+        self.uri.to_file_path().ok()
     }
 }

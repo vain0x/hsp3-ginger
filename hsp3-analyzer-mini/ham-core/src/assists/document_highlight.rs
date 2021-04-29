@@ -2,7 +2,6 @@ use super::{loc_to_range, to_loc};
 use crate::{analysis::integrate::AWorkspaceAnalysis, lang_service::docs::Docs};
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Url};
 
-// FIXME: ファイルウォッチャーを所有する Docs ではなく URI と Doc のマッピングだけを渡してほしい
 pub(crate) fn document_highlight(
     uri: Url,
     position: Position,
