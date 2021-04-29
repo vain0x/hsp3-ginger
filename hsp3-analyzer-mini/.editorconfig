@@ -1,5 +1,11 @@
 root = true
 
+[*.hsp]
+indent_style = tab
+insert_final_line = true
+trim_trailing_whitespace = true
+charset = utf-8
+
 [*.rs]
 indent_size = 4
 indent_style = space
