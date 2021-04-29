@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(skip)]
 
 use crate::{analysis::ADoc, parse::PToken};
 use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};

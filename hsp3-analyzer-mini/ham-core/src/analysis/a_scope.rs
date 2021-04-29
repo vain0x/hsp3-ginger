@@ -13,6 +13,10 @@ pub(crate) struct ALocalScope {
 }
 
 impl ALocalScope {
+    pub(crate) fn is_public(self) -> bool {
+        self.module_opt.is_none() && self.deffunc_opt.is_none()
+    }
+
     pub(crate) fn is_outside_module(self) -> bool {
         self.module_opt.is_none()
     }

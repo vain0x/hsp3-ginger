@@ -282,6 +282,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<ASymbolData>,
 }

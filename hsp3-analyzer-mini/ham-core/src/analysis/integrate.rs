@@ -1,45 +1,55 @@
 use super::{
-    a_symbol::AWsSymbol,
-    analyze::{AAnalysis, ACompletionItem},
-    ADoc, ALoc, APos, ASymbolDetails,
+    a_scope::{ADefFunc, AModule},
+    a_symbol::{ASymbolData, AWsSymbol},
+    comment::calculate_details,
+    preproc::PreprocAnalysisResult,
+    var::{AAnalysis, APublicState},
+    ADoc, ALoc, APos, AScope, ASymbol, ASymbolDetails,
 };
 use crate::{
     analysis::a_scope::ALocalScope,
-    parse::{PRoot, PToken},
+    parse::*,
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    mem::take,
+};
 
 #[derive(Default)]
 pub(crate) struct AWorkspaceAnalysis {
     pub(crate) dirty_docs: HashSet<ADoc>,
     pub(crate) doc_texts: HashMap<ADoc, RcStr>,
-    pub(crate) doc_syntax_map: HashMap<ADoc, ASyntax>,
 
-    /// ドキュメントごとの解析結果。
+    // ドキュメントごとの解析結果:
+    pub(crate) doc_syntax_map: HashMap<ADoc, ASyntax>,
+    pub(crate) doc_preproc_map: HashMap<ADoc, PreprocAnalysisResult>,
     pub(crate) doc_analysis_map: HashMap<ADoc, AAnalysis>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     pub(crate) public_env: APublicEnv,
-
     pub(crate) def_sites: Vec<(AWsSymbol, ALoc)>,
     pub(crate) use_sites: Vec<(AWsSymbol, ALoc)>,
 }
 
 impl AWorkspaceAnalysis {
+    fn invalidate(&mut self, doc: ADoc) {
+        self.doc_syntax_map.remove(&doc);
+        self.doc_preproc_map.remove(&doc);
+        self.doc_analysis_map.remove(&doc);
+    }
+
     pub(crate) fn update_doc(&mut self, doc: ADoc, text: RcStr) {
         self.dirty_docs.insert(doc);
         self.doc_texts.insert(doc, text);
-        self.doc_syntax_map.remove(&doc);
-        self.doc_analysis_map.remove(&doc);
+        self.invalidate(doc);
     }
 
     pub(crate) fn close_doc(&mut self, doc: ADoc) {
         self.dirty_docs.insert(doc);
         self.doc_texts.remove(&doc);
-        self.doc_syntax_map.remove(&doc);
-        self.doc_analysis_map.remove(&doc);
+        self.invalidate(doc);
     }
 
     fn compute(&mut self) {
@@ -54,52 +64,89 @@ impl AWorkspaceAnalysis {
                 None => continue,
             };
 
-            let (syntax, analysis) = {
+            let (syntax, preproc) = {
                 let tokens = crate::token::tokenize(doc, text.clone());
                 let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
                 let root = crate::parse::parse_root(p_tokens.to_owned());
-                let analysis = super::analyze::analyze(&root);
+                let preproc = crate::analysis::preproc::analyze_preproc(&root);
 
                 let syntax = ASyntax {
                     tokens: p_tokens,
                     tree: root,
                 };
-                (syntax, analysis)
+                (syntax, preproc)
             };
 
             self.doc_syntax_map.insert(doc, syntax);
-            self.doc_analysis_map.insert(doc, analysis);
+            self.doc_preproc_map.insert(doc, preproc);
         }
 
-        for analysis in self.doc_analysis_map.values_mut() {
-            analysis.invalidate_previous_workspace_analysis();
-        }
-
-        // 複数ファイルに渡る環境を構築する。
         self.public_env.clear();
-        for (&doc, analysis) in &self.doc_analysis_map {
-            analysis.extend_public_env(doc, &mut self.public_env);
-        }
-
-        // シンボルの定義・参照箇所を決定する。
         self.def_sites.clear();
         self.use_sites.clear();
 
-        for (&doc, analysis) in &mut self.doc_analysis_map {
-            analysis.collect_explicit_def_sites(doc, &mut self.def_sites);
+        // 複数ファイルに渡る環境を構築する。
+        for (&doc, preproc) in &self.doc_preproc_map {
+            for (i, symbol_data) in preproc.symbols.iter().enumerate() {
+                let env = match symbol_data.scope {
+                    AScope::Global => &mut self.public_env.global,
+                    AScope::Local(scope) if scope.is_public() => &mut self.public_env.toplevel,
+                    AScope::Local(_) => continue,
+                };
+
+                let symbol = ASymbol::new(i);
+                env.insert(symbol_data.name.clone(), AWsSymbol { doc, symbol });
+            }
         }
 
-        for (&doc, analysis) in &mut self.doc_analysis_map {
-            analysis.resolve_symbol_def_candidates(
+        // 変数の定義箇所を決定する。
+        let mut public_state = APublicState {
+            env: take(&mut self.public_env),
+            def_sites: take(&mut self.def_sites),
+            use_sites: take(&mut self.use_sites),
+        };
+
+        for (&doc, syntax) in &self.doc_syntax_map {
+            let symbols = self.doc_preproc_map[&doc].symbols.clone();
+            let analysis = crate::analysis::var::analyze_var_def(
                 doc,
-                &mut self.public_env,
-                &mut self.def_sites,
-                &mut self.use_sites,
+                &syntax.tree,
+                symbols,
+                &mut public_state,
             );
+            self.doc_analysis_map.insert(doc, analysis);
         }
 
+        {
+            let APublicState {
+                env,
+                def_sites,
+                use_sites,
+            } = public_state;
+            self.public_env = env;
+            self.def_sites = def_sites;
+            self.use_sites = use_sites;
+        }
+
+        // シンボルの定義・使用箇所を収集する。
         for (&doc, analysis) in &mut self.doc_analysis_map {
-            analysis.resolve_symbol_use_candidates(doc, &self.public_env, &mut self.use_sites);
+            for (i, symbol_data) in analysis.symbols.iter().enumerate() {
+                let symbol = ASymbol::new(i);
+
+                self.def_sites.extend(
+                    symbol_data
+                        .def_sites
+                        .iter()
+                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                );
+
+                self.use_sites.extend(
+                    symbol_data
+                        .use_sites
+                        .iter()
+                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                );
+            }
         }
 
         // eprintln!("global_env={:#?}", &self.global_env);
@@ -144,18 +191,22 @@ impl AWorkspaceAnalysis {
 
     #[allow(unused)]
     pub(crate) fn symbol_name(&self, wa_symbol: AWsSymbol) -> Option<&str> {
-        self.doc_analysis_map
-            .get(&wa_symbol.doc)?
-            .symbol_name(wa_symbol.symbol)
+        let doc_analysis = self.doc_analysis_map.get(&wa_symbol.doc)?;
+        let symbol_data = &doc_analysis.symbols[wa_symbol.symbol.get()];
+        Some(&symbol_data.name)
     }
 
     pub(crate) fn get_symbol_details(
         &self,
         wa_symbol: AWsSymbol,
     ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
-        self.doc_analysis_map
-            .get(&wa_symbol.doc)?
-            .get_symbol_details(wa_symbol.symbol)
+        let doc_analysis = self.doc_analysis_map.get(&wa_symbol.doc)?;
+        let symbol_data = &doc_analysis.symbols[wa_symbol.symbol.get()];
+        Some((
+            symbol_data.name.clone(),
+            symbol_data.kind.as_str(),
+            calculate_details(&symbol_data.comments),
+        ))
     }
 
     pub(crate) fn diagnose(&mut self) {
@@ -191,27 +242,31 @@ impl AWorkspaceAnalysis {
 
         if let Some(doc_analysis) = self.doc_analysis_map.get(&loc.doc) {
             let pos = loc.start();
-            scope = doc_analysis.resolve_scope_at(pos);
-            doc_analysis.collect_local_completion_items(scope, &mut completion_items);
+            let syntax = &self.doc_syntax_map[&loc.doc];
+            scope = resolve_scope_at(&syntax.tree, pos);
+            collect_local_completion_items(&doc_analysis.symbols, scope, &mut completion_items);
         }
 
         if scope.is_outside_module() {
             for (&doc, doc_analysis) in &self.doc_analysis_map {
                 if doc != loc.doc {
-                    doc_analysis.collect_local_completion_items(scope, &mut completion_items);
+                    collect_local_completion_items(
+                        &doc_analysis.symbols,
+                        scope,
+                        &mut completion_items,
+                    );
                 }
             }
         }
 
         for doc_analysis in self.doc_analysis_map.values() {
-            doc_analysis.collect_global_completion_items(&mut completion_items);
+            collect_global_completion_items(&doc_analysis.symbols, &mut completion_items);
         }
 
         completion_items
     }
 }
 
-#[allow(unused)]
 pub(crate) struct ASyntax {
     pub(crate) tokens: RcSlice<PToken>,
     pub(crate) tree: PRoot,
@@ -263,6 +318,68 @@ impl APublicEnv {
     pub(crate) fn clear(&mut self) {
         self.global.clear();
         self.toplevel.clear();
+    }
+}
+
+fn resolve_scope_at(root: &PRoot, pos: APos) -> ALocalScope {
+    let mut mi = 0;
+    let mut di = 0;
+    let mut scope = ALocalScope::default();
+    for stmt in &root.stmts {
+        match stmt {
+            PStmt::DefFunc(stmt) => {
+                di += 1;
+
+                let content_loc = stmt.hash.body.loc.unite(&stmt.behind);
+                if content_loc.range.is_touched(pos) {
+                    scope.deffunc_opt = Some(ADefFunc::new(di));
+                }
+            }
+            PStmt::Module(stmt) => {
+                mi += 1;
+
+                let content_loc = stmt.hash.body.loc.unite(&stmt.behind);
+                if content_loc.range.is_touched(pos) {
+                    scope.module_opt = Some(AModule::new(mi));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    scope
+}
+
+pub(crate) enum ACompletionItem<'a> {
+    Symbol(&'a ASymbolData),
+}
+
+fn collect_local_completion_items<'a>(
+    symbols: &'a [ASymbolData],
+    current_scope: ALocalScope,
+    completion_items: &mut Vec<ACompletionItem<'a>>,
+) {
+    for s in symbols {
+        match s.scope {
+            AScope::Local(scope) if scope.is_visible_to(current_scope) => {
+                completion_items.push(ACompletionItem::Symbol(s));
+            }
+            AScope::Global | AScope::Local(_) => continue,
+        }
+    }
+}
+
+fn collect_global_completion_items<'a>(
+    symbols: &'a [ASymbolData],
+    completion_items: &mut Vec<ACompletionItem<'a>>,
+) {
+    for s in symbols {
+        match s.scope {
+            AScope::Global => {
+                completion_items.push(ACompletionItem::Symbol(s));
+            }
+            AScope::Local(_) => continue,
+        }
     }
 }
 

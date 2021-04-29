@@ -1,7 +1,8 @@
 use super::to_loc;
 use crate::{
     analysis::{
-        analyze::ACompletionItem, comment::calculate_details, integrate::AWorkspaceAnalysis,
+        comment::calculate_details,
+        integrate::{ACompletionItem, AWorkspaceAnalysis},
         AScope, ASymbolKind,
     },
     lang_service::docs::Docs,

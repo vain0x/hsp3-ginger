@@ -34,10 +34,6 @@ struct Ctx<'a> {
 }
 
 impl Ctx<'_> {
-    fn deffunc_scope(&self) -> AScope {
-        AScope::Local(self.scope)
-    }
-
     fn module_scope(&self) -> AScope {
         AScope::Local(self.module_local_scope())
     }
@@ -85,7 +81,7 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
     let symbol = ASymbol::new(ctx.symbols.len());
 
     let mut symbol_data = ASymbolData {
-        kind: ASymbolKind::StaticVar,
+        kind,
         name: name.body.text.clone(),
         def_sites: vec![],
         use_sites: vec![],
@@ -134,15 +130,22 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
 fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
     match resolve_candidate(name.body_text(), ctx.scope, &ctx.public.env, &ctx.env) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
-            ctx.public.def_sites.push((ws_symbol, name.body.loc));
+            ctx.public.use_sites.push((ws_symbol, name.body.loc));
         }
         Some(ws_symbol) => {
             assert_eq!(ws_symbol.doc, ctx.doc);
             ctx.symbols[ws_symbol.symbol.get()]
-                .def_sites
+                .use_sites
                 .push(name.body.loc);
         }
-        None => add_symbol(ASymbolKind::StaticVar, name, DEF_SITE, ctx),
+        None => {
+            let kind = if is_var {
+                ASymbolKind::StaticVar
+            } else {
+                ASymbolKind::Unresolved
+            };
+            add_symbol(kind, name, USE_SITE, ctx);
+        }
     }
 }
 
@@ -297,7 +300,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
 #[derive(Debug, Default)]
 pub(crate) struct AAnalysis {
-    symbols: Vec<ASymbolData>,
+    pub(crate) symbols: Vec<ASymbolData>,
 
     /// 解析前にあったシンボルの個数。
     preproc_symbol_len: usize,

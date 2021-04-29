@@ -42,13 +42,6 @@ pub(crate) enum ASymbolKind {
 }
 
 impl ASymbolKind {
-    pub(crate) fn is_param(self) -> bool {
-        match self {
-            Self::Param(_) => true,
-            _ => false,
-        }
-    }
-
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             ASymbolKind::Unresolved => "不明",
@@ -82,7 +75,7 @@ impl Default for ASymbolKind {
 
 pub(crate) type ASymbol = Id<ASymbolData>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct ASymbolData {
     pub(crate) kind: ASymbolKind,
     pub(crate) name: RcStr,
