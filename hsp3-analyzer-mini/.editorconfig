@@ -1,6 +1,6 @@
 root = true
 
-[*.rust]
+[*.rs]
 indent_size = 4
 indent_style = space
 insert_final_line = true
