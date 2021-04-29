@@ -9,10 +9,10 @@ use crate::{
     analysis::{a_symbol::AWsSymbol, integrate::AWorkspaceAnalysis, ASymbol},
     assists,
     help_source::{collect_all_symbols, HsSymbol},
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
+    utils::canonical_uri::CanonicalUri,
 };
 use lsp_types::*;
-use std::{mem::take, path::PathBuf};
+use std::path::PathBuf;
 
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,
@@ -35,7 +35,6 @@ pub(super) struct LangService {
     root_uri_opt: Option<CanonicalUri>,
     options: LangServiceOptions,
     docs: Docs,
-    doc_changes: Vec<DocChange>,
     hsphelp_symbols: Vec<CompletionItem>,
     file_watcher_opt: Option<FileWatcher>,
 }
@@ -175,14 +174,13 @@ impl LangService {
         }
     }
 
-    fn apply_doc_changes(&mut self) -> Option<()> {
-        let mut doc_changes = take(&mut self.doc_changes);
-
+    fn apply_doc_changes(&mut self) {
+        let mut doc_changes = vec![];
         self.docs.drain_doc_changes(&mut doc_changes);
+
         for change in doc_changes.drain(..) {
             match change {
                 DocChange::Opened { doc, text } | DocChange::Changed { doc, text } => {
-                    let text = RcStr::from(text);
                     self.wa.update_doc(doc, text);
                 }
                 DocChange::Closed { doc } => {
@@ -190,10 +188,6 @@ impl LangService {
                 }
             }
         }
-
-        assert!(doc_changes.is_empty());
-        self.doc_changes = doc_changes;
-        Some(())
     }
 
     pub(super) fn shutdown(&mut self) {
