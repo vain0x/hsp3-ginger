@@ -21,6 +21,7 @@ mod analysis {
     pub(crate) mod analyze;
     pub(crate) mod comment;
     pub(crate) mod integrate;
+    pub(crate) mod preproc;
     pub(crate) mod syntax_linter;
 
     mod analysis_tests;
