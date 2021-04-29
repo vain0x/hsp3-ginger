@@ -1,14 +1,14 @@
 use crate::{
     analysis::ADoc,
     lang::Lang,
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
+    utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
 };
-use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
 use notify::{DebouncedEvent, RecommendedWatcher};
-use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::mpsc::{Receiver, TryRecvError};
+use std::{
+    collections::{HashMap, HashSet},
+    path::{Path, PathBuf},
+    sync::mpsc::{Receiver, TryRecvError},
+};
 
 /// テキストドキュメントのバージョン番号
 /// (エディタ上で編集されるたびに変わる番号。
@@ -355,19 +355,4 @@ impl Docs {
 fn file_ext_is_watched(path: &Path) -> bool {
     path.extension()
         .map_or(false, |ext| ext == "hsp" || ext == "as")
-}
-
-/// ファイルを shift_jis または UTF-8 として読む。
-fn read_file(file_path: &Path, out: &mut impl StringWriter) -> bool {
-    // utf-8?
-    let content = match fs::read(file_path).ok() {
-        None => return false,
-        Some(x) => x,
-    };
-
-    // shift-jis?
-    encoding::all::WINDOWS_31J
-        .decode_to(&content, DecoderTrap::Strict, out)
-        .or_else(|_| UTF8Encoding.decode_to(&content, DecoderTrap::Strict, out))
-        .is_ok()
 }

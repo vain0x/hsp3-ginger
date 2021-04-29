@@ -84,4 +84,5 @@ mod utils {
     pub(crate) mod rc_item;
     pub(crate) mod rc_slice;
     pub(crate) mod rc_str;
+    pub(crate) mod read_file;
 }

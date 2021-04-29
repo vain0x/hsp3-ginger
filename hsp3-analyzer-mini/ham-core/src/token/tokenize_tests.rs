@@ -1,13 +1,11 @@
 #![cfg(skip)]
 #![cfg(test)]
 
-use crate::{analysis::ADoc, utils::rc_str::RcStr};
-use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    rc::Rc,
+use crate::{
+    analysis::ADoc,
+    utils::{rc_str::RcStr, read_file::read_file},
 };
+use std::{fs, path::PathBuf, rc::Rc};
 
 #[test]
 fn tokenize_standard_files() {
@@ -69,19 +67,4 @@ fn tokenize_standard_files() {
     if last_id == 0 {
         panic!("no files");
     }
-}
-
-/// ファイルを shift_jis または UTF-8 として読む。
-fn read_file(file_path: &Path, out: &mut impl StringWriter) -> bool {
-    // utf-8?
-    let content = match fs::read(file_path).ok() {
-        None => return false,
-        Some(x) => x,
-    };
-
-    // shift-jis?
-    encoding::all::WINDOWS_31J
-        .decode_to(&content, DecoderTrap::Strict, out)
-        .or_else(|_| UTF8Encoding.decode_to(&content, DecoderTrap::Strict, out))
-        .is_ok()
 }
