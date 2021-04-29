@@ -1,3 +1,4 @@
+#![cfg(skip)]
 #![cfg(test)]
 
 use crate::{analysis::ADoc, utils::rc_str::RcStr};

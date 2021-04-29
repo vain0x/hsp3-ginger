@@ -25,8 +25,6 @@ mod analysis {
     pub(crate) mod syntax_linter;
     pub(crate) mod var;
 
-    mod analysis_tests;
-
     pub(crate) use self::{
         a_doc::ADoc,
         a_loc::ALoc,

@@ -1,3 +1,4 @@
+#![cfg(skip)]
 #![cfg(test)]
 
 use super::{parse_root, PToken};
