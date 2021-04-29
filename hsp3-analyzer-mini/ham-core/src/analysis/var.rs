@@ -311,11 +311,30 @@ pub(crate) fn analyze_var_def(
 ) -> AAnalysis {
     let preproc_symbol_len = symbols.len();
 
+    let mut local_env: HashMap<ALocalScope, AEnv> = HashMap::new();
+
+    for (i, symbol) in symbols.iter().enumerate() {
+        let ws_symbol = AWsSymbol {
+            doc,
+            symbol: ASymbol::new(i),
+        };
+
+        match symbol.scope {
+            AScope::Local(scope) if !scope.is_public() => {
+                local_env
+                    .entry(scope)
+                    .or_default()
+                    .insert(symbol.name.clone(), ws_symbol);
+            }
+            AScope::Local(_) | AScope::Global => {}
+        }
+    }
+
     let mut ctx = Ctx {
         public,
         doc,
         symbols,
-        env: HashMap::new(),
+        env: local_env,
         deffunc_len: 0,
         module_len: 0,
         scope: ALocalScope::default(),
