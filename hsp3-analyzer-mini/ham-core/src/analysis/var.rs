@@ -241,7 +241,26 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }
         PStmt::Command(PCommandStmt { command, args, .. }) => {
             on_symbol_use(command, false, ctx);
-            on_args(&args, ctx);
+
+            static COMMANDS: &[&str] = &[
+                "ldim", "sdim", "ddim", "dim", "dimtype", "newlab", "newmod", "dup", "dupptr",
+                "mref",
+            ];
+
+            let mut i = 0;
+
+            if COMMANDS.contains(&command.body_text()) {
+                if let Some(PArg {
+                    expr_opt: Some(PExpr::Compound(compound)),
+                    ..
+                }) = args.get(0)
+                {
+                    i += 1;
+                    on_compound_def(compound, ctx);
+                }
+            }
+
+            on_args(&args[i..], ctx);
         }
         PStmt::Invoke(PInvokeStmt {
             left,
