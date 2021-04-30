@@ -1,6 +1,7 @@
-use super::{ADoc, ALoc, AScope};
+use super::AScope;
 use crate::{
     parse::{PParamTy, PToken},
+    source::{ADoc, ALoc},
     utils::{id::Id, rc_str::RcStr},
 };
 

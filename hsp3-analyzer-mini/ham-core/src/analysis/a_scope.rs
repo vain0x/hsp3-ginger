@@ -1,6 +1,6 @@
-use super::ALoc;
 use crate::{
     parse::PDefFuncKind,
+    source::ALoc,
     utils::{id::Id, rc_str::RcStr},
 };
 

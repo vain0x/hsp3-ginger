@@ -1,6 +1,6 @@
 use crate::{
-    analysis::{ALoc, APos},
     lang_service::docs::Docs,
+    source::{ALoc, APos},
     utils::canonical_uri::CanonicalUri,
 };
 use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};

@@ -1,5 +1,5 @@
 use crate::{
-    analysis::ALoc,
+    source::ALoc,
     token::{TokenData, TokenKind},
     utils::{rc_item::RcItem, rc_slice::RcSlice},
 };

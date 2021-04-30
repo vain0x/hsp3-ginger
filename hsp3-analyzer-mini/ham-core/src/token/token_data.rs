@@ -1,5 +1,5 @@
 use super::TokenKind;
-use crate::{analysis::ALoc, utils::rc_str::RcStr};
+use crate::{source::ALoc, utils::rc_str::RcStr};
 use std::fmt;
 
 /// 字句データ

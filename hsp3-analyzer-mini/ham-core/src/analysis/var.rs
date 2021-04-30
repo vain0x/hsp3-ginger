@@ -4,9 +4,9 @@ use super::{
     a_scope::{ADefFunc, ALocalScope, AModule},
     a_symbol::{ASymbolData, AWsSymbol},
     integrate::{AEnv, APublicEnv},
-    ADoc, ALoc, AScope, ASymbol, ASymbolKind,
+    AScope, ASymbol, ASymbolKind,
 };
-use crate::parse::*;
+use crate::{parse::*, source::*};
 use std::{collections::HashMap, mem::replace};
 
 pub(crate) struct APublicState {

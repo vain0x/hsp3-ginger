@@ -1,5 +1,5 @@
 use crate::{
-    analysis::ADoc,
+    source::ADoc,
     utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
 };
 use std::{
@@ -53,7 +53,7 @@ pub(crate) struct Docs {
 impl Docs {
     pub(crate) fn fresh_doc(&mut self) -> ADoc {
         self.last_doc += 1;
-        ADoc::new(self.last_doc)
+        self.last_doc
     }
 
     /// URIに対応するADocを探す。なければ作り、trueを返す。

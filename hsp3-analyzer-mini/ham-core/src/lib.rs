@@ -13,10 +13,6 @@ mod tests;
 pub use crate::lsp_server::lsp_main::start_lsp_server;
 
 mod analysis {
-    pub(crate) mod a_doc;
-    pub(crate) mod a_loc;
-    pub(crate) mod a_pos;
-    pub(crate) mod a_range;
     pub(crate) mod a_scope;
     pub(crate) mod a_symbol;
     pub(crate) mod analyze;
@@ -27,10 +23,6 @@ mod analysis {
     pub(crate) mod var;
 
     pub(crate) use self::{
-        a_doc::ADoc,
-        a_loc::ALoc,
-        a_pos::APos,
-        a_range::ARange,
         a_scope::AScope,
         a_symbol::{ASymbol, ASymbolDetails, ASymbolKind},
     };
@@ -63,6 +55,20 @@ mod parse {
     pub(crate) use p_tree::*;
 
     pub(crate) use parse_stmt::parse_root;
+}
+
+mod source {
+    //! ソースファイルの位置情報など
+
+    mod loc;
+    mod pos;
+    mod range;
+
+    pub(crate) use loc::*;
+    pub(crate) use pos::*;
+    pub(crate) use range::*;
+
+    pub(crate) type ADoc = usize;
 }
 
 mod token {

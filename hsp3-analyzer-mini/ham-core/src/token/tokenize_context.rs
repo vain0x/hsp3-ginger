@@ -1,8 +1,5 @@
 use super::{TokenData, TokenKind};
-use crate::{
-    analysis::{ADoc, ALoc, APos},
-    utils::rc_str::RcStr,
-};
+use crate::{source::*, utils::rc_str::RcStr};
 
 /// Tokenization context. 字句解析の文脈
 pub(crate) struct TokenizeContext {

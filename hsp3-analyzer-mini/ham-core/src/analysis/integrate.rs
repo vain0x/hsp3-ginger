@@ -4,11 +4,12 @@ use super::{
     comment::{calculate_details, collect_comments},
     preproc::PreprocAnalysisResult,
     var::{AAnalysis, APublicState},
-    ADoc, ALoc, APos, AScope, ASymbol, ASymbolDetails,
+    AScope, ASymbol, ASymbolDetails,
 };
 use crate::{
     analysis::a_scope::ALocalScope,
     parse::*,
+    source::{ADoc, ALoc, APos},
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
@@ -386,7 +387,7 @@ fn collect_global_completion_items<'a>(
 #[cfg(test)]
 mod tests {
     use super::AWorkspaceAnalysis;
-    use crate::analysis::{ADoc, APos};
+    use crate::source::{ADoc, APos};
     use std::collections::HashMap;
 
     /// `<|x|>` のようなマーカーを含む文字列を受け取る。間に挟まれている x の部分をマーカーの名前と呼ぶ。
@@ -422,7 +423,7 @@ mod tests {
     fn test_locate_static_var_def() {
         let mut wa = AWorkspaceAnalysis::default();
 
-        let doc = ADoc::new(1);
+        let doc: ADoc = 1;
         let text = r#"
             <|A|>foo = 1
         "#;
@@ -445,7 +446,7 @@ mod tests {
     fn test_it_works() {
         let mut wa = AWorkspaceAnalysis::default();
 
-        let doc = ADoc::new(1);
+        let doc: ADoc = 1;
         let text = r#"
             #module
             #deffunc <|A|>hello

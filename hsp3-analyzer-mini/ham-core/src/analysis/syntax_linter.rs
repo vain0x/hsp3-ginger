@@ -1,6 +1,7 @@
-use crate::parse::{PCommandStmt, PRoot, PStmt};
-
-use super::ALoc;
+use crate::{
+    parse::{PCommandStmt, PRoot, PStmt},
+    source::ALoc,
+};
 
 pub(crate) enum SyntaxLint {
     ReturnInLoop,

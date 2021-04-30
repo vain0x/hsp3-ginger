@@ -3,10 +3,11 @@ use crate::{
     analysis::{
         comment::{calculate_details, collect_comments},
         integrate::{ACompletionItem, AWorkspaceAnalysis},
-        ALoc, AScope, ASymbolKind,
+        AScope, ASymbolKind,
     },
     lang_service::docs::Docs,
     parse::p_param_ty::PParamCategory,
+    source::*,
     token::TokenKind,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};

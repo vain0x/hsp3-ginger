@@ -1,5 +1,5 @@
 use super::{p_token::PToken, PConstTy, PJumpModifier, PParamTy, PPrivacy};
-use crate::analysis::ALoc;
+use crate::source::ALoc;
 use std::fmt::{self, Debug, Formatter};
 
 fn debug_fmt_opt<T: Debug>(
