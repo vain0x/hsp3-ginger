@@ -1,5 +1,5 @@
 use super::ASymbolDetails;
-use crate::utils::rc_str::RcStr;
+use crate::{parse::PToken, token::TokenKind, utils::rc_str::RcStr};
 
 fn char_is_ornament_comment(c: char) -> bool {
     c.is_control() || c.is_whitespace() || c.is_ascii_punctuation()
@@ -55,4 +55,18 @@ pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
         desc: description,
         docs: documentation,
     }
+}
+
+pub(crate) fn collect_comments(leader: &PToken) -> Vec<RcStr> {
+    leader
+        .leading
+        .iter()
+        .filter_map(|t| {
+            if t.kind == TokenKind::Comment && !str_is_ornament_comment(&t.text) {
+                Some(t.text.clone())
+            } else {
+                None
+            }
+        })
+        .collect()
 }

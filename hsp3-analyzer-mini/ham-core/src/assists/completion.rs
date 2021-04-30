@@ -1,7 +1,7 @@
 use super::to_loc;
 use crate::{
     analysis::{
-        comment::calculate_details,
+        comment::{calculate_details, collect_comments},
         integrate::{ACompletionItem, AWorkspaceAnalysis},
         AScope, ASymbolKind,
     },
@@ -31,7 +31,7 @@ pub(crate) fn completion(
     for item in wa.collect_completion_items(loc) {
         match item {
             ACompletionItem::Symbol(symbol) => {
-                let details = calculate_details(&symbol.comments);
+                let details = calculate_details(&collect_comments(&symbol.leader));
 
                 use CompletionItemKind as K;
 

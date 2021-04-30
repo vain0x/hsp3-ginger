@@ -1,7 +1,7 @@
 use super::{
     a_scope::{ADefFunc, AModule},
     a_symbol::{ASymbolData, AWsSymbol},
-    comment::calculate_details,
+    comment::{calculate_details, collect_comments},
     preproc::PreprocAnalysisResult,
     var::{AAnalysis, APublicState},
     ADoc, ALoc, APos, AScope, ASymbol, ASymbolDetails,
@@ -205,7 +205,7 @@ impl AWorkspaceAnalysis {
         Some((
             symbol_data.name.clone(),
             symbol_data.kind.as_str(),
-            calculate_details(&symbol_data.comments),
+            calculate_details(&collect_comments(&symbol_data.leader)),
         ))
     }
 

@@ -85,7 +85,7 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         name: name.body.text.clone(),
         def_sites: vec![],
         use_sites: vec![],
-        comments: vec![],
+        leader: name.clone(),
         scope: ctx.module_scope(),
     };
 

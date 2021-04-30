@@ -1,6 +1,6 @@
 use super::{ADoc, ALoc, AScope};
 use crate::{
-    parse::PParamTy,
+    parse::{PParamTy, PToken},
     utils::{id::Id, rc_str::RcStr},
 };
 
@@ -81,7 +81,7 @@ pub(crate) struct ASymbolData {
     pub(crate) name: RcStr,
     pub(crate) def_sites: Vec<ALoc>,
     pub(crate) use_sites: Vec<ALoc>,
-    pub(crate) comments: Vec<RcStr>,
+    pub(crate) leader: PToken,
     pub(crate) scope: AScope,
 }
 

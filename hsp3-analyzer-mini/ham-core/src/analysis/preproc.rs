@@ -1,7 +1,7 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
 use super::{a_scope::*, a_symbol::*};
-use crate::{analysis::comment::str_is_ornament_comment, parse::*, token::TokenKind};
+use crate::{parse::*, token::TokenKind};
 use std::mem::replace;
 
 #[derive(Default)]
@@ -51,25 +51,12 @@ fn add_symbol(
     scope: AScope,
     symbols: &mut Vec<ASymbolData>,
 ) {
-    // FIXME: PTokenのコピーを持ったほうが効率がいい
-    let comments = leader
-        .leading
-        .iter()
-        .filter_map(|t| {
-            if t.kind == TokenKind::Comment && !str_is_ornament_comment(&t.text) {
-                Some(t.text.clone())
-            } else {
-                None
-            }
-        })
-        .collect();
-
     symbols.push(ASymbolData {
         kind,
         name: name.body.text.clone(),
         def_sites: vec![name.body.loc.clone()],
         use_sites: vec![],
-        comments,
+        leader: leader.clone(),
         scope,
     });
 }
