@@ -15,7 +15,6 @@ pub use crate::lsp_server::lsp_main::start_lsp_server;
 mod analysis {
     pub(crate) mod a_scope;
     pub(crate) mod a_symbol;
-    pub(crate) mod analyze;
     pub(crate) mod comment;
     pub(crate) mod integrate;
     pub(crate) mod preproc;
