@@ -58,6 +58,7 @@ impl<W: io::Write> LspHandler<W> {
 
     fn did_initialize(&mut self) {
         self.model.did_initialize();
+        self.diagnose();
     }
 
     fn shutdown(&mut self) {
