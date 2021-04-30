@@ -2,7 +2,7 @@
 #![cfg(test)]
 
 use crate::{
-    analysis::ADoc,
+    source::DocId,
     utils::{rc_str::RcStr, read_file::read_file},
 };
 use std::{fs, path::PathBuf, rc::Rc};
@@ -51,9 +51,9 @@ fn tokenize_standard_files() {
         }
 
         let output = {
-            let doc = {
+            let doc: DocId = {
                 last_id += 1;
-                ADoc::new(last_id)
+                last_id
             };
             let tokens = { crate::token::tokenize(doc, RcStr::new(text.clone(), 0, text.len())) };
             format!("{:#?}\n", tokens)

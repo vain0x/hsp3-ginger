@@ -23,7 +23,7 @@ pub(crate) enum DocChange {
 
 /// テキストドキュメントを管理するもの。
 ///
-/// - テキストドキュメントにはIDを振って管理する。(`ADoc`)
+/// - テキストドキュメントにはIDを振って管理する。(`DocId`)
 /// - テキストドキュメントは2種類ある: エディタで開かれているものと、ファイルとして保存されているもの。
 /// - エディタで開かれているドキュメントはURIで識別される。バージョン番号と内容は与えられる。
 /// - ファイルであるドキュメントはファイルパスで指定される。内容は必要に応じて読み込む。
@@ -56,7 +56,7 @@ impl Docs {
         self.last_doc
     }
 
-    /// URIに対応するADocを探す。なければ作り、trueを返す。
+    /// URIに対応するDocIdを探す。なければ作り、trueを返す。
     fn touch_uri(&mut self, uri: CanonicalUri) -> (bool, DocId) {
         match self.uri_to_doc.get(&uri) {
             Some(&doc) => (false, doc),
