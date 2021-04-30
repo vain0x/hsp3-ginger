@@ -1,5 +1,5 @@
 use super::{p_token::PToken, PConstTy, PJumpModifier, PParamTy, PPrivacy};
-use crate::source::ALoc;
+use crate::source::Loc;
 use std::fmt::{self, Debug, Formatter};
 
 fn debug_fmt_opt<T: Debug>(
@@ -365,7 +365,7 @@ pub(crate) struct PDefFuncStmt {
     pub(crate) params: Vec<PParam>,
     pub(crate) onexit_opt: Option<PToken>,
     pub(crate) stmts: Vec<PStmt>,
-    pub(crate) behind: ALoc,
+    pub(crate) behind: Loc,
 }
 
 #[derive(Debug)]
@@ -445,7 +445,7 @@ pub(crate) struct PModuleStmt {
     pub(crate) fields: Vec<PParam>,
     pub(crate) stmts: Vec<PStmt>,
     pub(crate) global_opt: Option<PGlobalStmt>,
-    pub(crate) behind: ALoc,
+    pub(crate) behind: Loc,
 }
 
 #[derive(Debug)]

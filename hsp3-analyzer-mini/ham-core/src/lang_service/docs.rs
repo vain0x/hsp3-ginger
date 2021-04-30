@@ -1,5 +1,5 @@
 use crate::{
-    source::ADoc,
+    source::DocId,
     utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
 };
 use std::{
@@ -16,9 +16,9 @@ type TextDocumentVersion = i64;
 pub(crate) const NO_VERSION: TextDocumentVersion = 1;
 
 pub(crate) enum DocChange {
-    Opened { doc: ADoc, text: RcStr },
-    Changed { doc: ADoc, text: RcStr },
-    Closed { doc: ADoc },
+    Opened { doc: DocId, text: RcStr },
+    Changed { doc: DocId, text: RcStr },
+    Closed { doc: DocId },
 }
 
 /// テキストドキュメントを管理するもの。
@@ -35,29 +35,29 @@ pub(crate) struct Docs {
     last_doc: usize,
 
     // ドキュメントの情報:
-    doc_to_uri: HashMap<ADoc, CanonicalUri>,
-    uri_to_doc: HashMap<CanonicalUri, ADoc>,
-    doc_versions: HashMap<ADoc, TextDocumentVersion>,
-    doc_texts: HashMap<ADoc, RcStr>,
+    doc_to_uri: HashMap<DocId, CanonicalUri>,
+    uri_to_doc: HashMap<CanonicalUri, DocId>,
+    doc_versions: HashMap<DocId, TextDocumentVersion>,
+    doc_texts: HashMap<DocId, RcStr>,
 
     /// エディタで開かれているドキュメント
-    editor_docs: HashSet<ADoc>,
+    editor_docs: HashSet<DocId>,
 
     /// ファイルとして保存されているドキュメント
-    file_docs: HashSet<ADoc>,
+    file_docs: HashSet<DocId>,
 
     /// 最近の更新
     doc_changes: Vec<DocChange>,
 }
 
 impl Docs {
-    pub(crate) fn fresh_doc(&mut self) -> ADoc {
+    pub(crate) fn fresh_doc(&mut self) -> DocId {
         self.last_doc += 1;
         self.last_doc
     }
 
     /// URIに対応するADocを探す。なければ作り、trueを返す。
-    fn touch_uri(&mut self, uri: CanonicalUri) -> (bool, ADoc) {
+    fn touch_uri(&mut self, uri: CanonicalUri) -> (bool, DocId) {
         match self.uri_to_doc.get(&uri) {
             Some(&doc) => (false, doc),
             None => {
@@ -69,15 +69,15 @@ impl Docs {
         }
     }
 
-    pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<ADoc> {
+    pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
         self.uri_to_doc.get(uri).cloned()
     }
 
-    pub(crate) fn get_uri(&self, doc: ADoc) -> Option<&CanonicalUri> {
+    pub(crate) fn get_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
         self.doc_to_uri.get(&doc)
     }
 
-    pub(crate) fn get_version(&self, doc: ADoc) -> Option<TextDocumentVersion> {
+    pub(crate) fn get_version(&self, doc: DocId) -> Option<TextDocumentVersion> {
         self.doc_versions.get(&doc).copied()
     }
 
@@ -85,20 +85,20 @@ impl Docs {
         changes.extend(self.doc_changes.drain(..));
     }
 
-    fn do_open_doc(&mut self, doc: ADoc, version: i64, text: RcStr) -> ADoc {
+    fn do_open_doc(&mut self, doc: DocId, version: i64, text: RcStr) -> DocId {
         self.doc_versions.insert(doc, version);
         self.doc_texts.insert(doc, text.clone());
         self.doc_changes.push(DocChange::Opened { doc, text });
         doc
     }
 
-    fn do_change_doc(&mut self, doc: ADoc, version: i64, text: RcStr) {
+    fn do_change_doc(&mut self, doc: DocId, version: i64, text: RcStr) {
         self.doc_versions.insert(doc, version);
         self.doc_texts.insert(doc, text.clone());
         self.doc_changes.push(DocChange::Changed { doc, text });
     }
 
-    fn do_close_doc(&mut self, doc: ADoc, uri: &CanonicalUri) {
+    fn do_close_doc(&mut self, doc: DocId, uri: &CanonicalUri) {
         self.doc_to_uri.remove(&doc);
         self.uri_to_doc.remove(&uri);
         self.doc_versions.remove(&doc);

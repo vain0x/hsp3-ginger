@@ -1,6 +1,6 @@
 use crate::{
     parse::PDefFuncKind,
-    source::ALoc,
+    source::Loc,
     utils::{id::Id, rc_str::RcStr},
 };
 
@@ -42,8 +42,8 @@ pub(crate) type ADefFunc = Id<ADefFuncData>;
 pub(crate) struct ADefFuncData {
     pub(crate) kind: PDefFuncKind,
     pub(crate) name_opt: Option<RcStr>,
-    pub(crate) keyword_loc: ALoc,
-    pub(crate) content_loc: ALoc,
+    pub(crate) keyword_loc: Loc,
+    pub(crate) content_loc: Loc,
 }
 
 pub(crate) type AModule = Id<AModuleData>;
@@ -51,6 +51,6 @@ pub(crate) type AModule = Id<AModuleData>;
 #[derive(Debug, Default)]
 pub(crate) struct AModuleData {
     pub(crate) name_opt: Option<RcStr>,
-    pub(crate) keyword_loc: ALoc,
-    pub(crate) content_loc: ALoc,
+    pub(crate) keyword_loc: Loc,
+    pub(crate) content_loc: Loc,
 }

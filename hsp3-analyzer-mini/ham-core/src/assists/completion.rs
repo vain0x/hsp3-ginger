@@ -12,7 +12,7 @@ use crate::{
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 
-fn is_preproc_statement(loc: ALoc, wa: &AWorkspaceAnalysis) -> bool {
+fn is_preproc_statement(loc: Loc, wa: &AWorkspaceAnalysis) -> bool {
     let tokens = match wa.doc_syntax_map.get(&loc.doc) {
         Some(syntax) => &syntax.tokens,
         None => return false,

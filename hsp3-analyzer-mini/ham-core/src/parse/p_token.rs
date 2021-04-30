@@ -1,5 +1,5 @@
 use crate::{
-    source::ALoc,
+    source::Loc,
     token::{TokenData, TokenKind},
     utils::{rc_item::RcItem, rc_slice::RcSlice},
 };
@@ -23,7 +23,7 @@ impl PToken {
         self.body.text.as_str()
     }
 
-    pub(crate) fn ahead(&self) -> ALoc {
+    pub(crate) fn ahead(&self) -> Loc {
         match self.leading.first() {
             Some(first) => first.loc.ahead(),
             None => self.body.loc.ahead(),
@@ -31,7 +31,7 @@ impl PToken {
     }
 
     /// このトークンの末尾の位置 (後続トリビアを含む)
-    pub(crate) fn behind(&self) -> ALoc {
+    pub(crate) fn behind(&self) -> Loc {
         match self.trailing.last() {
             Some(last) => last.loc.behind(),
             None => self.body.loc.behind(),

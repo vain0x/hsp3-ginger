@@ -1,26 +1,26 @@
-use super::{ADoc, APos, ARange};
+use super::{DocId, Pos, Range};
 
 /// Location. テキストドキュメント上の範囲
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct ALoc {
-    pub(crate) doc: ADoc,
-    pub(crate) range: ARange,
+pub(crate) struct Loc {
+    pub(crate) doc: DocId,
+    pub(crate) range: Range,
 }
 
-impl ALoc {
-    pub(crate) fn new3(doc: ADoc, start: APos, end: APos) -> Self {
-        ALoc {
+impl Loc {
+    pub(crate) fn new3(doc: DocId, start: Pos, end: Pos) -> Self {
+        Loc {
             doc,
-            range: ARange { start, end },
+            range: Range { start, end },
         }
     }
 
-    pub(crate) fn start(&self) -> APos {
+    pub(crate) fn start(&self) -> Pos {
         self.range.start()
     }
 
     #[allow(unused)]
-    pub(crate) fn end(&self) -> APos {
+    pub(crate) fn end(&self) -> Pos {
         self.range.end()
     }
 
@@ -40,36 +40,36 @@ impl ALoc {
         self.range.end.column
     }
 
-    pub(crate) fn is_touched(&self, doc: ADoc, pos: APos) -> bool {
+    pub(crate) fn is_touched(&self, doc: DocId, pos: Pos) -> bool {
         self.doc == doc && self.range.is_touched(pos)
     }
 
-    pub(crate) fn ahead(&self) -> ALoc {
-        ALoc {
+    pub(crate) fn ahead(&self) -> Loc {
+        Loc {
             doc: self.doc,
-            range: ARange {
+            range: Range {
                 start: self.start(),
                 end: self.end(),
             },
         }
     }
 
-    pub(crate) fn behind(&self) -> ALoc {
-        ALoc {
+    pub(crate) fn behind(&self) -> Loc {
+        Loc {
             doc: self.doc,
-            range: ARange {
+            range: Range {
                 start: self.end(),
                 end: self.end(),
             },
         }
     }
 
-    pub(crate) fn unite(&self, other: &Self) -> ALoc {
+    pub(crate) fn unite(&self, other: &Self) -> Loc {
         if self.doc != other.doc {
             return *self;
         }
 
-        ALoc {
+        Loc {
             doc: self.doc,
             range: self.range.unite(&other.range),
         }

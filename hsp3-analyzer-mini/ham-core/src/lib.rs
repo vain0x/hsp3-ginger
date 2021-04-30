@@ -68,7 +68,7 @@ mod source {
     pub(crate) use pos::*;
     pub(crate) use range::*;
 
-    pub(crate) type ADoc = usize;
+    pub(crate) type DocId = usize;
 }
 
 mod token {

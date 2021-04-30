@@ -1,15 +1,15 @@
 /// Position. テキスト上の位置
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct APos {
+pub(crate) struct Pos {
     /// 行番号 (0 から始まる)
     pub(crate) row: usize,
     /// 列番号 (0 から始まる、UTF-8 基準、バイト単位)
     pub(crate) column: usize,
 }
 
-impl APos {
+impl Pos {
     pub(crate) fn from_str(s: &str) -> Self {
-        let mut pos = APos::default();
+        let mut pos = Pos::default();
 
         for c in s.chars() {
             if c == '\n' {

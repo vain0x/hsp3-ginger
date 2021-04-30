@@ -1,27 +1,27 @@
-use super::APos;
+use super::Pos;
 
 /// テキスト上の範囲
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct ARange {
-    pub(crate) start: APos,
-    pub(crate) end: APos,
+pub(crate) struct Range {
+    pub(crate) start: Pos,
+    pub(crate) end: Pos,
 }
 
-impl ARange {
-    pub(crate) fn start(&self) -> APos {
+impl Range {
+    pub(crate) fn start(&self) -> Pos {
         self.start
     }
 
-    pub(crate) fn end(&self) -> APos {
+    pub(crate) fn end(&self) -> Pos {
         self.end
     }
 
-    pub(crate) fn is_touched(&self, pos: APos) -> bool {
+    pub(crate) fn is_touched(&self, pos: Pos) -> bool {
         self.start <= pos && pos <= self.end
     }
 
     pub(crate) fn unite(&self, other: &Self) -> Self {
-        ARange {
+        Range {
             start: self.start.min(other.start),
             end: self.end.max(other.end),
         }

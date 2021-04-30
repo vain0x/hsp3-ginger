@@ -13,14 +13,14 @@ pub(crate) struct APublicState {
     pub(crate) env: APublicEnv,
 
     // 他のドキュメントのシンボルの定義・使用箇所を記録するもの。
-    pub(crate) def_sites: Vec<(AWsSymbol, ALoc)>,
-    pub(crate) use_sites: Vec<(AWsSymbol, ALoc)>,
+    pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
+    pub(crate) use_sites: Vec<(AWsSymbol, Loc)>,
 }
 
 struct Ctx<'a> {
     public: &'a mut APublicState,
 
-    doc: ADoc,
+    doc: DocId,
 
     /// ドキュメント内のシンボル
     symbols: Vec<ASymbolData>,
@@ -326,7 +326,7 @@ pub(crate) struct AAnalysis {
 }
 
 pub(crate) fn analyze_var_def(
-    doc: ADoc,
+    doc: DocId,
     root: &PRoot,
     symbols: Vec<ASymbolData>,
     public: &mut APublicState,

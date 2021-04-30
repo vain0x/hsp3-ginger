@@ -1,5 +1,5 @@
 use super::TokenKind;
-use crate::{source::ALoc, utils::rc_str::RcStr};
+use crate::{source::Loc, utils::rc_str::RcStr};
 use std::fmt;
 
 /// 字句データ
@@ -8,7 +8,7 @@ use std::fmt;
 pub(crate) struct TokenData {
     pub(crate) kind: TokenKind,
     pub(crate) text: RcStr,
-    pub(crate) loc: ALoc,
+    pub(crate) loc: Loc,
 }
 
 impl fmt::Debug for TokenData {

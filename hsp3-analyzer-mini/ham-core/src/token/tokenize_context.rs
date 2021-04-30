@@ -3,22 +3,22 @@ use crate::{source::*, utils::rc_str::RcStr};
 
 /// Tokenization context. 字句解析の文脈
 pub(crate) struct TokenizeContext {
-    doc: ADoc,
+    doc: DocId,
     source_code: RcStr,
     current_index: usize,
     last_index: usize,
-    last_position: APos,
+    last_position: Pos,
     tokens: Vec<TokenData>,
 }
 
 impl TokenizeContext {
-    pub(crate) fn new(doc: ADoc, source_code: RcStr) -> Self {
+    pub(crate) fn new(doc: DocId, source_code: RcStr) -> Self {
         TokenizeContext {
             doc,
             source_code,
             current_index: 0,
             last_index: 0,
-            last_position: APos::default(),
+            last_position: Pos::default(),
             tokens: vec![],
         }
     }
@@ -95,8 +95,8 @@ impl TokenizeContext {
     pub(crate) fn commit(&mut self, kind: TokenKind) {
         let text = self.source_code.slice(self.last_index, self.current_index);
 
-        let current_position = self.last_position.add(APos::from_str(text.as_str()));
-        let loc = ALoc::new3(self.doc, self.last_position, current_position);
+        let current_position = self.last_position.add(Pos::from_str(text.as_str()));
+        let loc = Loc::new3(self.doc, self.last_position, current_position);
         let token = TokenData { kind, text, loc };
 
         self.push_token(token);

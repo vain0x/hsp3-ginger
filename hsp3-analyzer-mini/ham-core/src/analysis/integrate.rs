@@ -9,7 +9,7 @@ use super::{
 use crate::{
     analysis::a_scope::ALocalScope,
     parse::*,
-    source::{ADoc, ALoc, APos},
+    source::{DocId, Loc, Pos},
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
@@ -20,34 +20,34 @@ use std::{
 
 #[derive(Default)]
 pub(crate) struct AWorkspaceAnalysis {
-    pub(crate) dirty_docs: HashSet<ADoc>,
-    pub(crate) doc_texts: HashMap<ADoc, RcStr>,
+    pub(crate) dirty_docs: HashSet<DocId>,
+    pub(crate) doc_texts: HashMap<DocId, RcStr>,
 
     // ドキュメントごとの解析結果:
-    pub(crate) doc_syntax_map: HashMap<ADoc, ASyntax>,
-    pub(crate) doc_preproc_map: HashMap<ADoc, PreprocAnalysisResult>,
-    pub(crate) doc_analysis_map: HashMap<ADoc, AAnalysis>,
+    pub(crate) doc_syntax_map: HashMap<DocId, ASyntax>,
+    pub(crate) doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
+    pub(crate) doc_analysis_map: HashMap<DocId, AAnalysis>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     pub(crate) public_env: APublicEnv,
-    pub(crate) def_sites: Vec<(AWsSymbol, ALoc)>,
-    pub(crate) use_sites: Vec<(AWsSymbol, ALoc)>,
+    pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
+    pub(crate) use_sites: Vec<(AWsSymbol, Loc)>,
 }
 
 impl AWorkspaceAnalysis {
-    fn invalidate(&mut self, doc: ADoc) {
+    fn invalidate(&mut self, doc: DocId) {
         self.doc_syntax_map.remove(&doc);
         self.doc_preproc_map.remove(&doc);
         self.doc_analysis_map.remove(&doc);
     }
 
-    pub(crate) fn update_doc(&mut self, doc: ADoc, text: RcStr) {
+    pub(crate) fn update_doc(&mut self, doc: DocId, text: RcStr) {
         self.dirty_docs.insert(doc);
         self.doc_texts.insert(doc, text);
         self.invalidate(doc);
     }
 
-    pub(crate) fn close_doc(&mut self, doc: ADoc) {
+    pub(crate) fn close_doc(&mut self, doc: DocId) {
         self.dirty_docs.insert(doc);
         self.doc_texts.remove(&doc);
         self.invalidate(doc);
@@ -156,7 +156,7 @@ impl AWorkspaceAnalysis {
         // eprintln!("use_sites={:#?}", &self.use_sites);
     }
 
-    pub(crate) fn locate_symbol(&mut self, doc: ADoc, pos: APos) -> Option<(AWsSymbol, ALoc)> {
+    pub(crate) fn locate_symbol(&mut self, doc: DocId, pos: Pos) -> Option<(AWsSymbol, Loc)> {
         self.compute();
 
         // eprintln!("symbol_uses={:?}", &self.use_sites);
@@ -168,7 +168,7 @@ impl AWorkspaceAnalysis {
             .cloned()
     }
 
-    pub(crate) fn get_ident_at(&mut self, doc: ADoc, pos: APos) -> Option<(RcStr, ALoc)> {
+    pub(crate) fn get_ident_at(&mut self, doc: DocId, pos: Pos) -> Option<(RcStr, Loc)> {
         self.compute();
 
         let syntax = self.doc_syntax_map.get(&doc)?;
@@ -214,7 +214,7 @@ impl AWorkspaceAnalysis {
         self.compute();
     }
 
-    pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<ALoc>) {
+    pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<Loc>) {
         self.compute();
 
         for &(s, loc) in &self.def_sites {
@@ -224,7 +224,7 @@ impl AWorkspaceAnalysis {
         }
     }
 
-    pub(crate) fn collect_symbol_uses(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<ALoc>) {
+    pub(crate) fn collect_symbol_uses(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<Loc>) {
         self.compute();
 
         for &(s, loc) in &self.use_sites {
@@ -234,7 +234,7 @@ impl AWorkspaceAnalysis {
         }
     }
 
-    pub(crate) fn collect_completion_items(&mut self, loc: ALoc) -> Vec<ACompletionItem> {
+    pub(crate) fn collect_completion_items(&mut self, loc: Loc) -> Vec<ACompletionItem> {
         self.compute();
 
         let mut completion_items = vec![];
@@ -322,7 +322,7 @@ impl APublicEnv {
     }
 }
 
-fn resolve_scope_at(root: &PRoot, pos: APos) -> ALocalScope {
+fn resolve_scope_at(root: &PRoot, pos: Pos) -> ALocalScope {
     let mut mi = 0;
     let mut di = 0;
     let mut scope = ALocalScope::default();
@@ -387,23 +387,23 @@ fn collect_global_completion_items<'a>(
 #[cfg(test)]
 mod tests {
     use super::AWorkspaceAnalysis;
-    use crate::source::{ADoc, APos};
+    use crate::source::{DocId, Pos};
     use std::collections::HashMap;
 
     /// `<|x|>` のようなマーカーを含む文字列を受け取る。間に挟まれている x の部分をマーカーの名前と呼ぶ。
     /// マーカーを取り除いた文字列 text と、text の中でマーカーが指している位置のリストを返す。
-    fn parse_cursor_string(s: &str) -> (String, Vec<(&str, APos)>) {
+    fn parse_cursor_string(s: &str) -> (String, Vec<(&str, Pos)>) {
         let mut output = vec![];
 
         let mut text = String::with_capacity(s.len());
-        let mut pos = APos::default();
+        let mut pos = Pos::default();
         let mut i = 0;
 
         while let Some(offset) = s[i..].find("<|") {
             // カーソルを <| の手前まで進める。
             let j = i + offset;
             text += &s[i..j];
-            pos = pos.add(APos::from_str(&s[i..j]));
+            pos = pos.add(Pos::from_str(&s[i..j]));
             i += offset + "<|".len();
 
             // <| と |> の間を名前として取る。
@@ -423,7 +423,7 @@ mod tests {
     fn test_locate_static_var_def() {
         let mut wa = AWorkspaceAnalysis::default();
 
-        let doc: ADoc = 1;
+        let doc: DocId = 1;
         let text = r#"
             <|A|>foo = 1
         "#;
@@ -446,7 +446,7 @@ mod tests {
     fn test_it_works() {
         let mut wa = AWorkspaceAnalysis::default();
 
-        let doc: ADoc = 1;
+        let doc: DocId = 1;
         let text = r#"
             #module
             #deffunc <|A|>hello

@@ -1,6 +1,6 @@
 use crate::{
     lang_service::docs::Docs,
-    source::{ALoc, APos},
+    source::{Loc, Pos},
     utils::canonical_uri::CanonicalUri,
 };
 use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};
@@ -27,7 +27,7 @@ fn markdown_marked_string(value: String) -> MarkedString {
     })
 }
 
-fn loc_to_range(loc: ALoc) -> Range {
+fn loc_to_range(loc: Loc) -> Range {
     // FIXME: UTF-8 から UTF-16 基準のインデックスへの変換
     Range::new(
         Position::new(loc.start_row() as u64, loc.start_column() as u64),
@@ -35,21 +35,21 @@ fn loc_to_range(loc: ALoc) -> Range {
     )
 }
 
-fn loc_to_location(loc: ALoc, docs: &Docs) -> Option<Location> {
+fn loc_to_location(loc: Loc, docs: &Docs) -> Option<Location> {
     let uri = docs.get_uri(loc.doc)?.clone().into_url();
     let range = loc_to_range(loc);
     Some(Location { uri, range })
 }
 
-fn to_loc(uri: &Url, position: Position, docs: &Docs) -> Option<ALoc> {
+fn to_loc(uri: &Url, position: Position, docs: &Docs) -> Option<Loc> {
     let uri = CanonicalUri::from_url(uri);
     let doc = docs.find_by_uri(&uri)?;
 
     // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要
-    let pos = APos {
+    let pos = Pos {
         row: position.line as usize,
         column: position.character as usize,
     };
 
-    Some(ALoc::new3(doc, pos, pos))
+    Some(Loc::new3(doc, pos, pos))
 }

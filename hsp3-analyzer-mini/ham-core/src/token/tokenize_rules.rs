@@ -1,7 +1,7 @@
 //! 字句解析のルール
 
 use super::{tokenize_context::TokenizeContext, TokenData, TokenKind};
-use crate::{source::ADoc, utils::rc_str::RcStr};
+use crate::{source::DocId, utils::rc_str::RcStr};
 
 type Tx = TokenizeContext;
 
@@ -374,7 +374,7 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
     }
 }
 
-pub(crate) fn tokenize(doc: ADoc, text: RcStr) -> Vec<TokenData> {
+pub(crate) fn tokenize(doc: DocId, text: RcStr) -> Vec<TokenData> {
     let mut tx = Tx::new(doc, text);
     do_tokenize(&mut tx);
     tx.finish()

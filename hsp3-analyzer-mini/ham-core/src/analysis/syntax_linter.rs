@@ -1,6 +1,6 @@
 use crate::{
     parse::{PCommandStmt, PRoot, PStmt},
-    source::ALoc,
+    source::Loc,
 };
 
 pub(crate) enum SyntaxLint {
@@ -18,11 +18,11 @@ impl SyntaxLint {
 #[derive(Default)]
 pub(crate) struct SyntaxLinter<'p> {
     loop_stack: Vec<&'p PCommandStmt>,
-    lints: Vec<(SyntaxLint, ALoc)>,
+    lints: Vec<(SyntaxLint, Loc)>,
 }
 
 impl<'p> SyntaxLinter<'p> {
-    fn report(&mut self, lint: SyntaxLint, loc: ALoc) {
+    fn report(&mut self, lint: SyntaxLint, loc: Loc) {
         self.lints.push((lint, loc));
     }
 
@@ -70,7 +70,7 @@ impl<'p> SyntaxLinter<'p> {
     }
 }
 
-pub(crate) fn syntax_lint(root: &PRoot) -> Vec<(SyntaxLint, ALoc)> {
+pub(crate) fn syntax_lint(root: &PRoot) -> Vec<(SyntaxLint, Loc)> {
     let mut linter = SyntaxLinter::default();
     linter.run(root);
     linter.lints

@@ -1,7 +1,7 @@
 use super::AScope;
 use crate::{
     parse::{PParamTy, PToken},
-    source::{ADoc, ALoc},
+    source::{DocId, Loc},
     utils::{id::Id, rc_str::RcStr},
 };
 
@@ -80,8 +80,8 @@ pub(crate) type ASymbol = Id<ASymbolData>;
 pub(crate) struct ASymbolData {
     pub(crate) kind: ASymbolKind,
     pub(crate) name: RcStr,
-    pub(crate) def_sites: Vec<ALoc>,
-    pub(crate) use_sites: Vec<ALoc>,
+    pub(crate) def_sites: Vec<Loc>,
+    pub(crate) use_sites: Vec<Loc>,
     pub(crate) leader: PToken,
     pub(crate) scope: AScope,
 }
@@ -94,6 +94,6 @@ pub(crate) struct ASymbolDetails {
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct AWsSymbol {
-    pub(crate) doc: ADoc,
+    pub(crate) doc: DocId,
     pub(crate) symbol: ASymbol,
 }
