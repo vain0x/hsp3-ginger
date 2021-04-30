@@ -23,6 +23,7 @@ impl PToken {
         self.body.text.as_str()
     }
 
+    #[cfg(unused)]
     pub(crate) fn ahead(&self) -> Loc {
         match self.leading.first() {
             Some(first) => first.loc.ahead(),

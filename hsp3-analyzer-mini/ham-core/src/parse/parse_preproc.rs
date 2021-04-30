@@ -433,9 +433,6 @@ fn parse_include_stmt(hash: PToken, kind: PIncludeKind, px: &mut Px) -> PInclude
 }
 
 pub(crate) fn parse_preproc_stmt(px: &mut Px) -> Option<PStmt> {
-    const USE_NAME: bool = true;
-    const IS_OPTIONAL: bool = true;
-
     let hash = px.eat(TokenKind::Hash)?;
 
     let stmt = match px.next_token().body_text() {
