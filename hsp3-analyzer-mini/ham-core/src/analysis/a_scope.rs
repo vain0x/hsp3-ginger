@@ -48,7 +48,7 @@ pub(crate) struct ADefFuncData {
 
 pub(crate) type AModule = Id<AModuleData>;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct AModuleData {
     pub(crate) name_opt: Option<RcStr>,
     pub(crate) keyword_loc: Loc,

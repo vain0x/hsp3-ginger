@@ -1,5 +1,8 @@
 use super::loc_to_location;
-use crate::{analysis::integrate::AWorkspaceAnalysis, assists::to_loc, lang_service::docs::Docs};
+use crate::{
+    analysis::integrate::AWorkspaceAnalysis, assists::from_document_position,
+    lang_service::docs::Docs,
+};
 use lsp_types::{Location, Position, Url};
 
 pub(crate) fn definitions(
@@ -8,8 +11,8 @@ pub(crate) fn definitions(
     docs: &Docs,
     wa: &mut AWorkspaceAnalysis,
 ) -> Option<Vec<Location>> {
-    let loc = to_loc(&uri, position, docs)?;
-    let (ws_symbol, _) = wa.locate_symbol(loc.doc, loc.start())?;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let (ws_symbol, _) = wa.locate_symbol(doc, pos)?;
 
     let mut locs = vec![];
     wa.collect_symbol_defs(ws_symbol, &mut locs);

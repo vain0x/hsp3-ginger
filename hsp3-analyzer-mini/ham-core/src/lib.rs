@@ -58,14 +58,18 @@ mod source {
     //! ソースファイルの位置情報など
 
     mod loc;
-    mod pos;
-    mod range;
 
     pub(crate) use loc::*;
-    pub(crate) use pos::*;
-    pub(crate) use range::*;
 
     pub(crate) type DocId = usize;
+    pub(crate) type Pos = text_position_rs::CompositePosition;
+    pub(crate) type Pos16 = text_position_rs::Utf16Position;
+    pub(crate) type Range = text_position_rs::TextRange<Pos>;
+    pub(crate) type Range16 = text_position_rs::TextRange<Pos16>;
+
+    pub(crate) fn range_is_touched(range: &Range, pos: Pos16) -> bool {
+        Range16::from(Pos16::from(range.start())..Pos16::from(range.end())).contains_inclusive(pos)
+    }
 }
 
 mod token {

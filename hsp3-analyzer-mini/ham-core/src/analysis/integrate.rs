@@ -9,7 +9,7 @@ use super::{
 use crate::{
     analysis::a_scope::ALocalScope,
     parse::*,
-    source::{DocId, Loc, Pos},
+    source::{range_is_touched, DocId, Loc, Pos16},
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
@@ -156,7 +156,7 @@ impl AWorkspaceAnalysis {
         // eprintln!("use_sites={:#?}", &self.use_sites);
     }
 
-    pub(crate) fn locate_symbol(&mut self, doc: DocId, pos: Pos) -> Option<(AWsSymbol, Loc)> {
+    pub(crate) fn locate_symbol(&mut self, doc: DocId, pos: Pos16) -> Option<(AWsSymbol, Loc)> {
         self.compute();
 
         // eprintln!("symbol_uses={:?}", &self.use_sites);
@@ -168,19 +168,19 @@ impl AWorkspaceAnalysis {
             .cloned()
     }
 
-    pub(crate) fn get_ident_at(&mut self, doc: DocId, pos: Pos) -> Option<(RcStr, Loc)> {
+    pub(crate) fn get_ident_at(&mut self, doc: DocId, pos: Pos16) -> Option<(RcStr, Loc)> {
         self.compute();
 
         let syntax = self.doc_syntax_map.get(&doc)?;
         let tokens = &syntax.tokens;
-        let token = match tokens.binary_search_by_key(&pos, |t| t.body.loc.start()) {
+        let token = match tokens.binary_search_by_key(&pos, |t| t.body.loc.start().into()) {
             Ok(i) => tokens[i].body.as_ref(),
             Err(i) => tokens
                 .iter()
                 .skip(i.saturating_sub(1))
                 .take(3)
                 .find_map(|t| {
-                    if t.body.kind == TokenKind::Ident && t.body.loc.range.is_touched(pos) {
+                    if t.body.kind == TokenKind::Ident && range_is_touched(&t.body.loc.range, pos) {
                         Some(t.body.as_ref())
                     } else {
                         None
@@ -234,23 +234,26 @@ impl AWorkspaceAnalysis {
         }
     }
 
-    pub(crate) fn collect_completion_items(&mut self, loc: Loc) -> Vec<ACompletionItem> {
+    pub(crate) fn collect_completion_items(
+        &mut self,
+        doc: DocId,
+        pos: Pos16,
+    ) -> Vec<ACompletionItem> {
         self.compute();
 
         let mut completion_items = vec![];
 
         let mut scope = ALocalScope::default();
 
-        if let Some(doc_analysis) = self.doc_analysis_map.get(&loc.doc) {
-            let pos = loc.start();
-            let syntax = &self.doc_syntax_map[&loc.doc];
+        if let Some(doc_analysis) = self.doc_analysis_map.get(&doc) {
+            let syntax = &self.doc_syntax_map[&doc];
             scope = resolve_scope_at(&syntax.tree, pos);
             collect_local_completion_items(&doc_analysis.symbols, scope, &mut completion_items);
         }
 
         if scope.is_outside_module() {
-            for (&doc, doc_analysis) in &self.doc_analysis_map {
-                if doc != loc.doc {
+            for (&d, doc_analysis) in &self.doc_analysis_map {
+                if d != doc {
                     collect_local_completion_items(
                         &doc_analysis.symbols,
                         scope,
@@ -322,7 +325,7 @@ impl APublicEnv {
     }
 }
 
-fn resolve_scope_at(root: &PRoot, pos: Pos) -> ALocalScope {
+fn resolve_scope_at(root: &PRoot, pos: Pos16) -> ALocalScope {
     let mut mi = 0;
     let mut di = 0;
     let mut scope = ALocalScope::default();
@@ -332,7 +335,7 @@ fn resolve_scope_at(root: &PRoot, pos: Pos) -> ALocalScope {
                 di += 1;
 
                 let content_loc = stmt.hash.body.loc.unite(&stmt.behind);
-                if content_loc.range.is_touched(pos) {
+                if range_is_touched(&content_loc.range, pos) {
                     scope.deffunc_opt = Some(ADefFunc::new(di));
                 }
             }
@@ -340,7 +343,7 @@ fn resolve_scope_at(root: &PRoot, pos: Pos) -> ALocalScope {
                 mi += 1;
 
                 let content_loc = stmt.hash.body.loc.unite(&stmt.behind);
-                if content_loc.range.is_touched(pos) {
+                if range_is_touched(&content_loc.range, pos) {
                     scope.module_opt = Some(AModule::new(mi));
                 }
             }
@@ -403,7 +406,7 @@ mod tests {
             // カーソルを <| の手前まで進める。
             let j = i + offset;
             text += &s[i..j];
-            pos = pos.add(Pos::from_str(&s[i..j]));
+            pos += Pos::from(&s[i..j]);
             i += offset + "<|".len();
 
             // <| と |> の間を名前として取る。
@@ -436,7 +439,7 @@ mod tests {
 
         for (name, pos) in cursors {
             let actual = wa
-                .locate_symbol(doc, pos)
+                .locate_symbol(doc, pos.into())
                 .and_then(|(symbol, _)| wa.symbol_name(symbol));
             assert_eq!(actual, expected_map[name], "name={}", name);
         }
@@ -471,7 +474,7 @@ mod tests {
 
         for (name, pos) in cursors {
             let actual = wa
-                .locate_symbol(doc, pos)
+                .locate_symbol(doc, pos.into())
                 .and_then(|(symbol, _)| wa.symbol_name(symbol));
             assert_eq!(actual, expected_map[name], "name={}", name);
         }

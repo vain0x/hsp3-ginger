@@ -1,5 +1,8 @@
-use super::{loc_to_range, to_loc};
-use crate::{analysis::integrate::AWorkspaceAnalysis, lang_service::docs::Docs};
+use super::loc_to_range;
+use crate::{
+    analysis::integrate::AWorkspaceAnalysis, assists::from_document_position,
+    lang_service::docs::Docs,
+};
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Url};
 
 pub(crate) fn document_highlight(
@@ -8,10 +11,8 @@ pub(crate) fn document_highlight(
     docs: &Docs,
     wa: &mut AWorkspaceAnalysis,
 ) -> Option<Vec<DocumentHighlight>> {
-    let loc = to_loc(&uri, position, docs)?;
-    let doc = loc.doc;
-
-    let (ws_symbol, _) = wa.locate_symbol(doc, loc.start())?;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let (ws_symbol, _) = wa.locate_symbol(doc, pos)?;
 
     let mut locs = vec![];
     let mut highlights = vec![];

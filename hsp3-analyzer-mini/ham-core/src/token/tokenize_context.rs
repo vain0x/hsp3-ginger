@@ -95,7 +95,7 @@ impl TokenizeContext {
     pub(crate) fn commit(&mut self, kind: TokenKind) {
         let text = self.source_code.slice(self.last_index, self.current_index);
 
-        let current_position = self.last_position.add(Pos::from_str(text.as_str()));
+        let current_position = self.last_position + Pos::from(text.as_str());
         let loc = Loc::new3(self.doc, self.last_position, current_position);
         let token = TokenData { kind, text, loc };
 

@@ -1,4 +1,4 @@
-use super::{loc_to_range, plain_text_to_marked_string, to_loc};
+use super::{from_document_position, loc_to_range, plain_text_to_marked_string};
 use crate::{
     analysis::integrate::AWorkspaceAnalysis, assists::markdown_marked_string,
     lang_service::docs::Docs,
@@ -15,10 +15,10 @@ pub(crate) fn hover(
     wa: &mut AWorkspaceAnalysis,
     hsphelp_symbols: &[CompletionItem],
 ) -> Option<Hover> {
-    let loc = to_loc(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
 
     let (contents, loc) = (|| -> Option<_> {
-        let (symbol, symbol_loc) = wa.locate_symbol(loc.doc, loc.start())?;
+        let (symbol, symbol_loc) = wa.locate_symbol(doc, pos)?;
         let (name, kind, details) = wa.get_symbol_details(symbol)?;
 
         let mut contents = vec![];
@@ -33,7 +33,7 @@ pub(crate) fn hover(
         Some((contents, symbol_loc))
     })()
     .or_else(|| {
-        let (name, loc) = wa.get_ident_at(loc.doc, loc.start())?;
+        let (name, loc) = wa.get_ident_at(doc, pos)?;
         let item = hsphelp_symbols
             .iter()
             .find(|s| s.label == name.as_str())?

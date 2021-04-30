@@ -1,10 +1,10 @@
-use super::to_loc;
 use crate::{
     analysis::{
         comment::{calculate_details, collect_comments},
         integrate::{ACompletionItem, AWorkspaceAnalysis},
         AScope, ASymbolKind,
     },
+    assists::from_document_position,
     lang_service::docs::Docs,
     parse::p_param_ty::PParamCategory,
     source::*,
@@ -12,15 +12,15 @@ use crate::{
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 
-fn is_preproc_statement(loc: Loc, wa: &AWorkspaceAnalysis) -> bool {
-    let tokens = match wa.doc_syntax_map.get(&loc.doc) {
+fn is_preproc_statement(doc: DocId, pos: Pos16, wa: &AWorkspaceAnalysis) -> bool {
+    let tokens = match wa.doc_syntax_map.get(&doc) {
         Some(syntax) => &syntax.tokens,
         None => return false,
     };
 
     // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。行継続に注意。判定が難しいので構文木を使ったほうがいいかもしれない。
 
-    let row = loc.start_row();
+    let row = pos.row as usize;
 
     // 次の行の最初のトークンを探す。
     let upperbound =
@@ -31,7 +31,7 @@ fn is_preproc_statement(loc: Loc, wa: &AWorkspaceAnalysis) -> bool {
     // 近くにあるトークンと補完位置の位置関係を調べる。
     // (補完位置の付近にトークンがないとき、次の '#' の検索だけだとプリプロセッサ行の後ろがすべて引っかかってしまう。)
     let last = tokens.get(upperbound.saturating_sub(1));
-    let touched = last.map_or(false, |t| loc <= t.behind());
+    let touched = last.map_or(false, |t| pos <= t.behind().end());
 
     // 補完位置から遡って '#' を探す。同じ文の中で、補完位置より手前にあったらOK。
     let hash_found = touched
@@ -40,7 +40,10 @@ fn is_preproc_statement(loc: Loc, wa: &AWorkspaceAnalysis) -> bool {
             .rev()
             .skip(1)
             .take_while(|token| token.kind() != TokenKind::Eos)
-            .any(|token| token.kind() == TokenKind::Hash && token.body.loc.ahead() <= loc);
+            .any(|token| {
+                token.kind() == TokenKind::Hash
+                    && Pos16::from(token.body.loc.ahead().start()) <= pos
+            });
     hash_found
 }
 
@@ -94,9 +97,9 @@ pub(crate) fn completion(
 ) -> Option<CompletionList> {
     let mut items = vec![];
 
-    let loc = to_loc(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
 
-    if is_preproc_statement(loc, wa) {
+    if is_preproc_statement(doc, pos, wa) {
         collect_preproc_completion_items(other_items, &mut items);
         return Some(CompletionList {
             is_incomplete: false,
@@ -104,7 +107,7 @@ pub(crate) fn completion(
         });
     }
 
-    for item in wa.collect_completion_items(loc) {
+    for item in wa.collect_completion_items(doc, pos) {
         match item {
             ACompletionItem::Symbol(symbol) => {
                 let details = calculate_details(&collect_comments(&symbol.leader));

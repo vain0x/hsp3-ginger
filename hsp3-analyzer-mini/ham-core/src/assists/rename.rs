@@ -1,4 +1,4 @@
-use super::{loc_to_location, loc_to_range, to_loc};
+use super::{from_document_position, loc_to_location, loc_to_range};
 use crate::{
     analysis::integrate::AWorkspaceAnalysis,
     lang_service::docs::{self, Docs},
@@ -14,11 +14,11 @@ pub(crate) fn prepare_rename(
     docs: &Docs,
     wa: &mut AWorkspaceAnalysis,
 ) -> Option<PrepareRenameResponse> {
-    let loc = to_loc(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
 
     // FIXME: カーソル直下に識別子があって、それの定義がワークスペース内のファイル (commonやhsphelpでない) にあったときだけSomeを返す。
 
-    let (_, loc) = wa.locate_symbol(loc.doc, loc.start())?;
+    let (_, loc) = wa.locate_symbol(doc, pos)?;
     let range = loc_to_range(loc);
     Some(PrepareRenameResponse::Range(range))
 }
@@ -32,8 +32,8 @@ pub(crate) fn rename(
 ) -> Option<WorkspaceEdit> {
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
-        let loc = to_loc(&uri, position, docs)?;
-        let (symbol, _) = wa.locate_symbol(loc.doc, loc.start())?;
+        let (doc, pos) = from_document_position(&uri, position, docs)?;
+        let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
         let mut locs = vec![];
         wa.collect_symbol_defs(symbol, &mut locs);

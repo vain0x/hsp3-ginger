@@ -40,6 +40,8 @@ impl PToken {
     }
 
     pub(crate) fn from_tokens(tokens: RcSlice<TokenData>) -> Vec<PToken> {
+        assert!(!tokens.is_empty());
+
         let mut p_tokens = vec![];
         let mut index = 0;
 
@@ -87,7 +89,7 @@ impl PToken {
             if tokens.get(index).map_or(false, |t| {
                 t.kind == TokenKind::Newlines || t.kind == TokenKind::Eof
             }) {
-                let loc = p_tokens.last().map(|t| t.behind()).unwrap_or_default();
+                let loc = p_tokens.last().map(|t| t.behind()).unwrap();
 
                 p_tokens.push(PToken {
                     leading: [].into(),
