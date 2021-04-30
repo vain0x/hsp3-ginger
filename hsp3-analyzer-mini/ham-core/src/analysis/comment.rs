@@ -10,6 +10,15 @@ pub(crate) fn str_is_ornament_comment(s: &str) -> bool {
     s.chars().all(char_is_ornament_comment)
 }
 
+fn trim_comment_leader(s: RcStr) -> RcStr {
+    for prefix in &["/// ", "///", "// ", "//", "; ", ";"] {
+        if s.starts_with(prefix) {
+            return s.slice(prefix.len(), s.len());
+        }
+    }
+    s
+}
+
 pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
     let mut description = None;
     let mut documentation = vec![];
@@ -26,7 +35,7 @@ pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
         }
 
         // 最初の行は概要
-        description = Some(comment.clone());
+        description = Some(trim_comment_leader(comment.clone()));
         break;
     }
 
@@ -42,13 +51,10 @@ pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
 
     // 残りの行はドキュメンテーション
     if y < comments.len() {
-        documentation.push(
-            comments[y..]
-                .into_iter()
-                .map(|s| s.as_str().trim())
-                .collect::<Vec<_>>()
-                .join("\r\n"),
-        );
+        for comment in &comments[y..] {
+            let comment = trim_comment_leader(comment.clone());
+            documentation.push(comment.as_str().trim_end().to_string());
+        }
     }
 
     ASymbolDetails {
