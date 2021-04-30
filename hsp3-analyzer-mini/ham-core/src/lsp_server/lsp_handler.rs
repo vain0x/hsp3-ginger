@@ -1,14 +1,7 @@
-use super::{LspMessageOpaque, LspNotification, LspReceiver, LspRequest, LspSender};
+use super::*;
 use crate::lang_service::LangService;
-use lsp_types::{
-    request::{self, Request},
-    CompletionItem, CompletionList, CompletionOptions, CompletionParams,
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, Hover,
-    InitializeParams, InitializeResult, Location, PrepareRenameResponse, PublishDiagnosticsParams,
-    ReferenceParams, RenameOptions, RenameParams, RenameProviderCapability, ServerCapabilities,
-    ServerInfo, TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, WorkDoneProgressOptions, WorkspaceEdit,
-};
+use lsp_types::request::Request;
+use lsp_types::*;
 use std::io;
 
 pub(super) struct LspHandler<W: io::Write> {
@@ -34,7 +27,7 @@ impl<W: io::Write> LspHandler<W> {
                     },
                 )),
                 completion_provider: Some(CompletionOptions {
-                    resolve_provider: Some(true),
+                    resolve_provider: None,
                     trigger_characters: None,
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 }),
@@ -95,18 +88,6 @@ impl<W: io::Write> LspHandler<W> {
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
         )
-    }
-
-    fn completion_item_resolve(&mut self, completion_item: CompletionItem) -> CompletionItem {
-        // FIXME:
-        // completion_item.data.take().and_then(|data| -> Option<()> {
-        //     // let data = features::completion::parse_data(data)?;
-        //     let data = serde_json::from_value::<String>(data).ok()?;
-        //     self.model.completion_resolve(&mut completion_item, data);
-        //     Some(())
-        // });
-
-        completion_item
     }
 
     fn text_document_definition(
@@ -216,13 +197,6 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_completion(msg.params);
                 self.sender.send_response(msg_id, response);
-            }
-            "completionItem/resolve" => {
-                let msg = serde_json::from_str::<LspRequest<CompletionItem>>(json).unwrap();
-                let msg_id = msg.id;
-                let response = self.completion_item_resolve(msg.params);
-                self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             "textDocument/definition" => {
                 let msg =
