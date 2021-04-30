@@ -3,12 +3,79 @@ use crate::{
     analysis::{
         comment::{calculate_details, collect_comments},
         integrate::{ACompletionItem, AWorkspaceAnalysis},
-        AScope, ASymbolKind,
+        ALoc, AScope, ASymbolKind,
     },
     lang_service::docs::Docs,
     parse::p_param_ty::PParamCategory,
+    token::TokenKind,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
+
+fn is_preproc_statement(loc: ALoc, wa: &AWorkspaceAnalysis) -> bool {
+    let tokens = match wa.doc_syntax_map.get(&loc.doc) {
+        Some(syntax) => &syntax.tokens,
+        None => return false,
+    };
+
+    // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。行継続に注意。判定が難しいので構文木を使ったほうがいいかもしれない。
+
+    let row = loc.start_row();
+
+    // 次の行の最初のトークンを探す。
+    let upperbound =
+        match tokens.binary_search_by_key(&(row + 1), |token| token.body.loc.start_row()) {
+            Ok(it) | Err(it) => it,
+        };
+
+    // 近くにあるトークンと補完位置の位置関係を調べる。
+    // (補完位置の付近にトークンがないとき、次の '#' の検索だけだとプリプロセッサ行の後ろがすべて引っかかってしまう。)
+    let last = tokens.get(upperbound.saturating_sub(1));
+    let touched = last.map_or(false, |t| loc <= t.behind());
+
+    // 補完位置から遡って '#' を探す。同じ文の中で、補完位置より手前にあったらOK。
+    let hash_found = touched
+        && tokens[..upperbound]
+            .iter()
+            .rev()
+            .skip(1)
+            .take_while(|token| token.kind() != TokenKind::Eos)
+            .any(|token| token.kind() == TokenKind::Hash && token.body.loc.ahead() <= loc);
+    hash_found
+}
+
+fn collect_preproc_completion_items(
+    other_items: &[CompletionItem],
+    items: &mut Vec<CompletionItem>,
+) {
+    let sort_prefix = 'a';
+
+    for (keyword, detail) in &[
+        ("ctype", "関数形式のマクロを表す"),
+        ("global", "グローバルスコープを表す"),
+        ("local", "localパラメータ、またはローカルスコープを表す"),
+        ("int", "整数型のパラメータ、または整数型の定数を表す"),
+        ("double", "実数型のパラメータ、または実数型の定数を表す"),
+        ("str", "文字列型のパラメータを表す"),
+        ("label", "ラベル型のパラメータを表す"),
+        ("var", "変数 (配列要素) のパラメータを表す"),
+        ("array", "配列変数のパラメータを表す"),
+    ] {
+        items.push(CompletionItem {
+            kind: Some(CompletionItemKind::Keyword),
+            label: keyword.to_string(),
+            detail: Some(detail.to_string()),
+            sort_text: Some(format!("{}{}", sort_prefix, keyword)),
+            ..CompletionItem::default()
+        });
+    }
+
+    items.extend(
+        other_items
+            .iter()
+            .filter(|item| item.label.starts_with("#"))
+            .cloned(),
+    );
+}
 
 pub(crate) fn incomplete_completion_list() -> CompletionList {
     CompletionList {
@@ -27,6 +94,14 @@ pub(crate) fn completion(
     let mut items = vec![];
 
     let loc = to_loc(&uri, position, docs)?;
+
+    if is_preproc_statement(loc, wa) {
+        collect_preproc_completion_items(other_items, &mut items);
+        return Some(CompletionList {
+            is_incomplete: false,
+            items,
+        });
+    }
 
     for item in wa.collect_completion_items(loc) {
         match item {
@@ -90,7 +165,12 @@ pub(crate) fn completion(
         }
     }
 
-    items.extend(other_items.iter().cloned());
+    items.extend(
+        other_items
+            .iter()
+            .filter(|item| !item.label.starts_with("#"))
+            .cloned(),
+    );
 
     Some(CompletionList {
         is_incomplete: false,
