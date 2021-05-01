@@ -76,7 +76,7 @@ impl Default for ASymbolKind {
 
 pub(crate) type ASymbol = Id<ASymbolData>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(crate) struct ASymbolData {
     pub(crate) kind: ASymbolKind,
     pub(crate) name: RcStr,

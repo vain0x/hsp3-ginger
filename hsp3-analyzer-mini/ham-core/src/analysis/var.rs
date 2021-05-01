@@ -40,8 +40,8 @@ impl Ctx<'_> {
 
     fn module_local_scope(&self) -> ALocalScope {
         ALocalScope {
+            module_opt: self.scope.module_opt.clone(),
             deffunc_opt: None,
-            ..self.scope
         }
     }
 }
@@ -49,7 +49,7 @@ impl Ctx<'_> {
 /// 暗黙のシンボルの出現を解決する。
 fn resolve_candidate(
     name: &str,
-    scope: ALocalScope,
+    scope: &ALocalScope,
     public_env: &APublicEnv,
     local_env: &HashMap<ALocalScope, AEnv>,
 ) -> Option<AWsSymbol> {
@@ -61,8 +61,8 @@ fn resolve_candidate(
     // deffuncの外からも探す。
     if scope.deffunc_opt.is_some() {
         let scope = ALocalScope {
+            module_opt: scope.module_opt.clone(),
             deffunc_opt: None,
-            ..scope
         };
         if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(name)) {
             return it;
@@ -113,7 +113,7 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
 }
 
 fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
-    match resolve_candidate(name.body_text(), ctx.scope, &ctx.public.env, &ctx.env) {
+    match resolve_candidate(name.body_text(), &ctx.scope, &ctx.public.env, &ctx.env) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
             ctx.public.def_sites.push((ws_symbol, name.body.loc));
         }
@@ -128,7 +128,7 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
 }
 
 fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
-    match resolve_candidate(name.body_text(), ctx.scope, &ctx.public.env, &ctx.env) {
+    match resolve_candidate(name.body_text(), &ctx.scope, &ctx.public.env, &ctx.env) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
             ctx.public.use_sites.push((ws_symbol, name.body.loc));
         }
@@ -284,9 +284,10 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             ctx.scope.deffunc_opt = parent_deffunc;
         }
-        PStmt::Module(PModuleStmt { stmts, .. }) => {
-            ctx.module_len += 1;
-            let module = AModule::from(ctx.module_len);
+        PStmt::Module(PModuleStmt {
+            name_opt, stmts, ..
+        }) => {
+            let module = AModule::new(ctx.doc, &mut ctx.module_len, name_opt);
 
             let parent_scope = replace(
                 &mut ctx.scope,
@@ -317,11 +318,12 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub(crate) struct AAnalysis {
     pub(crate) symbols: Vec<ASymbolData>,
 
     /// 解析前にあったシンボルの個数。
+    #[allow(unused)]
     preproc_symbol_len: usize,
 }
 
@@ -341,10 +343,10 @@ pub(crate) fn analyze_var_def(
             symbol: ASymbol::new(i),
         };
 
-        match symbol.scope {
+        match &symbol.scope {
             AScope::Local(scope) if !scope.is_public() => {
                 local_env
-                    .entry(scope)
+                    .entry(scope.clone())
                     .or_default()
                     .insert(symbol.name.clone(), ws_symbol);
             }

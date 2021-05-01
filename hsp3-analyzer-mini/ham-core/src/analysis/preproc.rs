@@ -1,26 +1,28 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
 use super::{a_scope::*, a_symbol::*};
-use crate::{parse::*, token::TokenKind};
-use std::mem::replace;
+use crate::{parse::*, source::DocId};
+use std::{collections::HashMap, mem::replace};
 
 #[derive(Default)]
 struct Ctx {
+    doc: DocId,
     symbols: Vec<ASymbolData>,
     scope: ALocalScope,
-    modules: Vec<AModuleData>,
+    modules: HashMap<AModule, AModuleData>,
+    module_len: usize,
     deffunc_len: usize,
 }
 
 impl Ctx {
     fn deffunc_scope(&self) -> AScope {
-        AScope::Local(self.scope)
+        AScope::Local(self.scope.clone())
     }
 
     fn module_scope(&self) -> AScope {
         AScope::Local(ALocalScope {
+            module_opt: self.scope.module_opt.clone(),
             deffunc_opt: None,
-            ..self.scope
         })
     }
 
@@ -222,12 +224,15 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             behind,
             ..
         }) => {
-            let module = AModule::from(ctx.modules.len());
-            ctx.modules.push(AModuleData {
-                name_opt: None,
-                keyword_loc: keyword.body.loc.clone(),
-                content_loc: hash.body.loc.unite(&behind),
-            });
+            let module = AModule::new(ctx.doc, &mut ctx.module_len, name_opt);
+
+            ctx.modules.insert(
+                module.clone(),
+                AModuleData {
+                    keyword_loc: keyword.body.loc.clone(),
+                    content_loc: hash.body.loc.unite(&behind),
+                },
+            );
 
             let parent_scope = replace(
                 &mut ctx.scope,
@@ -238,17 +243,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             );
 
             if let Some(name) = name_opt {
-                // ax.modules[module.get()].name_opt = Some(name.body.text.clone());
-
-                match name.kind() {
-                    TokenKind::Ident => {
-                        ctx.add_symbol(ASymbolKind::Module, hash, name, AScope::Global);
-                    }
-                    TokenKind::Str => {
-                        // FIXME: 識別子として有効な文字列ならシンボルとして登録できる。
-                    }
-                    _ => {}
-                }
+                ctx.add_symbol(ASymbolKind::Module, hash, name, AScope::Global);
             }
 
             for field in fields.iter().filter_map(|param| param.name_opt.as_ref()) {
@@ -269,11 +264,12 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<ASymbolData>,
-    pub(crate) modules: Vec<AModuleData>,
+    pub(crate) modules: HashMap<AModule, AModuleData>,
 }
 
-pub(crate) fn analyze_preproc(root: &PRoot) -> PreprocAnalysisResult {
+pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult {
     let mut ctx = Ctx::default();
+    ctx.doc = doc;
 
     for stmt in &root.stmts {
         on_stmt(stmt, &mut ctx);

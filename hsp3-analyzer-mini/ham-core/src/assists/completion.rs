@@ -142,8 +142,8 @@ pub(crate) fn completion(
                 };
 
                 // 候補の順番を制御するための文字。(スコープが狭いものを上に出す。)
-                let sort_prefix = match (symbol.scope, symbol.kind) {
-                    (AScope::Local(local), _) => match (local.module_opt, local.deffunc_opt) {
+                let sort_prefix = match (&symbol.scope, symbol.kind) {
+                    (AScope::Local(local), _) => match (&local.module_opt, local.deffunc_opt) {
                         (Some(_), Some(_)) => 'a',
                         (Some(_), None) => 'b',
                         (None, None) => 'c',

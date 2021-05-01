@@ -69,7 +69,7 @@ impl AWorkspaceAnalysis {
                 let tokens = crate::token::tokenize(doc, text.clone());
                 let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
                 let root = crate::parse::parse_root(p_tokens.to_owned());
-                let preproc = crate::analysis::preproc::analyze_preproc(&root);
+                let preproc = crate::analysis::preproc::analyze_preproc(doc, &root);
 
                 let syntax = ASyntax {
                     tokens: p_tokens,
@@ -89,7 +89,7 @@ impl AWorkspaceAnalysis {
         // 複数ファイルに渡る環境を構築する。
         for (&doc, preproc) in &self.doc_preproc_map {
             for (i, symbol_data) in preproc.symbols.iter().enumerate() {
-                let env = match symbol_data.scope {
+                let env = match &symbol_data.scope {
                     AScope::Global => &mut self.public_env.global,
                     AScope::Local(scope) if scope.is_public() => &mut self.public_env.toplevel,
                     AScope::Local(_) => continue,
@@ -249,7 +249,7 @@ impl AWorkspaceAnalysis {
             let syntax = &self.doc_syntax_map[&doc];
             let preproc = &self.doc_preproc_map[&doc];
             scope = resolve_scope_at(&syntax.tree, &preproc.modules, pos);
-            collect_local_completion_items(&doc_analysis.symbols, scope, &mut completion_items);
+            collect_local_completion_items(&doc_analysis.symbols, &scope, &mut completion_items);
         }
 
         if scope.is_outside_module() {
@@ -257,7 +257,7 @@ impl AWorkspaceAnalysis {
                 if d != doc {
                     collect_local_completion_items(
                         &doc_analysis.symbols,
-                        scope,
+                        &scope,
                         &mut completion_items,
                     );
                 }
@@ -326,14 +326,21 @@ impl APublicEnv {
     }
 }
 
-fn resolve_scope_at(root: &PRoot, modules: &[AModuleData], pos: Pos16) -> ALocalScope {
+fn resolve_scope_at(
+    root: &PRoot,
+    modules: &HashMap<AModule, AModuleData>,
+    pos: Pos16,
+) -> ALocalScope {
     let mut di = 0;
     let mut scope = ALocalScope::default();
 
-    scope.module_opt = modules
-        .iter()
-        .position(|m| range_is_touched(&m.content_loc.range, pos))
-        .map(AModule::new);
+    scope.module_opt = modules.iter().find_map(|(m, module_data)| {
+        if range_is_touched(&module_data.content_loc.range, pos) {
+            Some(m.clone())
+        } else {
+            None
+        }
+    });
 
     for stmt in &root.stmts {
         match stmt {
@@ -358,11 +365,11 @@ pub(crate) enum ACompletionItem<'a> {
 
 fn collect_local_completion_items<'a>(
     symbols: &'a [ASymbolData],
-    current_scope: ALocalScope,
+    current_scope: &ALocalScope,
     completion_items: &mut Vec<ACompletionItem<'a>>,
 ) {
     for s in symbols {
-        match s.scope {
+        match &s.scope {
             AScope::Local(scope) if scope.is_visible_to(current_scope) => {
                 completion_items.push(ACompletionItem::Symbol(s));
             }
