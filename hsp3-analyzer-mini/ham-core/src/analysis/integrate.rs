@@ -385,6 +385,44 @@ fn collect_global_completion_items<'a>(
     }
 }
 
+/// 名前の修飾子。
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) enum Qual {
+    /// 非修飾。`xxx`
+    Unqualified,
+
+    /// トップレベルの名前空間の修飾付き。`xxx@`
+    Toplevel,
+
+    /// モジュールの名前空間の修飾付き。`xxx@m_hoge`
+    Module(RcStr),
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub(crate) struct Name {
+    pub(crate) base: RcStr,
+    pub(crate) qual: Qual,
+}
+
+impl From<RcStr> for Name {
+    fn from(name: RcStr) -> Self {
+        match name.rfind('@') {
+            Some(i) if i + 1 == name.len() => Name {
+                base: name.slice(0, i),
+                qual: Qual::Toplevel,
+            },
+            Some(i) => Name {
+                base: name.slice(0, i),
+                qual: Qual::Module(name.slice(i + 1, name.len())),
+            },
+            None => Name {
+                base: name,
+                qual: Qual::Unqualified,
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::AWorkspaceAnalysis;
