@@ -8,7 +8,7 @@ use std::mem::replace;
 struct Ctx {
     symbols: Vec<ASymbolData>,
     scope: ALocalScope,
-    module_len: usize,
+    modules: Vec<AModuleData>,
     deffunc_len: usize,
 }
 
@@ -215,21 +215,19 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }
         PStmt::Module(PModuleStmt {
             hash,
-            keyword: _,
+            keyword,
             name_opt,
             fields,
             stmts,
-            behind: _,
+            behind,
             ..
         }) => {
-            ctx.module_len += 1;
-            let module = AModule::from(ctx.module_len);
-            // let module = AModule::from(ax.modules.len());
-            // ax.modules.push(AModuleData {
-            //     name_opt: None,
-            //     keyword_loc: keyword.body.loc.clone(),
-            //     content_loc: hash.body.loc.unite(&behind),
-            // });
+            let module = AModule::from(ctx.modules.len());
+            ctx.modules.push(AModuleData {
+                name_opt: None,
+                keyword_loc: keyword.body.loc.clone(),
+                content_loc: hash.body.loc.unite(&behind),
+            });
 
             let parent_scope = replace(
                 &mut ctx.scope,
@@ -269,9 +267,9 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<ASymbolData>,
+    pub(crate) modules: Vec<AModuleData>,
 }
 
 pub(crate) fn analyze_preproc(root: &PRoot) -> PreprocAnalysisResult {
@@ -281,7 +279,9 @@ pub(crate) fn analyze_preproc(root: &PRoot) -> PreprocAnalysisResult {
         on_stmt(stmt, &mut ctx);
     }
 
-    let Ctx { symbols, .. } = ctx;
+    let Ctx {
+        symbols, modules, ..
+    } = ctx;
 
-    PreprocAnalysisResult { symbols }
+    PreprocAnalysisResult { symbols, modules }
 }

@@ -1,5 +1,5 @@
 use super::{
-    a_scope::{ADefFunc, AModule},
+    a_scope::{ADefFunc, AModule, AModuleData},
     a_symbol::{ASymbolData, AWsSymbol},
     comment::{calculate_details, collect_comments},
     preproc::PreprocAnalysisResult,
@@ -247,7 +247,8 @@ impl AWorkspaceAnalysis {
 
         if let Some(doc_analysis) = self.doc_analysis_map.get(&doc) {
             let syntax = &self.doc_syntax_map[&doc];
-            scope = resolve_scope_at(&syntax.tree, pos);
+            let preproc = &self.doc_preproc_map[&doc];
+            scope = resolve_scope_at(&syntax.tree, &preproc.modules, pos);
             collect_local_completion_items(&doc_analysis.symbols, scope, &mut completion_items);
         }
 
@@ -325,10 +326,15 @@ impl APublicEnv {
     }
 }
 
-fn resolve_scope_at(root: &PRoot, pos: Pos16) -> ALocalScope {
-    let mut mi = 0;
+fn resolve_scope_at(root: &PRoot, modules: &[AModuleData], pos: Pos16) -> ALocalScope {
     let mut di = 0;
     let mut scope = ALocalScope::default();
+
+    scope.module_opt = modules
+        .iter()
+        .position(|m| range_is_touched(&m.content_loc.range, pos))
+        .map(AModule::new);
+
     for stmt in &root.stmts {
         match stmt {
             PStmt::DefFunc(stmt) => {
@@ -337,14 +343,6 @@ fn resolve_scope_at(root: &PRoot, pos: Pos16) -> ALocalScope {
                 let content_loc = stmt.hash.body.loc.unite(&stmt.behind);
                 if range_is_touched(&content_loc.range, pos) {
                     scope.deffunc_opt = Some(ADefFunc::new(di));
-                }
-            }
-            PStmt::Module(stmt) => {
-                mi += 1;
-
-                let content_loc = stmt.hash.body.loc.unite(&stmt.behind);
-                if range_is_touched(&content_loc.range, pos) {
-                    scope.module_opt = Some(AModule::new(mi));
                 }
             }
             _ => {}
