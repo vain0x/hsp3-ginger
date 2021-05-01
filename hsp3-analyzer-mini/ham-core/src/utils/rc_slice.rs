@@ -219,6 +219,12 @@ impl<T> Clone for RcSlice<T> {
     }
 }
 
+impl<T> Default for RcSlice<T> {
+    fn default() -> Self {
+        RcSlice::EMPTY
+    }
+}
+
 impl<T> From<[T; 0]> for RcSlice<T> {
     fn from(_: [T; 0]) -> Self {
         Self::EMPTY

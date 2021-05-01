@@ -182,3 +182,9 @@ impl Deref for RcStr {
         self.as_str()
     }
 }
+
+impl Default for RcStr {
+    fn default() -> Self {
+        RcStr::EMPTY
+    }
+}
