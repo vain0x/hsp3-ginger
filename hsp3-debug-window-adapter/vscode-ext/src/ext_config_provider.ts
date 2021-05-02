@@ -16,7 +16,7 @@ import { HSP3_LANG_ID } from "./ext_constants"
  *
  * ここでの設定が "launch" リスエストに渡される。
  */
-const doResolveDebugConfiguration = async (config: DebugConfiguration, extensionRoot: string) => {
+const doResolveDebugConfiguration = async (config: DebugConfiguration, outDir: string) => {
     // launch.json ファイルがないか、デバッグ構成がないとき
     if (!config.type && !config.request && !config.name) {
         const editor = window.activeTextEditor
@@ -34,13 +34,13 @@ const doResolveDebugConfiguration = async (config: DebugConfiguration, extension
 
     config.program = config.program || await createHsptmp()
     config.hsp3Home = config.hsp3Home || await selectHsp3Home()
-    config.extensionRoot = config.extensionRoot || extensionRoot
+    config.outDir = config.outDir || outDir
     return config
 }
 
 export class MyConfigurationProvider implements DebugConfigurationProvider {
     public constructor(
-        private readonly _extensionRoot: string,
+        private readonly outDir: string,
     ) {
     }
 
@@ -49,6 +49,6 @@ export class MyConfigurationProvider implements DebugConfigurationProvider {
         config: DebugConfiguration,
         _token?: CancellationToken
     ): ProviderResult<DebugConfiguration> {
-        return withNotify(async () => doResolveDebugConfiguration(config, this._extensionRoot))()
+        return withNotify(async () => doResolveDebugConfiguration(config, this.outDir))()
     }
 }

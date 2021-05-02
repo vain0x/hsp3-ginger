@@ -30,20 +30,18 @@ export const withNotify = <T>(body: () => Promise<T>) =>
     })
 
 /**
- * デバッガーのディレクトリへのパス。
- *
- * FIXME: 名前が適切でない。
+ * outディレクトリへのパス。
  */
-const getExtensionRoot = (extensionPath: string) =>
+const getOutDir = (extensionPath: string) =>
     path.join(extensionPath, "out")
 
 /**
  * 拡張機能がロードされたときに呼ばれる。
  */
 export const activate = (context: ExtensionContext) => {
-    const extensionRoot = getExtensionRoot(context.extensionPath)
+    const outDir = getOutDir(context.extensionPath)
 
-    const configProvider = new MyConfigurationProvider(extensionRoot)
+    const configProvider = new MyConfigurationProvider(outDir)
     context.subscriptions.push(
         debug.registerDebugConfigurationProvider(
             HSP3_LANG_ID,
