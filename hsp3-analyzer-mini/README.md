@@ -9,6 +9,10 @@ HSP3 の実用最小限な静的解析ツールです。Language Server Protocol
     - [ham-lsp-server-exe](./ham-lsp-server-exe): exe 版をビルドするためのプロジェクト
 - [vscode-ext](./vscode-ext): VSCode 拡張機能
 
+その他:
+
+- [hsed3-ext](./hsed3-ext): hsed3 (標準のスクリプトエディタ) と連携するプロジェクト \[未完成\]
+
 ----
 
 ## 開発環境
