@@ -27,9 +27,8 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
      * デバッグアダプターのあるディレクトリ (絶対パス)
      *
      * このファイルからみて ../out のこと。
-     * FIXME: 名前が適切でない。
      */
-    extensionRoot: string
+    outDir: string
 
     trace?: boolean
 }
@@ -81,14 +80,14 @@ const fileExists = (fileName: string) =>
  *
  * @returns 生成された実行ファイルのパス
  */
-const buildBuilder = async (hsp3Home: string, extensionRoot: string) => {
+const buildBuilder = async (hsp3Home: string, outDir: string) => {
     const hspcmpExe = path.join(hsp3Home, "hspcmp.exe")
     const hspcmpDllSrc = path.join(hsp3Home, "hspcmp.dll")
-    const hspcmpDllDest = path.join(extensionRoot, "hspcmp.dll")
+    const hspcmpDllDest = path.join(outDir, "hspcmp.dll")
     const hsp3clExe = path.join(hsp3Home, "hsp3cl.exe")
-    const hsp3BuildHsp = path.join(extensionRoot, "hsp3_build_cli.hsp")
-    const hsp3BuildAx = path.join(extensionRoot, "hsp3_build_cli.ax")
-    const hsp3BuildExe = path.join(extensionRoot, "hsp3_build_cli.exe")
+    const hsp3BuildHsp = path.join(outDir, "hsp3_build_cli.hsp")
+    const hsp3BuildAx = path.join(outDir, "hsp3_build_cli.ax")
+    const hsp3BuildExe = path.join(outDir, "hsp3_build_cli.exe")
     const compathArg = `--compath=${hsp3Home}/common/`
 
     // ビルド済みならスキップ。
@@ -96,7 +95,7 @@ const buildBuilder = async (hsp3Home: string, extensionRoot: string) => {
         return hsp3BuildExe
     }
 
-    writeTrace("build hsp3_build", { hsp3Home, extensionRoot })
+    writeTrace("build hsp3_build", { hsp3Home, outDir })
 
     // ビルダーが使う hspcmp.dll をコピーする。
     writeTrace("copy compiler", { hspcmpDllSrc, hspcmpDllDest })
@@ -107,7 +106,7 @@ const buildBuilder = async (hsp3Home: string, extensionRoot: string) => {
     writeTrace("stage1 cmd", cmd1)
 
     const result1 = await promisify(exec)(cmd1, {
-        cwd: extensionRoot,
+        cwd: outDir,
         timeout: TIMEOUT_MILLIS,
     })
 
@@ -131,7 +130,7 @@ const buildBuilder = async (hsp3Home: string, extensionRoot: string) => {
     writeTrace("stage2 cmd", cmd2)
 
     const result2 = await promisify(exec)(cmd2, {
-        cwd: extensionRoot,
+        cwd: outDir,
         timeout: TIMEOUT_MILLIS,
     })
 
@@ -143,8 +142,8 @@ const buildBuilder = async (hsp3Home: string, extensionRoot: string) => {
 /**
  * スクリプトをコンパイルして、オブジェクトファイルを生成する。
  */
-const compileHsp = async (program: string, hsp3Home: string, extensionRoot: string) => {
-    const builderExe = await buildBuilder(hsp3Home, extensionRoot)
+const compileHsp = async (program: string, hsp3Home: string, outDir: string) => {
+    const builderExe = await buildBuilder(hsp3Home, outDir)
 
     const builderArgs = [
         "--hsp",
@@ -251,17 +250,17 @@ export class Hsp3DebugSession extends LoggingDebugSession {
     private async _doLaunch(args: LaunchRequestArguments): Promise<[boolean, string]> {
         if (args && args.trace) {
             trace_log_is_enabled = true
-            trace_log_file = path.join(args.extensionRoot, TRACE_LOG_FILE_NAME)
+            trace_log_file = path.join(args.outDir, TRACE_LOG_FILE_NAME)
         }
 
         writeTrace("launch", args)
 
         // 正しく引数が渡されたか検査する。
-        const { program, hsp3Home, extensionRoot } = args
+        const { program, hsp3Home, outDir } = args
 
         if (typeof program !== "string"
             || typeof hsp3Home !== "string"
-            || typeof extensionRoot !== "string") {
+            || typeof outDir !== "string") {
             writeTrace("bad arguments")
             return [false, "デバッガーの起動に失敗しました。(launch 引数が不正です。)"]
         }
@@ -275,7 +274,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
 
         // コンパイルする。
         writeTrace("compile")
-        const compileResult = await compileHsp(program, hsp3Home, extensionRoot)
+        const compileResult = await compileHsp(program, hsp3Home, outDir)
         writeTrace("compiled", { compileResult })
 
         if (!compileResult.success) {
