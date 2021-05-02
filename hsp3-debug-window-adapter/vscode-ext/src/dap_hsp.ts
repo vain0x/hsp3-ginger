@@ -1,3 +1,5 @@
+// 簡易的な Debug Adapter Protocol (DAP) アダプタの実装。
+
 import { ChildProcess, exec, spawn } from "child_process"
 import * as fs from "fs"
 import * as path from "path"
@@ -10,7 +12,7 @@ import {
 import { DebugProtocol } from "vscode-debugprotocol"
 
 /**
- * デバッグの開始時にクライアントから渡されるデータ。
+ * デバッグの開始時に開発ツール (VSCode) から渡されるデータ。
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     /**
@@ -45,7 +47,7 @@ let trace_log_file = trace_log_is_enabled
     : TRACE_LOG_FILE_NAME
 
 /**
- * コンパイルの各ステージのタイムアウト
+ * コンパイルの各ステージのタイムアウト時間
  */
 const TIMEOUT_MILLIS = 15 * 10000
 
