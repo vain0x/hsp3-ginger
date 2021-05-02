@@ -38,11 +38,11 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 /**
  * [開発用] ファイルにログ出力する。
  */
-let trace_log_is_enabled = process.env.HSP3_DEBUG_WINDOW_ADAPTER_DEBUG === "1"
+let traceLogEnabled = process.env.HSP3_DEBUG_WINDOW_ADAPTER_DEBUG === "1"
 
 const TRACE_LOG_FILE_NAME = "hsp3-debug-window-adapter.log"
 
-let trace_log_file = trace_log_is_enabled
+let traceLogFile = traceLogEnabled
     ? path.join(__dirname, TRACE_LOG_FILE_NAME)
     : TRACE_LOG_FILE_NAME
 
@@ -55,7 +55,7 @@ const TIMEOUT_MILLIS = 15 * 1000
  * デバッグ用にログを出力する。
  */
 const writeTrace = (msg: string, data?: unknown) => {
-    if (!trace_log_is_enabled) {
+    if (!traceLogEnabled) {
         return
     }
 
@@ -70,7 +70,7 @@ const writeTrace = (msg: string, data?: unknown) => {
     }
     msg += "\n\n"
 
-    fs.appendFileSync(trace_log_file, msg)
+    fs.appendFileSync(traceLogFile, msg)
 }
 
 const fileExists = (fileName: string) =>
@@ -93,7 +93,7 @@ const buildBuilder = async (hsp3Home: string, outDir: string) => {
     const compathArg = `--compath=${hsp3Home}/common/`
 
     // ビルド済みならスキップ。
-    if (!trace_log_is_enabled && await fileExists(hsp3BuildExe)) {
+    if (!traceLogEnabled && await fileExists(hsp3BuildExe)) {
         return hsp3BuildExe
     }
 
@@ -226,7 +226,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
     private _debuggeeProcess: ChildProcess | null = null
 
     constructor() {
-        super(trace_log_file)
+        super(traceLogFile)
 
         writeTrace("new session", {
             cwd: process.cwd(),
@@ -251,8 +251,8 @@ export class Hsp3DebugSession extends LoggingDebugSession {
 
     private async _doLaunch(args: LaunchRequestArguments): Promise<[boolean, string]> {
         if (args && args.trace) {
-            trace_log_is_enabled = true
-            trace_log_file = path.join(args.outDir, TRACE_LOG_FILE_NAME)
+            traceLogEnabled = true
+            traceLogFile = path.join(args.outDir, TRACE_LOG_FILE_NAME)
         }
 
         writeTrace("launch", args)
