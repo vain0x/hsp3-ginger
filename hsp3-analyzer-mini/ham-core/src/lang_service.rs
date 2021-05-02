@@ -1,158 +1,236 @@
 pub(crate) mod docs;
+pub(crate) mod file_watcher;
 
-use crate::{
-    assists,
-    help_source::collect_all_symbols,
-    sem::{self, ProjectSem},
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
+use self::{
+    docs::{DocChange, Docs},
+    file_watcher::FileWatcher,
 };
-use docs::{DocChange, Docs, NO_VERSION};
+use crate::{
+    analysis::{a_symbol::AWsSymbol, integrate::AWorkspaceAnalysis, ASymbol},
+    assists,
+    help_source::{collect_all_symbols, HsSymbol},
+    utils::canonical_uri::CanonicalUri,
+};
 use lsp_types::*;
-use std::{mem::take, path::PathBuf, rc::Rc};
+use std::path::PathBuf;
+
+pub(crate) struct LangServiceOptions {
+    pub(crate) lint_enabled: bool,
+    pub(crate) watcher_enabled: bool,
+}
+
+impl Default for LangServiceOptions {
+    fn default() -> Self {
+        Self {
+            lint_enabled: true,
+            watcher_enabled: true,
+        }
+    }
+}
 
 #[derive(Default)]
 pub(super) struct LangService {
-    sem: ProjectSem,
-    hsp_root: PathBuf,
-    docs_opt: Option<Docs>,
-    doc_changes: Vec<DocChange>,
+    wa: AWorkspaceAnalysis,
+    hsp3_home: PathBuf,
+    root_uri_opt: Option<CanonicalUri>,
+    options: LangServiceOptions,
+    docs: Docs,
+    hsphelp_symbols: Vec<CompletionItem>,
+    file_watcher_opt: Option<FileWatcher>,
 }
 
 impl LangService {
-    pub(super) fn new(hsp_root: PathBuf) -> Self {
+    pub(super) fn new(hsp3_home: PathBuf, options: LangServiceOptions) -> Self {
         Self {
-            hsp_root,
-            sem: sem::ProjectSem::new(),
+            hsp3_home,
+            options,
             ..Default::default()
         }
     }
 
-    pub(super) fn did_initialize(&mut self) {
-        let mut docs = Docs::new(self.hsp_root.clone());
+    pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
+        if let Some(uri) = root_uri_opt {
+            self.root_uri_opt = Some(CanonicalUri::from_url(&uri));
+        }
+    }
 
+    pub(super) fn did_initialize(&mut self) {
         debug!("hsphelp ファイルからシンボルを探索します。");
         let mut file_count = 0;
         let mut symbols = vec![];
         let mut warnings = vec![];
-        collect_all_symbols(&self.hsp_root, &mut file_count, &mut symbols, &mut warnings)
-            .map_err(|e| warn!("{}", e))
-            .ok();
+        collect_all_symbols(
+            &self.hsp3_home,
+            &mut file_count,
+            &mut symbols,
+            &mut warnings,
+        )
+        .map_err(|e| warn!("{}", e))
+        .ok();
         for w in warnings {
             warn!("{}", w);
         }
 
-        let doc = docs.fresh_doc();
+        let hsphelp_doc = self.docs.fresh_doc();
 
-        let symbols = symbols
+        self.hsphelp_symbols = symbols
             .into_iter()
             .enumerate()
             .map(|(i, symbol)| {
-                Rc::new(sem::Symbol {
-                    symbol_id: self.sem.last_symbol_id + i + 1,
-                    name: symbol.name.into(),
-                    kind: sem::SymbolKind::Command {
-                        local: false,
-                        ctype: false,
+                let kind = CompletionItemKind::Function;
+                let HsSymbol {
+                    name,
+                    description,
+                    documentation,
+                } = symbol;
+
+                let wa_symbol = AWsSymbol {
+                    doc: hsphelp_doc,
+                    symbol: ASymbol::new(i),
+                };
+                self.wa
+                    .public_env
+                    .builtin
+                    .insert(name.clone().into(), wa_symbol);
+
+                // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
+                let sort_prefix = if name.starts_with("#") || name.starts_with("_") {
+                    'y'
+                } else if documentation
+                    .last()
+                    .map_or(false, |s| s.contains("標準命令") || s.contains("標準関数"))
+                {
+                    'x'
+                } else {
+                    'z'
+                };
+
+                // '#' なし
+                let word = if name.as_str().starts_with("#") {
+                    Some(name.as_str().chars().skip(1).collect::<String>())
+                } else {
+                    None
+                };
+
+                CompletionItem {
+                    kind: Some(kind),
+                    label: name.to_string(),
+                    detail: description,
+                    documentation: if documentation.is_empty() {
+                        None
+                    } else {
+                        Some(Documentation::String(documentation.join("\r\n\r\n")))
                     },
-                    details: sem::SymbolDetails {
-                        description: symbol.description.map(|s| s.into()),
-                        documentation: symbol.documentation.clone(),
-                    },
-                    scope: sem::Scope::new_global(doc),
-                })
+                    sort_text: Some(format!("{}{}", sort_prefix, name)),
+                    filter_text: word.clone(),
+                    insert_text: word,
+                    ..Default::default()
+                }
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        self.sem.last_symbol_id += symbols.len();
-
-        self.sem.add_hs_symbols(doc, symbols);
-
-        docs.did_initialize();
-
-        self.docs_opt = Some(docs);
-    }
-
-    fn poll(&mut self) {
-        if let Some(docs) = self.docs_opt.as_mut() {
-            docs.poll();
+        if self.options.watcher_enabled {
+            if let Some(watched_dir) = self
+                .root_uri_opt
+                .as_ref()
+                .and_then(|uri| uri.to_file_path())
+            {
+                let mut watcher = FileWatcher::new(watched_dir);
+                watcher.start_watch();
+                self.file_watcher_opt = Some(watcher);
+            }
         }
     }
 
-    fn notify_doc_changes_to_sem(&mut self) -> Option<()> {
-        let mut doc_changes = take(&mut self.doc_changes);
+    /// ドキュメントの変更を集積して、解析器の状態を更新する。
+    fn poll(&mut self) {
+        self.poll_watcher();
+        self.apply_doc_changes();
+    }
 
-        self.docs_opt.as_mut()?.drain_doc_changes(&mut doc_changes);
+    fn poll_watcher(&mut self) {
+        let watcher = match self.file_watcher_opt.as_mut() {
+            Some(it) => it,
+            None => return,
+        };
+
+        let mut rescan = false;
+        watcher.poll(&mut rescan);
+
+        if rescan {
+            self.docs.close_all_files();
+        }
+
+        let mut changed_files = vec![];
+        let mut closed_files = vec![];
+        watcher.drain_changes(&mut changed_files, &mut closed_files);
+
+        for path in changed_files {
+            self.docs.change_file(&path);
+        }
+
+        for path in closed_files {
+            self.docs.close_file(&path);
+        }
+    }
+
+    fn apply_doc_changes(&mut self) {
+        let mut doc_changes = vec![];
+        self.docs.drain_doc_changes(&mut doc_changes);
+
         for change in doc_changes.drain(..) {
             match change {
                 DocChange::Opened { doc, text } | DocChange::Changed { doc, text } => {
-                    self.sem.update_doc(doc, RcStr::from(text));
+                    self.wa.update_doc(doc, text);
                 }
-                DocChange::Closed { doc } => self.sem.close_doc(doc),
+                DocChange::Closed { doc } => {
+                    self.wa.close_doc(doc);
+                }
             }
         }
-
-        assert!(doc_changes.is_empty());
-        self.doc_changes = doc_changes;
-        Some(())
     }
 
     pub(super) fn shutdown(&mut self) {
-        if let Some(mut docs) = self.docs_opt.take() {
-            docs.shutdown();
+        if let Some(mut watcher) = self.file_watcher_opt.take() {
+            watcher.stop_watch();
         }
     }
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = CanonicalUri::from_url(&uri);
 
-        if let Some(docs) = self.docs_opt.as_mut() {
-            docs.open_doc(uri, version, text);
-        }
-
-        self.notify_doc_changes_to_sem();
-        self.poll();
+        self.docs.open_doc_in_editor(uri, version, text);
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = CanonicalUri::from_url(&uri);
 
-        if let Some(docs) = self.docs_opt.as_mut() {
-            docs.change_doc(uri, version, text);
-        }
-
-        self.notify_doc_changes_to_sem();
-        self.poll();
+        self.docs.change_doc_in_editor(uri, version, text);
     }
 
     pub(super) fn close_doc(&mut self, uri: Url) {
         let uri = CanonicalUri::from_url(&uri);
 
-        if let Some(docs) = self.docs_opt.as_mut() {
-            docs.close_doc(uri);
-        }
-
-        self.notify_doc_changes_to_sem();
-        self.poll();
+        self.docs.close_doc_in_editor(uri);
     }
 
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
 
-        let go = || {
-            let docs = self.docs_opt.as_ref()?;
-            assists::completion::completion(uri, position, docs, &mut self.sem)
-        };
-        go().unwrap_or_else(assists::completion::incomplete_completion_list)
+        assists::completion::completion(
+            uri,
+            position,
+            &self.docs,
+            &mut self.wa,
+            &self.hsphelp_symbols,
+        )
+        .unwrap_or_else(assists::completion::incomplete_completion_list)
     }
 
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
 
-        let go = || {
-            let docs = self.docs_opt.as_ref()?;
-            assists::definitions::definitions(uri, position, docs, &mut self.sem)
-        };
-        go().unwrap_or(vec![])
+        assists::definitions::definitions(uri, position, &self.docs, &mut self.wa).unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
@@ -162,18 +240,20 @@ impl LangService {
     ) -> Vec<DocumentHighlight> {
         self.poll();
 
-        let go = || {
-            let docs = self.docs_opt.as_ref()?;
-            assists::document_highlight::document_highlight(uri, position, docs, &mut self.sem)
-        };
-        go().unwrap_or(vec![])
+        assists::document_highlight::document_highlight(uri, position, &self.docs, &mut self.wa)
+            .unwrap_or(vec![])
     }
 
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
 
-        let docs = self.docs_opt.as_ref()?;
-        assists::hover::hover(uri, position, docs, &mut self.sem)
+        assists::hover::hover(
+            uri,
+            position,
+            &self.docs,
+            &mut self.wa,
+            &self.hsphelp_symbols,
+        )
     }
 
     pub(super) fn references(
@@ -184,11 +264,8 @@ impl LangService {
     ) -> Vec<Location> {
         self.poll();
 
-        let go = || {
-            let docs = self.docs_opt.as_ref()?;
-            assists::references::references(uri, position, include_definition, docs, &mut self.sem)
-        };
-        go().unwrap_or(vec![])
+        assists::references::references(uri, position, include_definition, &self.docs, &mut self.wa)
+            .unwrap_or(vec![])
     }
 
     pub(super) fn prepare_rename(
@@ -198,8 +275,7 @@ impl LangService {
     ) -> Option<PrepareRenameResponse> {
         self.poll();
 
-        let docs = self.docs_opt.as_ref()?;
-        assists::rename::prepare_rename(uri, position, docs, &mut self.sem)
+        assists::rename::prepare_rename(uri, position, &self.docs, &mut self.wa)
     }
 
     pub(super) fn rename(
@@ -210,12 +286,16 @@ impl LangService {
     ) -> Option<WorkspaceEdit> {
         self.poll();
 
-        let docs = self.docs_opt.as_ref()?;
-        assists::rename::rename(uri, position, new_name, docs, &mut self.sem)
+        assists::rename::rename(uri, position, new_name, &self.docs, &mut self.wa)
     }
 
-    pub(super) fn validate(&mut self, _uri: &Url) -> (Option<i64>, Vec<Diagnostic>) {
-        // FIXME: 実装
-        (Some(NO_VERSION), vec![])
+    pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
+        if !self.options.lint_enabled {
+            return vec![];
+        }
+
+        self.poll();
+
+        assists::diagnose::diagnose(&self.docs, &mut self.wa)
     }
 }

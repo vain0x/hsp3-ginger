@@ -23,7 +23,10 @@ fn get_help() -> String {
     OPTIONS:
         -h, --help      Print help
         -V, --version   Print Version
-            --hsp       HSP インストールディレクトリ (必須)"#,
+            --hsp       HSP インストールディレクトリ (必須)
+            
+    ENV:
+        HAM_LINT=1      リントを有効化する (既定: 無効)"#,
         version = get_version()
     )
 }
@@ -65,7 +68,7 @@ fn switch_on_args(mut args: ArgsOs) {
         .filter(|a| a == "--hsp")
         .expect("Expected --hsp");
 
-    let hsp_root = PathBuf::from(args.next().unwrap());
+    let hsp3_home = PathBuf::from(args.next().unwrap());
 
     let arg = parse_args(args).unwrap_or_else(|err| {
         eprintln!("{}", err);
@@ -75,7 +78,7 @@ fn switch_on_args(mut args: ArgsOs) {
     match arg {
         Arg::Version => exit_with_version(),
         Arg::Help => exit_with_help(),
-        Arg::Lsp => start_lsp_server(hsp_root),
+        Arg::Lsp => start_lsp_server(hsp3_home),
     }
 }
 

@@ -13,17 +13,17 @@
     "onLanguage:hsp3"
   ],
   "engines": {
-    "vscode": "^1.45.1"
+    "vscode": "^1.55.0"
   },
   "devDependencies": {
-    "@types/node": "^14",
-    "@types/vscode": "^1.45.1",
+    "@types/node": "^14.14.43",
+    "@types/vscode": "^1.55.0",
     "ts-loader": "^7.0.5",
-    "typescript": "^3",
-    "vsce": "^1",
-    "vscode-languageserver-protocol": "^3",
-    "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11"
+    "typescript": "^3.9.9",
+    "vsce": "^1.88.0",
+    "vscode-languageserver-protocol": "^3.16.0",
+    "webpack": "^4.46.0",
+    "webpack-cli": "^3.3.12"
   },
   "dependencies": {
     "vscode-languageclient": "7.0.0-next.1"
@@ -41,9 +41,18 @@
       "type": "object",
       "title": "hsp3-analyzer-mini config",
       "properties": {
+        "hsp3-analyzer-mini.hsp3-home": {
+          "type": "string",
+          "description": "HSP3のインストールディレクトリへの絶対パス。未設定のときは環境変数 HSP3_HOME を参照します。"
+        },
+        "hsp3-analyzer-mini.lint-enabled": {
+          "type": "boolean",
+          "description": "trueならリント(静的検証)を行い、スクリプトの誤りと思われる箇所に警告を出します。falseを設定すると無効化できます。(default: true)",
+          "default": true
+        },
         "hsp3-analyzer-mini.hsp3-root": {
           "type": "string",
-          "description": "HSP のディレクトリへの絶対パス。未指定時は、環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。"
+          "description": "[廃止予定] 'hsp3-analyzer-mini.hsp3-home' を使ってください。"
         },
         "hsp3-analyzer-mini.lsp-bin": {
           "type": "string",

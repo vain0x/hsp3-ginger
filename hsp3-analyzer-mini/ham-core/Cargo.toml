@@ -7,9 +7,16 @@ edition = "2018"
 [dependencies]
 encoding = "0.2"
 glob = "0.3"
-log = "0.4"
 lsp-types = { version = "0.74", features = ["proposed"] }
 notify = "4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 simplelog = "0.7"
+
+# ログ出力 API の基本になるもの。
+# <https://github.com/rust-lang/log>
+log = "0.4.14"
+
+# テキスト上の位置を表現するもの。(リリースされていない。)
+# <https://github.com/vain0x/text-position-rs>
+text-position-rs = { version = "0.3.0", git = "https://github.com/vain0x/text-position-rs", rev = "6a63f748d68c4f4a35ef43a82442741464d8e25c" }

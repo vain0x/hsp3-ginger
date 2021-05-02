@@ -1,7 +1,7 @@
-use super::{loc_to_location, loc_to_range, to_loc};
+use super::{from_document_position, loc_to_location, loc_to_range};
 use crate::{
+    analysis::integrate::AWorkspaceAnalysis,
     lang_service::docs::{self, Docs},
-    sem::ProjectSem,
 };
 use lsp_types::{
     DocumentChanges, Position, PrepareRenameResponse, TextDocumentEdit, TextEdit, Url,
@@ -12,15 +12,13 @@ pub(crate) fn prepare_rename(
     uri: Url,
     position: Position,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut AWorkspaceAnalysis,
 ) -> Option<PrepareRenameResponse> {
-    let loc = to_loc(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
 
-    // カーソル直下にシンボルがなければ変更しない。
-    if sem.locate_symbol(loc.doc, loc.start).is_none() {
-        return None;
-    }
+    // FIXME: カーソル直下に識別子があって、それの定義がワークスペース内のファイル (commonやhsphelpでない) にあったときだけSomeを返す。
 
+    let (_, loc) = wa.locate_symbol(doc, pos)?;
     let range = loc_to_range(loc);
     Some(PrepareRenameResponse::Range(range))
 }
@@ -30,22 +28,21 @@ pub(crate) fn rename(
     position: Position,
     new_name: String,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut AWorkspaceAnalysis,
 ) -> Option<WorkspaceEdit> {
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
-        let loc = to_loc(&uri, position, docs)?;
-        let (symbol, _) = sem.locate_symbol(loc.doc, loc.start)?;
-        let symbol_id = symbol.symbol_id;
+        let (doc, pos) = from_document_position(&uri, position, docs)?;
+        let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
         let mut locs = vec![];
-        sem.get_symbol_defs(symbol_id, &mut locs);
-        sem.get_symbol_uses(symbol_id, &mut locs);
+        wa.collect_symbol_defs(symbol, &mut locs);
+        wa.collect_symbol_uses(symbol, &mut locs);
         if locs.is_empty() {
             return None;
         }
 
-        // 1つの出現箇所が定義と使用の両方にカウントされてしまうケースがあるようなので、重複を削除する。
+        // 1つの出現が定義と使用の両方にカウントされることもあるので、重複を削除する。
         // (重複した変更をレスポンスに含めると名前の変更に失敗する。)
         locs.sort();
         locs.dedup();

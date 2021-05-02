@@ -32,6 +32,13 @@ HSP3 の実用最小限な静的解析ツールです。Language Server Protocol
 - `./install`: VSCode に拡張機能をインストールする
 - `./uninstall`: VSCode から拡張機能をアンインストールする
 
+### テスト
+
+テストは `cargo test` で実行します。
+
+一部のテストは hsp3 のインストールディレクトリに含まれているモジュールやサンプルコードを参照します。
+そのため `vendor/hsp3` に hsp3 (zip版) をインストールしておく必要があります。
+
 ## 関連リンク
 
 - [LSP学習記 #1](https://qiita.com/vain0x/items/d050fe7c8b342ed2004e)

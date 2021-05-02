@@ -9,6 +9,10 @@ impl<T> Id<T> {
     pub(crate) const fn new(id: usize) -> Self {
         Id(id, PhantomData)
     }
+
+    pub(crate) fn get(self) -> usize {
+        self.0
+    }
 }
 
 impl<T> From<usize> for Id<T> {

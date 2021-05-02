@@ -1,21 +1,19 @@
 use crate::{
-    lang::Lang,
-    syntax::DocId,
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
+    source::DocId,
+    utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
 };
-use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
-use notify::{DebouncedEvent, RecommendedWatcher};
-use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::mpsc::{Receiver, TryRecvError};
+use std::{
+    collections::{HashMap, HashSet},
+    mem::take,
+    path::Path,
+};
 
 /// テキストドキュメントのバージョン番号
 /// (エディタ上で編集されるたびに変わる番号。
 ///  いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
 type TextDocumentVersion = i64;
 
-pub(crate) const NO_VERSION: i64 = 1;
+pub(crate) const NO_VERSION: TextDocumentVersion = 1;
 
 pub(crate) enum DocChange {
     Opened { doc: DocId, text: RcStr },
@@ -24,49 +22,49 @@ pub(crate) enum DocChange {
 }
 
 /// テキストドキュメントを管理するもの。
+///
+/// - テキストドキュメントにはIDを振って管理する。(`DocId`)
+/// - テキストドキュメントは2種類ある: エディタで開かれているものと、ファイルとして保存されているもの。
+/// - エディタで開かれているドキュメントはURIで識別される。バージョン番号と内容は与えられる。
+/// - ファイルであるドキュメントはファイルパスで指定される。内容は必要に応じて読み込む。
+/// - ドキュメントがファイルであり、しかもエディタで開かれていることもある。
+///     - これは同じIDを振る。ファイルの内容は無視する。
 #[derive(Default)]
 pub(crate) struct Docs {
+    /// 最後に振ったID
     last_doc: usize,
+
+    // ドキュメントの情報:
     doc_to_uri: HashMap<DocId, CanonicalUri>,
     uri_to_doc: HashMap<CanonicalUri, DocId>,
-    open_docs: HashSet<DocId>,
-    doc_langs: HashMap<DocId, Lang>,
     doc_versions: HashMap<DocId, TextDocumentVersion>,
-    // hsphelp や common の下をウォッチするのに使う
-    #[allow(unused)]
-    hsp_root: PathBuf,
-    file_watcher: Option<RecommendedWatcher>,
-    file_event_rx: Option<Receiver<DebouncedEvent>>,
+    doc_texts: HashMap<DocId, RcStr>,
+
+    /// エディタで開かれているドキュメント
+    editor_docs: HashSet<DocId>,
+
+    /// ファイルとして保存されているドキュメント
+    file_docs: HashSet<DocId>,
+
+    /// 最近の更新
     doc_changes: Vec<DocChange>,
 }
 
 impl Docs {
-    pub(super) fn new(hsp_root: PathBuf) -> Self {
-        Self {
-            hsp_root,
-            ..Default::default()
-        }
-    }
-
-    // pub(crate) fn is_open(&self, uri: &Url) -> bool {
-    //     self.uri_to_doc
-    //         .get(&uri)
-    //         .map_or(false, |doc| self.open_docs.contains(&doc))
-    // }
-
     pub(crate) fn fresh_doc(&mut self) -> DocId {
         self.last_doc += 1;
-        DocId::new(self.last_doc)
+        self.last_doc
     }
 
-    fn resolve_uri(&mut self, uri: CanonicalUri) -> DocId {
+    /// URIに対応するDocIdを探す。なければ作り、trueを返す。
+    fn touch_uri(&mut self, uri: CanonicalUri) -> (bool, DocId) {
         match self.uri_to_doc.get(&uri) {
-            Some(&doc) => doc,
+            Some(&doc) => (false, doc),
             None => {
                 let doc = self.fresh_doc();
                 self.doc_to_uri.insert(doc, uri.clone());
                 self.uri_to_doc.insert(uri, doc);
-                doc
+                (true, doc)
             }
         }
     }
@@ -87,201 +85,28 @@ impl Docs {
         changes.extend(self.doc_changes.drain(..));
     }
 
-    pub(super) fn did_initialize(&mut self) {
-        self.scan_files();
-
-        if let Some((file_watcher, file_event_rx)) = self.start_file_watcher() {
-            self.file_watcher = Some(file_watcher);
-            self.file_event_rx = Some(file_event_rx);
-        }
-    }
-
-    fn scan_files(&mut self) -> Option<()> {
-        let current_dir = std::env::current_dir()
-            .map_err(|err| warn!("カレントディレクトリの取得 {:?}", err))
-            .ok()?;
-
-        let glob_pattern = format!("{}/**/*.hsp", current_dir.to_str()?);
-
-        debug!("ファイルリストを取得します '{}'", glob_pattern);
-
-        let entries = match glob::glob(&glob_pattern) {
-            Err(err) => {
-                warn!("ファイルリストの取得 {:?}", err);
-                return None;
-            }
-            Ok(entries) => entries,
-        };
-
-        for entry in entries {
-            match entry {
-                Err(err) => warn!("ファイルエントリの取得 {:?}", err),
-                Ok(path) => {
-                    self.change_file(&path);
-                }
-            }
-        }
-
-        None
-    }
-
-    fn start_file_watcher(&mut self) -> Option<(RecommendedWatcher, Receiver<DebouncedEvent>)> {
-        debug!("ファイルウォッチャーを起動します");
-
-        use notify::{RecursiveMode, Watcher};
-        use std::sync::mpsc::channel;
-        use std::time::Duration;
-
-        let delay_millis = 1000;
-
-        let current_dir = std::env::current_dir()
-            .map_err(|err| warn!("カレントディレクトリの取得 {:?}", err))
-            .ok()?;
-
-        let (tx, rx) = channel();
-
-        let mut watcher: RecommendedWatcher = Watcher::new(tx, Duration::from_millis(delay_millis))
-            .map_err(|err| warn!("ファイルウォッチャーの作成 {:?}", err))
-            .ok()?;
-
-        watcher
-            .watch(&current_dir, RecursiveMode::Recursive)
-            .map_err(|err| warn!("ファイルウォッチャーの起動 {:?}", err))
-            .ok()?;
-
-        debug!("ファイルウォッチャーを起動しました ({:?})", current_dir);
-        Some((watcher, rx))
-    }
-
-    pub(crate) fn poll(&mut self) {
-        let rx = match self.file_event_rx.as_mut() {
-            None => return,
-            Some(rx) => rx,
-        };
-
-        debug!("ファイルウォッチャーのイベントをポールします。");
-
-        let mut rescan = false;
-        let mut updated_paths = HashSet::new();
-        let mut removed_paths = HashSet::new();
-        let mut disconnected = false;
-
-        loop {
-            match rx.try_recv() {
-                Ok(DebouncedEvent::Create(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが作成されました: {:?}", path);
-                    updated_paths.insert(path.clone());
-                }
-                Ok(DebouncedEvent::Write(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが変更されました: {:?}", path);
-                    updated_paths.insert(path.clone());
-                }
-                Ok(DebouncedEvent::Remove(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが削除されました: {:?}", path);
-                    removed_paths.insert(path.clone());
-                }
-                Ok(DebouncedEvent::Rename(ref src_path, ref dest_path)) => {
-                    debug!("ファイルが移動しました: {:?} → {:?}", src_path, dest_path);
-                    if file_ext_is_watched(src_path) {
-                        removed_paths.insert(src_path.clone());
-                    }
-                    if file_ext_is_watched(dest_path) {
-                        updated_paths.insert(dest_path.clone());
-                    }
-                }
-                Ok(DebouncedEvent::Rescan) => {
-                    debug!("ファイルウォッチャーから再スキャンが要求されました");
-                    rescan = true;
-                }
-                Ok(ev) => {
-                    debug!("ファイルウォッチャーのイベントをスキップします: {:?}", ev);
-                }
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => {
-                    disconnected = true;
-                    break;
-                }
-            }
-        }
-
-        let mut change_count = 0;
-        let mut remove_count = 0;
-
-        if rescan {
-            self.scan_files();
-        } else {
-            for path in updated_paths {
-                if removed_paths.contains(&path) {
-                    continue;
-                }
-                self.change_file(&path);
-                change_count += 1;
-            }
-
-            for path in removed_paths {
-                self.close_file(&path);
-                remove_count += 1;
-            }
-        }
-
-        if disconnected {
-            self.shutdown_file_watcher();
-        }
-
-        debug!(
-            "ファイルウォッチャーのイベントをポールしました (change={} remove={}{}{})",
-            change_count,
-            remove_count,
-            if rescan { " rescan=true" } else { "" },
-            if disconnected {
-                " disconnected=true"
-            } else {
-                ""
-            }
-        );
-    }
-
-    fn shutdown_file_watcher(&mut self) {
-        debug!("ファイルウォッチャーがシャットダウンしました。");
-        self.file_watcher.take();
-        self.file_event_rx.take();
-    }
-
-    pub(super) fn shutdown(&mut self) {
-        self.shutdown_file_watcher();
-    }
-
-    fn do_open_doc(&mut self, uri: CanonicalUri, version: i64, text: RcStr) -> DocId {
-        let doc = self.resolve_uri(uri);
-
-        // この LSP サーバーが対応する拡張子として .hsp しか指定していないので、
-        // クライアントから送られてくる情報は .hsp ファイルのものだと仮定してよいはず。
-        self.doc_langs.insert(doc, Lang::Hsp3);
-
+    fn do_open_doc(&mut self, doc: DocId, version: i64, text: RcStr) -> DocId {
         self.doc_versions.insert(doc, version);
+        self.doc_texts.insert(doc, text.clone());
         self.doc_changes.push(DocChange::Opened { doc, text });
-
         doc
     }
 
-    fn do_change_doc(&mut self, uri: CanonicalUri, version: i64, text: RcStr) {
-        let doc = self.resolve_uri(uri);
+    fn do_change_doc(&mut self, doc: DocId, version: i64, text: RcStr) {
         self.doc_versions.insert(doc, version);
+        self.doc_texts.insert(doc, text.clone());
         self.doc_changes.push(DocChange::Changed { doc, text });
     }
 
-    fn do_close_doc(&mut self, uri: CanonicalUri) {
-        if let Some(&doc) = self.uri_to_doc.get(&uri) {
-            self.doc_to_uri.remove(&doc);
-            self.doc_langs.remove(&doc);
-            self.doc_versions.remove(&doc);
-            self.doc_changes.push(DocChange::Closed { doc })
-        }
-
+    fn do_close_doc(&mut self, doc: DocId, uri: &CanonicalUri) {
+        self.doc_to_uri.remove(&doc);
         self.uri_to_doc.remove(&uri);
+        self.doc_versions.remove(&doc);
+        self.doc_texts.remove(&doc);
+        self.doc_changes.push(DocChange::Closed { doc });
     }
 
-    pub(super) fn open_doc(&mut self, uri: CanonicalUri, version: i64, text: String) {
+    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
         trace!(
             "クライアントでファイルが開かれました ({:?} version={}, len={})",
             uri,
@@ -289,16 +114,26 @@ impl Docs {
             text.len()
         );
 
-        self.do_open_doc(uri.clone(), version, text.into());
-
-        if let Some(&doc) = self.uri_to_doc.get(&uri) {
-            self.open_docs.insert(doc);
+        let (created, doc) = self.touch_uri(uri);
+        if created {
+            self.do_open_doc(doc, version, text.into());
+        } else {
+            // ファイルをエディタで開いたとき、内容は同じである可能性が高い。そのときは更新の報告を省略する。
+            let same = self
+                .doc_texts
+                .get(&doc)
+                .map_or(false, |current| current.as_str() == text);
+            if same {
+                self.doc_versions.insert(doc, version);
+            } else {
+                self.do_change_doc(doc, version, text.into());
+            }
         }
 
-        self.poll();
+        self.editor_docs.insert(doc);
     }
 
-    pub(super) fn change_doc(&mut self, uri: CanonicalUri, version: i64, text: String) {
+    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
         trace!(
             "クライアントでファイルが変更されました ({:?} version={}, len={})",
             uri,
@@ -306,68 +141,87 @@ impl Docs {
             text.len()
         );
 
-        self.do_change_doc(uri, version, text.into());
+        let (created, doc) = self.touch_uri(uri);
+        if created {
+            self.do_open_doc(doc, version, text.into());
+        } else {
+            self.do_change_doc(doc, version, text.into());
+        }
 
-        self.poll();
+        self.editor_docs.insert(doc);
     }
 
-    pub(super) fn close_doc(&mut self, uri: CanonicalUri) {
+    pub(crate) fn close_doc_in_editor(&mut self, uri: CanonicalUri) {
         trace!("クライアントでファイルが閉じられました ({:?})", uri);
 
-        if let Some(&doc) = self.uri_to_doc.get(&uri) {
-            self.open_docs.remove(&doc);
-        }
+        let doc = match self.uri_to_doc.get(&uri) {
+            Some(&doc) => doc,
+            None => return,
+        };
 
-        self.poll();
+        self.editor_docs.remove(&doc);
+
+        if !self.file_docs.contains(&doc) {
+            self.do_close_doc(doc, &uri);
+        }
     }
 
-    pub(super) fn change_file(&mut self, path: &Path) -> Option<()> {
-        let uri = CanonicalUri::from_file_path(path)?;
+    pub(crate) fn change_file(&mut self, path: &Path) {
+        let uri = match CanonicalUri::from_file_path(path) {
+            Some(uri) => uri,
+            None => return,
+        };
 
-        let is_open = self
-            .uri_to_doc
-            .get(&uri)
-            .map_or(false, |doc| self.open_docs.contains(&doc));
-        if is_open {
+        let (created, doc) = self.touch_uri(uri);
+
+        let open_in_editor = !created && self.editor_docs.contains(&doc);
+        if open_in_editor {
             debug!("ファイルは開かれているのでロードされません。");
-            return None;
+            return;
         }
 
+        // FIXME: drain_doc_changesのタイミングまで読み込みを遅延してもいい。
         let mut text = String::new();
         if !read_file(path, &mut text) {
             warn!("ファイルを開けません {:?}", path);
         }
 
-        self.do_change_doc(uri, NO_VERSION, text.into());
-
-        None
+        let opened = self.file_docs.insert(doc);
+        if opened {
+            self.do_open_doc(doc, NO_VERSION, text.into());
+        } else {
+            self.do_change_doc(doc, NO_VERSION, text.into());
+        }
     }
 
-    pub(super) fn close_file(&mut self, path: &Path) -> Option<()> {
-        let uri = CanonicalUri::from_file_path(path)?;
+    pub(crate) fn close_file(&mut self, path: &Path) {
+        let uri = match CanonicalUri::from_file_path(path) {
+            Some(uri) => uri,
+            None => return,
+        };
 
-        self.do_close_doc(uri);
+        let doc = match self.uri_to_doc.get(&uri) {
+            Some(&doc) => doc,
+            None => return,
+        };
 
-        None
+        self.file_docs.remove(&doc);
+
+        if !self.editor_docs.contains(&doc) {
+            self.do_close_doc(doc, &uri);
+        }
     }
-}
 
-fn file_ext_is_watched(path: &Path) -> bool {
-    path.extension()
-        .map_or(false, |ext| ext == "hsp" || ext == "as")
-}
+    pub(crate) fn close_all_files(&mut self) {
+        for doc in take(&mut self.file_docs) {
+            let uri = match self.doc_to_uri.get(&doc).cloned() {
+                Some(uri) => uri,
+                None => continue,
+            };
 
-/// ファイルを shift_jis または UTF-8 として読む。
-fn read_file(file_path: &Path, out: &mut impl StringWriter) -> bool {
-    // utf-8?
-    let content = match fs::read(file_path).ok() {
-        None => return false,
-        Some(x) => x,
-    };
-
-    // shift-jis?
-    encoding::all::WINDOWS_31J
-        .decode_to(&content, DecoderTrap::Strict, out)
-        .or_else(|_| UTF8Encoding.decode_to(&content, DecoderTrap::Strict, out))
-        .is_ok()
+            if !self.editor_docs.contains(&doc) {
+                self.do_close_doc(doc, &uri);
+            }
+        }
+    }
 }

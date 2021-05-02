@@ -1,10 +1,11 @@
 //! HSP Help Source (.hs) ファイルの解析
 
-use encoding::{codec::utf_8::UTF8Encoding, DecoderTrap, Encoding, StringWriter};
-use std::collections::HashMap;
-use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
+use crate::utils::read_file::read_file;
+use std::{
+    collections::HashMap,
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 const EOL: &str = "\r\n";
 
@@ -33,21 +34,6 @@ fn read_dir(hsphelp_dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
     }
 
     Ok(())
-}
-
-/// ファイルを shift_jis または UTF-8 として読む。
-fn read_file(file_path: &Path, out: &mut impl StringWriter) -> bool {
-    // utf-8?
-    let content = match fs::read(file_path).ok() {
-        None => return false,
-        Some(x) => x,
-    };
-
-    // shift-jis?
-    encoding::all::WINDOWS_31J
-        .decode_to(&content, DecoderTrap::Strict, out)
-        .or_else(|_| UTF8Encoding.decode_to(&content, DecoderTrap::Strict, out))
-        .is_ok()
 }
 
 /// ヘルプソースファイルを解析してシンボル情報を集める。
@@ -220,12 +206,12 @@ fn parse_for_symbols(
 
 /// ディレクトリに含まれるすべてのヘルプソースファイルからすべてのシンボル情報を抽出する。
 pub(crate) fn collect_all_symbols(
-    hsp_root: &Path,
+    hsp3_home: &Path,
     file_count: &mut usize,
     symbols: &mut Vec<HsSymbol>,
     warnings: &mut Vec<String>,
 ) -> io::Result<()> {
-    let hsphelp_dir = hsp_root.join("hsphelp");
+    let hsphelp_dir = hsp3_home.join("hsphelp");
 
     let mut help_files = vec![];
     read_dir(&hsphelp_dir, &mut help_files)?;
