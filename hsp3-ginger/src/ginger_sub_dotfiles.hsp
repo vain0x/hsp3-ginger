@@ -1,0 +1,122 @@
+// ドットファイルの機能
+// .editorconfigなど、ドットで始まる名前のファイルを作成する。
+
+#module m_ginger_sub_dot
+
+#define true 1
+#define false 0
+
+// dotfiles コマンドのエントリーポイント
+//
+// 成功したら stat=true
+#deffunc ginger_sub_dotfiles_main var _args, int _argc, int show_help, var error
+
+	if show_help {
+		ginger_sub_dotfiles_help
+		return stat
+	}
+
+	ginger_sub_dotfiles_run error
+	return stat
+
+#deffunc ginger_sub_dotfiles_help \
+	local content, local text
+
+	content = {"
+サブコマンド:
+\tdotfiles
+
+\t\tエディタの設定ファイルを生成・更新します。
+
+\t\t.editorconfigファイルがなければ必要な項目を埋めて作成します。
+\t\tすでにファイルがある場合は必要な項目を追記します。
+\t\t(すでに設定されている場合は何もしません。)
+"}
+
+	ginger_sub_help_layout content, text
+	ginger_infra_stdout text
+	return true
+
+// .editorconfigを生成する。
+//
+// 成功したら stat=true。
+#deffunc ginger_sub_dotfiles_run var error, \
+	local new_content, \
+	local lines, \
+	local line_count, \
+	local use_crlf, local lf, local eol, \
+	local line_index, \
+	local content, \
+	local old_size
+
+	exist ".editorconfig"
+	old_size = strsize
+	if old_size < 0 {
+		new_content = {"root = true
+
+[*.{hsp,as}]
+indent_size = 4
+indent_style = tab
+insert_final_newline = true
+trim_trailing_whitespace = true
+"}
+
+		notesel new_content
+		notesave ".editorconfig"
+		noteunsel
+
+		mes ".editorconfigを作成しました。"
+		return true
+	}
+
+	sdim content, old_size + 1
+	notesel content
+	noteload ".editorconfig"
+	noteunsel
+
+	// 行ごとに分割する。
+	sdim lf
+	poke lf, 0, 10 // LF
+	poke lf, 1, 0
+
+	use_crlf = instr(content, , "\n") >= 0
+	if use_crlf {
+		eol = "\n"
+	} else {
+		eol = lf
+	}
+
+	split content, eol, lines
+	line_count = stat
+
+	// HSPの設定が書かれたセクションがあるか確認する。あったら何もしない。
+	line_index = -1
+	repeat line_count
+		if lines(cnt) == "[*.hsp]" || lines(cnt) == "[*.{hsp,as}]" {
+			line_index = cnt
+			break
+		}
+	loop
+	if line_index >= 0 {
+		mes ".editorconfigは設定済みなので、更新しませんでした。"
+		return true
+	}
+
+	// HSPの設定を足す。
+	new_content = {"
+
+[*.{hsp,as}]
+indent_size = 4
+indent_style = tab
+insert_final_newline = true
+trim_trailing_whitespace = true
+"}
+	if use_crlf == false {
+		strrep new_content, "\r\n", lf
+	}
+
+	bsave ".editorconfig", new_content, strlen(new_content), old_size
+	mes ".editorconfigに追記しました。"
+	return true
+
+#global
