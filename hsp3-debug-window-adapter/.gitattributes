@@ -1,4 +1,4 @@
-* text=auto
+* text=auto eol=lf
 
 *.hsp   linguist-language=HSP3
 *.as    linguist-language=HSP3
