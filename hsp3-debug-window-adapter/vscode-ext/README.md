@@ -45,7 +45,7 @@ npm install
 ./install.ps1
 ```
 
-```pswh
+```pwsh
 # アンインストール
-./uninstlal.ps1
+./install.ps1
 ```
