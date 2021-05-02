@@ -1,7 +1,8 @@
 // 簡易的な Debug Adapter Protocol (DAP) アダプタの実装。
 
 import { ChildProcess, exec, spawn } from "child_process"
-import * as fs from "fs"
+import * as fs from "fs/promises"
+import { appendFileSync } from "fs"
 import * as path from "path"
 import { promisify } from "util"
 import {
@@ -70,12 +71,15 @@ const writeTrace = (msg: string, data?: unknown) => {
     }
     msg += "\n\n"
 
-    fs.appendFileSync(traceLogFile, msg)
+    appendFileSync(traceLogFile, msg)
 }
 
-const fileExists = (fileName: string) =>
-    new Promise<boolean>(resolve =>
-        fs.stat(fileName, err => resolve(!err)))
+/**
+ * ファイルが存在するか？
+ */
+const fileExists = async (fileName: string): Promise<boolean> =>
+    // ファイルへのアクセス権があれば真、エラーだったら偽
+    await fs.access(fileName).then(() => true, () => false)
 
 /**
  * hsp3_build (ビルダー) の実行ファイルを作成する。
@@ -84,7 +88,7 @@ const fileExists = (fileName: string) =>
  *
  * @returns 生成された実行ファイルのパス
  */
-const buildBuilder = async (hsp3Home: string, outDir: string) => {
+const buildBuilder = async (hsp3Home: string, outDir: string): Promise<string> => {
     const hspcmpExe = path.join(hsp3Home, "hspcmp.exe")
     const hspcmpDllSrc = path.join(hsp3Home, "hspcmp.dll")
     const hspcmpDllDest = path.join(outDir, "hspcmp.dll")
@@ -103,7 +107,7 @@ const buildBuilder = async (hsp3Home: string, outDir: string) => {
 
     // ビルダーが使う hspcmp.dll をコピーする。
     writeTrace("copy compiler", { hspcmpDllSrc, hspcmpDllDest })
-    await promisify(fs.copyFile)(hspcmpDllSrc, hspcmpDllDest)
+    await fs.copyFile(hspcmpDllSrc, hspcmpDllDest)
 
     // ステージ1: hspcmp.exe でコンパイルし、オブジェクトファイルを作る。
     const cmd1 = `"${hspcmpExe}" "${compathArg}" "${hsp3BuildHsp}"`
