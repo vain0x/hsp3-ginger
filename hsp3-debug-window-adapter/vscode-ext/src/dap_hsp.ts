@@ -130,7 +130,7 @@ const buildBuilder = async (hsp3Home: string, outDir: string) => {
     }
 
     // ステージ2: ランタイムにオブジェクトファイルを渡して実行し、実行ファイルを作る。
-    let cmd2 = `"${hsp3clExe}" "${hsp3BuildAx}" make --hsp "${hsp3Home}" "${hsp3BuildHsp}"`
+    const cmd2 = `"${hsp3clExe}" "${hsp3BuildAx}" make --hsp "${hsp3Home}" "${hsp3BuildHsp}"`
     writeTrace("stage2 cmd", cmd2)
 
     const result2 = await promisify(exec)(cmd2, {
