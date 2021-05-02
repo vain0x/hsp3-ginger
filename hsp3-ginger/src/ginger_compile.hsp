@@ -23,7 +23,7 @@
 		return true
 	}
 
-	// FIXME: 環境変数 HSP3_ROOT やパスの通ったディレクトリなども探す。
+	// FIXME: 環境変数 HSP3_HOME やパスの通ったディレクトリなども探す。
 	return false
 
 // common ディレクトリのパスを取得する
