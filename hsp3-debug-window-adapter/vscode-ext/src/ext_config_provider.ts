@@ -6,7 +6,7 @@ import {
     WorkspaceFolder,
     window,
 } from "vscode"
-import { selectHsp3Root } from "./ext_command_select_hsp3_root"
+import { selectHsp3Home } from "./ext_command_select_hsp3_home"
 import { createHsptmp } from "./ext_command_create_hsptmp"
 import { withNotify } from "./extension"
 import { HSP3_LANG_ID } from "./ext_constants"
@@ -33,7 +33,7 @@ const doResolveDebugConfiguration = async (config: DebugConfiguration, extension
     }
 
     config.program = config.program || await createHsptmp()
-    config.hsp3Root = config.hsp3Root || await selectHsp3Root()
+    config.hsp3Home = config.hsp3Home || await selectHsp3Home()
     config.extensionRoot = config.extensionRoot || extensionRoot
     return config
 }
