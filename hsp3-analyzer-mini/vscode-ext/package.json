@@ -13,7 +13,7 @@
     "onLanguage:hsp3"
   ],
   "engines": {
-    "vscode": "^1.45.1"
+    "vscode": "^1.55.0"
   },
   "devDependencies": {
     "@types/node": "^14.14.43",
