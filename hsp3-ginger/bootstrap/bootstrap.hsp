@@ -13,7 +13,7 @@
 // 32: utf-8 output
 #define s_pp_opts (4 | 32)
 
-	s_hsp_root = dir_exe
+	s_hsp3_home = dir_exe
 
 	s_src_path = dir_cmdline
 
@@ -27,14 +27,14 @@
 		goto *l_fail
 	}
 
-	hsc_compath s_hsp_root + "\\common\\"
+	hsc_compath s_hsp3_home + "\\common\\"
 
 	hsc_comp s_compile_opts, s_pp_opts
 	if stat {
 		goto *l_fail
 	}
 
-	hsc3_make s_hsp_root + "\\runtime\\"
+	hsc3_make s_hsp3_home + "\\runtime\\"
 	if stat {
 		goto *l_fail
 	}
