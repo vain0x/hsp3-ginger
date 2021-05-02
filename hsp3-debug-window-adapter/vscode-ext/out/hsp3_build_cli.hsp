@@ -229,7 +229,7 @@ OPTIONS (optional):
 	s_src_name_exists = false
 
 	s_work_dir = dir_cur
-	s_hsp_root = dir_exe
+	s_hsp3_home = dir_exe
 
 	sdim s_error, 0x10000
 
@@ -285,7 +285,7 @@ OPTIONS (optional):
 				reason = "Missing value of --hsp"
 				break
 			}
-			s_hsp_root = args(i)
+			s_hsp3_home = args(i)
 			i++
 			continue
 		}
@@ -407,7 +407,7 @@ OPTIONS (optional):
 		}
 	}
 
-	hsc_compath s_hsp_root + "\\common\\"
+	hsc_compath s_hsp3_home + "\\common\\"
 	if stat {
 		hsc_getmes s_error
 		return false
@@ -433,7 +433,7 @@ OPTIONS (optional):
 		swbreak
 
 	case "run":
-		s_runtime_path = s_hsp_root + "\\" + s_runtime_name
+		s_runtime_path = s_hsp3_home + "\\" + s_runtime_name
 
 		; FIXME: pass args after --
 		; FIXME: fork
@@ -443,9 +443,9 @@ OPTIONS (optional):
 
 	case "make":
 		if s_runtime_name == "hsp3.exe" {
-			s_runtime_dir = s_hsp_root + "\\"
+			s_runtime_dir = s_hsp3_home + "\\"
 		} else {
-			s_runtime_dir = s_hsp_root + "\\runtime\\"
+			s_runtime_dir = s_hsp3_home + "\\runtime\\"
 		}
 
 		hsc3_make s_runtime_dir
