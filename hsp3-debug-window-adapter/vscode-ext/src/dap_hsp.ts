@@ -78,7 +78,9 @@ const fileExists = (fileName: string) =>
         fs.stat(fileName, err => resolve(!err)))
 
 /**
- * hsp3_build をビルドする。
+ * hsp3_build (ビルダー) の実行ファイルを作成する。
+ *
+ * 実行ファイルは拡張機能のディレクトリに保存されるので、処理は1回だけ行う。
  *
  * @returns 生成された実行ファイルのパス
  */
