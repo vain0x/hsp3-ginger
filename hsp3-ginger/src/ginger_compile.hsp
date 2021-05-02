@@ -178,7 +178,7 @@
 		return false
 	}
 
-	gigner_args_get_ref_name ref_name
+	ginger_args_get_ref_name ref_name
 	if stat {
 		hsc_refname ref_name
 		if stat {
