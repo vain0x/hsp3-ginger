@@ -49,7 +49,7 @@ let trace_log_file = trace_log_is_enabled
 /**
  * コンパイルの各ステージのタイムアウト時間
  */
-const TIMEOUT_MILLIS = 15 * 10000
+const TIMEOUT_MILLIS = 15 * 1000
 
 /**
  * デバッグ用にログを出力する。
