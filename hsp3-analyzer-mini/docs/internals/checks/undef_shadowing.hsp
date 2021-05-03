@@ -1,0 +1,25 @@
+// shadowingしているマクロをundefしたときの挙動。
+// shadowingしているマクロだけundefされる。もう1回undefしたらglobalのほうがundefされる。
+
+#define global a "global"
+
+#module
+
+#define a "local"
+
+#deffunc f
+    mes a // local
+
+#undef a
+
+    mes a // global
+
+#undef a
+
+    mes a // 0
+    return
+
+#global
+
+    f
+    mes a // 0

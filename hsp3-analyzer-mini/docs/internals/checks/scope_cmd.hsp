@@ -1,0 +1,16 @@
+// cmdは巻き上げられない
+
+#module
+
+	a // syntax error
+
+#uselib "unknown"
+#cmd a
+
+#deffunc f
+	a
+	return
+
+#global
+
+	f
