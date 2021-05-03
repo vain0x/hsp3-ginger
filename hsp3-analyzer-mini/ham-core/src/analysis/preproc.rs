@@ -15,17 +15,27 @@ struct Ctx {
 }
 
 impl Ctx {
-    fn privacy_scope_or_local(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ADefScope {
+    fn privacy_scope_or_local(
+        &self,
+        privacy_opt: &Option<(PPrivacy, PToken)>,
+        level_opt: Option<usize>,
+    ) -> ADefScope {
+        let level = level_opt.unwrap_or(self.scope.define_level);
         match privacy_opt {
-            Some((PPrivacy::Global, _)) => ADefScope::Global,
-            _ => ADefScope::Local,
+            Some((PPrivacy::Global, _)) => ADefScope::Global(level),
+            _ => ADefScope::Local(level),
         }
     }
 
-    fn privacy_scope_or_global(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ADefScope {
+    fn privacy_scope_or_global(
+        &self,
+        privacy_opt: &Option<(PPrivacy, PToken)>,
+        level_opt: Option<usize>,
+    ) -> ADefScope {
+        let level = level_opt.unwrap_or(self.scope.define_level);
         match privacy_opt {
-            Some((PPrivacy::Local, _)) => ADefScope::Local,
-            _ => ADefScope::Global,
+            Some((PPrivacy::Local, _)) => ADefScope::Local(level),
+            _ => ADefScope::Global(level),
         }
     }
 
@@ -60,7 +70,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
         PStmt::Label(PLabel { star, name_opt }) => {
             if let Some(name) = name_opt {
-                ctx.add_symbol(ASymbolKind::Label, star, name, ADefScope::Local);
+                ctx.add_symbol(ASymbolKind::Label, star, name, ADefScope::Local(0));
             }
         }
         PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
@@ -71,9 +81,11 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ..
         }) => {
             if let Some(name) = name_opt {
-                let scope = ctx.privacy_scope_or_local(privacy_opt);
+                let scope = ctx.privacy_scope_or_local(privacy_opt, None);
                 ctx.add_symbol(ASymbolKind::Const, hash, name, scope);
             }
+
+            ctx.scope.define_level += 1;
         }
         PStmt::Define(PDefineStmt {
             hash,
@@ -83,10 +95,12 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ..
         }) => {
             if let Some(name) = name_opt {
-                let scope = ctx.privacy_scope_or_local(privacy_opt);
+                let scope = ctx.privacy_scope_or_local(privacy_opt, None);
                 let ctype = ctype_opt.is_some();
                 ctx.add_symbol(ASymbolKind::Macro { ctype }, hash, name, scope);
             }
+
+            ctx.scope.define_level += 1;
         }
         PStmt::Enum(PEnumStmt {
             hash,
@@ -95,9 +109,11 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ..
         }) => {
             if let Some(name) = name_opt {
-                let scope = ctx.privacy_scope_or_local(privacy_opt);
+                let scope = ctx.privacy_scope_or_local(privacy_opt, None);
                 ctx.add_symbol(ASymbolKind::Enum, hash, name, scope);
             }
+
+            ctx.scope.define_level += 1;
         }
         PStmt::DefFunc(PDefFuncStmt {
             hash,
@@ -134,7 +150,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 // ax.deffuncs[deffunc.get()].name_opt = Some(name.body.text.clone());
 
                 if onexit_opt.is_none() {
-                    let scope = ctx.privacy_scope_or_global(privacy_opt);
+                    let scope = ctx.privacy_scope_or_global(privacy_opt, Some(0));
                     ctx.add_symbol(kind, hash, name, scope);
                 }
             }
@@ -164,7 +180,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }) => {
             if let Some(name) = name_opt {
                 if onexit_opt.is_none() {
-                    let scope = ctx.privacy_scope_or_local(privacy_opt);
+                    let scope = ctx.privacy_scope_or_local(privacy_opt, Some(0));
                     ctx.add_symbol(ASymbolKind::LibFunc, hash, name, scope);
                 }
             }
@@ -176,7 +192,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ..
         }) => {
             if let Some(name) = name_opt {
-                let scope = ctx.privacy_scope_or_local(privacy_opt);
+                let scope = ctx.privacy_scope_or_local(privacy_opt, Some(0));
                 ctx.add_symbol(ASymbolKind::ComInterface, hash, name, scope);
             }
         }
@@ -187,7 +203,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ..
         }) => {
             if let Some(name) = name_opt {
-                let scope = ctx.privacy_scope_or_global(privacy_opt);
+                let scope = ctx.privacy_scope_or_global(privacy_opt, Some(0));
                 ctx.add_symbol(ASymbolKind::ComFunc, hash, name, scope);
             }
         }
@@ -199,9 +215,11 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ..
         }) => {
             if let Some(name) = name_opt {
-                let scope = ctx.privacy_scope_or_local(privacy_opt);
+                let scope = ctx.privacy_scope_or_local(privacy_opt, None);
                 ctx.add_symbol(ASymbolKind::PluginCmd, hash, name, scope);
             }
+
+            ctx.scope.define_level += 1;
         }
         PStmt::Module(PModuleStmt {
             hash,
@@ -222,20 +240,22 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 },
             );
 
+            let define_level = ctx.scope.define_level;
             let parent_scope = replace(
                 &mut ctx.scope,
                 ALocalScope {
                     module_opt: Some(module),
                     deffunc_opt: None,
+                    define_level,
                 },
             );
 
             if let Some(name) = name_opt {
-                ctx.add_symbol(ASymbolKind::Module, hash, name, ADefScope::Global);
+                ctx.add_symbol(ASymbolKind::Module, hash, name, ADefScope::Global(0));
             }
 
             for field in fields.iter().filter_map(|param| param.name_opt.as_ref()) {
-                ctx.add_symbol(ASymbolKind::Field, field, field, ADefScope::Local);
+                ctx.add_symbol(ASymbolKind::Field, field, field, ADefScope::Local(0));
             }
 
             for stmt in stmts {

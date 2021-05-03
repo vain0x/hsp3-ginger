@@ -11,6 +11,9 @@ pub(crate) struct ALocalScope {
 
     /// `#deffunc` 系命令の下の部分。(このスコープに属して定義されるのはパラメータだけ。)
     pub(crate) deffunc_opt: Option<ADefFunc>,
+
+    /// `#define` 系命令の下の部分。(これが1以上であるスコープに属すのはdefine系のシンボルだけ。)
+    pub(crate) define_level: DefineLevel,
 }
 
 impl ALocalScope {
@@ -33,16 +36,20 @@ impl ALocalScope {
 
 #[derive(Clone, Debug)]
 pub(crate) enum AScope {
-    Global,
+    Global(DefineLevel),
     Local(ALocalScope),
 }
 
+/// どのスコープに定義するか。
 #[derive(Clone, Copy)]
 pub(crate) enum ADefScope {
-    Global,
-    Local,
+    Global(DefineLevel),
+    Local(DefineLevel),
     Param,
 }
+
+/// `#define` 系の命令の個数。
+pub(crate) type DefineLevel = usize;
 
 pub(crate) type ADefFunc = Id<ADefFuncData>;
 

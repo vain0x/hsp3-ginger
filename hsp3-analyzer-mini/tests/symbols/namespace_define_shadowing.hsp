@@ -1,0 +1,28 @@
+// `#define` でglobalシンボルと同名のlocalなシンボルを定義するときの、スコープと名前空間のテスト。
+
+// これはglobalに定義される。
+#define global shadowing "global"
+//             ^def shadowing_global
+
+	mes shadowing
+	//  ^use shadowing_global
+
+#module
+
+#deffunc show_shadowing
+
+	mes shadowing
+	//  ^use shadowing_global
+
+#define shadowing "local"
+//      ^def shadowing_local
+
+	// モジュール内ではlocalの定義が優先される。
+	mes shadowing
+	//  ^use shadowing_local
+	return
+
+#global
+
+	mes shadowing
+	//  ^use shadowing_global

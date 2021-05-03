@@ -1,5 +1,5 @@
 use super::{
-    a_scope::{ADefFunc, AModule, AModuleData},
+    a_scope::{ADefFunc, AModule, AModuleData, DefineLevel},
     a_symbol::{ASymbolData, AWsSymbol},
     comment::{calculate_details, collect_comments},
     preproc::PreprocAnalysisResult,
@@ -95,7 +95,7 @@ impl AWorkspaceAnalysis {
                 let ws_symbol = AWsSymbol { doc, symbol };
 
                 match &symbol_data.scope_opt {
-                    Some(AScope::Global) => {
+                    Some(AScope::Global(_)) => {
                         self.public_env
                             .global
                             .insert(symbol_data.name.clone(), ws_symbol);
@@ -296,6 +296,7 @@ pub(crate) struct ASyntax {
 #[derive(Debug, Default)]
 pub(crate) struct AEnv {
     map: HashMap<RcStr, AWsSymbol>,
+    stack: Vec<(DefineLevel, RcStr, AWsSymbol)>,
 }
 
 impl AEnv {
@@ -388,7 +389,7 @@ fn collect_global_completion_items<'a>(
     completion_items: &mut Vec<ACompletionItem<'a>>,
 ) {
     for s in symbols {
-        if let Some(AScope::Global) = s.scope_opt {
+        if let Some(AScope::Global(_)) = s.scope_opt {
             completion_items.push(ACompletionItem::Symbol(s));
         }
     }

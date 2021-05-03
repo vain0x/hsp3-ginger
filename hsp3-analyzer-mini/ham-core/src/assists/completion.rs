@@ -151,7 +151,7 @@ pub(crate) fn completion(
                         (None, Some(_)) => 'd',
                     },
                     (_, ASymbolKind::Module) => 'f',
-                    (Some(AScope::Global), _) => 'e',
+                    (Some(AScope::Global(_)), _) => 'e',
                     (None, _) => 'g',
                 };
 

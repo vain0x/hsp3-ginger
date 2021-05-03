@@ -46,17 +46,17 @@ pub(crate) fn resolve_symbol_scope(
     // 例外的に、`@` で修飾された識別子はglobalスコープかtoplevelスコープに属す。
     let scope_opt = match (&qual, def, &local.module_opt) {
         (Qual::Unqualified, ADefScope::Param, _) => Some(AScope::Local(local.clone())),
-        (Qual::Unqualified, ADefScope::Global, _) | (Qual::Toplevel, ADefScope::Global, _) => {
-            Some(AScope::Global)
-        }
-        (Qual::Unqualified, ADefScope::Local, _) => {
+        (Qual::Unqualified, ADefScope::Global(level), _)
+        | (Qual::Toplevel, ADefScope::Global(level), _) => Some(AScope::Global(level)),
+        (Qual::Unqualified, ADefScope::Local(level), _) => {
             let scope = AScope::Local(ALocalScope {
+                module_opt: local.module_opt.clone(),
                 deffunc_opt: None,
-                ..local.clone()
+                define_level: level,
             });
             Some(scope)
         }
-        (Qual::Toplevel, ADefScope::Local, _) => Some(AScope::Local(ALocalScope::default())),
+        (Qual::Toplevel, ADefScope::Local(_), _) => Some(AScope::Local(ALocalScope::default())),
         _ => None,
     };
 
@@ -64,9 +64,9 @@ pub(crate) fn resolve_symbol_scope(
         (_, ADefScope::Param, _) => None,
         (Qual::Module(ns), _, _) => Some(ns),
         (Qual::Toplevel, _, _)
-        | (Qual::Unqualified, ADefScope::Global, _)
-        | (Qual::Unqualified, ADefScope::Local, None) => Some("".into()),
-        (Qual::Unqualified, ADefScope::Local, Some(m)) => m.name_opt.clone(),
+        | (Qual::Unqualified, ADefScope::Global(_), _)
+        | (Qual::Unqualified, ADefScope::Local(_), None) => Some("".into()),
+        (Qual::Unqualified, ADefScope::Local(_), Some(m)) => m.name_opt.clone(),
     };
 
     (base, scope_opt, ns_opt)
@@ -110,6 +110,8 @@ fn resolve_candidate(
             return it;
         }
 
+        // 他のレベルからも探す。
+
         // deffuncの外からも探す。
         if scope.deffunc_opt.is_some() {
             let scope = ALocalScope {
@@ -143,7 +145,7 @@ const USE_SITE: bool = false;
 
 fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
     let (basename, scope_opt, ns_opt) =
-        resolve_symbol_scope(&name.body.text, ADefScope::Local, &ctx.scope);
+        resolve_symbol_scope(&name.body.text, ADefScope::Local(0), &ctx.scope);
 
     // 新しいシンボルを登録する。
     let symbol = ASymbol::new(ctx.symbols.len());
@@ -172,7 +174,7 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         symbol,
     };
     let env_opt = match scope_opt {
-        Some(AScope::Global) => Some(&mut ctx.public.env.global),
+        Some(AScope::Global(_)) => Some(&mut ctx.public.env.global),
         Some(AScope::Local(scope)) => Some(ctx.env.entry(scope).or_default()),
         None => None,
     };
@@ -378,11 +380,13 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }) => {
             let module = AModule::new(ctx.doc, &mut ctx.module_len, name_opt);
 
+            let define_level = ctx.scope.define_level;
             let parent_scope = replace(
                 &mut ctx.scope,
                 ALocalScope {
                     deffunc_opt: None,
                     module_opt: Some(module),
+                    define_level,
                 },
             );
 
@@ -392,15 +396,16 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             ctx.scope = parent_scope;
         }
-        PStmt::Const(_)
-        | PStmt::Define(_)
-        | PStmt::Enum(_)
-        | PStmt::UseLib(_)
+
+        PStmt::Const(_) | PStmt::Define(_) | PStmt::Enum(_) | PStmt::Cmd(_) => {
+            ctx.scope.define_level += 1;
+        }
+
+        PStmt::UseLib(_)
         | PStmt::LibFunc(_)
         | PStmt::UseCom(_)
         | PStmt::ComFunc(_)
         | PStmt::RegCmd(_)
-        | PStmt::Cmd(_)
         | PStmt::Global(_)
         | PStmt::Include(_)
         | PStmt::UnknownPreProc(_) => {}
