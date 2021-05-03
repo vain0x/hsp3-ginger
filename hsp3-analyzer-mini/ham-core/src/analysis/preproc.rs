@@ -1,7 +1,7 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
 use super::{a_scope::*, a_symbol::*};
-use crate::{parse::*, source::DocId};
+use crate::{analysis::var::resolve_symbol_scope, parse::*, source::DocId};
 use std::{collections::HashMap, mem::replace};
 
 #[derive(Default)]
@@ -15,33 +15,22 @@ struct Ctx {
 }
 
 impl Ctx {
-    fn deffunc_scope(&self) -> AScope {
-        AScope::Local(self.scope.clone())
-    }
-
-    fn module_scope(&self) -> AScope {
-        AScope::Local(ALocalScope {
-            module_opt: self.scope.module_opt.clone(),
-            deffunc_opt: None,
-        })
-    }
-
-    fn privacy_scope_or_local(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> AScope {
+    fn privacy_scope_or_local(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ADefScope {
         match privacy_opt {
-            Some((PPrivacy::Global, _)) => AScope::Global,
-            _ => self.module_scope(),
+            Some((PPrivacy::Global, _)) => ADefScope::Global,
+            _ => ADefScope::Local,
         }
     }
 
-    fn privacy_scope_or_global(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> AScope {
+    fn privacy_scope_or_global(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ADefScope {
         match privacy_opt {
-            Some((PPrivacy::Local, _)) => self.module_scope(),
-            _ => AScope::Global,
+            Some((PPrivacy::Local, _)) => ADefScope::Local,
+            _ => ADefScope::Global,
         }
     }
 
-    fn add_symbol(&mut self, kind: ASymbolKind, leader: &PToken, name: &PToken, scope: AScope) {
-        add_symbol(kind, leader, name, scope, &mut self.symbols);
+    fn add_symbol(&mut self, kind: ASymbolKind, leader: &PToken, name: &PToken, def: ADefScope) {
+        add_symbol(kind, leader, name, def, &self.scope, &mut self.symbols);
     }
 }
 
@@ -50,16 +39,20 @@ fn add_symbol(
     // 構文ノードの先頭のトークン
     leader: &PToken,
     name: &PToken,
-    scope: AScope,
+    def: ADefScope,
+    local: &ALocalScope,
     symbols: &mut Vec<ASymbolData>,
 ) {
+    let (basename, scope_opt, ns_opt) = resolve_symbol_scope(&name.body.text, def, local);
+
     symbols.push(ASymbolData {
         kind,
-        name: name.body.text.clone(),
-        def_sites: vec![name.body.loc.clone()],
+        name: basename,
+        def_sites: vec![name.body.loc],
         use_sites: vec![],
         leader: leader.clone(),
-        scope,
+        scope_opt,
+        ns_opt,
     });
 }
 
@@ -67,7 +60,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
         PStmt::Label(PLabel { star, name_opt }) => {
             if let Some(name) = name_opt {
-                ctx.add_symbol(ASymbolKind::Label, star, name, ctx.module_scope());
+                ctx.add_symbol(ASymbolKind::Label, star, name, ADefScope::Local);
             }
         }
         PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
@@ -151,12 +144,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             for param in params {
                 if let Some(name) = &param.name_opt {
                     let param_ty = param.param_ty_opt.as_ref().map(|&(t, _)| t);
-                    ctx.add_symbol(
-                        ASymbolKind::Param(param_ty),
-                        hash,
-                        name,
-                        ctx.deffunc_scope(),
-                    );
+                    ctx.add_symbol(ASymbolKind::Param(param_ty), hash, name, ADefScope::Param);
                 }
             }
 
@@ -243,11 +231,11 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             );
 
             if let Some(name) = name_opt {
-                ctx.add_symbol(ASymbolKind::Module, hash, name, AScope::Global);
+                ctx.add_symbol(ASymbolKind::Module, hash, name, ADefScope::Global);
             }
 
             for field in fields.iter().filter_map(|param| param.name_opt.as_ref()) {
-                ctx.add_symbol(ASymbolKind::Field, field, field, ctx.module_scope());
+                ctx.add_symbol(ASymbolKind::Field, field, field, ADefScope::Local);
             }
 
             for stmt in stmts {

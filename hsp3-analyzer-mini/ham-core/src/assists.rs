@@ -28,17 +28,6 @@ fn markdown_marked_string(value: String) -> MarkedString {
 }
 
 fn loc_to_range(loc: Loc) -> Range {
-    info!(
-        "loc_to_range: loc={},{}..{} -> {}:{}..{}:{}",
-        loc.doc,
-        loc.start(),
-        loc.end(),
-        loc.start_row(),
-        loc.start().column16,
-        loc.end_row(),
-        loc.end().column16
-    );
-
     Range::new(
         Position::new(loc.start_row() as u64, loc.start().column16 as u64),
         Position::new(loc.end_row() as u64, loc.end().column16 as u64),

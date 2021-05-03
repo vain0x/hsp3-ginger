@@ -25,6 +25,7 @@ impl<W: io::Write> LspSender<W> {
         .unwrap();
         self.out.flush().unwrap();
 
+        #[cfg(skip)]
         debug!(
             "lsp-sender/send Content-Length: {}\r\n\r\n{}",
             content_length, content

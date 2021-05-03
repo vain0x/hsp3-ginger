@@ -83,7 +83,8 @@ pub(crate) struct ASymbolData {
     pub(crate) def_sites: Vec<Loc>,
     pub(crate) use_sites: Vec<Loc>,
     pub(crate) leader: PToken,
-    pub(crate) scope: AScope,
+    pub(crate) scope_opt: Option<AScope>,
+    pub(crate) ns_opt: Option<RcStr>,
 }
 
 #[allow(unused)]

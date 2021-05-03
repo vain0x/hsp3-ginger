@@ -5,7 +5,7 @@ use crate::{
     utils::{id::Id, rc_str::RcStr},
 };
 
-#[derive(Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub(crate) struct ALocalScope {
     pub(crate) module_opt: Option<AModule>,
 
@@ -31,10 +31,17 @@ impl ALocalScope {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) enum AScope {
     Global,
     Local(ALocalScope),
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum ADefScope {
+    Global,
+    Local,
+    Param,
 }
 
 pub(crate) type ADefFunc = Id<ADefFuncData>;
@@ -47,7 +54,7 @@ pub(crate) struct ADefFuncData {
     pub(crate) content_loc: Loc,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct AModule {
     pub(crate) doc: DocId,
     pub(crate) index: usize,

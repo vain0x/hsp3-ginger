@@ -44,6 +44,7 @@ impl<R: io::Read> LspReceiver<R> {
 
         let json = String::from_utf8_lossy(&self.content);
 
+        #[cfg(skip)]
         debug!("Received {}\n", json);
 
         f(&json);

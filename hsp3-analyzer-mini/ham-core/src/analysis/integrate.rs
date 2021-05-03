@@ -30,6 +30,7 @@ pub(crate) struct AWorkspaceAnalysis {
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     pub(crate) public_env: APublicEnv,
+    pub(crate) ns_env: HashMap<RcStr, AEnv>,
     pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
     pub(crate) use_sites: Vec<(AWsSymbol, Loc)>,
 }
@@ -83,26 +84,38 @@ impl AWorkspaceAnalysis {
         }
 
         self.public_env.clear();
+        self.ns_env.clear();
         self.def_sites.clear();
         self.use_sites.clear();
 
         // 複数ファイルに渡る環境を構築する。
         for (&doc, preproc) in &self.doc_preproc_map {
             for (i, symbol_data) in preproc.symbols.iter().enumerate() {
-                let env = match &symbol_data.scope {
-                    AScope::Global => &mut self.public_env.global,
-                    AScope::Local(scope) if scope.is_public() => &mut self.public_env.toplevel,
-                    AScope::Local(_) => continue,
-                };
-
                 let symbol = ASymbol::new(i);
-                env.insert(symbol_data.name.clone(), AWsSymbol { doc, symbol });
+                let ws_symbol = AWsSymbol { doc, symbol };
+
+                match &symbol_data.scope_opt {
+                    Some(AScope::Global) => {
+                        self.public_env
+                            .global
+                            .insert(symbol_data.name.clone(), ws_symbol);
+                    }
+                    _ => {}
+                }
+
+                if let Some(ns) = &symbol_data.ns_opt {
+                    self.ns_env
+                        .entry(ns.clone())
+                        .or_default()
+                        .insert(symbol_data.name.clone(), ws_symbol);
+                }
             }
         }
 
         // 変数の定義箇所を決定する。
         let mut public_state = APublicState {
             env: take(&mut self.public_env),
+            ns_env: take(&mut self.ns_env),
             def_sites: take(&mut self.def_sites),
             use_sites: take(&mut self.use_sites),
         };
@@ -121,10 +134,12 @@ impl AWorkspaceAnalysis {
         {
             let APublicState {
                 env,
+                ns_env,
                 def_sites,
                 use_sites,
             } = public_state;
             self.public_env = env;
+            self.ns_env = ns_env;
             self.def_sites = def_sites;
             self.use_sites = use_sites;
         }
@@ -304,25 +319,15 @@ pub(crate) struct APublicEnv {
 
     /// あらゆる場所で使えるシンボルが属す環境。(標準命令や `#define global` で定義されたマクロなど)
     pub(crate) global: AEnv,
-
-    /// モジュールの外で使えるシンボルの名前を解決するためのマップ。(`global` は除く。)
-    pub(crate) toplevel: AEnv,
 }
 
 impl APublicEnv {
-    pub(crate) fn resolve(&self, name: &str, is_toplevel: bool) -> Option<AWsSymbol> {
-        if is_toplevel {
-            if let it @ Some(_) = self.toplevel.get(name) {
-                return it;
-            }
-        }
-
+    pub(crate) fn resolve(&self, name: &str) -> Option<AWsSymbol> {
         self.global.get(name).or_else(|| self.builtin.get(name))
     }
 
     pub(crate) fn clear(&mut self) {
         self.global.clear();
-        self.toplevel.clear();
     }
 }
 
@@ -365,15 +370,15 @@ pub(crate) enum ACompletionItem<'a> {
 
 fn collect_local_completion_items<'a>(
     symbols: &'a [ASymbolData],
-    current_scope: &ALocalScope,
+    local: &ALocalScope,
     completion_items: &mut Vec<ACompletionItem<'a>>,
 ) {
     for s in symbols {
-        match &s.scope {
-            AScope::Local(scope) if scope.is_visible_to(current_scope) => {
+        match &s.scope_opt {
+            Some(AScope::Local(scope)) if scope.is_visible_to(local) => {
                 completion_items.push(ACompletionItem::Symbol(s));
             }
-            AScope::Global | AScope::Local(_) => continue,
+            _ => continue,
         }
     }
 }
@@ -383,11 +388,8 @@ fn collect_global_completion_items<'a>(
     completion_items: &mut Vec<ACompletionItem<'a>>,
 ) {
     for s in symbols {
-        match s.scope {
-            AScope::Global => {
-                completion_items.push(ACompletionItem::Symbol(s));
-            }
-            AScope::Local(_) => continue,
+        if let Some(AScope::Global) = s.scope_opt {
+            completion_items.push(ACompletionItem::Symbol(s));
         }
     }
 }
@@ -411,8 +413,8 @@ pub(crate) struct Name {
     pub(crate) qual: Qual,
 }
 
-impl From<RcStr> for Name {
-    fn from(name: RcStr) -> Self {
+impl Name {
+    pub(crate) fn new(name: &RcStr) -> Self {
         match name.rfind('@') {
             Some(i) if i + 1 == name.len() => Name {
                 base: name.slice(0, i),
@@ -423,7 +425,7 @@ impl From<RcStr> for Name {
                 qual: Qual::Module(name.slice(i + 1, name.len())),
             },
             None => Name {
-                base: name,
+                base: name.clone(),
                 qual: Qual::Unqualified,
             },
         }

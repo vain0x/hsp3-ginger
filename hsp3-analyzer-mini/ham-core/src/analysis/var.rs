@@ -1,16 +1,17 @@
 // 変数の定義・使用箇所の列挙。
 
 use super::{
-    a_scope::{ADefFunc, ALocalScope, AModule},
+    a_scope::{ADefFunc, ADefScope, ALocalScope, AModule},
     a_symbol::{ASymbolData, AWsSymbol},
-    integrate::{AEnv, APublicEnv},
+    integrate::{AEnv, APublicEnv, Name, Qual},
     AScope, ASymbol, ASymbolKind,
 };
-use crate::{parse::*, source::*};
+use crate::{parse::*, source::*, utils::rc_str::RcStr};
 use std::{collections::HashMap, mem::replace};
 
 pub(crate) struct APublicState {
     pub(crate) env: APublicEnv,
+    pub(crate) ns_env: HashMap<RcStr, AEnv>,
 
     // 他のドキュメントのシンボルの定義・使用箇所を記録するもの。
     pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
@@ -33,60 +34,128 @@ struct Ctx<'a> {
     scope: ALocalScope,
 }
 
-impl Ctx<'_> {
-    fn module_scope(&self) -> AScope {
-        AScope::Local(self.module_local_scope())
-    }
+/// (basename, scope, namespace)
+pub(crate) fn resolve_symbol_scope(
+    name: &RcStr,
+    def: ADefScope,
+    local: &ALocalScope,
+) -> (RcStr, Option<AScope>, Option<RcStr>) {
+    let Name { base, qual } = Name::new(name);
 
-    fn module_local_scope(&self) -> ALocalScope {
-        ALocalScope {
-            module_opt: self.scope.module_opt.clone(),
-            deffunc_opt: None,
+    // 識別子が非修飾のときはスコープに属す。
+    // 例外的に、`@` で修飾された識別子はglobalスコープかtoplevelスコープに属す。
+    let scope_opt = match (&qual, def, &local.module_opt) {
+        (Qual::Unqualified, ADefScope::Param, _) => Some(AScope::Local(local.clone())),
+        (Qual::Unqualified, ADefScope::Global, _) | (Qual::Toplevel, ADefScope::Global, _) => {
+            Some(AScope::Global)
         }
-    }
+        (Qual::Unqualified, ADefScope::Local, _) => {
+            let scope = AScope::Local(ALocalScope {
+                deffunc_opt: None,
+                ..local.clone()
+            });
+            Some(scope)
+        }
+        (Qual::Toplevel, ADefScope::Local, _) => Some(AScope::Local(ALocalScope::default())),
+        _ => None,
+    };
+
+    let ns_opt: Option<RcStr> = match (qual, def, &local.module_opt) {
+        (_, ADefScope::Param, _) => None,
+        (Qual::Module(ns), _, _) => Some(ns),
+        (Qual::Toplevel, _, _)
+        | (Qual::Unqualified, ADefScope::Global, _)
+        | (Qual::Unqualified, ADefScope::Local, None) => Some("".into()),
+        (Qual::Unqualified, ADefScope::Local, Some(m)) => m.name_opt.clone(),
+    };
+
+    (base, scope_opt, ns_opt)
+}
+
+/// (basename, scope, namespace)
+pub(crate) fn resolve_symbol_scope_for_search(
+    name: &RcStr,
+    local: &ALocalScope,
+) -> (RcStr, Option<AScope>, Option<RcStr>) {
+    let Name { base, qual } = Name::new(name);
+
+    let scope_opt = match &qual {
+        Qual::Unqualified => Some(AScope::Local(local.clone())),
+        Qual::Toplevel => Some(AScope::Local(ALocalScope::default())),
+        Qual::Module(_) => None,
+    };
+
+    let ns_opt: Option<RcStr> = match (qual, &local.module_opt) {
+        (Qual::Module(ns), _) => Some(ns),
+        (Qual::Toplevel, _) | (Qual::Unqualified, None) => Some("".into()),
+        (Qual::Unqualified, Some(m)) => m.name_opt.clone(),
+    };
+
+    (base, scope_opt, ns_opt)
 }
 
 /// 暗黙のシンボルの出現を解決する。
 fn resolve_candidate(
-    name: &str,
-    scope: &ALocalScope,
+    name: &RcStr,
+    local: &ALocalScope,
     public_env: &APublicEnv,
+    ns_env: &HashMap<RcStr, AEnv>,
     local_env: &HashMap<ALocalScope, AEnv>,
 ) -> Option<AWsSymbol> {
-    // ローカル環境で探す
-    if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(name)) {
-        return it;
+    let (basename, scope_opt, ns_opt) = resolve_symbol_scope_for_search(name, local);
+
+    if let Some(AScope::Local(scope)) = &scope_opt {
+        // ローカル環境で探す
+        if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(&basename)) {
+            return it;
+        }
+
+        // deffuncの外からも探す。
+        if scope.deffunc_opt.is_some() {
+            let scope = ALocalScope {
+                deffunc_opt: None,
+                ..scope.clone()
+            };
+            if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(&basename)) {
+                return it;
+            }
+        }
     }
 
-    // deffuncの外からも探す。
-    if scope.deffunc_opt.is_some() {
-        let scope = ALocalScope {
-            module_opt: scope.module_opt.clone(),
-            deffunc_opt: None,
-        };
-        if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(name)) {
+    if let Some(ns) = &ns_opt {
+        if let it @ Some(_) = ns_env.get(ns).and_then(|env| env.get(&basename)) {
             return it;
         }
     }
 
-    // globalで探す。
-    public_env.resolve(name, scope.is_outside_module())
+    if let Some(_) = scope_opt {
+        // globalで探す。
+        if let it @ Some(_) = public_env.resolve(&basename) {
+            return it;
+        }
+    }
+
+    None
 }
 
 const DEF_SITE: bool = true;
 const USE_SITE: bool = false;
 
 fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
+    let (basename, scope_opt, ns_opt) =
+        resolve_symbol_scope(&name.body.text, ADefScope::Local, &ctx.scope);
+
     // 新しいシンボルを登録する。
     let symbol = ASymbol::new(ctx.symbols.len());
 
     let mut symbol_data = ASymbolData {
         kind,
-        name: name.body.text.clone(),
+        name: basename.clone(),
         def_sites: vec![],
         use_sites: vec![],
         leader: name.clone(),
-        scope: ctx.module_scope(),
+        scope_opt: scope_opt.clone(),
+        ns_opt: ns_opt.clone(),
     };
 
     if def_site {
@@ -102,18 +171,32 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         doc: ctx.doc,
         symbol,
     };
-    let name = name.body.text.clone();
-    let defined_scope = ctx.module_local_scope();
-    let defined_env = if defined_scope.is_outside_module() {
-        &mut ctx.public.env.toplevel
-    } else {
-        ctx.env.entry(defined_scope).or_default()
+    let env_opt = match scope_opt {
+        Some(AScope::Global) => Some(&mut ctx.public.env.global),
+        Some(AScope::Local(scope)) => Some(ctx.env.entry(scope).or_default()),
+        None => None,
     };
-    defined_env.insert(name, ws_symbol);
+    if let Some(env) = env_opt {
+        env.insert(basename.clone(), ws_symbol);
+    }
+
+    if let Some(ns) = ns_opt {
+        ctx.public
+            .ns_env
+            .entry(ns)
+            .or_default()
+            .insert(basename, ws_symbol);
+    }
 }
 
 fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
-    match resolve_candidate(name.body_text(), &ctx.scope, &ctx.public.env, &ctx.env) {
+    match resolve_candidate(
+        &name.body.text,
+        &ctx.scope,
+        &ctx.public.env,
+        &ctx.public.ns_env,
+        &ctx.env,
+    ) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
             ctx.public.def_sites.push((ws_symbol, name.body.loc));
         }
@@ -128,7 +211,13 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
 }
 
 fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
-    match resolve_candidate(name.body_text(), &ctx.scope, &ctx.public.env, &ctx.env) {
+    match resolve_candidate(
+        &name.body.text,
+        &ctx.scope,
+        &ctx.public.env,
+        &ctx.public.ns_env,
+        &ctx.env,
+    ) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
             ctx.public.use_sites.push((ws_symbol, name.body.loc));
         }
@@ -343,14 +432,14 @@ pub(crate) fn analyze_var_def(
             symbol: ASymbol::new(i),
         };
 
-        match &symbol.scope {
-            AScope::Local(scope) if !scope.is_public() => {
+        match &symbol.scope_opt {
+            Some(AScope::Local(scope)) if !scope.is_public() => {
                 local_env
                     .entry(scope.clone())
                     .or_default()
                     .insert(symbol.name.clone(), ws_symbol);
             }
-            AScope::Local(_) | AScope::Global => {}
+            _ => {}
         }
     }
 
