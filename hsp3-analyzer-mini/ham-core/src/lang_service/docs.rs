@@ -107,6 +107,7 @@ impl Docs {
     }
 
     pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
+        #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが開かれました ({:?} version={}, len={})",
             uri,
@@ -134,6 +135,7 @@ impl Docs {
     }
 
     pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
+        #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが変更されました ({:?} version={}, len={})",
             uri,
@@ -152,6 +154,7 @@ impl Docs {
     }
 
     pub(crate) fn close_doc_in_editor(&mut self, uri: CanonicalUri) {
+        #[cfg(trace_docs)]
         trace!("クライアントでファイルが閉じられました ({:?})", uri);
 
         let doc = match self.uri_to_doc.get(&uri) {

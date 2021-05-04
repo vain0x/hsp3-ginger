@@ -43,7 +43,8 @@ impl FileWatcher {
 
     /// 監視を停止する。(呼ばなくても問題ない。)
     pub(crate) fn stop_watch(&mut self) {
-        debug!("ファイルウォッチャーがシャットダウンしました。");
+        #[cfg(trace_docs)]
+        trace!("ファイルウォッチャーがシャットダウンしました。");
         self.watcher_opt = None;
         self.rx_opt = None;
     }
@@ -54,29 +55,34 @@ impl FileWatcher {
             Some(rx) => rx,
         };
 
-        debug!("ファイルウォッチャーのイベントをポールします。");
+        #[cfg(trace_docs)]
+        trace!("ファイルウォッチャーのイベントをポールします。");
 
         let mut disconnected = false;
 
         loop {
             match rx.try_recv() {
                 Ok(DebouncedEvent::Create(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが作成されました: {:?}", path);
+                    #[cfg(trace_docs)]
+                    trace!("ファイルが作成されました: {:?}", path);
                     self.closed_files.remove(path);
                     self.changed_files.insert(path.clone());
                 }
                 Ok(DebouncedEvent::Write(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが変更されました: {:?}", path);
+                    #[cfg(trace_docs)]
+                    trace!("ファイルが変更されました: {:?}", path);
                     self.closed_files.remove(path);
                     self.changed_files.insert(path.clone());
                 }
                 Ok(DebouncedEvent::Remove(ref path)) if file_ext_is_watched(path) => {
-                    debug!("ファイルが削除されました: {:?}", path);
+                    #[cfg(trace_docs)]
+                    trace!("ファイルが削除されました: {:?}", path);
                     self.changed_files.remove(path);
                     self.closed_files.insert(path.clone());
                 }
                 Ok(DebouncedEvent::Rename(ref src_path, ref dest_path)) => {
-                    debug!("ファイルが移動しました: {:?} → {:?}", src_path, dest_path);
+                    #[cfg(trace_docs)]
+                    trace!("ファイルが移動しました: {:?} → {:?}", src_path, dest_path);
                     if file_ext_is_watched(src_path) {
                         self.changed_files.remove(src_path);
                         self.closed_files.insert(src_path.clone());
@@ -87,11 +93,14 @@ impl FileWatcher {
                     }
                 }
                 Ok(DebouncedEvent::Rescan) => {
-                    debug!("ファイルウォッチャーから再スキャンが要求されました");
+                    #[cfg(trace_docs)]
+                    trace!("ファイルウォッチャーから再スキャンが要求されました");
                     *rescan = true;
                 }
+                #[allow(unused)]
                 Ok(ev) => {
-                    debug!("ファイルウォッチャーのイベントをスキップします: {:?}", ev);
+                    #[cfg(trace_docs)]
+                    trace!("ファイルウォッチャーのイベントをスキップします: {:?}", ev);
                 }
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => {
@@ -112,7 +121,8 @@ impl FileWatcher {
             self.stop_watch();
         }
 
-        debug!(
+        #[cfg(trace_docs)]
+        trace!(
             "ファイルウォッチャーのイベントをポールしました (change={} remove={}{}{})",
             self.changed_files.len(),
             self.closed_files.len(),
@@ -143,7 +153,8 @@ fn file_ext_is_watched(path: &Path) -> bool {
 fn do_scan_all(watched_dir: &Path, changed_files: &mut HashSet<PathBuf>) -> Option<()> {
     let glob_pattern = format!("{}/**/*.hsp", watched_dir.to_str()?);
 
-    debug!("ファイルリストの取得 '{}'", glob_pattern);
+    #[cfg(trace_docs)]
+    trace!("ファイルリストの取得 '{}'", glob_pattern);
 
     let entries = match glob::glob(&glob_pattern) {
         Err(err) => {
@@ -166,7 +177,8 @@ fn do_scan_all(watched_dir: &Path, changed_files: &mut HashSet<PathBuf>) -> Opti
 }
 
 fn do_start_watch(watched_dir: &Path) -> Option<(RecommendedWatcher, Receiver<DebouncedEvent>)> {
-    debug!("ファイルウォッチャーを起動します");
+    #[cfg(trace_docs)]
+    trace!("ファイルウォッチャーを起動します");
 
     use notify::{RecursiveMode, Watcher};
     use std::sync::mpsc::channel;
@@ -189,6 +201,7 @@ fn do_start_watch(watched_dir: &Path) -> Option<(RecommendedWatcher, Receiver<De
         .map_err(|err| warn!("ファイルウォッチャーの起動 {:?}", err))
         .ok()?;
 
-    debug!("ファイルウォッチャーを起動しました ({:?})", watched_dir);
+    #[cfg(trace_docs)]
+    trace!("ファイルウォッチャーを起動しました ({:?})", watched_dir);
     Some((watcher, rx))
 }
