@@ -1,8 +1,24 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
 use super::{a_scope::*, a_symbol::*};
-use crate::{analysis::var::resolve_symbol_scope, parse::*, source::DocId};
-use std::{collections::HashMap, mem::replace};
+use crate::{
+    analysis::var::resolve_symbol_scope,
+    parse::*,
+    source::{DocId, Loc},
+    utils::rc_str::RcStr,
+};
+use std::{collections::HashMap, mem::replace, rc::Rc};
+
+pub(crate) struct ASignatureData {
+    pub(crate) name: RcStr,
+    pub(crate) params: Vec<(PParamTy, Option<RcStr>)>,
+    #[allow(unused)]
+    pub(crate) command: bool,
+    #[allow(unused)]
+    pub(crate) func: bool,
+    #[allow(unused)]
+    pub(crate) def_site: Loc,
+}
 
 #[derive(Default)]
 struct Ctx {
@@ -10,6 +26,7 @@ struct Ctx {
     symbols: Vec<ASymbolData>,
     scope: ALocalScope,
     modules: HashMap<AModule, AModuleData>,
+    signatures: HashMap<ASymbol, Rc<ASignatureData>>,
     module_len: usize,
     deffunc_len: usize,
 }
@@ -99,20 +116,23 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 ctx.add_symbol(ASymbolKind::Enum, hash, name, scope);
             }
         }
-        PStmt::DefFunc(PDefFuncStmt {
-            hash,
-            keyword: _,
-            kind,
-            privacy_opt,
-            name_opt,
-            onexit_opt,
-            params,
-            stmts,
-            behind: _,
-            ..
-        }) => {
+        PStmt::DefFunc(stmt) => {
+            let PDefFuncStmt {
+                hash,
+                keyword: _,
+                kind,
+                privacy_opt,
+                name_opt,
+                onexit_opt,
+                params,
+                stmts,
+                behind: _,
+                ..
+            } = stmt;
+
             ctx.deffunc_len += 1;
             let deffunc = ADefFunc::new(ctx.deffunc_len);
+            let mut symbol_opt = None;
             // let deffunc = ADefFunc::new(ax.deffuncs.len());
             // ax.deffuncs.push(ADefFuncData {
             //     kind: *kind,
@@ -135,7 +155,14 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
                 if onexit_opt.is_none() {
                     let scope = ctx.privacy_scope_or_global(privacy_opt);
+                    symbol_opt = Some(ASymbol::new(ctx.symbols.len()));
                     ctx.add_symbol(kind, hash, name, scope);
+                }
+            }
+
+            if let Some(symbol) = symbol_opt {
+                if let Some(data) = new_signature_data(stmt) {
+                    ctx.signatures.insert(symbol, Rc::new(data));
                 }
             }
 
@@ -250,9 +277,46 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     }
 }
 
+fn new_signature_data(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
+    let (command, func, take_modvar) = match stmt.kind {
+        PDefFuncKind::DefFunc => (true, false, false),
+        PDefFuncKind::DefCFunc => (false, true, false),
+        PDefFuncKind::ModFunc => (true, false, true),
+        PDefFuncKind::ModCFunc => (false, true, false),
+        PDefFuncKind::ModInit | PDefFuncKind::ModTerm => return None,
+    };
+
+    let name = stmt.name_opt.as_ref()?.body.text.clone();
+
+    let mut params = vec![];
+
+    if take_modvar {
+        params.push((PParamTy::Modvar, Some("thismod".into())));
+    }
+
+    for param in &stmt.params {
+        let ty = match param.param_ty_opt {
+            Some((ty, _)) if ty.take_arg() => ty,
+            _ => continue,
+        };
+        let name_opt = param.name_opt.as_ref().map(|name| name.body.text.clone());
+
+        params.push((ty, name_opt));
+    }
+
+    Some(ASignatureData {
+        name,
+        params,
+        command,
+        func,
+        def_site: stmt.hash.body.loc,
+    })
+}
+
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<ASymbolData>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
+    pub(crate) signatures: HashMap<ASymbol, Rc<ASignatureData>>,
 }
 
 pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult {
@@ -264,8 +328,15 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
     }
 
     let Ctx {
-        symbols, modules, ..
+        symbols,
+        modules,
+        signatures,
+        ..
     } = ctx;
 
-    PreprocAnalysisResult { symbols, modules }
+    PreprocAnalysisResult {
+        symbols,
+        modules,
+        signatures,
+    }
 }

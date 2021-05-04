@@ -2,20 +2,21 @@ use super::{
     a_scope::{ADefFunc, AModule, AModuleData},
     a_symbol::{ASymbolData, AWsSymbol},
     comment::{calculate_details, collect_comments},
-    preproc::PreprocAnalysisResult,
+    preproc::{ASignatureData, PreprocAnalysisResult},
     var::{AAnalysis, APublicState},
     AScope, ASymbol, ASymbolDetails,
 };
 use crate::{
     analysis::a_scope::ALocalScope,
     parse::*,
-    source::{range_is_touched, DocId, Loc, Pos16},
+    source::{range_is_touched, DocId, Loc, Pos, Pos16},
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
 use std::{
     collections::{HashMap, HashSet},
     mem::take,
+    rc::Rc,
 };
 
 #[derive(Default)]
@@ -169,6 +170,108 @@ impl AWorkspaceAnalysis {
         // eprintln!("analysis_map={:#?}", &self.doc_analysis_map);
         // eprintln!("def_sites={:#?}", &self.def_sites);
         // eprintln!("use_sites={:#?}", &self.use_sites);
+    }
+
+    pub(crate) fn get_signature_help_context(
+        &mut self,
+        doc: DocId,
+        pos: Pos16,
+    ) -> Option<SignatureHelpContext> {
+        self.compute();
+
+        let syntax = self.doc_syntax_map.get(&doc)?;
+        let doc_preproc_map = take(&mut self.doc_preproc_map);
+
+        let use_site_map = self
+            .use_sites
+            .iter()
+            .filter_map(|&(ws_symbol, loc)| {
+                if loc.doc == doc {
+                    Some((loc.start(), ws_symbol))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<_, _>>();
+
+        struct V {
+            pos: Pos16,
+            doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
+            use_site_map: HashMap<Pos, AWsSymbol>,
+            out: Option<SignatureHelpContext>,
+        }
+
+        impl V {
+            fn try_resolve(&mut self, callee: &PToken, args: &[PArg], ctype: bool) {
+                if self.out.is_some() {
+                    return;
+                }
+
+                let at_callee = callee.body.loc.range.contains_inclusive(self.pos);
+                if at_callee {
+                    return;
+                }
+
+                let AWsSymbol { doc, symbol } =
+                    match self.use_site_map.get(&callee.body.loc.start()) {
+                        Some(it) => *it,
+                        None => return,
+                    };
+
+                let signature_data = match self
+                    .doc_preproc_map
+                    .get(&doc)
+                    .and_then(|preproc| preproc.signatures.get(&symbol))
+                {
+                    Some(it) => Rc::clone(it),
+                    None => return,
+                };
+
+                let arg_index = args
+                    .iter()
+                    .take_while(|arg| arg.compute_range().end() <= self.pos)
+                    .count();
+
+                self.out = Some(SignatureHelpContext {
+                    signature_data,
+                    ctype,
+                    arg_index,
+                });
+            }
+
+            fn on_command_stmt(&mut self, stmt: &PCommandStmt) {
+                self.try_resolve(&stmt.command, &stmt.args, false);
+            }
+        }
+
+        impl PVisitor for V {
+            fn on_stmt(&mut self, stmt: &PStmt) {
+                if self.out.is_some() || !stmt.compute_range().contains_inclusive(self.pos) {
+                    return;
+                }
+
+                self.on_stmt_default(stmt);
+
+                if let PStmt::Command(stmt) = stmt {
+                    self.on_command_stmt(stmt);
+                }
+            }
+        }
+
+        let mut v = V {
+            pos,
+            doc_preproc_map,
+            use_site_map,
+            out: None,
+        };
+        v.on_stmts(&syntax.tree.stmts);
+        let V {
+            doc_preproc_map,
+            out,
+            ..
+        } = v;
+        self.doc_preproc_map = doc_preproc_map;
+        out
     }
 
     pub(crate) fn locate_symbol(&mut self, doc: DocId, pos: Pos16) -> Option<(AWsSymbol, Loc)> {
@@ -524,4 +627,10 @@ mod tests {
             assert_eq!(actual, expected_map[name], "name={}", name);
         }
     }
+}
+
+pub(crate) struct SignatureHelpContext {
+    pub(crate) signature_data: Rc<ASignatureData>,
+    pub(crate) arg_index: usize,
+    pub(crate) ctype: bool,
 }

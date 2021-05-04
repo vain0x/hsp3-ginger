@@ -19,6 +19,16 @@ pub(crate) struct LangServiceOptions {
     pub(crate) watcher_enabled: bool,
 }
 
+impl LangServiceOptions {
+    #[cfg(test)]
+    pub(crate) fn minimal() -> Self {
+        Self {
+            lint_enabled: false,
+            watcher_enabled: false,
+        }
+    }
+}
+
 impl Default for LangServiceOptions {
     fn default() -> Self {
         Self {
@@ -41,6 +51,17 @@ pub(super) struct LangService {
 
 impl LangService {
     pub(super) fn new(hsp3_home: PathBuf, options: LangServiceOptions) -> Self {
+        Self {
+            hsp3_home,
+            options,
+            ..Default::default()
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_standalone() -> Self {
+        let hsp3_home = PathBuf::from("/tmp/.not_exist");
+        let options = LangServiceOptions::minimal();
         Self {
             hsp3_home,
             options,
@@ -287,6 +308,12 @@ impl LangService {
         self.poll();
 
         assists::rename::rename(uri, position, new_name, &self.docs, &mut self.wa)
+    }
+
+    pub(super) fn signature_help(&mut self, uri: Url, position: Position) -> Option<SignatureHelp> {
+        self.poll();
+
+        assists::signature_help::signature_help(uri, position, &self.docs, &mut self.wa)
     }
 
     pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {

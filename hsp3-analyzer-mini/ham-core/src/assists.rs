@@ -12,6 +12,7 @@ pub(crate) mod document_highlight;
 pub(crate) mod hover;
 pub(crate) mod references;
 pub(crate) mod rename;
+pub(crate) mod signature_help;
 
 fn plain_text_to_marked_string(value: String) -> MarkedString {
     MarkedString::LanguageString(LanguageString {

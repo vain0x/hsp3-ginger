@@ -39,6 +39,14 @@ impl<W: io::Write> LspHandler<W> {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 })),
+                signature_help_provider: Some(SignatureHelpOptions {
+                    trigger_characters: Some(vec![
+                        " ".to_string(),
+                        "(".to_string(),
+                        ",".to_string(),
+                    ]),
+                    ..Default::default()
+                }),
                 ..ServerCapabilities::default()
             },
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
@@ -141,6 +149,18 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
+    fn text_document_signature_help(
+        &mut self,
+        params: SignatureHelpParams,
+    ) -> Option<SignatureHelp> {
+        let (uri, position) = {
+            let p = params.text_document_position_params;
+            (p.text_document.uri, p.position)
+        };
+
+        self.model.signature_help(uri, position)
+    }
+
     fn diagnose(&mut self) {
         let diagnostics = self.model.diagnose();
 
@@ -239,6 +259,13 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspRequest<RenameParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_rename(msg.params);
+                self.sender.send_response(msg_id, response);
+                self.diagnose();
+            }
+            request::SignatureHelpRequest::METHOD => {
+                let msg: LspRequest<SignatureHelpParams> = serde_json::from_str(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_signature_help(msg.params);
                 self.sender.send_response(msg_id, response);
                 self.diagnose();
             }

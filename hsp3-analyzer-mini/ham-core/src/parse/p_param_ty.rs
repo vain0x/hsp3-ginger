@@ -107,6 +107,13 @@ impl PParamTy {
             | PParamTy::HInst => PParamCategory::Auto,
         }
     }
+
+    pub(crate) fn take_arg(self) -> bool {
+        match self.category() {
+            PParamCategory::ByValue | PParamCategory::ByRef => true,
+            PParamCategory::Local | PParamCategory::Auto => false,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
