@@ -25,10 +25,14 @@ impl<W: io::Write> LspSender<W> {
         .unwrap();
         self.out.flush().unwrap();
 
-        #[cfg(skip)]
         debug!(
             "lsp-sender/send Content-Length: {}\r\n\r\n{}",
-            content_length, content
+            content_length,
+            if content_length < 0x1000 {
+                &content
+            } else {
+                "TOO_LONG"
+            }
         );
     }
 

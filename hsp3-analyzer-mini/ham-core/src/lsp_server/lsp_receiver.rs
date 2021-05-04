@@ -44,8 +44,14 @@ impl<R: io::Read> LspReceiver<R> {
 
         let json = String::from_utf8_lossy(&self.content);
 
-        #[cfg(skip)]
-        debug!("Received {}\n", json);
+        debug!(
+            "Received {}\n",
+            if content_length < 0x1000 {
+                &json
+            } else {
+                "<TOO LONG>"
+            }
+        );
 
         f(&json);
     }
