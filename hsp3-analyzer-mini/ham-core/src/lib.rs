@@ -41,6 +41,7 @@ mod parse {
     pub(crate) mod parse_expr;
     pub(crate) mod parse_preproc;
     pub(crate) mod parse_stmt;
+    pub(crate) mod syntax_tree;
 
     mod parse_tests;
 
