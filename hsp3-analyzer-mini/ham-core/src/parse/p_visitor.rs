@@ -195,6 +195,10 @@ impl PExpr {
 impl PStmt {
     pub(crate) fn compute_range(&self) -> Range {
         let mut visitor = VisitorForRange::default();
+
+        // 文は明示的に終端するトークンがないので、後続する空白も範囲に含める。(これはシグネチャヘルプの都合。)
+        visitor.trailing = true;
+
         visitor.on_stmt(self);
         visitor.finish()
     }
@@ -204,6 +208,7 @@ impl PStmt {
 struct VisitorForRange {
     first: Option<Range>,
     last: Option<Pos>,
+    trailing: bool,
 }
 
 impl VisitorForRange {
@@ -225,10 +230,19 @@ impl VisitorForRange {
 impl PVisitor for VisitorForRange {
     fn on_token(&mut self, token: &PToken) {
         if self.first.is_none() {
-            self.first = Some(token.body.loc.range);
+            self.first = Some(if self.trailing {
+                token.body.loc.range.join(token.behind().range)
+            } else {
+                token.body.loc.range
+            });
         }
 
-        self.update_last(token.body.loc.end());
+        let end = if self.trailing {
+            token.behind().range.end()
+        } else {
+            token.body.loc.end()
+        };
+        self.update_last(end);
     }
 
     // 中間のトークンの探索を可能な限りスキップする:
