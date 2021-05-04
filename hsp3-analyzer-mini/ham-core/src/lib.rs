@@ -37,6 +37,7 @@ mod parse {
     pub(crate) mod p_privacy;
     pub(crate) mod p_token;
     pub(crate) mod p_tree;
+    pub(crate) mod p_visitor;
     pub(crate) mod parse_context;
     pub(crate) mod parse_expr;
     pub(crate) mod parse_preproc;
