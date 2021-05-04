@@ -1,7 +1,9 @@
+use std::mem::take;
+
 use super::*;
 use crate::source::{Pos, Range};
 
-trait PVisitor {
+pub(crate) trait PVisitor {
     fn on_token(&mut self, _token: &PToken) {}
 
     fn on_token_opt(&mut self, token_opt: Option<&PToken>) {
@@ -46,7 +48,7 @@ trait PVisitor {
         }
     }
 
-    fn on_expr(&mut self, expr: &PExpr) {
+    fn on_expr_default(&mut self, expr: &PExpr) {
         match expr {
             PExpr::Literal(token) => {
                 self.on_token(token);
@@ -68,6 +70,10 @@ trait PVisitor {
                 self.on_expr_opt(expr.right_opt.as_deref());
             }
         }
+    }
+
+    fn on_expr(&mut self, expr: &PExpr) {
+        self.on_expr_default(expr);
     }
 
     fn on_expr_opt(&mut self, expr_opt: Option<&PExpr>) {
@@ -110,7 +116,7 @@ trait PVisitor {
         // stmt.global_opt
     }
 
-    fn on_stmt(&mut self, stmt: &PStmt) {
+    fn on_stmt_default(&mut self, stmt: &PStmt) {
         match stmt {
             PStmt::Label(label) => self.on_label(label),
             PStmt::Assign(stmt) => {
@@ -148,6 +154,10 @@ trait PVisitor {
         }
     }
 
+    fn on_stmt(&mut self, stmt: &PStmt) {
+        self.on_stmt_default(stmt);
+    }
+
     fn on_stmt_opt(&mut self, stmt_opt: Option<&PStmt>) {
         if let Some(stmt) = stmt_opt {
             self.on_stmt(stmt);
@@ -173,6 +183,7 @@ impl PArg {
     }
 }
 
+#[cfg(unused)]
 impl PExpr {
     pub(crate) fn compute_range(&self) -> Range {
         let mut visitor = VisitorForRange::default();
@@ -196,6 +207,12 @@ struct VisitorForRange {
 }
 
 impl VisitorForRange {
+    fn update_last(&mut self, end: Pos) {
+        if self.last.map_or(true, |last| last < end) {
+            self.last = Some(end);
+        }
+    }
+
     fn finish(self) -> Range {
         match (self.first, self.last) {
             (Some(first), Some(last)) => first.join(Range::empty(last)),
@@ -211,10 +228,7 @@ impl PVisitor for VisitorForRange {
             self.first = Some(token.body.loc.range);
         }
 
-        let end = token.body.loc.end();
-        if self.last.map_or(true, |last| last < end) {
-            self.last = Some(end);
-        }
+        self.update_last(token.body.loc.end());
     }
 
     // 中間のトークンの探索を可能な限りスキップする:
@@ -223,12 +237,15 @@ impl PVisitor for VisitorForRange {
         if let Some((head, tail)) = args.split_first() {
             self.on_arg(head);
 
+            let last = take(&mut self.last);
             for arg in tail.iter().rev() {
-                if self.last.is_some() {
-                    return;
-                }
-
                 self.on_arg(arg);
+                if self.last.is_some() {
+                    break;
+                }
+            }
+            if let Some(last) = last {
+                self.update_last(last);
             }
         }
     }
@@ -237,12 +254,15 @@ impl PVisitor for VisitorForRange {
         if let Some((head, tail)) = stmts.split_first() {
             self.on_stmt(head);
 
+            let last = take(&mut self.last);
             for stmt in tail.iter().rev() {
-                if self.last.is_some() {
-                    return;
-                }
-
                 self.on_stmt(stmt);
+                if self.last.is_some() {
+                    break;
+                }
+            }
+            if let Some(last) = last {
+                self.update_last(last);
             }
         }
     }

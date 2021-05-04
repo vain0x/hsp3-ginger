@@ -51,6 +51,7 @@ mod parse {
     pub(crate) use p_privacy::PPrivacy;
     pub(crate) use p_token::PToken;
     pub(crate) use p_tree::*;
+    pub(crate) use p_visitor::PVisitor;
 
     pub(crate) use parse_stmt::parse_root;
 }
