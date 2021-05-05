@@ -6,7 +6,7 @@ use std::{collections::HashMap, mem::replace, rc::Rc};
 
 pub(crate) struct ASignatureData {
     pub(crate) name: RcStr,
-    pub(crate) params: Vec<(Option<PParamTy>, Option<RcStr>)>,
+    pub(crate) params: Vec<(Option<PParamTy>, Option<RcStr>, Option<String>)>,
 }
 
 #[derive(Default)]
@@ -278,7 +278,7 @@ fn new_signature_data(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
     let mut params = vec![];
 
     if take_modvar {
-        params.push((Some(PParamTy::Modvar), Some("thismod".into())));
+        params.push((Some(PParamTy::Modvar), Some("thismod".into()), None));
     }
 
     for param in &stmt.params {
@@ -289,7 +289,7 @@ fn new_signature_data(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
         };
         let name_opt = param.name_opt.as_ref().map(|name| name.body.text.clone());
 
-        params.push((ty_opt, name_opt));
+        params.push((ty_opt, name_opt, None));
     }
 
     Some(ASignatureData { name, params })

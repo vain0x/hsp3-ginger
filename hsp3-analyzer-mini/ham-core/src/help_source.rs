@@ -18,6 +18,7 @@ pub(crate) struct HsSymbol {
 
     /// %prm の1行目
     pub(crate) signature_opt: Option<String>,
+    pub(crate) param_info: Vec<String>,
 }
 
 fn str_is_whitespace(s: &str) -> bool {
@@ -186,9 +187,34 @@ fn parse_for_symbols(
 
         let mut documentation = vec![];
         let mut signature_opt = None;
+        let mut param_info = vec![];
 
         if let Some(prm) = map.get("prm") {
             signature_opt = prm.first().map(|s| s.to_string());
+
+            let mut l = 1;
+            loop {
+                // 空行を飛ばす。
+                l += prm[l..]
+                    .iter()
+                    .take_while(|s| s.trim_start().is_empty())
+                    .count();
+                if l >= prm.len() {
+                    break;
+                }
+
+                // 次のブロックが始まるまでを1個のブロックとして追加する。
+                // 空行か、字下げのない行が出てきたら次のブロックの始まりとみなす。
+                let starts_new_block =
+                    |s: &str| s.chars().next().map_or(true, |c| !c.is_whitespace());
+                let len = 1 + prm[l + 1..]
+                    .iter()
+                    .take_while(|s| !starts_new_block(s))
+                    .count();
+                param_info.push(prm[l..l + len].join(EOL));
+                l += len;
+            }
+
             documentation.push(prm.join(EOL));
         }
 
@@ -205,6 +231,7 @@ fn parse_for_symbols(
             description,
             documentation,
             signature_opt,
+            param_info,
             ..Default::default()
         });
     }

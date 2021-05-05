@@ -11,10 +11,10 @@ use crate::{
     },
     assists,
     help_source::{collect_all_symbols, HsSymbol},
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
+    utils::canonical_uri::CanonicalUri,
 };
 use lsp_types::*;
-use std::{path::PathBuf, rc::Rc};
+use std::{mem::take, path::PathBuf, rc::Rc};
 
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,
@@ -106,6 +106,7 @@ impl LangService {
                     description,
                     documentation,
                     signature_opt,
+                    mut param_info,
                 } = symbol;
 
                 let wa_symbol = AWsSymbol {
@@ -126,7 +127,15 @@ impl LangService {
                         }
 
                         s.split(",")
-                            .map(|s| (None, Some(RcStr::from(s.trim()))))
+                            .map(|name| {
+                                let name = name.trim().to_string();
+                                let info_opt = param_info
+                                    .iter_mut()
+                                    .find(|s| s.starts_with(&name))
+                                    .map(take);
+
+                                (None, Some(name.into()), info_opt)
+                            })
                             .collect::<Vec<_>>()
                     };
 

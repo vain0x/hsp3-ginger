@@ -1,6 +1,8 @@
 use super::*;
 use crate::analysis::integrate::{AWorkspaceAnalysis, Name, SignatureHelpContext};
-use lsp_types::{ParameterInformation, ParameterLabel, SignatureHelp, SignatureInformation};
+use lsp_types::{
+    Documentation, ParameterInformation, ParameterLabel, SignatureHelp, SignatureInformation,
+};
 
 pub(crate) fn signature_help(
     uri: Url,
@@ -34,7 +36,7 @@ pub(crate) fn signature_help(
         let mut s = command.to_string();
         let mut sep = if ctype { "(" } else { " " };
 
-        for (i, (ty_opt, name_opt)) in signature_data.params.iter().enumerate() {
+        for (i, (ty_opt, name_opt, info_opt)) in signature_data.params.iter().enumerate() {
             s += sep;
 
             let start = s.len() as u64;
@@ -51,6 +53,7 @@ pub(crate) fn signature_help(
 
             let end = s.len() as u64;
             params[i].label = ParameterLabel::LabelOffsets([start, end]);
+            params[i].documentation = info_opt.clone().map(|s| Documentation::String(s));
 
             sep = ", ";
         }
