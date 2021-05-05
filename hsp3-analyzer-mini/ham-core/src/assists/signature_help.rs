@@ -1,8 +1,134 @@
 use super::*;
-use crate::analysis::integrate::{AWorkspaceAnalysis, Name, SignatureHelpContext};
+use crate::{
+    analysis::{
+        a_symbol::*,
+        integrate::*,
+        preproc::{ASignatureData, PreprocAnalysisResult},
+    },
+    parse::*,
+    source::*,
+};
 use lsp_types::{
     Documentation, ParameterInformation, ParameterLabel, SignatureHelp, SignatureInformation,
 };
+use std::{collections::HashMap, mem::take, rc::Rc};
+
+#[derive(Default)]
+pub(crate) struct SignatureHelpHost {
+    pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
+    pub(crate) doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
+    pub(crate) use_site_map: HashMap<Pos, AWsSymbol>,
+}
+
+impl SignatureHelpHost {
+    pub(crate) fn process(&mut self, pos: Pos16, root: &PRoot) -> Option<SignatureHelpContext> {
+        let mut v = V {
+            pos,
+            host: take(self),
+            out: None,
+        };
+        v.on_stmts(&root.stmts);
+        let V { host, out, .. } = v;
+        *self = host;
+        out
+    }
+}
+
+pub(crate) struct SignatureHelpContext {
+    pub(crate) signature_data: Rc<ASignatureData>,
+    pub(crate) arg_index: usize,
+    pub(crate) ctype: bool,
+}
+
+struct V {
+    pos: Pos16,
+    host: SignatureHelpHost,
+    out: Option<SignatureHelpContext>,
+}
+
+impl V {
+    fn resolve_symbol(&self, pos: Pos) -> Option<AWsSymbol> {
+        self.host.use_site_map.get(&pos).cloned()
+    }
+
+    fn find_signature(&self, ws_symbol: AWsSymbol) -> Option<Rc<ASignatureData>> {
+        let AWsSymbol { doc, symbol } = ws_symbol;
+
+        self.host
+            .doc_preproc_map
+            .get(&doc)
+            .and_then(|preproc| preproc.signatures.get(&symbol))
+            .or_else(|| self.host.builtin_signatures.get(&ws_symbol))
+            .cloned()
+    }
+
+    fn try_resolve(&mut self, callee: &PToken, args: &[PArg], ctype: bool) {
+        if self.out.is_some() {
+            return;
+        }
+
+        let at_callee = callee.body.loc.range.contains_inclusive(self.pos);
+        if at_callee {
+            return;
+        }
+
+        let ws_symbol = match self.resolve_symbol(callee.body.loc.start()) {
+            Some(it) => it,
+            None => return,
+        };
+
+        let signature_data = match self.find_signature(ws_symbol) {
+            Some(it) => it,
+            None => return,
+        };
+
+        let arg_index = args
+            .iter()
+            .filter_map(|a| a.comma_opt.as_ref())
+            .take_while(|comma| comma.body.loc.range.end() <= self.pos)
+            .count();
+
+        self.out = Some(SignatureHelpContext {
+            signature_data,
+            ctype,
+            arg_index,
+        });
+    }
+
+    fn on_name_paren(&mut self, np: &PNameParen) {
+        self.try_resolve(&np.name, &np.args, true);
+    }
+
+    fn on_command_stmt(&mut self, stmt: &PCommandStmt) {
+        self.try_resolve(&stmt.command, &stmt.args, false);
+    }
+}
+
+impl PVisitor for V {
+    fn on_compound(&mut self, compound: &PCompound) {
+        if self.out.is_some() || !compound.compute_range().contains_inclusive(self.pos) {
+            return;
+        }
+
+        self.on_compound_default(compound);
+
+        if let PCompound::Paren(np) = compound {
+            self.on_name_paren(np);
+        }
+    }
+
+    fn on_stmt(&mut self, stmt: &PStmt) {
+        if self.out.is_some() || !stmt.compute_range().contains_inclusive(self.pos) {
+            return;
+        }
+
+        self.on_stmt_default(stmt);
+
+        if let PStmt::Command(stmt) = stmt {
+            self.on_command_stmt(stmt);
+        }
+    }
+}
 
 pub(crate) fn signature_help(
     uri: Url,

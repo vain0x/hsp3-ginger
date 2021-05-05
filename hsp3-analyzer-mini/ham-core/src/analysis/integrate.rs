@@ -8,8 +8,9 @@ use super::{
 };
 use crate::{
     analysis::a_scope::ALocalScope,
+    assists::signature_help::{SignatureHelpContext, SignatureHelpHost},
     parse::*,
-    source::{range_is_touched, DocId, Loc, Pos, Pos16},
+    source::{range_is_touched, DocId, Loc, Pos16},
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
@@ -216,105 +217,14 @@ impl AWorkspaceAnalysis {
             })
             .collect::<HashMap<_, _>>();
 
-        struct V {
-            pos: Pos16,
-            builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
-            doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
-            use_site_map: HashMap<Pos, AWsSymbol>,
-            out: Option<SignatureHelpContext>,
-        }
-
-        impl V {
-            fn try_resolve(&mut self, callee: &PToken, args: &[PArg], ctype: bool) {
-                if self.out.is_some() {
-                    return;
-                }
-
-                let at_callee = callee.body.loc.range.contains_inclusive(self.pos);
-                if at_callee {
-                    return;
-                }
-
-                let ws_symbol = match self.use_site_map.get(&callee.body.loc.start()) {
-                    Some(it) => *it,
-                    None => return,
-                };
-                let AWsSymbol { doc, symbol } = ws_symbol;
-
-                let signature_data = match self
-                    .doc_preproc_map
-                    .get(&doc)
-                    .and_then(|preproc| preproc.signatures.get(&symbol))
-                    .or_else(|| self.builtin_signatures.get(&ws_symbol))
-                {
-                    Some(it) => Rc::clone(it),
-                    None => return,
-                };
-
-                let arg_index = args
-                    .iter()
-                    .filter_map(|a| a.comma_opt.as_ref())
-                    .take_while(|comma| comma.body.loc.range.end() <= self.pos)
-                    .count();
-
-                self.out = Some(SignatureHelpContext {
-                    signature_data,
-                    ctype,
-                    arg_index,
-                });
-            }
-
-            fn on_name_paren(&mut self, np: &PNameParen) {
-                self.try_resolve(&np.name, &np.args, true);
-            }
-
-            fn on_command_stmt(&mut self, stmt: &PCommandStmt) {
-                self.try_resolve(&stmt.command, &stmt.args, false);
-            }
-        }
-
-        impl PVisitor for V {
-            fn on_compound(&mut self, compound: &PCompound) {
-                if self.out.is_some() || !compound.compute_range().contains_inclusive(self.pos) {
-                    return;
-                }
-
-                self.on_compound_default(compound);
-
-                if let PCompound::Paren(np) = compound {
-                    self.on_name_paren(np);
-                }
-            }
-
-            fn on_stmt(&mut self, stmt: &PStmt) {
-                if self.out.is_some() || !stmt.compute_range().contains_inclusive(self.pos) {
-                    return;
-                }
-
-                self.on_stmt_default(stmt);
-
-                if let PStmt::Command(stmt) = stmt {
-                    self.on_command_stmt(stmt);
-                }
-            }
-        }
-
-        let mut v = V {
-            pos,
+        let mut h = SignatureHelpHost {
             builtin_signatures: take(&mut self.builtin_signatures),
             doc_preproc_map: take(&mut self.doc_preproc_map),
             use_site_map,
-            out: None,
         };
-        v.on_stmts(&syntax.tree.stmts);
-        let V {
-            builtin_signatures,
-            doc_preproc_map,
-            out,
-            ..
-        } = v;
-        self.builtin_signatures = builtin_signatures;
-        self.doc_preproc_map = doc_preproc_map;
+        let out = h.process(pos, &syntax.tree);
+        self.builtin_signatures = h.builtin_signatures;
+        self.doc_preproc_map = h.doc_preproc_map;
         out
     }
 
@@ -663,10 +573,4 @@ mod tests {
             assert_eq!(actual, expected_map[name], "name={}", name);
         }
     }
-}
-
-pub(crate) struct SignatureHelpContext {
-    pub(crate) signature_data: Rc<ASignatureData>,
-    pub(crate) arg_index: usize,
-    pub(crate) ctype: bool,
 }
