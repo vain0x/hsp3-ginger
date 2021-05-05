@@ -22,6 +22,7 @@ pub(crate) trait PVisitor {
             PCompound::Name(name) => self.on_token(name),
             PCompound::Paren(np) => {
                 self.on_token(&np.name);
+                self.on_token(&np.left_paren);
                 for arg in &np.args {
                     self.on_arg(arg);
                 }
