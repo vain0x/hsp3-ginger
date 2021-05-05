@@ -36,7 +36,7 @@ pub(crate) fn hover(
         let (name, loc) = wa.get_ident_at(doc, pos)?;
         let item = hsphelp_symbols
             .iter()
-            .find(|s| s.label == name.as_str())?
+            .find(|s| s.label.trim_start_matches('#') == name.as_str())?
             .clone();
 
         let mut contents = vec![];
