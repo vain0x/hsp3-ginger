@@ -17,7 +17,7 @@ pub(crate) trait PVisitor {
         self.on_token_opt(label.name_opt.as_ref());
     }
 
-    fn on_compound(&mut self, compound: &PCompound) {
+    fn on_compound_default(&mut self, compound: &PCompound) {
         match compound {
             PCompound::Name(name) => self.on_token(name),
             PCompound::Paren(np) => {
@@ -35,6 +35,10 @@ pub(crate) trait PVisitor {
                 }
             }
         }
+    }
+
+    fn on_compound(&mut self, compound: &PCompound) {
+        self.on_compound_default(compound);
     }
 
     fn on_arg(&mut self, arg: &PArg) {
@@ -175,19 +179,10 @@ pub(crate) trait PVisitor {
 // Range
 // -----------------------------------------------
 
-impl PArg {
+impl PCompound {
     pub(crate) fn compute_range(&self) -> Range {
         let mut visitor = VisitorForRange::default();
-        visitor.on_arg(self);
-        visitor.finish()
-    }
-}
-
-#[cfg(unused)]
-impl PExpr {
-    pub(crate) fn compute_range(&self) -> Range {
-        let mut visitor = VisitorForRange::default();
-        visitor.on_expr(self);
+        visitor.on_compound(self);
         visitor.finish()
     }
 }

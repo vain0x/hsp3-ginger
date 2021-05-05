@@ -250,7 +250,8 @@ impl AWorkspaceAnalysis {
 
                 let arg_index = args
                     .iter()
-                    .take_while(|arg| arg.compute_range().end() <= self.pos)
+                    .filter_map(|a| a.comma_opt.as_ref())
+                    .take_while(|comma| comma.body.loc.range.end() <= self.pos)
                     .count();
 
                 self.out = Some(SignatureHelpContext {
@@ -260,12 +261,28 @@ impl AWorkspaceAnalysis {
                 });
             }
 
+            fn on_name_paren(&mut self, np: &PNameParen) {
+                self.try_resolve(&np.name, &np.args, true);
+            }
+
             fn on_command_stmt(&mut self, stmt: &PCommandStmt) {
                 self.try_resolve(&stmt.command, &stmt.args, false);
             }
         }
 
         impl PVisitor for V {
+            fn on_compound(&mut self, compound: &PCompound) {
+                if self.out.is_some() || !compound.compute_range().contains_inclusive(self.pos) {
+                    return;
+                }
+
+                self.on_compound_default(compound);
+
+                if let PCompound::Paren(np) = compound {
+                    self.on_name_paren(np);
+                }
+            }
+
             fn on_stmt(&mut self, stmt: &PStmt) {
                 if self.out.is_some() || !stmt.compute_range().contains_inclusive(self.pos) {
                     return;

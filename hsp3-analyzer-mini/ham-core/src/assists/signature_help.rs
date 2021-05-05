@@ -142,4 +142,65 @@ f 1, ""
         );
         assert!(opt.is_none());
     }
+
+    #[test]
+    fn call_test() {
+        let mut ls = LangService::new_standalone();
+
+        ls.open_doc(
+            Url::from_file_path("/mod_signature_help.hsp").unwrap(),
+            NO_VERSION,
+            r#"
+#module
+#defcfunc f int a, str b
+    return 0
+#global
+            "#
+            .into(),
+        );
+
+        let main_uri = Url::from_file_path("/main.hsp").unwrap();
+        ls.open_doc(main_uri.clone(), NO_VERSION, r#"mes f(1, "")"#.into());
+
+        let opt = ls.signature_help(
+            main_uri.clone(),
+            Position {
+                line: 0,
+                character: 6,
+            },
+        );
+        let (label, active) = {
+            let sig = opt.expect("signature_help");
+            (
+                sig.signatures[0].label.clone(),
+                sig.active_parameter.expect("active_parameter"),
+            )
+        };
+        assert_eq!((label, active), ("f(int a, str b)".into(), 0));
+
+        let opt = ls.signature_help(
+            main_uri.clone(),
+            Position {
+                line: 0,
+                character: 11,
+            },
+        );
+        let (label, active) = {
+            let sig = opt.expect("signature_help");
+            (
+                sig.signatures[0].label.clone(),
+                sig.active_parameter.expect("active_parameter"),
+            )
+        };
+        assert_eq!((label, active), ("f(int a, str b)".into(), 1));
+
+        let opt = ls.signature_help(
+            main_uri,
+            Position {
+                line: 0,
+                character: 5,
+            },
+        );
+        assert!(opt.is_none());
+    }
 }
