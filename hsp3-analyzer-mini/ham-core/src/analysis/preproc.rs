@@ -150,7 +150,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             }
 
             if let Some(symbol) = symbol_opt {
-                if let Some(data) = new_signature_data(stmt) {
+                if let Some(data) = new_signature_data_for_deffunc(stmt) {
                     ctx.signatures.insert(symbol, Rc::new(data));
                 }
             }
@@ -171,17 +171,27 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ctx.scope.deffunc_opt = parent_deffunc;
         }
         PStmt::UseLib(_) => {}
-        PStmt::LibFunc(PLibFuncStmt {
-            hash,
-            privacy_opt,
-            name_opt,
-            onexit_opt,
-            ..
-        }) => {
+        PStmt::LibFunc(stmt) => {
+            let PLibFuncStmt {
+                hash,
+                privacy_opt,
+                name_opt,
+                onexit_opt,
+                ..
+            } = stmt;
+            let mut symbol_opt = None;
+
             if let Some(name) = name_opt {
                 if onexit_opt.is_none() {
                     let scope = ctx.privacy_scope_or_local(privacy_opt);
+                    symbol_opt = Some(ASymbol::new(ctx.symbols.len()));
                     ctx.add_symbol(ASymbolKind::LibFunc, hash, name, scope);
+                }
+            }
+
+            if let Some(symbol) = symbol_opt {
+                if let Some(signature_data) = new_signature_data_for_lib_func(stmt) {
+                    ctx.signatures.insert(symbol, Rc::new(signature_data));
                 }
             }
         }
@@ -266,7 +276,27 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     }
 }
 
-fn new_signature_data(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
+fn new_signature_data_for_lib_func(stmt: &PLibFuncStmt) -> Option<ASignatureData> {
+    let name = stmt.name_opt.as_ref()?.body.text.clone();
+
+    let params = stmt
+        .params
+        .iter()
+        .filter_map(|param| {
+            let ty_opt = match param.param_ty_opt {
+                Some((ty, _)) if !ty.take_arg() => return None,
+                Some((ty, _)) => Some(ty),
+                _ => None,
+            };
+            let name_opt = param.name_opt.as_ref().map(|name| name.body.text.clone());
+            Some((ty_opt, name_opt, None))
+        })
+        .collect::<Vec<_>>();
+
+    Some(ASignatureData { name, params })
+}
+
+fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
     let take_modvar = match stmt.kind {
         PDefFuncKind::DefFunc | PDefFuncKind::DefCFunc => false,
         PDefFuncKind::ModFunc | PDefFuncKind::ModCFunc => true,
