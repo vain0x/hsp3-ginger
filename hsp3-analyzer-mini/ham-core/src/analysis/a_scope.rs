@@ -1,5 +1,5 @@
 use crate::{
-    parse::{PDefFuncKind, PToken},
+    parse::PToken,
     source::{DocId, Loc},
     token::TokenKind,
     utils::{id::Id, rc_str::RcStr},
@@ -48,9 +48,6 @@ pub(crate) type ADefFunc = Id<ADefFuncData>;
 
 #[derive(Debug)]
 pub(crate) struct ADefFuncData {
-    pub(crate) kind: PDefFuncKind,
-    pub(crate) name_opt: Option<RcStr>,
-    pub(crate) keyword_loc: Loc,
     pub(crate) content_loc: Loc,
 }
 

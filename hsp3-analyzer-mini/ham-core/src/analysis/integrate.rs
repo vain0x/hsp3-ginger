@@ -1,5 +1,5 @@
 use super::{
-    a_scope::{ADefFunc, AModule, AModuleData},
+    a_scope::*,
     a_symbol::{ASymbolData, AWsSymbol},
     comment::{calculate_details, collect_comments},
     preproc::{ASignatureData, PreprocAnalysisResult},
@@ -408,9 +408,8 @@ impl AWorkspaceAnalysis {
         let mut scope = ALocalScope::default();
 
         if let Some(doc_analysis) = self.doc_analysis_map.get(&doc) {
-            let syntax = &self.doc_syntax_map[&doc];
             let preproc = &self.doc_preproc_map[&doc];
-            scope = resolve_scope_at(&syntax.tree, &preproc.modules, pos);
+            scope = resolve_scope_at(&preproc.modules, &preproc.deffuncs, pos);
             collect_local_completion_items(&doc_analysis.symbols, &scope, &mut completion_items);
         }
 
@@ -479,11 +478,10 @@ impl APublicEnv {
 }
 
 fn resolve_scope_at(
-    root: &PRoot,
     modules: &HashMap<AModule, AModuleData>,
+    deffuncs: &HashMap<ADefFunc, ADefFuncData>,
     pos: Pos16,
 ) -> ALocalScope {
-    let mut di = 0;
     let mut scope = ALocalScope::default();
 
     scope.module_opt = modules.iter().find_map(|(m, module_data)| {
@@ -494,19 +492,13 @@ fn resolve_scope_at(
         }
     });
 
-    for stmt in &root.stmts {
-        match stmt {
-            PStmt::DefFunc(stmt) => {
-                di += 1;
-
-                let content_loc = stmt.hash.body.loc.unite(&stmt.behind);
-                if range_is_touched(&content_loc.range, pos) {
-                    scope.deffunc_opt = Some(ADefFunc::new(di));
-                }
-            }
-            _ => {}
+    scope.deffunc_opt = deffuncs.iter().find_map(|(&d, deffunc_data)| {
+        if range_is_touched(&deffunc_data.content_loc.range, pos) {
+            Some(d)
+        } else {
+            None
         }
-    }
+    });
 
     scope
 }

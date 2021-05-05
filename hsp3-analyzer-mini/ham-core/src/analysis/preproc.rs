@@ -15,6 +15,7 @@ struct Ctx {
     symbols: Vec<ASymbolData>,
     scope: ALocalScope,
     modules: HashMap<AModule, AModuleData>,
+    deffuncs: HashMap<ADefFunc, ADefFuncData>,
     signatures: HashMap<ASymbol, Rc<ASignatureData>>,
     module_len: usize,
     deffunc_len: usize,
@@ -115,20 +116,20 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 onexit_opt,
                 params,
                 stmts,
-                behind: _,
+                behind,
                 ..
             } = stmt;
 
             ctx.deffunc_len += 1;
             let deffunc = ADefFunc::new(ctx.deffunc_len);
+            ctx.deffuncs.insert(
+                deffunc,
+                ADefFuncData {
+                    content_loc: hash.body.loc.unite(behind),
+                },
+            );
+
             let mut symbol_opt = None;
-            // let deffunc = ADefFunc::new(ax.deffuncs.len());
-            // ax.deffuncs.push(ADefFuncData {
-            //     kind: *kind,
-            //     name_opt: None,
-            //     keyword_loc: keyword.body.loc.clone(),
-            //     content_loc: hash.body.loc.unite(behind),
-            // });
 
             let kind = match *kind {
                 PDefFuncKind::DefFunc => ASymbolKind::DefFunc,
@@ -328,6 +329,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<ASymbolData>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
+    pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
     pub(crate) signatures: HashMap<ASymbol, Rc<ASignatureData>>,
 }
 
@@ -342,6 +344,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
     let Ctx {
         symbols,
         modules,
+        deffuncs,
         signatures,
         ..
     } = ctx;
@@ -349,6 +352,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
     PreprocAnalysisResult {
         symbols,
         modules,
+        deffuncs,
         signatures,
     }
 }
