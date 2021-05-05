@@ -160,6 +160,17 @@ fn eat_blank(tx: &mut Tx) {
     }
 }
 
+/// すべての空白を読み飛ばす。
+fn eat_spaces(tx: &mut Tx) {
+    loop {
+        match tx.next() {
+            ' ' | '\n' | '\r' | '\t' | '\u{3000}' => tx.bump(),
+            c if c.is_whitespace() => tx.bump(),
+            _ => break,
+        }
+    }
+}
+
 /// 行末まで読み飛ばす。改行自体は読まない。
 fn eat_line(tx: &mut Tx) {
     match tx.find("\n") {
@@ -242,11 +253,13 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
             Lookahead::CrLf => {
                 tx.bump_many(2);
 
+                eat_spaces(tx);
                 tx.commit(TokenKind::Newlines);
             }
             Lookahead::Lf => {
                 tx.bump();
 
+                eat_spaces(tx);
                 tx.commit(TokenKind::Newlines);
             }
             Lookahead::EscapedCrLf => {
