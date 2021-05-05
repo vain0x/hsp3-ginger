@@ -422,7 +422,7 @@ mod tests {
     fn space() {
         assert_eq!(
             tokenize_str_to_kinds(" \r\n\t\u{3000}　"),
-            vec![TokenKind::Blank, TokenKind::Newlines, TokenKind::Blank]
+            vec![TokenKind::Blank, TokenKind::Newlines]
         );
     }
 
@@ -441,7 +441,7 @@ mod tests {
     fn comment_semi_with_eol() {
         assert_eq!(
             tokenize_str_to_kinds("; comment\n    "),
-            vec![TokenKind::Comment, TokenKind::Newlines, TokenKind::Blank]
+            vec![TokenKind::Comment, TokenKind::Newlines]
         );
     }
 
