@@ -66,7 +66,6 @@ impl Debug for PArg {
 
 #[must_use]
 pub(crate) struct PDotArg {
-    #[allow(unused)]
     pub(crate) dot: PToken,
     pub(crate) expr_opt: Option<PExpr>,
 }
@@ -102,10 +101,8 @@ impl Debug for PNameDot {
 #[must_use]
 pub(crate) struct PNameParen {
     pub(crate) name: PToken,
-    #[allow(unused)]
     pub(crate) left_paren: PToken,
     pub(crate) args: Vec<PArg>,
-    #[allow(unused)]
     pub(crate) right_paren_opt: Option<PToken>,
 }
 
@@ -145,10 +142,8 @@ impl Debug for PCompound {
 /// 丸カッコで囲まれた式
 #[must_use]
 pub(crate) struct PParenExpr {
-    #[allow(unused)]
     pub(crate) left_paren: PToken,
     pub(crate) body_opt: Option<Box<PExpr>>,
-    #[allow(unused)]
     pub(crate) right_paren_opt: Option<PToken>,
 }
 

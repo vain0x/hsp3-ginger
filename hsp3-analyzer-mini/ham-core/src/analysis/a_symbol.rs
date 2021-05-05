@@ -87,7 +87,6 @@ pub(crate) struct ASymbolData {
     pub(crate) ns_opt: Option<RcStr>,
 }
 
-#[allow(unused)]
 pub(crate) struct ASymbolDetails {
     pub(crate) desc: Option<RcStr>,
     pub(crate) docs: Vec<String>,
