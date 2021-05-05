@@ -3,7 +3,7 @@ use crate::{
     token::{TokenData, TokenKind},
     utils::{rc_item::RcItem, rc_slice::RcSlice},
 };
-use std::fmt::Debug;
+use std::{fmt::Debug, iter};
 
 /// トリビアでないトークンに、前後のトリビアをくっつけたもの。
 #[derive(Clone)]
@@ -23,7 +23,6 @@ impl PToken {
         self.body.text.as_str()
     }
 
-    #[cfg(unused)]
     pub(crate) fn ahead(&self) -> Loc {
         match self.leading.first() {
             Some(first) => first.loc.ahead(),
@@ -37,6 +36,13 @@ impl PToken {
             Some(last) => last.loc.behind(),
             None => self.body.loc.behind(),
         }
+    }
+
+    pub(crate) fn iter<'a>(&'a self) -> impl Iterator<Item = &'a TokenData> + 'a {
+        self.leading
+            .iter()
+            .chain(iter::once(self.body.as_ref()))
+            .chain(self.trailing.iter())
     }
 
     pub(crate) fn from_tokens(tokens: RcSlice<TokenData>) -> Vec<PToken> {

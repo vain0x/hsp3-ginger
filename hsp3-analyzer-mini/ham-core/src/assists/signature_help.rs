@@ -10,6 +10,10 @@ pub(crate) fn signature_help(
 ) -> Option<SignatureHelp> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
 
+    if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
+        return None;
+    }
+
     let SignatureHelpContext {
         signature_data,
         ctype,

@@ -99,6 +99,10 @@ pub(crate) fn completion(
 
     let (doc, pos) = from_document_position(&uri, position, docs)?;
 
+    if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
+        return None;
+    }
+
     if is_preproc_statement(doc, pos, wa) {
         collect_preproc_completion_items(other_items, &mut items);
         return Some(CompletionList {
