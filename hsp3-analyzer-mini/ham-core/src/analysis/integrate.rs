@@ -24,6 +24,8 @@ pub(crate) struct AWorkspaceAnalysis {
     pub(crate) dirty_docs: HashSet<DocId>,
     pub(crate) doc_texts: HashMap<DocId, RcStr>,
 
+    pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
+
     // ドキュメントごとの解析結果:
     pub(crate) doc_syntax_map: HashMap<DocId, ASyntax>,
     pub(crate) doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
@@ -201,7 +203,6 @@ impl AWorkspaceAnalysis {
         self.compute();
 
         let syntax = self.doc_syntax_map.get(&doc)?;
-        let doc_preproc_map = take(&mut self.doc_preproc_map);
 
         let use_site_map = self
             .use_sites
@@ -217,6 +218,7 @@ impl AWorkspaceAnalysis {
 
         struct V {
             pos: Pos16,
+            builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
             doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
             use_site_map: HashMap<Pos, AWsSymbol>,
             out: Option<SignatureHelpContext>,
@@ -233,16 +235,17 @@ impl AWorkspaceAnalysis {
                     return;
                 }
 
-                let AWsSymbol { doc, symbol } =
-                    match self.use_site_map.get(&callee.body.loc.start()) {
-                        Some(it) => *it,
-                        None => return,
-                    };
+                let ws_symbol = match self.use_site_map.get(&callee.body.loc.start()) {
+                    Some(it) => *it,
+                    None => return,
+                };
+                let AWsSymbol { doc, symbol } = ws_symbol;
 
                 let signature_data = match self
                     .doc_preproc_map
                     .get(&doc)
                     .and_then(|preproc| preproc.signatures.get(&symbol))
+                    .or_else(|| self.builtin_signatures.get(&ws_symbol))
                 {
                     Some(it) => Rc::clone(it),
                     None => return,
@@ -298,16 +301,19 @@ impl AWorkspaceAnalysis {
 
         let mut v = V {
             pos,
-            doc_preproc_map,
+            builtin_signatures: take(&mut self.builtin_signatures),
+            doc_preproc_map: take(&mut self.doc_preproc_map),
             use_site_map,
             out: None,
         };
         v.on_stmts(&syntax.tree.stmts);
         let V {
+            builtin_signatures,
             doc_preproc_map,
             out,
             ..
         } = v;
+        self.builtin_signatures = builtin_signatures;
         self.doc_preproc_map = doc_preproc_map;
         out
     }

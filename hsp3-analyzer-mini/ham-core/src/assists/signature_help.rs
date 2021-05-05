@@ -34,15 +34,19 @@ pub(crate) fn signature_help(
         let mut s = command.to_string();
         let mut sep = if ctype { "(" } else { " " };
 
-        for (i, (ty, name_opt)) in signature_data.params.iter().enumerate() {
+        for (i, (ty_opt, name_opt)) in signature_data.params.iter().enumerate() {
             s += sep;
 
             let start = s.len() as u64;
-            s += ty.to_str();
-
-            if let Some(name) = &name_opt {
-                s += " ";
-                s += name;
+            match (ty_opt, &name_opt) {
+                (Some(ty), Some(name)) => {
+                    s += ty.to_str();
+                    s += " ";
+                    s += name;
+                }
+                (Some(ty), None) => s += ty.to_str(),
+                (None, Some(name)) => s += name,
+                _ => s += "???",
             }
 
             let end = s.len() as u64;

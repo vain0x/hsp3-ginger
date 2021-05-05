@@ -6,13 +6,15 @@ use self::{
     file_watcher::FileWatcher,
 };
 use crate::{
-    analysis::{a_symbol::AWsSymbol, integrate::AWorkspaceAnalysis, ASymbol},
+    analysis::{
+        a_symbol::AWsSymbol, integrate::AWorkspaceAnalysis, preproc::ASignatureData, ASymbol,
+    },
     assists,
     help_source::{collect_all_symbols, HsSymbol},
-    utils::canonical_uri::CanonicalUri,
+    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
 };
 use lsp_types::*;
-use std::path::PathBuf;
+use std::{path::PathBuf, rc::Rc};
 
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,
@@ -103,6 +105,7 @@ impl LangService {
                     name,
                     description,
                     documentation,
+                    signature_opt,
                 } = symbol;
 
                 let wa_symbol = AWsSymbol {
@@ -113,6 +116,28 @@ impl LangService {
                     .public_env
                     .builtin
                     .insert(name.clone().into(), wa_symbol);
+
+                if let Some(s) = signature_opt {
+                    let params = {
+                        let mut s = s.as_str().trim();
+
+                        if s.starts_with('(') {
+                            s = s[1..].trim_end_matches(')').trim();
+                        }
+
+                        s.split(",")
+                            .map(|s| (None, Some(RcStr::from(s.trim()))))
+                            .collect::<Vec<_>>()
+                    };
+
+                    let signature_data = ASignatureData {
+                        name: name.clone().into(),
+                        params,
+                    };
+                    self.wa
+                        .builtin_signatures
+                        .insert(wa_symbol, Rc::new(signature_data));
+                }
 
                 // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
                 let sort_prefix = if name.starts_with("#") || name.starts_with("_") {

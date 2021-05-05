@@ -15,6 +15,9 @@ pub(crate) struct HsSymbol {
     pub(crate) name: String,
     pub(crate) description: Option<String>,
     pub(crate) documentation: Vec<String>,
+
+    /// %prm の1行目
+    pub(crate) signature_opt: Option<String>,
 }
 
 fn str_is_whitespace(s: &str) -> bool {
@@ -182,8 +185,10 @@ fn parse_for_symbols(
         let description = Some(index_lines.join(EOL));
 
         let mut documentation = vec![];
+        let mut signature_opt = None;
 
         if let Some(prm) = map.get("prm") {
+            signature_opt = prm.first().map(|s| s.to_string());
             documentation.push(prm.join(EOL));
         }
 
@@ -199,6 +204,7 @@ fn parse_for_symbols(
             name: name.trim().to_string(),
             description,
             documentation,
+            signature_opt,
             ..Default::default()
         });
     }

@@ -93,7 +93,7 @@ pub(crate) struct ASymbolDetails {
     pub(crate) docs: Vec<String>,
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub(crate) struct AWsSymbol {
     pub(crate) doc: DocId,
     pub(crate) symbol: ASymbol,

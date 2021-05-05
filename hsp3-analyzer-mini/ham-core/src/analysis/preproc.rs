@@ -1,23 +1,12 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
 use super::{a_scope::*, a_symbol::*};
-use crate::{
-    analysis::var::resolve_symbol_scope,
-    parse::*,
-    source::{DocId, Loc},
-    utils::rc_str::RcStr,
-};
+use crate::{analysis::var::resolve_symbol_scope, parse::*, source::DocId, utils::rc_str::RcStr};
 use std::{collections::HashMap, mem::replace, rc::Rc};
 
 pub(crate) struct ASignatureData {
     pub(crate) name: RcStr,
-    pub(crate) params: Vec<(PParamTy, Option<RcStr>)>,
-    #[allow(unused)]
-    pub(crate) command: bool,
-    #[allow(unused)]
-    pub(crate) func: bool,
-    #[allow(unused)]
-    pub(crate) def_site: Loc,
+    pub(crate) params: Vec<(Option<PParamTy>, Option<RcStr>)>,
 }
 
 #[derive(Default)]
@@ -278,11 +267,9 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 }
 
 fn new_signature_data(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
-    let (command, func, take_modvar) = match stmt.kind {
-        PDefFuncKind::DefFunc => (true, false, false),
-        PDefFuncKind::DefCFunc => (false, true, false),
-        PDefFuncKind::ModFunc => (true, false, true),
-        PDefFuncKind::ModCFunc => (false, true, false),
+    let take_modvar = match stmt.kind {
+        PDefFuncKind::DefFunc | PDefFuncKind::DefCFunc => false,
+        PDefFuncKind::ModFunc | PDefFuncKind::ModCFunc => true,
         PDefFuncKind::ModInit | PDefFuncKind::ModTerm => return None,
     };
 
@@ -291,26 +278,21 @@ fn new_signature_data(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
     let mut params = vec![];
 
     if take_modvar {
-        params.push((PParamTy::Modvar, Some("thismod".into())));
+        params.push((Some(PParamTy::Modvar), Some("thismod".into())));
     }
 
     for param in &stmt.params {
-        let ty = match param.param_ty_opt {
-            Some((ty, _)) if ty.take_arg() => ty,
-            _ => continue,
+        let ty_opt = match param.param_ty_opt {
+            Some((ty, _)) if !ty.take_arg() => continue,
+            Some((ty, _)) => Some(ty),
+            _ => None,
         };
         let name_opt = param.name_opt.as_ref().map(|name| name.body.text.clone());
 
-        params.push((ty, name_opt));
+        params.push((ty_opt, name_opt));
     }
 
-    Some(ASignatureData {
-        name,
-        params,
-        command,
-        func,
-        def_site: stmt.hash.body.loc,
-    })
+    Some(ASignatureData { name, params })
 }
 
 pub(crate) struct PreprocAnalysisResult {
