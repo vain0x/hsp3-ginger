@@ -1,7 +1,10 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
 use super::{a_scope::*, a_symbol::*};
-use crate::{analysis::var::resolve_symbol_scope, parse::*, source::DocId, utils::rc_str::RcStr};
+use crate::{
+    analysis::var::resolve_symbol_scope, parse::*, source::DocId, token::TokenKind,
+    utils::rc_str::RcStr,
+};
 use std::{collections::HashMap, mem::replace, rc::Rc};
 
 pub(crate) struct ASignatureData {
@@ -13,6 +16,7 @@ pub(crate) struct ASignatureData {
 struct Ctx {
     doc: DocId,
     symbols: Vec<ASymbolData>,
+    includes: Vec<RcStr>,
     scope: ALocalScope,
     modules: HashMap<AModule, AModuleData>,
     deffuncs: HashMap<ADefFunc, ADefFuncData>,
@@ -272,7 +276,23 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ctx.scope = parent_scope;
         }
         PStmt::Global(_) => {}
-        PStmt::Include(_) => {}
+        PStmt::Include(stmt) => {
+            if let Some(file_path) = &stmt.file_path_opt {
+                if file_path.body.kind == TokenKind::Str {
+                    let mut text = file_path.body.text.clone();
+
+                    // クオートを外す。
+                    let l = if text.starts_with("\"") { 1 } else { 0 };
+                    let r = text.len() - (if text.ends_with("\"") { 1 } else { 0 });
+                    text = text.slice(l, r);
+
+                    // 標準化する。
+                    text = text.replace("\\\\", "/").to_ascii_lowercase().into();
+
+                    ctx.includes.push(text);
+                }
+            }
+        }
         PStmt::UnknownPreProc(_) => {}
     }
 }
@@ -328,6 +348,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
 
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<ASymbolData>,
+    pub(crate) includes: Vec<RcStr>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
     pub(crate) signatures: HashMap<ASymbol, Rc<ASignatureData>>,
@@ -343,6 +364,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
 
     let Ctx {
         symbols,
+        includes,
         modules,
         deffuncs,
         signatures,
@@ -351,6 +373,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
 
     PreprocAnalysisResult {
         symbols,
+        includes,
         modules,
         deffuncs,
         signatures,
