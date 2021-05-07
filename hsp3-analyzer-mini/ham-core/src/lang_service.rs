@@ -14,7 +14,13 @@ use crate::{
     utils::canonical_uri::CanonicalUri,
 };
 use lsp_types::*;
-use std::{mem::take, path::PathBuf, rc::Rc};
+use std::{
+    collections::HashMap,
+    fs,
+    mem::take,
+    path::{self, PathBuf},
+    rc::Rc,
+};
 
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,
@@ -183,6 +189,52 @@ impl LangService {
                 }
             })
             .collect();
+
+        info!("common ディレクトリからシンボルを探索します。");
+        {
+            let common_dir = self.hsp3_home.join("common");
+
+            let patterns = match common_dir.to_str() {
+                Some(dir) => vec![format!("{}/**/*.hsp", dir), format!("{}/**/*.as", dir)],
+                None => vec![],
+            };
+
+            let mut common_docs = HashMap::new();
+
+            for path in patterns
+                .into_iter()
+                .filter_map(|pattern| glob::glob(&pattern).ok())
+                .flatten()
+                .flat_map(|result| result.ok())
+            {
+                if let Some(uri) = CanonicalUri::from_file_path(&path) {
+                    if let Ok(contents) = fs::read_to_string(&path) {
+                        self.open_doc(uri.clone().into_url(), 1, contents);
+
+                        let doc = self.docs.find_by_uri(&uri).unwrap();
+
+                        (|| -> Option<()> {
+                            let relative = path
+                                .strip_prefix(&common_dir)
+                                .ok()?
+                                .components()
+                                .map(|c| match c {
+                                    path::Component::Normal(s) => s.to_str(),
+                                    _ => None,
+                                })
+                                .collect::<Option<Vec<&str>>>()?
+                                .join("/");
+
+                            common_docs.insert(relative, doc);
+
+                            None
+                        })();
+                    }
+                }
+            }
+
+            self.wa.common_docs = common_docs;
+        }
 
         if self.options.watcher_enabled {
             if let Some(watched_dir) = self

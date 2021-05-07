@@ -26,6 +26,7 @@ pub(crate) struct AWorkspaceAnalysis {
     pub(crate) doc_texts: HashMap<DocId, RcStr>,
 
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
+    pub(crate) common_docs: HashMap<String, DocId>,
 
     // ドキュメントごとの解析結果:
     pub(crate) doc_syntax_map: HashMap<DocId, ASyntax>,
@@ -33,6 +34,7 @@ pub(crate) struct AWorkspaceAnalysis {
     pub(crate) doc_analysis_map: HashMap<DocId, AAnalysis>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
+    pub(crate) active_docs: HashSet<DocId>,
     pub(crate) public_env: APublicEnv,
     pub(crate) ns_env: HashMap<RcStr, AEnv>,
     pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
@@ -87,13 +89,40 @@ impl AWorkspaceAnalysis {
             self.doc_preproc_map.insert(doc, preproc);
         }
 
+        self.active_docs.clear();
         self.public_env.clear();
         self.ns_env.clear();
         self.def_sites.clear();
         self.use_sites.clear();
 
+        // 有効なドキュメントを検出する。(includeされていないcommonのファイルは無視する。)
+        let mut included_docs = HashSet::new();
+        let in_common = self.common_docs.values().cloned().collect::<HashSet<_>>();
+
+        for (&doc, preproc) in &self.doc_preproc_map {
+            if in_common.contains(&doc) {
+                continue;
+            }
+
+            for include in &preproc.includes {
+                let doc_opt = self.common_docs.get(include.as_str()).cloned();
+                included_docs.extend(doc_opt);
+            }
+        }
+
+        self.active_docs.extend(
+            self.doc_preproc_map
+                .keys()
+                .cloned()
+                .filter(|doc| !in_common.contains(&doc) || included_docs.contains(&doc)),
+        );
+
         // 複数ファイルに渡る環境を構築する。
         for (&doc, preproc) in &self.doc_preproc_map {
+            if !self.active_docs.contains(&doc) {
+                continue;
+            }
+
             for (i, symbol_data) in preproc.symbols.iter().enumerate() {
                 let symbol = ASymbol::new(i);
                 let ws_symbol = AWsSymbol { doc, symbol };
@@ -125,6 +154,10 @@ impl AWorkspaceAnalysis {
         };
 
         for (&doc, syntax) in &self.doc_syntax_map {
+            if !self.active_docs.contains(&doc) {
+                continue;
+            }
+
             let symbols = self.doc_preproc_map[&doc].symbols.clone();
             let analysis = crate::analysis::var::analyze_var_def(
                 doc,
@@ -150,6 +183,10 @@ impl AWorkspaceAnalysis {
 
         // シンボルの定義・使用箇所を収集する。
         for (&doc, analysis) in &mut self.doc_analysis_map {
+            if !self.active_docs.contains(&doc) {
+                continue;
+            }
+
             for (i, symbol_data) in analysis.symbols.iter().enumerate() {
                 let symbol = ASymbol::new(i);
 
@@ -325,17 +362,23 @@ impl AWorkspaceAnalysis {
 
         if scope.is_outside_module() {
             for (&d, doc_analysis) in &self.doc_analysis_map {
-                if d != doc {
-                    collect_local_completion_items(
-                        &doc_analysis.symbols,
-                        &scope,
-                        &mut completion_items,
-                    );
+                if d == doc || !self.active_docs.contains(&d) {
+                    continue;
                 }
+
+                collect_local_completion_items(
+                    &doc_analysis.symbols,
+                    &scope,
+                    &mut completion_items,
+                );
             }
         }
 
-        for doc_analysis in self.doc_analysis_map.values() {
+        for (&doc, doc_analysis) in &self.doc_analysis_map {
+            if !self.active_docs.contains(&doc) {
+                continue;
+            }
+
             collect_global_completion_items(&doc_analysis.symbols, &mut completion_items);
         }
 
