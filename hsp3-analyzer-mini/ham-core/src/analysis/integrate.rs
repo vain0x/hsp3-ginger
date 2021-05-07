@@ -7,10 +7,10 @@ use super::{
     AScope, ASymbol, ASymbolDetails,
 };
 use crate::{
-    analysis::a_scope::ALocalScope,
+    analysis::{a_scope::ALocalScope, ASymbolKind},
     assists::signature_help::{SignatureHelpContext, SignatureHelpHost},
     parse::*,
-    source::{range_is_touched, DocId, Loc, Pos16},
+    source::{range_is_touched, DocId, Loc, Pos, Pos16},
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
@@ -20,6 +20,54 @@ use std::{
     rc::Rc,
 };
 
+macro_rules! or {
+    ($opt:expr, $alt:expr) => {
+        match $opt {
+            Some(it) => it,
+            None => $alt,
+        }
+    };
+}
+
+#[derive(Default)]
+pub(crate) struct ProjectAnalysis {
+    pub(crate) entrypoints: Vec<DocId>,
+}
+
+pub(crate) enum Diagnostic {
+    Undefined,
+}
+
+struct Ctx {
+    use_site_map: HashMap<(DocId, Pos), AWsSymbol>,
+    diagnostics: Vec<(Diagnostic, Loc)>,
+}
+
+fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
+    match stmt {
+        PStmt::Label(_) => {}
+        PStmt::Assign(_) => {}
+        PStmt::Command(stmt) => {
+            let loc = stmt.command.body.loc;
+            let ws_symbol_opt = ctx.use_site_map.get(&(loc.doc, loc.start()));
+            if ws_symbol_opt.is_none() {
+                ctx.diagnostics.push((Diagnostic::Undefined, loc));
+            }
+        }
+        PStmt::DefFunc(stmt) => {
+            for stmt in &stmt.stmts {
+                on_stmt(stmt, ctx);
+            }
+        }
+        PStmt::Module(stmt) => {
+            for stmt in &stmt.stmts {
+                on_stmt(stmt, ctx);
+            }
+        }
+        _ => {}
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct AWorkspaceAnalysis {
     pub(crate) dirty_docs: HashSet<DocId>,
@@ -27,6 +75,7 @@ pub(crate) struct AWorkspaceAnalysis {
 
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) common_docs: HashMap<String, DocId>,
+    pub(crate) project_docs: HashMap<String, DocId>,
 
     // ドキュメントごとの解析結果:
     pub(crate) doc_syntax_map: HashMap<DocId, ASyntax>,
@@ -39,6 +88,9 @@ pub(crate) struct AWorkspaceAnalysis {
     pub(crate) ns_env: HashMap<RcStr, AEnv>,
     pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
     pub(crate) use_sites: Vec<(AWsSymbol, Loc)>,
+
+    // エントリーポイントを起点として構築される情報:
+    pub(crate) projects: Vec<ProjectAnalysis>,
 }
 
 impl AWorkspaceAnalysis {
@@ -319,8 +371,10 @@ impl AWorkspaceAnalysis {
         ))
     }
 
-    pub(crate) fn diagnose(&mut self) {
+    pub(crate) fn diagnose(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
         self.compute();
+
+        self.diagnose_precisely(diagnostics);
     }
 
     pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<Loc>) {
@@ -383,6 +437,77 @@ impl AWorkspaceAnalysis {
         }
 
         completion_items
+    }
+
+    pub(crate) fn diagnose_precisely(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
+        self.compute();
+
+        let mut active_docs = HashSet::new();
+
+        for p in &self.projects {
+            let mut q = p.entrypoints.clone();
+
+            active_docs.clear();
+            active_docs.extend(q.iter().cloned());
+
+            while let Some(doc) = q.pop() {
+                let preproc = or!(self.doc_preproc_map.get(&doc), continue);
+                for s in &preproc.includes {
+                    let d = *or!(self.project_docs.get(s.as_str()), continue);
+                    if active_docs.insert(d) {
+                        q.push(d);
+                    }
+                }
+            }
+
+            // signature help のときも作った
+            let use_site_map = self
+                .use_sites
+                .iter()
+                .filter_map(|&(ws_symbol, loc)| {
+                    if active_docs.contains(&loc.doc) {
+                        let AWsSymbol { doc, symbol } = ws_symbol;
+                        if active_docs.contains(&doc)
+                            && self
+                                .doc_analysis_map
+                                .get(&doc)
+                                .and_then(|d| d.symbols.get(symbol.get()))
+                                .map_or(false, |s| s.kind == ASymbolKind::DefFunc)
+                        {
+                            Some(((loc.doc, loc.start()), ws_symbol))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect::<HashMap<_, _>>();
+
+            let mut ctx = Ctx {
+                use_site_map,
+                diagnostics: vec![],
+            };
+
+            for (&doc, syntax) in &self.doc_syntax_map {
+                if !active_docs.contains(&doc) {
+                    continue;
+                }
+
+                for stmt in &syntax.tree.stmts {
+                    on_stmt(stmt, &mut ctx);
+                }
+            }
+
+            // どのプロジェクトに由来するか覚えておく必要がある
+            diagnostics.extend(ctx.diagnostics.into_iter().map(|(d, loc)| {
+                let msg = match d {
+                    Diagnostic::Undefined => "定義が見つかりません",
+                }
+                .to_string();
+                (msg, loc)
+            }));
+        }
     }
 }
 

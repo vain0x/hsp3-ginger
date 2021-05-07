@@ -6,7 +6,6 @@ use crate::{
         preproc::{ASignatureData, PreprocAnalysisResult},
     },
     parse::*,
-    source::*,
 };
 use lsp_types::{
     Documentation, ParameterInformation, ParameterLabel, SignatureHelp, SignatureInformation,
