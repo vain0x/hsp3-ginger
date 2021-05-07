@@ -295,6 +295,22 @@ impl LangService {
                 }
             }
         }
+
+        // FIXME: 試し
+        let mut p = self.wa.projects.pop().unwrap_or_default();
+        p.entrypoints.clear();
+        p.entrypoints.extend(
+            self.wa
+                .doc_texts
+                .iter()
+                .filter(|(_, text)| text.contains("// ginger: entry"))
+                .map(|(&doc, _)| doc),
+        );
+        debug!(
+            "entrypoints: {:?}",
+            p.entrypoints.iter().map(|&doc| self.docs.get_uri(doc))
+        );
+        self.wa.projects.push(p);
     }
 
     pub(super) fn shutdown(&mut self) {

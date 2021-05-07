@@ -1,6 +1,6 @@
 use crate::{
     lang_service::docs::Docs,
-    source::{DocId, Loc, Pos16},
+    source::{DocId, Loc, Pos, Pos16},
     utils::canonical_uri::CanonicalUri,
 };
 use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};
@@ -28,11 +28,16 @@ fn markdown_marked_string(value: String) -> MarkedString {
     })
 }
 
+fn to_position(pos: Pos) -> Position {
+    Position::new(pos.row as u64, pos.column16 as u64)
+}
+
+fn to_lsp_range(range: crate::source::Range) -> lsp_types::Range {
+    Range::new(to_position(range.start()), to_position(range.end()))
+}
+
 fn loc_to_range(loc: Loc) -> Range {
-    Range::new(
-        Position::new(loc.start_row() as u64, loc.start().column16 as u64),
-        Position::new(loc.end_row() as u64, loc.end().column16 as u64),
-    )
+    to_lsp_range(loc.range)
 }
 
 fn loc_to_location(loc: Loc, docs: &Docs) -> Option<Location> {

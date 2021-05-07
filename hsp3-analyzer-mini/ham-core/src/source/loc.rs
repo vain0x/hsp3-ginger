@@ -27,6 +27,7 @@ impl Loc {
         self.range.start().row as usize
     }
 
+    #[cfg(unused)]
     pub(crate) fn end_row(&self) -> usize {
         self.range.end().row as usize
     }
