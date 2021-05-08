@@ -3,6 +3,7 @@ use super::{
     a_symbol::{ASymbolData, AWsSymbol},
     comment::{calculate_details, collect_comments},
     preproc::{ASignatureData, PreprocAnalysisResult},
+    syntax_linter::SyntaxLint,
     var::{AAnalysis, APublicState},
     AScope, ASymbol, ASymbolDetails,
 };
@@ -444,6 +445,18 @@ impl AWorkspaceAnalysis {
         }
 
         completion_items
+    }
+
+    pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
+        self.compute();
+
+        for (&doc, syntax) in &self.doc_syntax_map {
+            if !self.active_docs.contains(&doc) {
+                continue;
+            }
+
+            lints.extend(crate::analysis::syntax_linter::syntax_lint(&syntax.tree));
+        }
     }
 
     pub(crate) fn diagnose_precisely(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
