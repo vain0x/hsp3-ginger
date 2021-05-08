@@ -1,11 +1,6 @@
 use super::*;
 use crate::{
-    analysis::{
-        a_symbol::*,
-        integrate::*,
-        name_system::*,
-        preproc::{ASignatureData, PreprocAnalysisResult},
-    },
+    analysis::{a_symbol::*, integrate::*, name_system::*, preproc::ASignatureData},
     parse::*,
 };
 use lsp_types::{
@@ -16,7 +11,7 @@ use std::{collections::HashMap, mem::take, rc::Rc};
 #[derive(Default)]
 pub(crate) struct SignatureHelpHost {
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
-    pub(crate) doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
+    pub(crate) doc_signatures_map: HashMap<DocId, HashMap<ASymbol, Rc<ASignatureData>>>,
     pub(crate) use_site_map: HashMap<Pos, AWsSymbol>,
 }
 
@@ -55,9 +50,9 @@ impl V {
         let AWsSymbol { doc, symbol } = ws_symbol;
 
         self.host
-            .doc_preproc_map
+            .doc_signatures_map
             .get(&doc)
-            .and_then(|preproc| preproc.signatures.get(&symbol))
+            .and_then(|signatures| signatures.get(&symbol))
             .or_else(|| self.host.builtin_signatures.get(&ws_symbol))
             .cloned()
     }

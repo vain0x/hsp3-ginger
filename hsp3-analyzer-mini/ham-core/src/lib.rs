@@ -16,6 +16,7 @@ mod analysis {
     pub(crate) mod a_scope;
     pub(crate) mod a_symbol;
     pub(crate) mod comment;
+    pub(crate) mod doc_analysis;
     pub(crate) mod integrate;
     pub(crate) mod name_system;
     pub(crate) mod preproc;
@@ -23,7 +24,8 @@ mod analysis {
     pub(crate) mod var;
 
     pub(crate) use self::{
-        a_symbol::{ASymbol, ASymbolDetails, ASymbolKind},
+        a_symbol::{ASymbol, ASymbolData, ASymbolDetails, ASymbolKind},
+        doc_analysis::DocAnalysis,
         name_system::*,
     };
 }

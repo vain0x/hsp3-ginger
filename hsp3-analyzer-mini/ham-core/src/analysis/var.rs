@@ -20,7 +20,7 @@ struct Ctx<'a> {
     doc: DocId,
 
     /// ドキュメント内のシンボル
-    symbols: Vec<ASymbolData>,
+    symbols: &'a mut Vec<ASymbolData>,
 
     /// ドキュメント内の環境
     local_env: HashMap<ALocalScope, SymbolEnv>,
@@ -289,26 +289,15 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     }
 }
 
-#[derive(Default)]
-pub(crate) struct AAnalysis {
-    pub(crate) symbols: Vec<ASymbolData>,
-
-    /// 解析前にあったシンボルの個数。
-    #[allow(unused)]
-    preproc_symbol_len: usize,
-}
-
 pub(crate) fn analyze_var_def(
     doc: DocId,
     root: &PRoot,
-    symbols: Vec<ASymbolData>,
+    symbols: &mut Vec<ASymbolData>,
     public_env: &mut APublicEnv,
     ns_env: &mut NsEnv,
     def_sites: &mut Vec<(AWsSymbol, Loc)>,
     use_sites: &mut Vec<(AWsSymbol, Loc)>,
-) -> AAnalysis {
-    let preproc_symbol_len = symbols.len();
-
+) {
     let mut local_env = HashMap::new();
     extend_local_env_from_symbols(doc, &symbols, &mut local_env);
 
@@ -327,10 +316,5 @@ pub(crate) fn analyze_var_def(
 
     for stmt in &root.stmts {
         on_stmt(stmt, &mut ctx);
-    }
-
-    AAnalysis {
-        symbols: ctx.symbols,
-        preproc_symbol_len,
     }
 }

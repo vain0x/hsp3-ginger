@@ -3,9 +3,8 @@ use super::{
     a_symbol::{ASymbolData, AWsSymbol},
     comment::{calculate_details, collect_comments},
     name_system::*,
-    preproc::{ASignatureData, PreprocAnalysisResult},
+    preproc::ASignatureData,
     syntax_linter::SyntaxLint,
-    var::AAnalysis,
     AScope, ASymbol, ASymbolDetails,
 };
 use crate::{
@@ -88,9 +87,7 @@ pub(crate) struct AWorkspaceAnalysis {
     project_docs: HashMap<String, DocId>,
 
     // ドキュメントごとの解析結果:
-    doc_syntax_map: HashMap<DocId, ASyntax>,
-    doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
-    doc_analysis_map: HashMap<DocId, AAnalysis>,
+    doc_analysis_map: HashMap<DocId, DocAnalysis>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     active_docs: HashSet<DocId>,
@@ -116,22 +113,18 @@ impl AWorkspaceAnalysis {
         self.public_env.builtin = builtin_env;
     }
 
-    fn invalidate(&mut self, doc: DocId) {
-        self.doc_syntax_map.remove(&doc);
-        self.doc_preproc_map.remove(&doc);
-        self.doc_analysis_map.remove(&doc);
-    }
-
     pub(crate) fn update_doc(&mut self, doc: DocId, text: RcStr) {
         self.dirty_docs.insert(doc);
         self.doc_texts.insert(doc, text);
-        self.invalidate(doc);
+        self.doc_analysis_map
+            .entry(doc)
+            .and_modify(|a| a.invalidate());
     }
 
     pub(crate) fn close_doc(&mut self, doc: DocId) {
         self.dirty_docs.insert(doc);
         self.doc_texts.remove(&doc);
-        self.invalidate(doc);
+        self.doc_analysis_map.remove(&doc);
     }
 
     fn compute(&mut self) {
@@ -146,28 +139,31 @@ impl AWorkspaceAnalysis {
                 None => continue,
             };
 
-            let (syntax, preproc) = {
-                let tokens = crate::token::tokenize(doc, text.clone());
-                let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
-                let root = crate::parse::parse_root(p_tokens.to_owned());
-                let preproc = crate::analysis::preproc::analyze_preproc(doc, &root);
+            let tokens = crate::token::tokenize(doc, text.clone());
+            let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
+            let root = crate::parse::parse_root(p_tokens.to_owned());
+            let preproc = crate::analysis::preproc::analyze_preproc(doc, &root);
 
-                let syntax = ASyntax {
-                    tokens: p_tokens,
-                    tree: root,
-                };
-                (syntax, preproc)
-            };
-
-            self.doc_syntax_map.insert(doc, syntax);
-            self.doc_preproc_map.insert(doc, preproc);
+            let da = self.doc_analysis_map.entry(doc).or_default();
+            da.set_syntax(p_tokens, root);
+            da.set_preproc(preproc);
         }
 
+        // 以前の解析結果を捨てる:
         self.active_docs.clear();
         self.public_env.clear();
         self.ns_env.clear();
         self.def_sites.clear();
         self.use_sites.clear();
+
+        for da in self.doc_analysis_map.values_mut() {
+            da.rollback_to_preproc();
+        }
+
+        debug_assert!(self
+            .doc_analysis_map
+            .values()
+            .all(|da| da.after_preproc() && !da.after_symbols()));
 
         // エントリーポイントを決定する。
         // 仮実装として、コメントかどこかに "ginger=entrypoint" と書いてあるファイルはエントリーポイントとみなす。実際には、どのファイルがエントリーポイントかを指定する設定ファイル(Cargo.tomlのようなもの)を置いてもらう。
@@ -189,64 +185,64 @@ impl AWorkspaceAnalysis {
         let mut included_docs = HashSet::new();
         let in_common = self.common_docs.values().cloned().collect::<HashSet<_>>();
 
-        for (&doc, preproc) in &self.doc_preproc_map {
+        for (&doc, da) in &self.doc_analysis_map {
             if in_common.contains(&doc) {
                 continue;
             }
 
-            for include in &preproc.includes {
+            for include in &da.includes {
                 let doc_opt = self.common_docs.get(include.as_str()).cloned();
                 included_docs.extend(doc_opt);
             }
         }
 
         self.active_docs.extend(
-            self.doc_preproc_map
+            self.doc_analysis_map
                 .keys()
                 .cloned()
                 .filter(|doc| !in_common.contains(&doc) || included_docs.contains(&doc)),
         );
 
         // 複数ファイルに渡る環境を構築する。
-        for (&doc, preproc) in &self.doc_preproc_map {
+        for (&doc, da) in &self.doc_analysis_map {
             if !self.active_docs.contains(&doc) {
                 continue;
             }
 
             extend_public_env_from_symbols(
                 doc,
-                &preproc.symbols,
+                &da.symbols,
                 &mut self.public_env,
                 &mut self.ns_env,
             );
         }
 
         // 変数の定義箇所を決定する。
-        for (&doc, syntax) in &self.doc_syntax_map {
+        for (&doc, da) in &mut self.doc_analysis_map {
             if !self.active_docs.contains(&doc) {
                 continue;
             }
 
-            let symbols = self.doc_preproc_map[&doc].symbols.clone();
-            let analysis = crate::analysis::var::analyze_var_def(
+            crate::analysis::var::analyze_var_def(
                 doc,
-                &syntax.tree,
-                symbols,
+                da.tree_opt.as_ref().unwrap(),
+                &mut da.symbols,
                 &mut self.public_env,
                 &mut self.ns_env,
                 &mut self.def_sites,
                 &mut self.use_sites,
             );
-            self.doc_analysis_map.insert(doc, analysis);
+            da.symbols_updated();
         }
 
         // シンボルの定義・使用箇所を収集する。
-        for (&doc, analysis) in &mut self.doc_analysis_map {
+        for (&doc, da) in &mut self.doc_analysis_map {
             if !self.active_docs.contains(&doc) {
                 continue;
             }
 
-            for (i, symbol_data) in analysis.symbols.iter().enumerate() {
+            debug_assert!(da.after_symbols());
+            for (i, symbol_data) in da.symbols.iter().enumerate() {
                 let symbol = ASymbol::new(i);
 
                 self.def_sites.extend(
@@ -274,14 +270,14 @@ impl AWorkspaceAnalysis {
     pub(crate) fn in_preproc(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
         self.compute();
 
-        let tokens = &self.doc_syntax_map.get(&doc)?.tokens;
+        let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         Some(crate::assists::completion::in_preproc(pos, tokens))
     }
 
     pub(crate) fn in_str_or_comment(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
         self.compute();
 
-        let tokens = &self.doc_syntax_map.get(&doc)?.tokens;
+        let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         let i = match tokens.binary_search_by_key(&pos, |t| Pos16::from(t.ahead().range.start())) {
             Ok(i) | Err(i) => i.saturating_sub(1),
         };
@@ -306,7 +302,13 @@ impl AWorkspaceAnalysis {
     ) -> Option<SignatureHelpContext> {
         self.compute();
 
-        let syntax = self.doc_syntax_map.get(&doc)?;
+        let doc_signatures_map = self
+            .doc_analysis_map
+            .iter_mut()
+            .map(|(&doc, da)| (doc, take(&mut da.signatures)))
+            .collect::<HashMap<_, _>>();
+
+        let tree = &self.doc_analysis_map.get(&doc)?.tree_opt.as_ref()?;
 
         let use_site_map = self
             .use_sites
@@ -322,12 +324,16 @@ impl AWorkspaceAnalysis {
 
         let mut h = SignatureHelpHost {
             builtin_signatures: take(&mut self.builtin_signatures),
-            doc_preproc_map: take(&mut self.doc_preproc_map),
+            doc_signatures_map,
             use_site_map,
         };
-        let out = h.process(pos, &syntax.tree);
+        let out = h.process(pos, tree);
         self.builtin_signatures = h.builtin_signatures;
-        self.doc_preproc_map = h.doc_preproc_map;
+
+        for (doc, signatures) in h.doc_signatures_map {
+            self.doc_analysis_map.get_mut(&doc).unwrap().signatures = signatures;
+        }
+
         out
     }
 
@@ -346,8 +352,7 @@ impl AWorkspaceAnalysis {
     pub(crate) fn get_ident_at(&mut self, doc: DocId, pos: Pos16) -> Option<(RcStr, Loc)> {
         self.compute();
 
-        let syntax = self.doc_syntax_map.get(&doc)?;
-        let tokens = &syntax.tokens;
+        let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         let token = match tokens.binary_search_by_key(&pos, |t| t.body.loc.start().into()) {
             Ok(i) => tokens[i].body.as_ref(),
             Err(i) => tokens
@@ -422,10 +427,9 @@ impl AWorkspaceAnalysis {
 
         let mut scope = ALocalScope::default();
 
-        if let Some(doc_analysis) = self.doc_analysis_map.get(&doc) {
-            let preproc = &self.doc_preproc_map[&doc];
-            scope = resolve_scope_at(&preproc.modules, &preproc.deffuncs, pos);
-            collect_local_completion_items(&doc_analysis.symbols, &scope, &mut completion_items);
+        if let Some(da) = self.doc_analysis_map.get(&doc) {
+            scope = resolve_scope_at(&da.modules, &da.deffuncs, pos);
+            collect_local_completion_items(&da.symbols, &scope, &mut completion_items);
         }
 
         if scope.is_outside_module() {
@@ -456,12 +460,13 @@ impl AWorkspaceAnalysis {
     pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
         self.compute();
 
-        for (&doc, syntax) in &self.doc_syntax_map {
+        for (&doc, da) in &self.doc_analysis_map {
             if !self.active_docs.contains(&doc) {
                 continue;
             }
 
-            lints.extend(crate::analysis::syntax_linter::syntax_lint(&syntax.tree));
+            let tree = or!(da.tree_opt.as_ref(), continue);
+            lints.extend(crate::analysis::syntax_linter::syntax_lint(tree));
         }
     }
 
@@ -477,8 +482,8 @@ impl AWorkspaceAnalysis {
             active_docs.extend(q.iter().cloned());
 
             while let Some(doc) = q.pop() {
-                let preproc = or!(self.doc_preproc_map.get(&doc), continue);
-                for s in &preproc.includes {
+                let da = or!(self.doc_analysis_map.get(&doc), continue);
+                for s in &da.includes {
                     let d = *or!(self.project_docs.get(s.as_str()), continue);
                     if active_docs.insert(d) {
                         q.push(d);
@@ -515,12 +520,14 @@ impl AWorkspaceAnalysis {
                 diagnostics: vec![],
             };
 
-            for (&doc, syntax) in &self.doc_syntax_map {
+            for (&doc, da) in &self.doc_analysis_map {
                 if !active_docs.contains(&doc) {
                     continue;
                 }
 
-                for stmt in &syntax.tree.stmts {
+                let root = or!(da.tree_opt.as_ref(), continue);
+
+                for stmt in &root.stmts {
                     on_stmt(stmt, &mut ctx);
                 }
             }
@@ -535,11 +542,6 @@ impl AWorkspaceAnalysis {
             }));
         }
     }
-}
-
-pub(crate) struct ASyntax {
-    pub(crate) tokens: RcSlice<PToken>,
-    pub(crate) tree: PRoot,
 }
 
 fn resolve_scope_at(
