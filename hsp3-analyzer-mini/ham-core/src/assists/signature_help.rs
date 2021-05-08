@@ -11,7 +11,7 @@ use std::{collections::HashMap, mem::take, rc::Rc};
 #[derive(Default)]
 pub(crate) struct SignatureHelpHost {
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
-    pub(crate) doc_signatures_map: HashMap<DocId, HashMap<ASymbol, Rc<ASignatureData>>>,
+    pub(crate) symbol_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) use_site_map: HashMap<Pos, AWsSymbol>,
 }
 
@@ -47,12 +47,9 @@ impl V {
     }
 
     fn find_signature(&self, ws_symbol: AWsSymbol) -> Option<Rc<ASignatureData>> {
-        let AWsSymbol { doc, symbol } = ws_symbol;
-
         self.host
-            .doc_signatures_map
-            .get(&doc)
-            .and_then(|signatures| signatures.get(&symbol))
+            .symbol_signatures
+            .get(&ws_symbol)
             .or_else(|| self.host.builtin_signatures.get(&ws_symbol))
             .cloned()
     }

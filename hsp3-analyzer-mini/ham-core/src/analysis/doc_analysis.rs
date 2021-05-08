@@ -4,7 +4,7 @@ use crate::{
     parse::{PRoot, PToken},
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd)]
 enum Phase {
@@ -32,7 +32,6 @@ pub(crate) struct DocAnalysis {
     pub(crate) includes: Vec<RcStr>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
-    pub(crate) signatures: HashMap<ASymbol, Rc<ASignatureData>>,
     pub(crate) preproc_symbols_len: usize,
 
     /// ドキュメント内のシンボル
@@ -47,7 +46,6 @@ impl DocAnalysis {
         self.includes.clear();
         self.modules.clear();
         self.deffuncs.clear();
-        self.signatures.clear();
         self.symbols.clear();
     }
 
@@ -65,7 +63,6 @@ impl DocAnalysis {
         self.includes = preproc.includes;
         self.modules = preproc.modules;
         self.deffuncs = preproc.deffuncs;
-        self.signatures = preproc.signatures;
         self.preproc_symbols_len = self.symbols.len();
     }
 

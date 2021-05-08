@@ -1,9 +1,10 @@
-use super::AScope;
+use super::{preproc::ASignatureData, AScope};
 use crate::{
     parse::{PParamTy, PToken},
     source::{DocId, Loc},
     utils::{id::Id, rc_str::RcStr},
 };
+use std::rc::Rc;
 
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum ASymbolKind {
@@ -85,6 +86,9 @@ pub(crate) struct ASymbolData {
     pub(crate) leader: PToken,
     pub(crate) scope_opt: Option<AScope>,
     pub(crate) ns_opt: Option<RcStr>,
+
+    // 追加の情報:
+    pub(crate) signature_opt: Option<Rc<ASignatureData>>,
 }
 
 pub(crate) struct ASymbolDetails {

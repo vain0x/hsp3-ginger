@@ -17,7 +17,6 @@ struct Ctx {
     scope: ALocalScope,
     modules: HashMap<AModule, AModuleData>,
     deffuncs: HashMap<ADefFunc, ADefFuncData>,
-    signatures: HashMap<ASymbol, Rc<ASignatureData>>,
     module_len: usize,
     deffunc_len: usize,
 }
@@ -65,6 +64,7 @@ fn add_symbol(
         leader: leader.clone(),
         scope_opt,
         ns_opt,
+        signature_opt: None,
     });
 }
 
@@ -155,7 +155,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             if let Some(symbol) = symbol_opt {
                 if let Some(data) = new_signature_data_for_deffunc(stmt) {
-                    ctx.signatures.insert(symbol, Rc::new(data));
+                    ctx.symbols[symbol.get()].signature_opt = Some(Rc::new(data));
                 }
             }
 
@@ -195,7 +195,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             if let Some(symbol) = symbol_opt {
                 if let Some(signature_data) = new_signature_data_for_lib_func(stmt) {
-                    ctx.signatures.insert(symbol, Rc::new(signature_data));
+                    ctx.symbols[symbol.get()].signature_opt = Some(Rc::new(signature_data));
                 }
             }
         }
@@ -350,7 +350,6 @@ pub(crate) struct PreprocAnalysisResult {
     pub(crate) includes: Vec<RcStr>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
-    pub(crate) signatures: HashMap<ASymbol, Rc<ASignatureData>>,
 }
 
 pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult {
@@ -366,7 +365,6 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
         includes,
         modules,
         deffuncs,
-        signatures,
         ..
     } = ctx;
 
@@ -375,6 +373,5 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
         includes,
         modules,
         deffuncs,
-        signatures,
     }
 }

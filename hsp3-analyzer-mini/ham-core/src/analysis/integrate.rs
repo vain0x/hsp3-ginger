@@ -291,10 +291,20 @@ impl AWorkspaceAnalysis {
     ) -> Option<SignatureHelpContext> {
         self.compute();
 
-        let doc_signatures_map = self
+        let symbol_signatures = self
             .doc_analysis_map
-            .iter_mut()
-            .map(|(&doc, da)| (doc, take(&mut da.signatures)))
+            .iter()
+            .flat_map(|(&doc, da)| {
+                da.symbols
+                    .iter()
+                    .enumerate()
+                    .filter_map(move |(i, symbol_data)| {
+                        let symbol = ASymbol::new(i);
+                        let ws_symbol = AWsSymbol { doc, symbol };
+                        let signature = Rc::clone(symbol_data.signature_opt.as_ref()?);
+                        Some((ws_symbol, signature))
+                    })
+            })
             .collect::<HashMap<_, _>>();
 
         let tree = &self.doc_analysis_map.get(&doc)?.tree_opt.as_ref()?;
@@ -313,15 +323,11 @@ impl AWorkspaceAnalysis {
 
         let mut h = SignatureHelpHost {
             builtin_signatures: take(&mut self.builtin_signatures),
-            doc_signatures_map,
+            symbol_signatures,
             use_site_map,
         };
         let out = h.process(pos, tree);
         self.builtin_signatures = h.builtin_signatures;
-
-        for (doc, signatures) in h.doc_signatures_map {
-            self.doc_analysis_map.get_mut(&doc).unwrap().signatures = signatures;
-        }
 
         out
     }

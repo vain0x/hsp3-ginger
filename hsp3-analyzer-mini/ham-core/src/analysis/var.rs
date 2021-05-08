@@ -49,6 +49,8 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         leader: name.clone(),
         scope_opt: scope_opt.clone(),
         ns_opt: ns_opt.clone(),
+
+        signature_opt: None,
     };
 
     if def_site {
