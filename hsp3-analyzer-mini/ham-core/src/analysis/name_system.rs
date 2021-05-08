@@ -309,3 +309,24 @@ pub(crate) fn extend_public_env_from_symbols(
         }
     }
 }
+
+pub(crate) fn extend_local_env_from_symbols(
+    doc: DocId,
+    symbols: &[ASymbolData],
+    local_env: &mut HashMap<ALocalScope, SymbolEnv>,
+) {
+    for (i, symbol_data) in symbols.iter().enumerate() {
+        let symbol = ASymbol::new(i);
+        let ws_symbol = AWsSymbol { doc, symbol };
+
+        match &symbol_data.scope_opt {
+            Some(AScope::Local(scope)) if !scope.is_public() => {
+                local_env
+                    .entry(scope.clone())
+                    .or_default()
+                    .insert(symbol_data.name.clone(), ws_symbol);
+            }
+            _ => {}
+        }
+    }
+}

@@ -4,7 +4,7 @@ use super::{
     a_scope::*,
     a_symbol::{ASymbolData, AWsSymbol},
     name_system::*,
-    AScope, ASymbol, ASymbolKind,
+    ASymbol, ASymbolKind,
 };
 use crate::{parse::*, source::*};
 use std::{collections::HashMap, mem::replace};
@@ -309,24 +309,8 @@ pub(crate) fn analyze_var_def(
 ) -> AAnalysis {
     let preproc_symbol_len = symbols.len();
 
-    let mut local_env: HashMap<ALocalScope, SymbolEnv> = HashMap::new();
-
-    for (i, symbol) in symbols.iter().enumerate() {
-        let ws_symbol = AWsSymbol {
-            doc,
-            symbol: ASymbol::new(i),
-        };
-
-        match &symbol.scope_opt {
-            Some(AScope::Local(scope)) if !scope.is_public() => {
-                local_env
-                    .entry(scope.clone())
-                    .or_default()
-                    .insert(symbol.name.clone(), ws_symbol);
-            }
-            _ => {}
-        }
-    }
+    let mut local_env = HashMap::new();
+    extend_local_env_from_symbols(doc, &symbols, &mut local_env);
 
     let mut ctx = Ctx {
         public_env,
