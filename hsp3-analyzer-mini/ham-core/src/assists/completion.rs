@@ -16,6 +16,23 @@ pub(crate) enum ACompletionItem<'a> {
     Symbol(&'a ASymbolData),
 }
 
+pub(crate) fn in_str_or_comment(pos: Pos16, tokens: &[PToken]) -> bool {
+    let i = match tokens.binary_search_by_key(&pos, |t| Pos16::from(t.ahead().range.start())) {
+        Ok(i) | Err(i) => i.saturating_sub(1),
+    };
+
+    tokens[i..]
+        .iter()
+        .take_while(|t| t.ahead().start() <= pos)
+        .flat_map(|t| t.iter())
+        .filter(|t| t.loc.range.contains_inclusive(pos))
+        .any(|t| match t.kind {
+            TokenKind::Str => t.loc.range.start() < pos && pos < t.loc.range.end(),
+            TokenKind::Comment => t.loc.range.start() < pos,
+            _ => false,
+        })
+}
+
 pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
     // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。行継続に注意。判定が難しいので構文木を使ったほうがいいかもしれない。
 

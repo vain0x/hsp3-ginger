@@ -281,21 +281,7 @@ impl AWorkspaceAnalysis {
         self.compute();
 
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
-        let i = match tokens.binary_search_by_key(&pos, |t| Pos16::from(t.ahead().range.start())) {
-            Ok(i) | Err(i) => i.saturating_sub(1),
-        };
-
-        let ok = tokens[i..]
-            .iter()
-            .take_while(|t| t.ahead().start() <= pos)
-            .flat_map(|t| t.iter())
-            .filter(|t| t.loc.range.contains_inclusive(pos))
-            .any(|t| match t.kind {
-                TokenKind::Str => t.loc.range.start() < pos && pos < t.loc.range.end(),
-                TokenKind::Comment => t.loc.range.start() < pos,
-                _ => false,
-            });
-        Some(ok)
+        Some(crate::assists::completion::in_str_or_comment(pos, tokens))
     }
 
     pub(crate) fn get_signature_help_context(
