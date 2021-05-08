@@ -264,6 +264,13 @@ impl AWorkspaceAnalysis {
         // eprintln!("use_sites={:#?}", &self.use_sites);
     }
 
+    pub(crate) fn in_preproc(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
+        self.compute();
+
+        let tokens = &self.doc_syntax_map.get(&doc)?.tokens;
+        Some(crate::assists::completion::in_preproc(pos, tokens))
+    }
+
     pub(crate) fn in_str_or_comment(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
         self.compute();
 

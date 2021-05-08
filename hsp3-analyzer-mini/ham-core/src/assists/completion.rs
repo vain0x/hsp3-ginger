@@ -6,18 +6,13 @@ use crate::{
     },
     assists::from_document_position,
     lang_service::docs::Docs,
-    parse::p_param_ty::PParamCategory,
+    parse::{p_param_ty::PParamCategory, PToken},
     source::*,
     token::TokenKind,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 
-fn is_preproc_statement(doc: DocId, pos: Pos16, wa: &AWorkspaceAnalysis) -> bool {
-    let tokens = match wa.doc_syntax_map.get(&doc) {
-        Some(syntax) => &syntax.tokens,
-        None => return false,
-    };
-
+pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
     // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。行継続に注意。判定が難しいので構文木を使ったほうがいいかもしれない。
 
     let row = pos.row as usize;
@@ -103,7 +98,7 @@ pub(crate) fn completion(
         return None;
     }
 
-    if is_preproc_statement(doc, pos, wa) {
+    if wa.in_preproc(doc, pos).unwrap_or(false) {
         collect_preproc_completion_items(other_items, &mut items);
         return Some(CompletionList {
             is_incomplete: false,
