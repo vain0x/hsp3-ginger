@@ -1,15 +1,18 @@
 use super::{
     a_scope::*,
-    a_symbol::{ASymbolData, AWsSymbol},
+    a_symbol::*,
     comment::{calculate_details, collect_comments},
     name_system::*,
     preproc::ASignatureData,
     syntax_linter::SyntaxLint,
-    AScope, ASymbol, ASymbolDetails,
+    ASymbol, ASymbolDetails,
 };
 use crate::{
     analysis::*,
-    assists::signature_help::{SignatureHelpContext, SignatureHelpHost},
+    assists::{
+        completion::ACompletionItem,
+        signature_help::{SignatureHelpContext, SignatureHelpHost},
+    },
     parse::*,
     source::{range_is_touched, DocId, Loc, Pos, Pos16},
     token::TokenKind,
@@ -416,45 +419,37 @@ impl AWorkspaceAnalysis {
         }
     }
 
-    pub(crate) fn collect_completion_items(
-        &mut self,
+    pub(crate) fn collect_completion_items<'a>(
+        &'a mut self,
         doc: DocId,
         pos: Pos16,
-    ) -> Vec<ACompletionItem> {
+        completion_items: &mut Vec<ACompletionItem<'a>>,
+    ) {
         self.compute();
 
-        let mut completion_items = vec![];
+        let scope = match self.doc_analysis_map.get(&doc) {
+            Some(da) => resolve_scope_at(&da.modules, &da.deffuncs, pos),
+            None => ALocalScope::default(),
+        };
 
-        let mut scope = ALocalScope::default();
-
-        if let Some(da) = self.doc_analysis_map.get(&doc) {
-            scope = resolve_scope_at(&da.modules, &da.deffuncs, pos);
-            collect_local_completion_items(&da.symbols, &scope, &mut completion_items);
-        }
-
-        if scope.is_outside_module() {
-            for (&d, doc_analysis) in &self.doc_analysis_map {
-                if d == doc || !self.active_docs.contains(&d) {
-                    continue;
+        let doc_symbols = self
+            .doc_analysis_map
+            .iter()
+            .filter_map(|(&d, da)| {
+                if d == doc || self.active_docs.contains(&d) {
+                    Some((d, da.symbols.as_slice()))
+                } else {
+                    None
                 }
+            })
+            .collect::<Vec<_>>();
 
-                collect_local_completion_items(
-                    &doc_analysis.symbols,
-                    &scope,
-                    &mut completion_items,
-                );
-            }
-        }
-
-        for (&doc, doc_analysis) in &self.doc_analysis_map {
-            if !self.active_docs.contains(&doc) {
-                continue;
-            }
-
-            collect_global_completion_items(&doc_analysis.symbols, &mut completion_items);
-        }
-
-        completion_items
+        crate::assists::completion::collect_symbols_as_completion_items(
+            doc,
+            scope,
+            &doc_symbols,
+            completion_items,
+        );
     }
 
     pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
@@ -568,34 +563,6 @@ fn resolve_scope_at(
     });
 
     scope
-}
-
-pub(crate) enum ACompletionItem<'a> {
-    Symbol(&'a ASymbolData),
-}
-
-fn collect_local_completion_items<'a>(
-    symbols: &'a [ASymbolData],
-    local: &ALocalScope,
-    completion_items: &mut Vec<ACompletionItem<'a>>,
-) {
-    for s in symbols {
-        let scope = or!(&s.scope_opt, continue);
-        if scope.is_visible_to(local) {
-            completion_items.push(ACompletionItem::Symbol(s));
-        }
-    }
-}
-
-fn collect_global_completion_items<'a>(
-    symbols: &'a [ASymbolData],
-    completion_items: &mut Vec<ACompletionItem<'a>>,
-) {
-    for s in symbols {
-        if let Some(AScope::Global) = s.scope_opt {
-            completion_items.push(ACompletionItem::Symbol(s));
-        }
-    }
 }
 
 #[cfg(test)]

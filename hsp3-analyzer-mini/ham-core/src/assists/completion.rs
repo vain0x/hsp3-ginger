@@ -1,8 +1,8 @@
 use crate::{
     analysis::{
         comment::{calculate_details, collect_comments},
-        integrate::{ACompletionItem, AWorkspaceAnalysis},
-        AScope, ASymbolKind,
+        integrate::AWorkspaceAnalysis,
+        ALocalScope, AScope, ASymbolData, ASymbolKind,
     },
     assists::from_document_position,
     lang_service::docs::Docs,
@@ -11,6 +11,10 @@ use crate::{
     token::TokenKind,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
+
+pub(crate) enum ACompletionItem<'a> {
+    Symbol(&'a ASymbolData),
+}
 
 pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
     // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。行継続に注意。判定が難しいので構文木を使ったほうがいいかもしれない。
@@ -76,6 +80,58 @@ fn collect_preproc_completion_items(
     );
 }
 
+fn collect_local_completion_items<'a>(
+    symbols: &'a [ASymbolData],
+    local: &ALocalScope,
+    completion_items: &mut Vec<ACompletionItem<'a>>,
+) {
+    for s in symbols {
+        let scope = match &s.scope_opt {
+            Some(it) => it,
+            None => continue,
+        };
+        if scope.is_visible_to(local) {
+            completion_items.push(ACompletionItem::Symbol(s));
+        }
+    }
+}
+
+fn collect_global_completion_items<'a>(
+    symbols: &'a [ASymbolData],
+    completion_items: &mut Vec<ACompletionItem<'a>>,
+) {
+    for s in symbols {
+        if let Some(AScope::Global) = s.scope_opt {
+            completion_items.push(ACompletionItem::Symbol(s));
+        }
+    }
+}
+
+pub(crate) fn collect_symbols_as_completion_items<'a>(
+    doc: DocId,
+    scope: ALocalScope,
+    doc_symbols: &[(DocId, &'a [ASymbolData])],
+    completion_items: &mut Vec<ACompletionItem<'a>>,
+) {
+    if let Some((_, symbols)) = doc_symbols.iter().find(|&&(d, _)| d == doc) {
+        collect_local_completion_items(symbols, &scope, completion_items);
+    }
+
+    if scope.is_outside_module() {
+        for &(d, symbols) in doc_symbols {
+            if d == doc {
+                continue;
+            }
+
+            collect_local_completion_items(symbols, &scope, completion_items);
+        }
+    }
+
+    for &(_, symbols) in doc_symbols {
+        collect_global_completion_items(symbols, completion_items);
+    }
+}
+
 pub(crate) fn incomplete_completion_list() -> CompletionList {
     CompletionList {
         is_incomplete: true,
@@ -106,7 +162,10 @@ pub(crate) fn completion(
         });
     }
 
-    for item in wa.collect_completion_items(doc, pos) {
+    let mut completion_items = vec![];
+    wa.collect_completion_items(doc, pos, &mut completion_items);
+
+    for item in completion_items {
         match item {
             ACompletionItem::Symbol(symbol) => {
                 let details = calculate_details(&collect_comments(&symbol.leader));
