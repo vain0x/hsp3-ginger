@@ -71,24 +71,24 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
 #[derive(Default)]
 pub(crate) struct AWorkspaceAnalysis {
-    pub(crate) dirty_docs: HashSet<DocId>,
+    dirty_docs: HashSet<DocId>,
     pub(crate) doc_texts: HashMap<DocId, RcStr>,
 
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) common_docs: HashMap<String, DocId>,
-    pub(crate) project_docs: HashMap<String, DocId>,
+    project_docs: HashMap<String, DocId>,
 
     // ドキュメントごとの解析結果:
-    pub(crate) doc_syntax_map: HashMap<DocId, ASyntax>,
-    pub(crate) doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
-    pub(crate) doc_analysis_map: HashMap<DocId, AAnalysis>,
+    doc_syntax_map: HashMap<DocId, ASyntax>,
+    doc_preproc_map: HashMap<DocId, PreprocAnalysisResult>,
+    doc_analysis_map: HashMap<DocId, AAnalysis>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
-    pub(crate) active_docs: HashSet<DocId>,
+    active_docs: HashSet<DocId>,
     pub(crate) public_env: APublicEnv,
-    pub(crate) ns_env: HashMap<RcStr, AEnv>,
-    pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
-    pub(crate) use_sites: Vec<(AWsSymbol, Loc)>,
+    ns_env: HashMap<RcStr, AEnv>,
+    def_sites: Vec<(AWsSymbol, Loc)>,
+    use_sites: Vec<(AWsSymbol, Loc)>,
 
     // エントリーポイントを起点として構築される情報:
     pub(crate) projects: Vec<ProjectAnalysis>,
