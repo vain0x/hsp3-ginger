@@ -38,8 +38,11 @@ const DEF_SITE: bool = true;
 const USE_SITE: bool = false;
 
 fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
-    let (basename, scope_opt, ns_opt) =
-        resolve_symbol_scope(&name.body.text, ADefScope::Local, &ctx.scope);
+    let NameScopeNsTriple {
+        basename,
+        scope_opt,
+        ns_opt,
+    } = resolve_symbol_scope(&name.body.text, ADefScope::Local, &ctx.scope);
 
     // 新しいシンボルを登録する。
     let symbol = ASymbol::new(ctx.symbols.len());

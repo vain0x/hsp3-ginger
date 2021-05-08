@@ -51,7 +51,11 @@ fn add_symbol(
     local: &ALocalScope,
     symbols: &mut Vec<ASymbolData>,
 ) {
-    let (basename, scope_opt, ns_opt) = resolve_symbol_scope(&name.body.text, def, local);
+    let NameScopeNsTriple {
+        basename,
+        scope_opt,
+        ns_opt,
+    } = resolve_symbol_scope(&name.body.text, def, local);
 
     symbols.push(ASymbolData {
         kind,

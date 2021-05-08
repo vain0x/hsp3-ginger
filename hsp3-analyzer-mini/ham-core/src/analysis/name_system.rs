@@ -126,13 +126,20 @@ pub(crate) enum ADefScope {
     Param,
 }
 
-/// 定義箇所の名前をシンボルに解決する。
+/// 名前、スコープ、名前空間。
+pub(crate) struct NameScopeNsTriple {
+    pub(crate) basename: RcStr,
+    pub(crate) scope_opt: Option<AScope>,
+    pub(crate) ns_opt: Option<RcStr>,
+}
+
+/// 定義箇所の名前に関連付けられるスコープと名前空間を決定する。
 /// (basename, scope, namespace)
 pub(crate) fn resolve_symbol_scope(
     basename: &RcStr,
     def: ADefScope,
     local: &ALocalScope,
-) -> (RcStr, Option<AScope>, Option<RcStr>) {
+) -> NameScopeNsTriple {
     let NamePath { base, qual } = NamePath::new(basename);
 
     // 識別子が非修飾のときはスコープに属す。
@@ -162,7 +169,11 @@ pub(crate) fn resolve_symbol_scope(
         (Qual::Unqualified, ADefScope::Local, Some(m)) => m.name_opt.clone(),
     };
 
-    (base, scope_opt, ns_opt)
+    NameScopeNsTriple {
+        basename: base,
+        scope_opt,
+        ns_opt,
+    }
 }
 
 /// 使用箇所の名前を解決する。
@@ -170,7 +181,7 @@ pub(crate) fn resolve_symbol_scope(
 pub(crate) fn resolve_symbol_scope_for_search(
     basename: &RcStr,
     local: &ALocalScope,
-) -> (RcStr, Option<AScope>, Option<RcStr>) {
+) -> NameScopeNsTriple {
     let NamePath { base, qual } = NamePath::new(basename);
 
     let scope_opt = match &qual {
@@ -185,7 +196,11 @@ pub(crate) fn resolve_symbol_scope_for_search(
         (Qual::Unqualified, Some(m)) => m.name_opt.clone(),
     };
 
-    (base, scope_opt, ns_opt)
+    NameScopeNsTriple {
+        basename: base,
+        scope_opt,
+        ns_opt,
+    }
 }
 
 /// 暗黙のシンボルを解決する。
@@ -196,7 +211,11 @@ pub(crate) fn resolve_candidate(
     ns_env: &HashMap<RcStr, SymbolEnv>,
     local_env: &HashMap<ALocalScope, SymbolEnv>,
 ) -> Option<AWsSymbol> {
-    let (basename, scope_opt, ns_opt) = resolve_symbol_scope_for_search(name, local);
+    let NameScopeNsTriple {
+        basename,
+        scope_opt,
+        ns_opt,
+    } = resolve_symbol_scope_for_search(name, local);
 
     if let Some(AScope::Local(scope)) = &scope_opt {
         // ローカル環境で探す
