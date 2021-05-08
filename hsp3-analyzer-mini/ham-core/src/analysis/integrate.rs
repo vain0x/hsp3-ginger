@@ -609,11 +609,9 @@ fn collect_local_completion_items<'a>(
     completion_items: &mut Vec<ACompletionItem<'a>>,
 ) {
     for s in symbols {
-        match &s.scope_opt {
-            Some(AScope::Local(scope)) if scope.is_visible_to(local) => {
-                completion_items.push(ACompletionItem::Symbol(s));
-            }
-            _ => continue,
+        let scope = or!(&s.scope_opt, continue);
+        if scope.is_visible_to(local) {
+            completion_items.push(ACompletionItem::Symbol(s));
         }
     }
 }

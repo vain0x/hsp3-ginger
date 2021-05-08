@@ -118,6 +118,16 @@ pub(crate) enum AScope {
     Local(ALocalScope),
 }
 
+impl AScope {
+    /// スコープselfで定義されたシンボルが、スコープotherにおいてみえるか？
+    pub(crate) fn is_visible_to(&self, other: &ALocalScope) -> bool {
+        match self {
+            AScope::Local(scope) => scope.is_visible_to(other),
+            _ => false,
+        }
+    }
+}
+
 /// シンボルをスコープに追加するときのモード
 #[derive(Clone, Copy)]
 pub(crate) enum ADefScope {
