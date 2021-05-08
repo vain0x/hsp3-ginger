@@ -148,7 +148,7 @@ pub(crate) fn signature_help(
         arg_index,
     } = wa.get_signature_help_context(doc, pos)?;
 
-    let command = Name::new(&signature_data.name).base;
+    let command = NamePath::new(&signature_data.name).base;
 
     let mut params = vec![
         ParameterInformation {

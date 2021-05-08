@@ -19,25 +19,25 @@ pub(crate) enum Qual {
 
 /// 名前: 識別子をbasenameと修飾子に分解したもの。
 #[derive(Clone, PartialEq, Eq)]
-pub(crate) struct Name {
+pub(crate) struct NamePath {
     /// `@` の前の部分
     pub(crate) base: RcStr,
     /// `@` 以降の部分
     pub(crate) qual: Qual,
 }
 
-impl Name {
+impl NamePath {
     pub(crate) fn new(name: &RcStr) -> Self {
         match name.rfind('@') {
-            Some(i) if i + 1 == name.len() => Name {
+            Some(i) if i + 1 == name.len() => NamePath {
                 base: name.slice(0, i),
                 qual: Qual::Toplevel,
             },
-            Some(i) => Name {
+            Some(i) => NamePath {
                 base: name.slice(0, i),
                 qual: Qual::Module(name.slice(i + 1, name.len())),
             },
-            None => Name {
+            None => NamePath {
                 base: name.clone(),
                 qual: Qual::Unqualified,
             },
@@ -133,7 +133,7 @@ pub(crate) fn resolve_symbol_scope(
     def: ADefScope,
     local: &ALocalScope,
 ) -> (RcStr, Option<AScope>, Option<RcStr>) {
-    let Name { base, qual } = Name::new(basename);
+    let NamePath { base, qual } = NamePath::new(basename);
 
     // 識別子が非修飾のときはスコープに属す。
     // 例外的に、`@` で修飾された識別子はglobalスコープかtoplevelスコープに属す。
@@ -171,7 +171,7 @@ pub(crate) fn resolve_symbol_scope_for_search(
     basename: &RcStr,
     local: &ALocalScope,
 ) -> (RcStr, Option<AScope>, Option<RcStr>) {
-    let Name { base, qual } = Name::new(basename);
+    let NamePath { base, qual } = NamePath::new(basename);
 
     let scope_opt = match &qual {
         Qual::Unqualified => Some(AScope::Local(local.clone())),
