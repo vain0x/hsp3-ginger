@@ -73,7 +73,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 /// ワークスペースの外側のデータ
 #[derive(Default)]
 pub(crate) struct HostData {
-    pub(crate) builtin_env: AEnv,
+    pub(crate) builtin_env: SymbolEnv,
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) common_docs: HashMap<String, DocId>,
 }
@@ -95,7 +95,7 @@ pub(crate) struct AWorkspaceAnalysis {
     // すべてのドキュメントの解析結果を使って構築される情報:
     active_docs: HashSet<DocId>,
     public_env: APublicEnv,
-    ns_env: HashMap<RcStr, AEnv>,
+    ns_env: HashMap<RcStr, SymbolEnv>,
     def_sites: Vec<(AWsSymbol, Loc)>,
     use_sites: Vec<(AWsSymbol, Loc)>,
 

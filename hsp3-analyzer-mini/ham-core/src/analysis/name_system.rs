@@ -47,11 +47,11 @@ impl Name {
 
 /// 環境。名前からシンボルへのマップ。
 #[derive(Debug, Default)]
-pub(crate) struct AEnv {
+pub(crate) struct SymbolEnv {
     map: HashMap<RcStr, AWsSymbol>,
 }
 
-impl AEnv {
+impl SymbolEnv {
     pub(crate) fn get(&self, name: &str) -> Option<AWsSymbol> {
         self.map.get(name).cloned()
     }
@@ -68,10 +68,10 @@ impl AEnv {
 #[derive(Default)]
 pub(crate) struct APublicEnv {
     /// 標準命令などのシンボルが属す環境。(この環境はソースファイルの変更時に無効化しないので、globalと分けている。)
-    pub(crate) builtin: AEnv,
+    pub(crate) builtin: SymbolEnv,
 
     /// あらゆる場所で使えるシンボルが属す環境。(標準命令や `#define global` で定義されたマクロなど)
-    pub(crate) global: AEnv,
+    pub(crate) global: SymbolEnv,
 }
 
 impl APublicEnv {
@@ -193,8 +193,8 @@ pub(crate) fn resolve_candidate(
     name: &RcStr,
     local: &ALocalScope,
     public_env: &APublicEnv,
-    ns_env: &HashMap<RcStr, AEnv>,
-    local_env: &HashMap<ALocalScope, AEnv>,
+    ns_env: &HashMap<RcStr, SymbolEnv>,
+    local_env: &HashMap<ALocalScope, SymbolEnv>,
 ) -> Option<AWsSymbol> {
     let (basename, scope_opt, ns_opt) = resolve_symbol_scope_for_search(name, local);
 

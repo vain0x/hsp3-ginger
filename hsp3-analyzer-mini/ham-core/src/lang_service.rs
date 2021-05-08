@@ -88,7 +88,7 @@ impl LangService {
     }
 
     pub(super) fn did_initialize(&mut self) {
-        let mut builtin_env = AEnv::default();
+        let mut builtin_env = SymbolEnv::default();
         let mut builtin_signatures = HashMap::new();
         let mut common_docs = HashMap::new();
 

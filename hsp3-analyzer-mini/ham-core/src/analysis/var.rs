@@ -11,7 +11,7 @@ use std::{collections::HashMap, mem::replace};
 
 pub(crate) struct APublicState {
     pub(crate) env: APublicEnv,
-    pub(crate) ns_env: HashMap<RcStr, AEnv>,
+    pub(crate) ns_env: HashMap<RcStr, SymbolEnv>,
 
     // 他のドキュメントのシンボルの定義・使用箇所を記録するもの。
     pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
@@ -27,7 +27,7 @@ struct Ctx<'a> {
     symbols: Vec<ASymbolData>,
 
     /// ドキュメント内の環境
-    env: HashMap<ALocalScope, AEnv>,
+    env: HashMap<ALocalScope, SymbolEnv>,
 
     deffunc_len: usize,
     module_len: usize,
@@ -320,7 +320,7 @@ pub(crate) fn analyze_var_def(
 ) -> AAnalysis {
     let preproc_symbol_len = symbols.len();
 
-    let mut local_env: HashMap<ALocalScope, AEnv> = HashMap::new();
+    let mut local_env: HashMap<ALocalScope, SymbolEnv> = HashMap::new();
 
     for (i, symbol) in symbols.iter().enumerate() {
         let ws_symbol = AWsSymbol {
