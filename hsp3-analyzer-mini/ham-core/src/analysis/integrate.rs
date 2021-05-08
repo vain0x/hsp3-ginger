@@ -72,7 +72,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 #[derive(Default)]
 pub(crate) struct AWorkspaceAnalysis {
     dirty_docs: HashSet<DocId>,
-    pub(crate) doc_texts: HashMap<DocId, RcStr>,
+    doc_texts: HashMap<DocId, RcStr>,
 
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) common_docs: HashMap<String, DocId>,
@@ -91,7 +91,7 @@ pub(crate) struct AWorkspaceAnalysis {
     use_sites: Vec<(AWsSymbol, Loc)>,
 
     // エントリーポイントを起点として構築される情報:
-    pub(crate) projects: Vec<ProjectAnalysis>,
+    projects: Vec<ProjectAnalysis>,
 }
 
 impl AWorkspaceAnalysis {
@@ -147,6 +147,22 @@ impl AWorkspaceAnalysis {
         self.ns_env.clear();
         self.def_sites.clear();
         self.use_sites.clear();
+
+        // エントリーポイントを決定する。
+        // 仮実装として、コメントかどこかに "ginger=entrypoint" と書いてあるファイルはエントリーポイントとみなす。実際には、どのファイルがエントリーポイントかを指定する設定ファイル(Cargo.tomlのようなもの)を置いてもらう。
+        {
+            let mut p = self.projects.drain(..).next().unwrap_or_default();
+            p.entrypoints.clear();
+            p.entrypoints.extend(
+                self.doc_texts
+                    .iter()
+                    .filter(|(_, text)| text.contains("ginger=entrypoint"))
+                    .map(|(&doc, _)| doc),
+            );
+            if !p.entrypoints.is_empty() {
+                self.projects.push(p);
+            }
+        }
 
         // 有効なドキュメントを検出する。(includeされていないcommonのファイルは無視する。)
         let mut included_docs = HashSet::new();
