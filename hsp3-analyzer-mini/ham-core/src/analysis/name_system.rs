@@ -65,6 +65,9 @@ impl SymbolEnv {
     }
 }
 
+/// 名前空間
+pub(crate) type NsEnv = HashMap<RcStr, SymbolEnv>;
+
 #[derive(Default)]
 pub(crate) struct APublicEnv {
     /// 標準命令などのシンボルが属す環境。(この環境はソースファイルの変更時に無効化しないので、globalと分けている。)
@@ -264,8 +267,8 @@ pub(crate) fn import_symbol_to_env(
     scope_opt: Option<AScope>,
     ns_opt: Option<RcStr>,
     public_env: &mut APublicEnv,
+    ns_env: &mut NsEnv,
     local_env: &mut HashMap<ALocalScope, SymbolEnv>,
-    ns_env: &mut HashMap<RcStr, SymbolEnv>,
 ) {
     let env_opt = match scope_opt {
         Some(AScope::Global) => Some(&mut public_env.global),
@@ -286,7 +289,7 @@ pub(crate) fn extend_public_env_from_symbols(
     doc: DocId,
     symbols: &[ASymbolData],
     public_env: &mut APublicEnv,
-    ns_env: &mut HashMap<RcStr, SymbolEnv>,
+    ns_env: &mut NsEnv,
 ) {
     for (i, symbol_data) in symbols.iter().enumerate() {
         let symbol = ASymbol::new(i);

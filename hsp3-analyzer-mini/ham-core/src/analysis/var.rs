@@ -6,20 +6,16 @@ use super::{
     name_system::*,
     AScope, ASymbol, ASymbolKind,
 };
-use crate::{parse::*, source::*, utils::rc_str::RcStr};
+use crate::{parse::*, source::*};
 use std::{collections::HashMap, mem::replace};
 
-pub(crate) struct APublicState {
-    pub(crate) env: APublicEnv,
-    pub(crate) ns_env: HashMap<RcStr, SymbolEnv>,
+struct Ctx<'a> {
+    public_env: &'a mut APublicEnv,
+    ns_env: &'a mut NsEnv,
 
     // 他のドキュメントのシンボルの定義・使用箇所を記録するもの。
-    pub(crate) def_sites: Vec<(AWsSymbol, Loc)>,
-    pub(crate) use_sites: Vec<(AWsSymbol, Loc)>,
-}
-
-struct Ctx<'a> {
-    public: &'a mut APublicState,
+    public_def_sites: &'a mut Vec<(AWsSymbol, Loc)>,
+    public_use_sites: &'a mut Vec<(AWsSymbol, Loc)>,
 
     doc: DocId,
 
@@ -69,9 +65,9 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         basename,
         scope_opt,
         ns_opt,
-        &mut ctx.public.env,
+        &mut ctx.public_env,
+        &mut ctx.ns_env,
         &mut ctx.local_env,
-        &mut ctx.public.ns_env,
     );
 }
 
@@ -79,12 +75,12 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
     match resolve_implicit_symbol(
         &name.body.text,
         &ctx.scope,
-        &ctx.public.env,
-        &ctx.public.ns_env,
+        &ctx.public_env,
+        &ctx.ns_env,
         &ctx.local_env,
     ) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
-            ctx.public.def_sites.push((ws_symbol, name.body.loc));
+            ctx.public_def_sites.push((ws_symbol, name.body.loc));
         }
         Some(ws_symbol) => {
             assert_eq!(ws_symbol.doc, ctx.doc);
@@ -100,12 +96,12 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
     match resolve_implicit_symbol(
         &name.body.text,
         &ctx.scope,
-        &ctx.public.env,
-        &ctx.public.ns_env,
+        &ctx.public_env,
+        &ctx.ns_env,
         &ctx.local_env,
     ) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
-            ctx.public.use_sites.push((ws_symbol, name.body.loc));
+            ctx.public_use_sites.push((ws_symbol, name.body.loc));
         }
         Some(ws_symbol) => {
             assert_eq!(ws_symbol.doc, ctx.doc);
@@ -306,7 +302,10 @@ pub(crate) fn analyze_var_def(
     doc: DocId,
     root: &PRoot,
     symbols: Vec<ASymbolData>,
-    public: &mut APublicState,
+    public_env: &mut APublicEnv,
+    ns_env: &mut NsEnv,
+    def_sites: &mut Vec<(AWsSymbol, Loc)>,
+    use_sites: &mut Vec<(AWsSymbol, Loc)>,
 ) -> AAnalysis {
     let preproc_symbol_len = symbols.len();
 
@@ -330,7 +329,10 @@ pub(crate) fn analyze_var_def(
     }
 
     let mut ctx = Ctx {
-        public,
+        public_env,
+        ns_env,
+        public_def_sites: def_sites,
+        public_use_sites: use_sites,
         doc,
         symbols,
         local_env,

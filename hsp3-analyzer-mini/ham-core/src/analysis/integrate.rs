@@ -5,7 +5,7 @@ use super::{
     name_system::*,
     preproc::{ASignatureData, PreprocAnalysisResult},
     syntax_linter::SyntaxLint,
-    var::{AAnalysis, APublicState},
+    var::AAnalysis,
     AScope, ASymbol, ASymbolDetails,
 };
 use crate::{
@@ -222,13 +222,6 @@ impl AWorkspaceAnalysis {
         }
 
         // 変数の定義箇所を決定する。
-        let mut public_state = APublicState {
-            env: take(&mut self.public_env),
-            ns_env: take(&mut self.ns_env),
-            def_sites: take(&mut self.def_sites),
-            use_sites: take(&mut self.use_sites),
-        };
-
         for (&doc, syntax) in &self.doc_syntax_map {
             if !self.active_docs.contains(&doc) {
                 continue;
@@ -239,22 +232,12 @@ impl AWorkspaceAnalysis {
                 doc,
                 &syntax.tree,
                 symbols,
-                &mut public_state,
+                &mut self.public_env,
+                &mut self.ns_env,
+                &mut self.def_sites,
+                &mut self.use_sites,
             );
             self.doc_analysis_map.insert(doc, analysis);
-        }
-
-        {
-            let APublicState {
-                env,
-                ns_env,
-                def_sites,
-                use_sites,
-            } = public_state;
-            self.public_env = env;
-            self.ns_env = ns_env;
-            self.def_sites = def_sites;
-            self.use_sites = use_sites;
         }
 
         // シンボルの定義・使用箇所を収集する。
