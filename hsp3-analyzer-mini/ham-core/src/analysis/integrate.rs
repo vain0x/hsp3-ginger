@@ -69,13 +69,21 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     }
 }
 
+/// ワークスペースの外側のデータ
+#[derive(Default)]
+pub(crate) struct HostData {
+    pub(crate) builtin_env: AEnv,
+    pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
+    pub(crate) common_docs: HashMap<String, DocId>,
+}
+
 #[derive(Default)]
 pub(crate) struct AWorkspaceAnalysis {
     dirty_docs: HashSet<DocId>,
     doc_texts: HashMap<DocId, RcStr>,
 
-    pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
-    pub(crate) common_docs: HashMap<String, DocId>,
+    builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
+    common_docs: HashMap<String, DocId>,
     project_docs: HashMap<String, DocId>,
 
     // ドキュメントごとの解析結果:
@@ -85,7 +93,7 @@ pub(crate) struct AWorkspaceAnalysis {
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     active_docs: HashSet<DocId>,
-    pub(crate) public_env: APublicEnv,
+    public_env: APublicEnv,
     ns_env: HashMap<RcStr, AEnv>,
     def_sites: Vec<(AWsSymbol, Loc)>,
     use_sites: Vec<(AWsSymbol, Loc)>,
@@ -95,6 +103,18 @@ pub(crate) struct AWorkspaceAnalysis {
 }
 
 impl AWorkspaceAnalysis {
+    pub(crate) fn initialize(&mut self, host_data: HostData) {
+        let HostData {
+            builtin_signatures,
+            common_docs,
+            builtin_env,
+        } = host_data;
+
+        self.builtin_signatures = builtin_signatures;
+        self.common_docs = common_docs;
+        self.public_env.builtin = builtin_env;
+    }
+
     fn invalidate(&mut self, doc: DocId) {
         self.doc_syntax_map.remove(&doc);
         self.doc_preproc_map.remove(&doc);

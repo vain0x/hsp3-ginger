@@ -7,7 +7,10 @@ use self::{
 };
 use crate::{
     analysis::{
-        a_symbol::AWsSymbol, integrate::AWorkspaceAnalysis, preproc::ASignatureData, ASymbol,
+        a_symbol::AWsSymbol,
+        integrate::{AEnv, AWorkspaceAnalysis, HostData},
+        preproc::ASignatureData,
+        ASymbol,
     },
     assists,
     help_source::{collect_all_symbols, HsSymbol},
@@ -84,7 +87,11 @@ impl LangService {
     }
 
     pub(super) fn did_initialize(&mut self) {
-        debug!("hsphelp ファイルからシンボルを探索します。");
+        let mut builtin_env = AEnv::default();
+        let mut builtin_signatures = HashMap::new();
+        let mut common_docs = HashMap::new();
+
+        info!("hsphelp ファイルからシンボルを探索します。");
         let mut file_count = 0;
         let mut symbols = vec![];
         let mut warnings = vec![];
@@ -119,10 +126,7 @@ impl LangService {
                     doc: hsphelp_doc,
                     symbol: ASymbol::new(i),
                 };
-                self.wa
-                    .public_env
-                    .builtin
-                    .insert(name.clone().into(), wa_symbol);
+                builtin_env.insert(name.clone().into(), wa_symbol);
 
                 if let Some(s) = signature_opt {
                     let params = {
@@ -149,9 +153,7 @@ impl LangService {
                         name: name.clone().into(),
                         params,
                     };
-                    self.wa
-                        .builtin_signatures
-                        .insert(wa_symbol, Rc::new(signature_data));
+                    builtin_signatures.insert(wa_symbol, Rc::new(signature_data));
                 }
 
                 // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
@@ -199,8 +201,6 @@ impl LangService {
                 None => vec![],
             };
 
-            let mut common_docs = HashMap::new();
-
             for path in patterns
                 .into_iter()
                 .filter_map(|pattern| glob::glob(&pattern).ok())
@@ -232,9 +232,13 @@ impl LangService {
                     }
                 }
             }
-
-            self.wa.common_docs = common_docs;
         }
+
+        self.wa.initialize(HostData {
+            builtin_env,
+            builtin_signatures,
+            common_docs,
+        });
 
         if self.options.watcher_enabled {
             if let Some(watched_dir) = self
