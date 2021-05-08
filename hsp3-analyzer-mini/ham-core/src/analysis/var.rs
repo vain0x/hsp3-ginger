@@ -1,9 +1,9 @@
 // 変数の定義・使用箇所の列挙。
 
 use super::{
-    a_scope::{ADefFunc, ADefScope, ALocalScope, AModule},
+    a_scope::*,
     a_symbol::{ASymbolData, AWsSymbol},
-    integrate::{AEnv, APublicEnv, Name, Qual},
+    name_system::*,
     AScope, ASymbol, ASymbolKind,
 };
 use crate::{parse::*, source::*, utils::rc_str::RcStr};
@@ -32,110 +32,6 @@ struct Ctx<'a> {
     deffunc_len: usize,
     module_len: usize,
     scope: ALocalScope,
-}
-
-/// (basename, scope, namespace)
-pub(crate) fn resolve_symbol_scope(
-    name: &RcStr,
-    def: ADefScope,
-    local: &ALocalScope,
-) -> (RcStr, Option<AScope>, Option<RcStr>) {
-    let Name { base, qual } = Name::new(name);
-
-    // 識別子が非修飾のときはスコープに属す。
-    // 例外的に、`@` で修飾された識別子はglobalスコープかtoplevelスコープに属す。
-    let scope_opt = match (&qual, def, &local.module_opt) {
-        (Qual::Unqualified, ADefScope::Param, _) => Some(AScope::Local(local.clone())),
-        (Qual::Unqualified, ADefScope::Global, _) | (Qual::Toplevel, ADefScope::Global, _) => {
-            Some(AScope::Global)
-        }
-        (Qual::Unqualified, ADefScope::Local, _) => {
-            let scope = AScope::Local(ALocalScope {
-                deffunc_opt: None,
-                ..local.clone()
-            });
-            Some(scope)
-        }
-        (Qual::Toplevel, ADefScope::Local, _) => Some(AScope::Local(ALocalScope::default())),
-        _ => None,
-    };
-
-    let ns_opt: Option<RcStr> = match (qual, def, &local.module_opt) {
-        (_, ADefScope::Param, _) => None,
-        (Qual::Module(ns), _, _) => Some(ns),
-        (Qual::Toplevel, _, _)
-        | (Qual::Unqualified, ADefScope::Global, _)
-        | (Qual::Unqualified, ADefScope::Local, None) => Some("".into()),
-        (Qual::Unqualified, ADefScope::Local, Some(m)) => m.name_opt.clone(),
-    };
-
-    (base, scope_opt, ns_opt)
-}
-
-/// (basename, scope, namespace)
-pub(crate) fn resolve_symbol_scope_for_search(
-    name: &RcStr,
-    local: &ALocalScope,
-) -> (RcStr, Option<AScope>, Option<RcStr>) {
-    let Name { base, qual } = Name::new(name);
-
-    let scope_opt = match &qual {
-        Qual::Unqualified => Some(AScope::Local(local.clone())),
-        Qual::Toplevel => Some(AScope::Local(ALocalScope::default())),
-        Qual::Module(_) => None,
-    };
-
-    let ns_opt: Option<RcStr> = match (qual, &local.module_opt) {
-        (Qual::Module(ns), _) => Some(ns),
-        (Qual::Toplevel, _) | (Qual::Unqualified, None) => Some("".into()),
-        (Qual::Unqualified, Some(m)) => m.name_opt.clone(),
-    };
-
-    (base, scope_opt, ns_opt)
-}
-
-/// 暗黙のシンボルの出現を解決する。
-fn resolve_candidate(
-    name: &RcStr,
-    local: &ALocalScope,
-    public_env: &APublicEnv,
-    ns_env: &HashMap<RcStr, AEnv>,
-    local_env: &HashMap<ALocalScope, AEnv>,
-) -> Option<AWsSymbol> {
-    let (basename, scope_opt, ns_opt) = resolve_symbol_scope_for_search(name, local);
-
-    if let Some(AScope::Local(scope)) = &scope_opt {
-        // ローカル環境で探す
-        if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(&basename)) {
-            return it;
-        }
-
-        // deffuncの外からも探す。
-        if scope.deffunc_opt.is_some() {
-            let scope = ALocalScope {
-                deffunc_opt: None,
-                ..scope.clone()
-            };
-            if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(&basename)) {
-                return it;
-            }
-        }
-    }
-
-    if let Some(ns) = &ns_opt {
-        if let it @ Some(_) = ns_env.get(ns).and_then(|env| env.get(&basename)) {
-            return it;
-        }
-    }
-
-    if let Some(_) = scope_opt {
-        // globalで探す。
-        if let it @ Some(_) = public_env.resolve(&basename) {
-            return it;
-        }
-    }
-
-    None
 }
 
 const DEF_SITE: bool = true;

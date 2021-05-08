@@ -17,13 +17,14 @@ mod analysis {
     pub(crate) mod a_symbol;
     pub(crate) mod comment;
     pub(crate) mod integrate;
+    pub(crate) mod name_system;
     pub(crate) mod preproc;
     pub(crate) mod syntax_linter;
     pub(crate) mod var;
 
     pub(crate) use self::{
-        a_scope::AScope,
         a_symbol::{ASymbol, ASymbolDetails, ASymbolKind},
+        name_system::*,
     };
 }
 

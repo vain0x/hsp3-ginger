@@ -1,10 +1,7 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
-use super::{a_scope::*, a_symbol::*};
-use crate::{
-    analysis::var::resolve_symbol_scope, parse::*, source::DocId, token::TokenKind,
-    utils::rc_str::RcStr,
-};
+use super::{a_scope::*, a_symbol::*, name_system::*};
+use crate::{parse::*, source::DocId, token::TokenKind, utils::rc_str::RcStr};
 use std::{collections::HashMap, mem::replace, rc::Rc};
 
 pub(crate) struct ASignatureData {
@@ -145,8 +142,6 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             };
 
             if let Some(name) = name_opt {
-                // ax.deffuncs[deffunc.get()].name_opt = Some(name.body.text.clone());
-
                 if onexit_opt.is_none() {
                     let scope = ctx.privacy_scope_or_global(privacy_opt);
                     symbol_opt = Some(ASymbol::new(ctx.symbols.len()));

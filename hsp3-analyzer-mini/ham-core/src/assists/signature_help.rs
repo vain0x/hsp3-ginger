@@ -3,6 +3,7 @@ use crate::{
     analysis::{
         a_symbol::*,
         integrate::*,
+        name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},
     },
     parse::*,

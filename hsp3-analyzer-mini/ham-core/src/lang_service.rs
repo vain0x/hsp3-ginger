@@ -8,7 +8,8 @@ use self::{
 use crate::{
     analysis::{
         a_symbol::AWsSymbol,
-        integrate::{AEnv, AWorkspaceAnalysis, HostData},
+        integrate::{AWorkspaceAnalysis, HostData},
+        name_system::*,
         preproc::ASignatureData,
         ASymbol,
     },

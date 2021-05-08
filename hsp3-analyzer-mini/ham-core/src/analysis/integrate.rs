@@ -2,13 +2,14 @@ use super::{
     a_scope::*,
     a_symbol::{ASymbolData, AWsSymbol},
     comment::{calculate_details, collect_comments},
+    name_system::*,
     preproc::{ASignatureData, PreprocAnalysisResult},
     syntax_linter::SyntaxLint,
     var::{AAnalysis, APublicState},
     AScope, ASymbol, ASymbolDetails,
 };
 use crate::{
-    analysis::{a_scope::ALocalScope, ASymbolKind},
+    analysis::*,
     assists::signature_help::{SignatureHelpContext, SignatureHelpHost},
     parse::*,
     source::{range_is_touched, DocId, Loc, Pos, Pos16},
@@ -572,45 +573,6 @@ pub(crate) struct ASyntax {
     pub(crate) tree: PRoot,
 }
 
-/// 環境。名前からシンボルへのマップ。
-#[derive(Debug, Default)]
-pub(crate) struct AEnv {
-    map: HashMap<RcStr, AWsSymbol>,
-}
-
-impl AEnv {
-    pub(crate) fn get(&self, name: &str) -> Option<AWsSymbol> {
-        self.map.get(name).cloned()
-    }
-
-    pub(crate) fn insert(&mut self, name: RcStr, symbol: AWsSymbol) {
-        self.map.insert(name, symbol);
-    }
-
-    pub(crate) fn clear(&mut self) {
-        self.map.clear();
-    }
-}
-
-#[derive(Default)]
-pub(crate) struct APublicEnv {
-    /// 標準命令などのシンボルが属す環境。(この環境はソースファイルの変更時に無効化しないので、globalと分けている。)
-    pub(crate) builtin: AEnv,
-
-    /// あらゆる場所で使えるシンボルが属す環境。(標準命令や `#define global` で定義されたマクロなど)
-    pub(crate) global: AEnv,
-}
-
-impl APublicEnv {
-    pub(crate) fn resolve(&self, name: &str) -> Option<AWsSymbol> {
-        self.global.get(name).or_else(|| self.builtin.get(name))
-    }
-
-    pub(crate) fn clear(&mut self) {
-        self.global.clear();
-    }
-}
-
 fn resolve_scope_at(
     modules: &HashMap<AModule, AModuleData>,
     deffuncs: &HashMap<ADefFunc, ADefFuncData>,
@@ -663,44 +625,6 @@ fn collect_global_completion_items<'a>(
     for s in symbols {
         if let Some(AScope::Global) = s.scope_opt {
             completion_items.push(ACompletionItem::Symbol(s));
-        }
-    }
-}
-
-/// 名前の修飾子。
-#[derive(Clone, PartialEq, Eq)]
-pub(crate) enum Qual {
-    /// 非修飾。`xxx`
-    Unqualified,
-
-    /// トップレベルの名前空間の修飾付き。`xxx@`
-    Toplevel,
-
-    /// モジュールの名前空間の修飾付き。`xxx@m_hoge`
-    Module(RcStr),
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub(crate) struct Name {
-    pub(crate) base: RcStr,
-    pub(crate) qual: Qual,
-}
-
-impl Name {
-    pub(crate) fn new(name: &RcStr) -> Self {
-        match name.rfind('@') {
-            Some(i) if i + 1 == name.len() => Name {
-                base: name.slice(0, i),
-                qual: Qual::Toplevel,
-            },
-            Some(i) => Name {
-                base: name.slice(0, i),
-                qual: Qual::Module(name.slice(i + 1, name.len())),
-            },
-            None => Name {
-                base: name.clone(),
-                qual: Qual::Unqualified,
-            },
         }
     }
 }
