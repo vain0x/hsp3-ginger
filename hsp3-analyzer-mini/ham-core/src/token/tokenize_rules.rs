@@ -627,4 +627,26 @@ mod tests {
             ]
         )
     }
+
+    // 未実装
+    #[test]
+    #[cfg(unimplemented)]
+    fn macro_parameter() {
+        assert_eq!(
+            tokenize_str_to_kinds("#define id(%1) %1"),
+            vec![
+                TokenKind::Hash,
+                TokenKind::Ident,
+                TokenKind::Blank,
+                TokenKind::Ident,
+                TokenKind::LeftParen,
+                TokenKind::Percent, // <- macro parameter であるべき
+                TokenKind::Number,
+                TokenKind::RightParen,
+                TokenKind::Blank,
+                TokenKind::Percent,
+                TokenKind::Number,
+            ]
+        );
+    }
 }
