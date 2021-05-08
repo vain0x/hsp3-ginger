@@ -38,14 +38,12 @@ const DEF_SITE: bool = true;
 const USE_SITE: bool = false;
 
 fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
+    let doc = ctx.doc;
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
     } = resolve_name_scope_ns_for_def(&name.body.text, ADefScope::Local, &ctx.scope);
-
-    // 新しいシンボルを登録する。
-    let symbol = ASymbol::new(ctx.symbols.len());
 
     let mut symbol_data = ASymbolData {
         kind,
@@ -63,29 +61,18 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         symbol_data.use_sites.push(name.body.loc);
     }
 
+    let symbol = ASymbol::new(ctx.symbols.len());
     ctx.symbols.push(symbol_data);
 
-    // 環境に追加する。
-    let ws_symbol = AWsSymbol {
-        doc: ctx.doc,
-        symbol,
-    };
-    let env_opt = match scope_opt {
-        Some(AScope::Global) => Some(&mut ctx.public.env.global),
-        Some(AScope::Local(scope)) => Some(ctx.env.entry(scope).or_default()),
-        None => None,
-    };
-    if let Some(env) = env_opt {
-        env.insert(basename.clone(), ws_symbol);
-    }
-
-    if let Some(ns) = ns_opt {
-        ctx.public
-            .ns_env
-            .entry(ns)
-            .or_default()
-            .insert(basename, ws_symbol);
-    }
+    import_symbol_to_env(
+        AWsSymbol { doc, symbol },
+        basename,
+        scope_opt,
+        ns_opt,
+        &mut ctx.public.env,
+        &mut ctx.env,
+        &mut ctx.public.ns_env,
+    );
 }
 
 fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {

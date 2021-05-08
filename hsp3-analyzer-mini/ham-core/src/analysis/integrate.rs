@@ -213,26 +213,12 @@ impl AWorkspaceAnalysis {
                 continue;
             }
 
-            for (i, symbol_data) in preproc.symbols.iter().enumerate() {
-                let symbol = ASymbol::new(i);
-                let ws_symbol = AWsSymbol { doc, symbol };
-
-                match &symbol_data.scope_opt {
-                    Some(AScope::Global) => {
-                        self.public_env
-                            .global
-                            .insert(symbol_data.name.clone(), ws_symbol);
-                    }
-                    _ => {}
-                }
-
-                if let Some(ns) = &symbol_data.ns_opt {
-                    self.ns_env
-                        .entry(ns.clone())
-                        .or_default()
-                        .insert(symbol_data.name.clone(), ws_symbol);
-                }
-            }
+            extend_public_env_from_symbols(
+                doc,
+                &preproc.symbols,
+                &mut self.public_env,
+                &mut self.ns_env,
+            );
         }
 
         // 変数の定義箇所を決定する。

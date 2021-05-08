@@ -1,7 +1,7 @@
 // 名前解決に関係するもの。スコープや名前空間など。
 
 use super::{a_scope::*, a_symbol::*};
-use crate::utils::rc_str::RcStr;
+use crate::{source::*, utils::rc_str::RcStr};
 use std::collections::HashMap;
 
 /// 名前の修飾子。
@@ -256,4 +256,53 @@ pub(crate) fn resolve_implicit_symbol(
     }
 
     None
+}
+
+pub(crate) fn import_symbol_to_env(
+    ws_symbol: AWsSymbol,
+    basename: RcStr,
+    scope_opt: Option<AScope>,
+    ns_opt: Option<RcStr>,
+    public_env: &mut APublicEnv,
+    local_env: &mut HashMap<ALocalScope, SymbolEnv>,
+    ns_env: &mut HashMap<RcStr, SymbolEnv>,
+) {
+    let env_opt = match scope_opt {
+        Some(AScope::Global) => Some(&mut public_env.global),
+        Some(AScope::Local(scope)) => Some(local_env.entry(scope).or_default()),
+        None => None,
+    };
+
+    if let Some(env) = env_opt {
+        env.insert(basename.clone(), ws_symbol);
+    }
+
+    if let Some(ns) = ns_opt {
+        ns_env.entry(ns).or_default().insert(basename, ws_symbol);
+    }
+}
+
+pub(crate) fn extend_public_env_from_symbols(
+    doc: DocId,
+    symbols: &[ASymbolData],
+    public_env: &mut APublicEnv,
+    ns_env: &mut HashMap<RcStr, SymbolEnv>,
+) {
+    for (i, symbol_data) in symbols.iter().enumerate() {
+        let symbol = ASymbol::new(i);
+        let ws_symbol = AWsSymbol { doc, symbol };
+
+        if let Some(AScope::Global) = &symbol_data.scope_opt {
+            public_env
+                .global
+                .insert(symbol_data.name.clone(), ws_symbol);
+        }
+
+        if let Some(ns) = &symbol_data.ns_opt {
+            ns_env
+                .entry(ns.clone())
+                .or_default()
+                .insert(symbol_data.name.clone(), ws_symbol);
+        }
+    }
 }
