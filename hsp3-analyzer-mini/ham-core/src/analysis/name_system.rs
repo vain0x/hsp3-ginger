@@ -134,8 +134,7 @@ pub(crate) struct NameScopeNsTriple {
 }
 
 /// 定義箇所の名前に関連付けられるスコープと名前空間を決定する。
-/// (basename, scope, namespace)
-pub(crate) fn resolve_symbol_scope(
+pub(crate) fn resolve_name_scope_ns_for_def(
     basename: &RcStr,
     def: ADefScope,
     local: &ALocalScope,
@@ -176,9 +175,8 @@ pub(crate) fn resolve_symbol_scope(
     }
 }
 
-/// 使用箇所の名前を解決する。
-/// (basename, scope, namespace)
-pub(crate) fn resolve_symbol_scope_for_search(
+/// 使用箇所の名前に関連付けられるスコープと名前空間を決定する。
+pub(crate) fn resolve_name_scope_ns_for_use(
     basename: &RcStr,
     local: &ALocalScope,
 ) -> NameScopeNsTriple {
@@ -203,8 +201,7 @@ pub(crate) fn resolve_symbol_scope_for_search(
     }
 }
 
-/// 暗黙のシンボルを解決する。
-pub(crate) fn resolve_candidate(
+pub(crate) fn resolve_implicit_symbol(
     name: &RcStr,
     local: &ALocalScope,
     public_env: &APublicEnv,
@@ -215,7 +212,7 @@ pub(crate) fn resolve_candidate(
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_symbol_scope_for_search(name, local);
+    } = resolve_name_scope_ns_for_use(name, local);
 
     if let Some(AScope::Local(scope)) = &scope_opt {
         // ローカル環境で探す

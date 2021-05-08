@@ -55,7 +55,7 @@ fn add_symbol(
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_symbol_scope(&name.body.text, def, local);
+    } = resolve_name_scope_ns_for_def(&name.body.text, def, local);
 
     symbols.push(ASymbolData {
         kind,

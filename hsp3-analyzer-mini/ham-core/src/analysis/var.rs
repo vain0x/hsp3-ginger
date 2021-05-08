@@ -42,7 +42,7 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_symbol_scope(&name.body.text, ADefScope::Local, &ctx.scope);
+    } = resolve_name_scope_ns_for_def(&name.body.text, ADefScope::Local, &ctx.scope);
 
     // 新しいシンボルを登録する。
     let symbol = ASymbol::new(ctx.symbols.len());
@@ -89,7 +89,7 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
 }
 
 fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
-    match resolve_candidate(
+    match resolve_implicit_symbol(
         &name.body.text,
         &ctx.scope,
         &ctx.public.env,
@@ -110,7 +110,7 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
 }
 
 fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
-    match resolve_candidate(
+    match resolve_implicit_symbol(
         &name.body.text,
         &ctx.scope,
         &ctx.public.env,
