@@ -27,7 +27,7 @@ struct Ctx<'a> {
     symbols: Vec<ASymbolData>,
 
     /// ドキュメント内の環境
-    env: HashMap<ALocalScope, SymbolEnv>,
+    local_env: HashMap<ALocalScope, SymbolEnv>,
 
     deffunc_len: usize,
     module_len: usize,
@@ -70,7 +70,7 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         scope_opt,
         ns_opt,
         &mut ctx.public.env,
-        &mut ctx.env,
+        &mut ctx.local_env,
         &mut ctx.public.ns_env,
     );
 }
@@ -81,7 +81,7 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         &ctx.scope,
         &ctx.public.env,
         &ctx.public.ns_env,
-        &ctx.env,
+        &ctx.local_env,
     ) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
             ctx.public.def_sites.push((ws_symbol, name.body.loc));
@@ -102,7 +102,7 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
         &ctx.scope,
         &ctx.public.env,
         &ctx.public.ns_env,
-        &ctx.env,
+        &ctx.local_env,
     ) {
         Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
             ctx.public.use_sites.push((ws_symbol, name.body.loc));
@@ -333,7 +333,7 @@ pub(crate) fn analyze_var_def(
         public,
         doc,
         symbols,
-        env: local_env,
+        local_env,
         deffunc_len: 0,
         module_len: 0,
         scope: ALocalScope::default(),
