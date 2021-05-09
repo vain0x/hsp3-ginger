@@ -22,7 +22,7 @@ impl SignatureHelpHost {
             host: take(self),
             out: None,
         };
-        v.on_stmts(&root.stmts);
+        v.on_root(&root);
         let V { host, out, .. } = v;
         *self = host;
         out

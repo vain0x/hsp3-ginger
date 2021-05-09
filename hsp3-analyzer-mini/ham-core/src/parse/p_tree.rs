@@ -129,6 +129,16 @@ pub(crate) enum PCompound {
     Dots(PNameDot),
 }
 
+impl PCompound {
+    pub(crate) fn name(&self) -> &PToken {
+        match &self {
+            PCompound::Name(name) => name,
+            PCompound::Paren(np) => &np.name,
+            PCompound::Dots(nd) => &nd.name,
+        }
+    }
+}
+
 impl Debug for PCompound {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

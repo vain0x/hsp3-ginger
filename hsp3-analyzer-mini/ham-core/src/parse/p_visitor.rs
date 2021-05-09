@@ -47,10 +47,14 @@ pub(crate) trait PVisitor {
         self.on_token_opt(arg.comma_opt.as_ref());
     }
 
-    fn on_args(&mut self, args: &[PArg]) {
+    fn on_args_default(&mut self, args: &[PArg]) {
         for arg in args {
             self.on_arg(arg);
         }
+    }
+
+    fn on_args(&mut self, args: &[PArg]) {
+        self.on_args_default(args);
     }
 
     fn on_expr_default(&mut self, expr: &PExpr) {
@@ -173,6 +177,11 @@ pub(crate) trait PVisitor {
         for stmt in stmts {
             self.on_stmt(stmt);
         }
+    }
+
+    fn on_root(&mut self, root: &PRoot) {
+        self.on_stmts(&root.stmts);
+        self.on_token(&root.eof);
     }
 }
 

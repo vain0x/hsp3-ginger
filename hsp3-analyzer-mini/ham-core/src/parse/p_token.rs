@@ -63,10 +63,9 @@ impl PToken {
             }
             let leading = tokens.slice(leading_start, index);
 
-            let body = match tokens.get(index) {
+            let body = match tokens.item(index) {
                 Some(body) => {
                     assert!(!body.kind.is_leading_trivia());
-                    let body = tokens.item(index);
                     index += 1;
                     body
                 }
