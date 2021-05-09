@@ -31,6 +31,7 @@ impl<W: io::Write> LspHandler<W> {
                     trigger_characters: None,
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 }),
+                document_formatting_provider: Some(true),
                 definition_provider: Some(true),
                 document_highlight_provider: Some(true),
                 hover_provider: Some(true),
@@ -96,6 +97,13 @@ impl<W: io::Write> LspHandler<W> {
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
         )
+    }
+
+    fn text_document_formatting(
+        &mut self,
+        params: DocumentFormattingParams,
+    ) -> Option<Vec<TextEdit>> {
+        self.model.formatting(params.text_document.uri)
     }
 
     fn text_document_definition(
@@ -217,6 +225,14 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_completion(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            lsp_types::request::Formatting::METHOD => {
+                let msg =
+                    serde_json::from_str::<LspRequest<DocumentFormattingParams>>(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_formatting(msg.params);
+                self.sender.send_response(msg_id, response);
+                self.diagnose();
             }
             "textDocument/definition" => {
                 let msg =

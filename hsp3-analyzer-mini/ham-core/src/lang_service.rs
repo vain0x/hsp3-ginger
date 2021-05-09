@@ -339,6 +339,12 @@ impl LangService {
         .unwrap_or_else(assists::completion::incomplete_completion_list)
     }
 
+    pub(crate) fn formatting(&mut self, uri: Url) -> Option<Vec<TextEdit>> {
+        self.poll();
+
+        assists::formatting::formatting(uri, &self.docs, &mut self.wa)
+    }
+
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
 

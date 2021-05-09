@@ -284,6 +284,13 @@ impl AWorkspaceAnalysis {
         Some(crate::assists::completion::in_str_or_comment(pos, tokens))
     }
 
+    pub(crate) fn get_tokens(&mut self, doc: DocId) -> Option<(RcSlice<PToken>, &PRoot)> {
+        self.compute();
+
+        let da = self.doc_analysis_map.get(&doc)?;
+        Some((da.tokens.clone(), da.tree_opt.as_ref()?))
+    }
+
     pub(crate) fn get_signature_help_context(
         &mut self,
         doc: DocId,
