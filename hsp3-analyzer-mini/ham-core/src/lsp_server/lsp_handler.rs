@@ -28,7 +28,7 @@ impl<W: io::Write> LspHandler<W> {
                 )),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
-                    resolve_provider: None,
+                    resolve_provider: Some(true),
                     trigger_characters: None,
                     ..CompletionOptions::default()
                 }),
@@ -105,6 +105,13 @@ impl<W: io::Write> LspHandler<W> {
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
         )
+    }
+
+    fn text_document_completion_resolve(
+        &mut self,
+        params: CompletionItem,
+    ) -> Option<CompletionItem> {
+        self.model.completion_resolve(params)
     }
 
     fn text_document_formatting(
@@ -254,6 +261,17 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_completion(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            lsp_types::request::ResolveCompletionItem::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<CompletionItem>>(json).unwrap();
+                match self.text_document_completion_resolve(msg.params) {
+                    Some(response) => self.sender.send_response(msg.id, response),
+                    None => self.sender.send_error_code(
+                        Some(Value::from(msg.id)),
+                        -32001, // unknown
+                        "Resolve completion failed.".into(),
+                    ),
+                }
             }
             lsp_types::request::Formatting::METHOD => {
                 let msg =

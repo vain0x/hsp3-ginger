@@ -8,6 +8,9 @@ use crate::{
     token::TokenKind,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashSet;
 
 pub(crate) enum ACompletionItem {
     Symbol(SymbolRc),
@@ -108,15 +111,15 @@ pub(crate) fn incomplete_completion_list() -> CompletionList {
     }
 }
 
-pub(crate) fn completion(
-    uri: Url,
+fn do_completion(
+    uri: &Url,
     position: Position,
     docs: &Docs,
     wa: &mut WorkspaceAnalysis,
 ) -> Option<CompletionList> {
     let mut items = vec![];
 
-    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(uri, position, docs)?;
 
     if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
         return None;
@@ -233,4 +236,79 @@ pub(crate) fn completion(
         is_incomplete: false,
         items,
     })
+}
+
+#[derive(Serialize, Deserialize)]
+struct CompletionData {
+    // completionの結果を復元するためのデータ:
+    uri: Url,
+    position: Position,
+
+    // 元の項目のdata
+    data_opt: Option<Value>,
+}
+
+pub(crate) fn completion(
+    uri: Url,
+    position: Position,
+    docs: &Docs,
+    wa: &mut WorkspaceAnalysis,
+) -> Option<CompletionList> {
+    let mut completion_list = do_completion(&uri, position, docs, wa)?;
+
+    for item in &mut completion_list.items {
+        if item.documentation.is_none() && item.data.is_none() {
+            continue;
+        }
+
+        // すべての候補のdocumentationを送信すると重たいので、削る。
+        // この情報はresolveで復元する。
+        item.documentation = None;
+
+        // resolveリクエストで使うための情報を付与する。
+        let data_opt = item.data.take();
+        let data = CompletionData {
+            uri: uri.clone(),
+            position,
+            data_opt,
+        };
+        item.data = Some(serde_json::to_value(&data).unwrap());
+    }
+
+    Some(completion_list)
+}
+
+pub(crate) fn completion_resolve(
+    mut resolved_item: CompletionItem,
+    docs: &Docs,
+    wa: &mut WorkspaceAnalysis,
+) -> Option<CompletionItem> {
+    let data: CompletionData = match resolved_item
+        .data
+        .take()
+        .and_then(|data| serde_json::from_value(data).ok())
+    {
+        Some(it) => it,
+        None => {
+            // 復元すべきデータはもともとない。
+            return Some(resolved_item);
+        }
+    };
+
+    // completionの計算を再試行して情報を復元する。(重い)
+
+    let CompletionData {
+        uri,
+        position,
+        data_opt,
+    } = data;
+
+    let list = do_completion(&uri, position, docs, wa)?;
+    let item = list
+        .items
+        .into_iter()
+        .find(|i| i.label == resolved_item.label)?;
+    resolved_item.documentation = item.documentation;
+    resolved_item.data = data_opt;
+    Some(resolved_item)
 }

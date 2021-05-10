@@ -293,6 +293,13 @@ impl LangService {
             .unwrap_or_else(assists::completion::incomplete_completion_list)
     }
 
+    pub(super) fn completion_resolve(
+        &mut self,
+        completion_item: CompletionItem,
+    ) -> Option<CompletionItem> {
+        assists::completion::completion_resolve(completion_item, &self.docs, &mut self.wa)
+    }
+
     pub(crate) fn formatting(&mut self, uri: Url) -> Option<Vec<TextEdit>> {
         self.poll();
 
