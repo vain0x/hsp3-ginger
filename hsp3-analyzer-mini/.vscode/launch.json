@@ -10,6 +10,7 @@
                 "--extensionDevelopmentPath=${workspaceFolder}/vscode-ext"
             ],
             "env": {
+                "HSP3_ANALYZER_MINI_DEV": "1",
                 "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham-lsp-server-exe",
                 "RUST_BACKTRACE": "1"
             },
