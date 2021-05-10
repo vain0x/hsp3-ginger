@@ -13,7 +13,7 @@ use crate::{
         preproc::ASignatureData,
         ASymbol,
     },
-    assists,
+    assists::{self, diagnose::DiagnosticsCache},
     help_source::{collect_all_symbols, HsSymbol},
     utils::canonical_uri::CanonicalUri,
 };
@@ -57,6 +57,7 @@ pub(super) struct LangService {
     root_uri_opt: Option<CanonicalUri>,
     options: LangServiceOptions,
     docs: Docs,
+    diagnostics_cache: DiagnosticsCache,
     hsphelp_symbols: Vec<CompletionItem>,
     file_watcher_opt: Option<FileWatcher>,
 }
@@ -420,6 +421,6 @@ impl LangService {
 
         self.poll();
 
-        assists::diagnose::diagnose(&self.docs, &mut self.wa)
+        assists::diagnose::diagnose(&self.docs, &mut self.diagnostics_cache, &mut self.wa)
     }
 }

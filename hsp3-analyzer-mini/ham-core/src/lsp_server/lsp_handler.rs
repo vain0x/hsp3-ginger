@@ -248,6 +248,7 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_highlight(msg.params);
                 self.sender.send_response(msg_id, response);
+                self.diagnose();
             }
             "textDocument/hover" => {
                 let msg: LspRequest<TextDocumentPositionParams> =

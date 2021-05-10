@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::take};
 
 use lsp_types::{Diagnostic, DiagnosticSeverity, Url};
 
@@ -7,10 +7,65 @@ use crate::{
     assists::{loc_to_range, to_lsp_range},
     lang_service::docs::Docs,
     source::DocId,
+    utils::canonical_uri::CanonicalUri,
 };
+
+#[derive(Default)]
+pub(crate) struct DiagnosticsCache {
+    map1: HashMap<Url, (Option<i64>, String)>,
+    map2: HashMap<Url, (Option<i64>, String)>,
+}
+
+fn filter_diagnostics(
+    diagnostics: &mut Vec<(Url, Option<i64>, Vec<Diagnostic>)>,
+    docs: &Docs,
+    cache: &mut DiagnosticsCache,
+) {
+    let mut map = take(&mut cache.map1);
+    let mut backup = take(&mut cache.map2);
+
+    for (_, _, new) in diagnostics.iter_mut() {
+        new.sort_by_key(|d| (d.range.start, d.range.end));
+    }
+
+    diagnostics.retain(|&(ref uri, version, ref new)| {
+        let old_opt = map.remove(&uri);
+        let new_opt = if !new.is_empty() {
+            serde_json::to_string(&new).ok()
+        } else {
+            None
+        };
+
+        let retain = match (&old_opt, &new_opt) {
+            (Some((_, old)), Some(new)) => old != new,
+            (Some(_), None) | (None, Some(_)) => true,
+            (None, None) => false,
+        };
+
+        if let Some(new) = new_opt {
+            backup.insert(uri.clone(), (version, new));
+        }
+
+        retain
+    });
+
+    // diagnosticsのなくなったドキュメントからdiagnosticsをクリアする。
+    diagnostics.extend(map.drain().map(|(uri, (version, _))| {
+        let version = docs
+            .find_by_uri(&CanonicalUri::from_url(&uri))
+            .and_then(|doc| docs.get_version(doc))
+            .or(version);
+
+        (uri, version, vec![])
+    }));
+
+    cache.map1 = backup;
+    cache.map2 = map;
+}
 
 pub(crate) fn diagnose(
     docs: &Docs,
+    cache: &mut DiagnosticsCache,
     wa: &mut AWorkspaceAnalysis,
 ) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
     let mut dd = vec![];
@@ -52,6 +107,7 @@ pub(crate) fn diagnose(
         doc_diagnostics.push((uri, version, diagnostics));
     }
 
+    filter_diagnostics(&mut doc_diagnostics, docs, cache);
     doc_diagnostics
 }
 
