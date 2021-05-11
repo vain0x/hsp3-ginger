@@ -122,9 +122,7 @@ const dev = (context: ExtensionContext): void => {
     }
 
     // LSPサーバの実行ファイルをコピーする。(lspBinを直接実行してしまうと変更できなくなるため。)
-    await fs.unlink(lspBackupBin).catch(() => undefined)
-    await fs.copyFile(lspBin, lspBackupBin).catch(error)
-    await fs.access(lspBackupBin)
+    await fs.copyFile(lspBin, lspBackupBin)
 
     // LSPクライアントを起動する。
     const stateChanged = waitClientStateChange()
