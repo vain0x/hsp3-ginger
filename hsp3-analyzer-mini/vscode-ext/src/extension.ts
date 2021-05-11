@@ -79,9 +79,9 @@ const newLspClient = (lspBin: string): LanguageClient => {
 const dev = (context: ExtensionContext): void => {
   console.log("ham: 開発者モードです。")
 
-  const THROTTLE = 500
+  const DEBOUNCE_TIME = 500
 
-  // ログ出力 (管理者ツールのコンソール)
+  // ログ出力 (開発者ツールのコンソール)
   const log = (msg: string, ...args: unknown[]) => {
     console.log("ham:", msg, ...args)
   }
@@ -156,7 +156,7 @@ const dev = (context: ExtensionContext): void => {
       if (lastId === id) {
         reload()
       }
-    }, THROTTLE)
+    }, DEBOUNCE_TIME)
   }
 
   requestReload()
