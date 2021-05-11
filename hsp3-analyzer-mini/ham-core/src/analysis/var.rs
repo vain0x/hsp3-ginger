@@ -81,14 +81,17 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         &ctx.ns_env,
         &ctx.local_env,
     ) {
-        Some(ws_symbol) if ws_symbol.doc != ctx.doc => {
-            ctx.public_def_sites.push((ws_symbol, name.body.loc));
-        }
         Some(ws_symbol) => {
-            assert_eq!(ws_symbol.doc, ctx.doc);
-            ctx.symbols[ws_symbol.symbol.get()]
-                .def_sites
-                .push(name.body.loc);
+            let symbol_data = if ws_symbol.doc != ctx.doc {
+                None
+            } else {
+                ctx.symbols.get_mut(ws_symbol.symbol.get())
+            };
+            if let Some(symbol_data) = symbol_data {
+                symbol_data.def_sites.push(name.body.loc);
+            } else {
+                ctx.public_def_sites.push((ws_symbol, name.body.loc));
+            }
         }
         None => add_symbol(ASymbolKind::StaticVar, name, DEF_SITE, ctx),
     }
