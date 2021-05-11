@@ -7,8 +7,8 @@
 
 import * as fs from "fs/promises"
 import { watch, FSWatcher } from "fs"
-import { ExtensionContext, workspace, window, CancellationTokenSource } from "vscode"
-import { LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient"
+import { ExtensionContext, workspace, window } from "vscode"
+import { Disposable, LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient"
 
 /** 開発モード */
 const DEV = process.env["HSP3_ANALYZER_MINI_DEV"] === "1"
@@ -96,6 +96,22 @@ const dev = (context: ExtensionContext): void => {
     }
   }
 
+  // 通知:
+  let notification: Disposable | null = null
+  const clearNotification = () => {
+    notification?.dispose()
+    notification = null
+  }
+
+  const notifyStarting = (p: Promise<any>): void => {
+    clearNotification()
+    window.setStatusBarMessage("LSPクライアントをリロードしています。", p)
+  }
+
+  const notifyStarted = (): void => {
+    notification = window.setStatusBarMessage("LSPクライアントがリロードされました。", 5000)
+  }
+
   // LSPクライアントを自動で再読み込みする。
   const lspBin = getLspBin(context)
   const lspBackupBin = lspBin.replace(/\.exe$/, "") + "_orig.exe"
@@ -138,14 +154,8 @@ const dev = (context: ExtensionContext): void => {
 
   const reload = () => {
     const p = doReload()
-    window.setStatusBarMessage("LSPクライアントをリロードしています。", p)
-    p.then(() => {
-      window.setStatusBarMessage("LSPクライアントがリロードされました。", 5000)
-    }, err => {
-      error(err)
-      log("エラーが発生しました。5秒後にリトライします。")
-      setTimeout(() => requestReload(), 5000)
-    })
+    notifyStarting(p)
+    p.then(notifyStarted, error)
   }
 
   // リロードを要求する。
