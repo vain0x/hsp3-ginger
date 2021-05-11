@@ -104,7 +104,10 @@ const dev = (context: ExtensionContext): void => {
   context.subscriptions.push({ dispose: () => client.stop() })
 
   const waitClientStateChange = () => new Promise<void>(resolve => {
-    client.onDidChangeState(() => resolve())
+    const h = client.onDidChangeState(() => {
+      h.dispose()
+      resolve()
+    })
   })
 
   let watcher: FSWatcher | null = null
