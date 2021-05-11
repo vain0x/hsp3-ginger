@@ -100,8 +100,8 @@ const newLspClient = (lspBin: string): LanguageClient => {
 const dev = (context: ExtensionContext): void => {
   console.log("ham: 開発者モードです。")
 
-  const DEBOUNCE_TIME = 500
-  const RETRY_TIME = 3000
+  const DEBOUNCE_TIME = 700
+  const RETRY_TIME = 30 * 1000
   const RETRY_INTERVAL = 30
 
   // ログ出力 (開発者ツールのコンソール)
@@ -138,7 +138,9 @@ const dev = (context: ExtensionContext): void => {
   const lspBin = getLspBin(context)
   const lspBackupBin = lspBin.replace(/\.exe$/, "") + "_orig.exe"
 
-  // LSPサーバの実行ファイルをコピーする。(lspBinを直接実行してしまうと変更できなくなるため。)
+  // LSPサーバの実行ファイルをコピーする。
+  // (lspBinを直接実行してしまうと変更できなくなるため。)
+  // (実行中のファイルに書き込もうとして失敗することがあるので、リトライする必要がある。)
   const copyLspBin = async () => retrying(async () => {
     await fs.copyFile(lspBin, lspBackupBin)
   }, {
@@ -158,6 +160,13 @@ const dev = (context: ExtensionContext): void => {
 
   let watcher: FSWatcher | null = null
   context.subscriptions.push({ dispose: () => watcher?.close() })
+  const startWatcher = () => {
+    watcher?.close()
+    // 監視対象のファイルが削除されるとウォッチャーは無効化するので、毎回作り直す。
+    watcher = watch(lspBin)
+    watcher.once("change", () => requestReload())
+    watcher.on("error", error)
+  }
 
   const doReload = async () => {
     // LSPクライアントが起動中なら停止させる。
@@ -168,23 +177,27 @@ const dev = (context: ExtensionContext): void => {
     }
 
     await copyLspBin()
+    startWatcher()
 
     // LSPクライアントを起動する。
     const stateChanged = waitClientStateChange()
     client.start()
     await stateChanged
-
-    // LSPサーバの実行ファイルの変更を監視する。
-    watcher?.close()
-    watcher = watch(lspBin, { persistent: false })
-    watcher.once("change", () => requestReload())
-    watcher.on("error", error)
   }
 
+  let current: Promise<void> | null = null
   const reload = () => {
+    if (current != null) {
+      current.finally(requestReload)
+      return
+    }
+
     const p = doReload()
+    current = p
     notifyStarting(p)
-    p.then(notifyStarted, error)
+    p.then(notifyStarted, error).finally(() => {
+      current = null
+    })
   }
 
   // リロードを要求する。
@@ -199,7 +212,6 @@ const dev = (context: ExtensionContext): void => {
   }
 
   requestReload()
-  return
 }
 
 // -----------------------------------------------
