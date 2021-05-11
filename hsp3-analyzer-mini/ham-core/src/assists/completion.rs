@@ -34,33 +34,23 @@ pub(crate) fn in_str_or_comment(pos: Pos16, tokens: &[PToken]) -> bool {
 }
 
 pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
-    // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。行継続に注意。判定が難しいので構文木を使ったほうがいいかもしれない。
+    // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。
 
-    let row = pos.row as usize;
+    // 指定位置付近のトークンを探す。
+    let mut i = match tokens.binary_search_by_key(&pos, |token| Pos16::from(token.body.loc.start()))
+    {
+        Ok(i) | Err(i) => i,
+    };
 
-    // 次の行の最初のトークンを探す。
-    let upperbound =
-        match tokens.binary_search_by_key(&(row + 1), |token| token.body.loc.start_row()) {
-            Ok(it) | Err(it) => it,
-        };
-
-    // 近くにあるトークンと補完位置の位置関係を調べる。
-    // (補完位置の付近にトークンがないとき、次の '#' の検索だけだとプリプロセッサ行の後ろがすべて引っかかってしまう。)
-    let last = tokens.get(upperbound.saturating_sub(1));
-    let touched = last.map_or(false, |t| pos <= t.behind().end());
-
-    // 補完位置から遡って '#' を探す。同じ文の中で、補完位置より手前にあったらOK。
-    let hash_found = touched
-        && tokens[..upperbound]
-            .iter()
-            .rev()
-            .skip(1)
-            .take_while(|token| token.kind() != TokenKind::Eos)
-            .any(|token| {
-                token.kind() == TokenKind::Hash
-                    && Pos16::from(token.body.loc.ahead().start()) <= pos
-            });
-    hash_found
+    // 遡って '#' の位置を探す。ただしEOSをみつけたら終わり。
+    loop {
+        match tokens.get(i).map(|t| (t.kind(), t.body.loc.start())) {
+            Some((TokenKind::Hash, p)) if p <= pos => return true,
+            Some((TokenKind::Eos, p)) if p < pos => return false,
+            _ if i == 0 => return false,
+            _ => i -= 1,
+        }
+    }
 }
 
 pub(crate) fn collect_preproc_completion_items(
