@@ -46,7 +46,7 @@ impl NamePath {
 }
 
 /// 環境。名前からシンボルへのマップ。
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct SymbolEnv {
     map: HashMap<RcStr, AWsSymbol>,
 }

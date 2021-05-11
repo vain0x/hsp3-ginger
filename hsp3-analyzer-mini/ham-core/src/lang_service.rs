@@ -15,12 +15,11 @@ use crate::{
     },
     assists::{self, diagnose::DiagnosticsCache},
     help_source::{collect_all_symbols, HsSymbol},
-    utils::canonical_uri::CanonicalUri,
+    utils::{canonical_uri::CanonicalUri, read_file::read_file},
 };
 use lsp_types::*;
 use std::{
     collections::HashMap,
-    fs,
     mem::take,
     path::{self, PathBuf},
     rc::Rc,
@@ -205,33 +204,35 @@ impl LangService {
 
             for path in patterns
                 .into_iter()
-                .filter_map(|pattern| glob::glob(&pattern).ok())
-                .flatten()
+                .flat_map(|pattern| glob::glob(&pattern).unwrap())
                 .flat_map(|result| result.ok())
             {
                 if let Some(uri) = CanonicalUri::from_file_path(&path) {
-                    if let Ok(contents) = fs::read_to_string(&path) {
-                        self.open_doc(uri.clone().into_url(), 1, contents);
+                    let mut contents = String::new();
+                    if !read_file(&path, &mut contents) {
+                        warn!("cannot read {:?}", path);
+                        continue;
+                    };
+                    self.open_doc(uri.clone().into_url(), 1, contents);
 
-                        let doc = self.docs.find_by_uri(&uri).unwrap();
+                    let doc = self.docs.find_by_uri(&uri).unwrap();
 
-                        (|| -> Option<()> {
-                            let relative = path
-                                .strip_prefix(&common_dir)
-                                .ok()?
-                                .components()
-                                .map(|c| match c {
-                                    path::Component::Normal(s) => s.to_str(),
-                                    _ => None,
-                                })
-                                .collect::<Option<Vec<&str>>>()?
-                                .join("/");
+                    (|| -> Option<()> {
+                        let relative = path
+                            .strip_prefix(&common_dir)
+                            .ok()?
+                            .components()
+                            .map(|c| match c {
+                                path::Component::Normal(s) => s.to_str(),
+                                _ => None,
+                            })
+                            .collect::<Option<Vec<&str>>>()?
+                            .join("/");
 
-                            common_docs.insert(relative, doc);
+                        common_docs.insert(relative, doc);
 
-                            None
-                        })();
-                    }
+                        None
+                    })();
                 }
             }
         }
@@ -290,6 +291,7 @@ impl LangService {
     fn apply_doc_changes(&mut self) {
         let mut doc_changes = vec![];
         self.docs.drain_doc_changes(&mut doc_changes);
+        let changed = !doc_changes.is_empty();
 
         for change in doc_changes.drain(..) {
             match change {
@@ -299,6 +301,13 @@ impl LangService {
                 DocChange::Closed { doc } => {
                     self.wa.close_doc(doc);
                 }
+            }
+        }
+
+        if changed {
+            if let Some(root_uri) = &self.root_uri_opt {
+                let project_docs = self.docs.get_docs_in(root_uri);
+                self.wa.set_project_docs(project_docs);
             }
         }
     }

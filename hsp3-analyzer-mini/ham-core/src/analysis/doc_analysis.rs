@@ -2,6 +2,7 @@ use super::*;
 use super::{a_scope::*, preproc::*};
 use crate::{
     parse::{PRoot, PToken},
+    source::Loc,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
 use std::collections::HashMap;
@@ -29,7 +30,7 @@ pub(crate) struct DocAnalysis {
     pub(crate) tree_opt: Option<PRoot>,
 
     // プリプロセス:
-    pub(crate) includes: Vec<RcStr>,
+    pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
     pub(crate) preproc_symbols_len: usize,

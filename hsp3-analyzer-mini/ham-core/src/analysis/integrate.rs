@@ -130,6 +130,10 @@ impl AWorkspaceAnalysis {
         self.doc_analysis_map.remove(&doc);
     }
 
+    pub(crate) fn set_project_docs(&mut self, project_docs: HashMap<String, DocId>) {
+        self.project_docs = project_docs;
+    }
+
     fn compute(&mut self) {
         // eprintln!("compute (dirty={:?})", &self.dirty_docs);
         if self.dirty_docs.is_empty() {
@@ -193,7 +197,7 @@ impl AWorkspaceAnalysis {
                 continue;
             }
 
-            for include in &da.includes {
+            for (include, _) in &da.includes {
                 let doc_opt = self.common_docs.get(include.as_str()).cloned();
                 included_docs.extend(doc_opt);
             }
@@ -468,46 +472,108 @@ impl AWorkspaceAnalysis {
     pub(crate) fn diagnose_precisely(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
         self.compute();
 
-        let mut active_docs = HashSet::new();
-
         for p in &self.projects {
-            let mut q = p.entrypoints.clone();
+            assert_ne!(p.entrypoints.len(), 0);
 
-            active_docs.clear();
-            active_docs.extend(q.iter().cloned());
+            let mut active_docs = HashSet::new();
 
-            while let Some(doc) = q.pop() {
+            // エントリーポイントから推移的にincludeされるドキュメントを集める。
+            let mut stack = p
+                .entrypoints
+                .iter()
+                .map(|&doc| (doc, None))
+                .collect::<Vec<_>>();
+            active_docs.extend(stack.iter().map(|&(doc, _)| doc));
+
+            while let Some((doc, _)) = stack.pop() {
+                debug_assert!(active_docs.contains(&doc));
                 let da = or!(self.doc_analysis_map.get(&doc), continue);
-                for s in &da.includes {
-                    let d = *or!(self.project_docs.get(s.as_str()), continue);
+
+                for (path, loc) in &da.includes {
+                    let path = path.as_str();
+                    let doc_opt = self
+                        .project_docs
+                        .get(path)
+                        .cloned()
+                        .or_else(|| self.common_docs.get(path).cloned());
+                    let d = match doc_opt {
+                        Some(it) => it,
+                        None => {
+                            diagnostics.push((
+                                format!("includeを解決できません: {:?}", path),
+                                loc.clone(),
+                            ));
+                            continue;
+                        }
+                    };
                     if active_docs.insert(d) {
-                        q.push(d);
+                        stack.push((d, Some(loc)));
                     }
                 }
             }
 
-            // signature help のときも作った
-            let use_site_map = self
-                .use_sites
+            // 複数ファイルに渡る環境を構築する。
+            let mut public_env = APublicEnv::default();
+            let mut ns_env = HashMap::new();
+
+            public_env.builtin = self.public_env.builtin.clone();
+            for (&doc, da) in &self.doc_analysis_map {
+                if active_docs.contains(&doc) {
+                    extend_public_env_from_symbols(doc, &da.symbols, &mut public_env, &mut ns_env);
+                }
+            }
+
+            // シンボルの定義・使用箇所を収集する。
+            let mut doc_map = self
+                .doc_analysis_map
                 .iter()
-                .filter_map(|&(ws_symbol, loc)| {
-                    if active_docs.contains(&loc.doc) {
-                        let AWsSymbol { doc, symbol } = ws_symbol;
-                        if active_docs.contains(&doc)
-                            && self
-                                .doc_analysis_map
-                                .get(&doc)
-                                .and_then(|d| d.symbols.get(symbol.get()))
-                                .map_or(false, |s| s.kind == ASymbolKind::DefFunc)
-                        {
-                            Some(((loc.doc, loc.start()), ws_symbol))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
+                .filter(|(&doc, _)| active_docs.contains(&doc))
+                .map(|(&doc, da)| {
+                    assert!(da.symbols.len() >= da.preproc_symbols_len);
+                    (doc, (da, da.symbols[..da.preproc_symbols_len].to_vec()))
                 })
+                .collect::<HashMap<_, _>>();
+
+            let mut def_sites = vec![];
+            let mut use_sites = vec![];
+
+            for (&doc, (da, symbols)) in &mut doc_map {
+                let da = &**da;
+
+                crate::analysis::var::analyze_var_def(
+                    doc,
+                    da.tree_opt.as_ref().unwrap(),
+                    symbols,
+                    &mut public_env,
+                    &mut ns_env,
+                    &mut def_sites,
+                    &mut use_sites,
+                );
+            }
+
+            for (&doc, (_, symbols)) in &doc_map {
+                for (i, symbol_data) in symbols.iter().enumerate() {
+                    let symbol = ASymbol::new(i);
+
+                    def_sites.extend(
+                        symbol_data
+                            .def_sites
+                            .iter()
+                            .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                    );
+
+                    use_sites.extend(
+                        symbol_data
+                            .use_sites
+                            .iter()
+                            .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                    );
+                }
+            }
+
+            let use_site_map = use_sites
+                .iter()
+                .map(|&(ws_symbol, loc)| ((loc.doc, loc.start()), ws_symbol))
                 .collect::<HashMap<_, _>>();
 
             let mut ctx = Ctx {
@@ -515,7 +581,7 @@ impl AWorkspaceAnalysis {
                 diagnostics: vec![],
             };
 
-            for (&doc, da) in &self.doc_analysis_map {
+            for (&doc, (da, _)) in &doc_map {
                 if !active_docs.contains(&doc) {
                     continue;
                 }

@@ -81,6 +81,27 @@ impl Docs {
         self.doc_versions.get(&doc).copied()
     }
 
+    /// 指定したURIが指すディレクトリの子孫であるドキュメントを探す。
+    pub(crate) fn get_docs_in(&self, uri: &CanonicalUri) -> HashMap<String, DocId> {
+        let mut map = HashMap::new();
+        if let Some(root) = uri.to_file_path() {
+            for (&doc, uri) in &self.doc_to_uri {
+                let path = match uri.to_file_path() {
+                    Some(it) => it,
+                    None => continue,
+                };
+
+                let result = path.strip_prefix(&root);
+                let entry = result
+                    .as_ref()
+                    .ok()
+                    .map(|path| (path.to_string_lossy().replace("\\", "/"), doc));
+                map.extend(entry);
+            }
+        }
+        map
+    }
+
     pub(crate) fn drain_doc_changes(&mut self, changes: &mut Vec<DocChange>) {
         changes.extend(self.doc_changes.drain(..));
     }
@@ -179,7 +200,8 @@ impl Docs {
 
         let open_in_editor = !created && self.editor_docs.contains(&doc);
         if open_in_editor {
-            debug!("ファイルは開かれているのでロードされません。");
+            #[cfg(trace_docs)]
+            trace!("ファイルは開かれているのでロードされません。");
             return;
         }
 

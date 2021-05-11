@@ -1,7 +1,12 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
 use super::{a_scope::*, a_symbol::*, name_system::*};
-use crate::{parse::*, source::DocId, token::TokenKind, utils::rc_str::RcStr};
+use crate::{
+    parse::*,
+    source::{DocId, Loc},
+    token::TokenKind,
+    utils::rc_str::RcStr,
+};
 use std::{collections::HashMap, mem::replace, rc::Rc};
 
 pub(crate) struct ASignatureData {
@@ -13,7 +18,7 @@ pub(crate) struct ASignatureData {
 struct Ctx {
     doc: DocId,
     symbols: Vec<ASymbolData>,
-    includes: Vec<RcStr>,
+    includes: Vec<(RcStr, Loc)>,
     scope: ALocalScope,
     modules: HashMap<AModule, AModuleData>,
     deffuncs: HashMap<ADefFunc, ADefFuncData>,
@@ -288,7 +293,8 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                     // 標準化する。
                     text = text.replace("\\\\", "/").to_ascii_lowercase().into();
 
-                    ctx.includes.push(text);
+                    let loc = stmt.hash.body.loc.unite(&file_path.behind());
+                    ctx.includes.push((text, loc));
                 }
             }
         }
@@ -347,7 +353,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
 
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<ASymbolData>,
-    pub(crate) includes: Vec<RcStr>,
+    pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
 }
