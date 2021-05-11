@@ -1,6 +1,10 @@
 use super::{from_document_position, loc_to_range, plain_text_to_marked_string};
 use crate::{
-    analysis::integrate::AWorkspaceAnalysis, assists::markdown_marked_string,
+    analysis::integrate::AWorkspaceAnalysis,
+    assists::{
+        completion::{collect_preproc_completion_items, in_preproc},
+        markdown_marked_string,
+    },
     lang_service::docs::Docs,
 };
 use lsp_types::{
@@ -34,7 +38,17 @@ pub(crate) fn hover(
     })()
     .or_else(|| {
         let (name, loc) = wa.get_ident_at(doc, pos)?;
-        let item = hsphelp_symbols
+        let (_, tokens, _) = wa.get_tokens(doc)?;
+
+        let mut completion_items = vec![];
+        let items = if in_preproc(pos, &tokens) {
+            collect_preproc_completion_items(&hsphelp_symbols, &mut completion_items);
+            &completion_items
+        } else {
+            hsphelp_symbols
+        };
+
+        let item = items
             .iter()
             .find(|s| s.label.trim_start_matches('#') == name.as_str())?
             .clone();

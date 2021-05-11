@@ -63,7 +63,7 @@ pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
     hash_found
 }
 
-fn collect_preproc_completion_items(
+pub(crate) fn collect_preproc_completion_items(
     other_items: &[CompletionItem],
     items: &mut Vec<CompletionItem>,
 ) {
