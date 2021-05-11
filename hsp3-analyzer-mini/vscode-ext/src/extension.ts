@@ -13,6 +13,27 @@ import { Disposable, LanguageClient, LanguageClientOptions, ServerOptions } from
 /** 開発モード */
 const DEV = process.env["HSP3_ANALYZER_MINI_DEV"] === "1"
 
+/** 一定時間待つ。 */
+const delay = (timeMs: number) => new Promise<void>(resolve => setTimeout(resolve, timeMs))
+
+/** 非同期処理を行う。失敗したら一定回数だけリトライする。 */
+const retrying = async <A>(action: () => Promise<A>, options: { count: number, interval: number }): Promise<A> => {
+  let count = options.count
+  while (true) {
+    if (count <= 0) {
+      return await action()
+    }
+
+    try {
+      return await action()
+    } catch {
+      // Pass.
+    }
+    count--
+    await delay(options.interval)
+  }
+}
+
 // -----------------------------------------------
 // 設定の読み込みなど
 // -----------------------------------------------
@@ -80,6 +101,8 @@ const dev = (context: ExtensionContext): void => {
   console.log("ham: 開発者モードです。")
 
   const DEBOUNCE_TIME = 500
+  const RETRY_TIME = 3000
+  const RETRY_INTERVAL = 30
 
   // ログ出力 (開発者ツールのコンソール)
   const log = (msg: string, ...args: unknown[]) => {
@@ -112,9 +135,16 @@ const dev = (context: ExtensionContext): void => {
     notification = window.setStatusBarMessage("LSPクライアントがリロードされました。", 5000)
   }
 
-  // LSPクライアントを自動で再読み込みする。
   const lspBin = getLspBin(context)
   const lspBackupBin = lspBin.replace(/\.exe$/, "") + "_orig.exe"
+
+  // LSPサーバの実行ファイルをコピーする。(lspBinを直接実行してしまうと変更できなくなるため。)
+  const copyLspBin = async () => retrying(async () => {
+    await fs.copyFile(lspBin, lspBackupBin)
+  }, {
+    count: RETRY_TIME / RETRY_INTERVAL,
+    interval: RETRY_INTERVAL,
+  })
 
   const client = newLspClient(lspBackupBin)
   context.subscriptions.push({ dispose: () => client.stop() })
@@ -137,8 +167,7 @@ const dev = (context: ExtensionContext): void => {
       await stateChanged // 完全に停止するのを待つ。
     }
 
-    // LSPサーバの実行ファイルをコピーする。(lspBinを直接実行してしまうと変更できなくなるため。)
-    await fs.copyFile(lspBin, lspBackupBin)
+    await copyLspBin()
 
     // LSPクライアントを起動する。
     const stateChanged = waitClientStateChange()
