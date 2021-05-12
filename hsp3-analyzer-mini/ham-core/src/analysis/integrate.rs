@@ -78,6 +78,7 @@ pub(crate) struct HostData {
     pub(crate) builtin_env: SymbolEnv,
     pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) common_docs: HashMap<String, DocId>,
+    pub(crate) entrypoints: Vec<DocId>,
 }
 
 #[derive(Default)]
@@ -100,7 +101,7 @@ pub(crate) struct AWorkspaceAnalysis {
     use_sites: Vec<(AWsSymbol, Loc)>,
 
     // エントリーポイントを起点として構築される情報:
-    projects: Vec<ProjectAnalysis>,
+    project_opt: Option<ProjectAnalysis>,
 }
 
 impl AWorkspaceAnalysis {
@@ -109,11 +110,18 @@ impl AWorkspaceAnalysis {
             builtin_signatures,
             common_docs,
             builtin_env,
+            entrypoints,
         } = host_data;
 
         self.builtin_signatures = builtin_signatures;
         self.common_docs = common_docs;
         self.public_env.builtin = builtin_env;
+
+        self.project_opt = if !entrypoints.is_empty() {
+            Some(ProjectAnalysis { entrypoints })
+        } else {
+            None
+        };
     }
 
     pub(crate) fn update_doc(&mut self, doc: DocId, text: RcStr) {
@@ -171,22 +179,6 @@ impl AWorkspaceAnalysis {
             .doc_analysis_map
             .values()
             .all(|da| da.after_preproc() && !da.after_symbols()));
-
-        // エントリーポイントを決定する。
-        // 仮実装として、コメントかどこかに "ginger=entrypoint" と書いてあるファイルはエントリーポイントとみなす。実際には、どのファイルがエントリーポイントかを指定する設定ファイル(Cargo.tomlのようなもの)を置いてもらう。
-        {
-            let mut p = self.projects.drain(..).next().unwrap_or_default();
-            p.entrypoints.clear();
-            p.entrypoints.extend(
-                self.doc_texts
-                    .iter()
-                    .filter(|(_, text)| text.contains("ginger=entrypoint"))
-                    .map(|(&doc, _)| doc),
-            );
-            if !p.entrypoints.is_empty() {
-                self.projects.push(p);
-            }
-        }
 
         // 有効なドキュメントを検出する。(includeされていないcommonのファイルは無視する。)
         let mut included_docs = HashSet::new();
@@ -472,136 +464,137 @@ impl AWorkspaceAnalysis {
     pub(crate) fn diagnose_precisely(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
         self.compute();
 
-        for p in &self.projects {
-            assert_ne!(p.entrypoints.len(), 0);
+        let p = match &self.project_opt {
+            Some(it) => it,
+            None => return,
+        };
 
-            let mut active_docs = HashSet::new();
+        assert_ne!(p.entrypoints.len(), 0);
 
-            // エントリーポイントから推移的にincludeされるドキュメントを集める。
-            let mut stack = p
-                .entrypoints
-                .iter()
-                .map(|&doc| (doc, None))
-                .collect::<Vec<_>>();
-            active_docs.extend(stack.iter().map(|&(doc, _)| doc));
+        let mut active_docs = HashSet::new();
 
-            while let Some((doc, _)) = stack.pop() {
-                debug_assert!(active_docs.contains(&doc));
-                let da = or!(self.doc_analysis_map.get(&doc), continue);
+        // エントリーポイントから推移的にincludeされるドキュメントを集める。
+        let mut stack = p
+            .entrypoints
+            .iter()
+            .map(|&doc| (doc, None))
+            .collect::<Vec<_>>();
+        active_docs.extend(stack.iter().map(|&(doc, _)| doc));
 
-                for (path, loc) in &da.includes {
-                    let path = path.as_str();
-                    let doc_opt = self
-                        .project_docs
-                        .get(path)
-                        .cloned()
-                        .or_else(|| self.common_docs.get(path).cloned());
-                    let d = match doc_opt {
-                        Some(it) => it,
-                        None => {
-                            diagnostics.push((
-                                format!("includeを解決できません: {:?}", path),
-                                loc.clone(),
-                            ));
-                            continue;
-                        }
-                    };
-                    if active_docs.insert(d) {
-                        stack.push((d, Some(loc)));
+        while let Some((doc, _)) = stack.pop() {
+            debug_assert!(active_docs.contains(&doc));
+            let da = or!(self.doc_analysis_map.get(&doc), continue);
+
+            for (path, loc) in &da.includes {
+                let path = path.as_str();
+                let doc_opt = self
+                    .project_docs
+                    .get(path)
+                    .cloned()
+                    .or_else(|| self.common_docs.get(path).cloned());
+                let d = match doc_opt {
+                    Some(it) => it,
+                    None => {
+                        diagnostics
+                            .push((format!("includeを解決できません: {:?}", path), loc.clone()));
+                        continue;
                     }
+                };
+                if active_docs.insert(d) {
+                    stack.push((d, Some(loc)));
                 }
             }
+        }
 
-            // 複数ファイルに渡る環境を構築する。
-            let mut public_env = APublicEnv::default();
-            let mut ns_env = HashMap::new();
+        // 複数ファイルに渡る環境を構築する。
+        let mut public_env = APublicEnv::default();
+        let mut ns_env = HashMap::new();
 
-            public_env.builtin = self.public_env.builtin.clone();
-            for (&doc, da) in &self.doc_analysis_map {
-                if active_docs.contains(&doc) {
-                    extend_public_env_from_symbols(doc, &da.symbols, &mut public_env, &mut ns_env);
-                }
+        public_env.builtin = self.public_env.builtin.clone();
+        for (&doc, da) in &self.doc_analysis_map {
+            if active_docs.contains(&doc) {
+                extend_public_env_from_symbols(doc, &da.symbols, &mut public_env, &mut ns_env);
             }
+        }
 
-            // シンボルの定義・使用箇所を収集する。
-            let mut doc_map = self
-                .doc_analysis_map
-                .iter()
-                .filter(|(&doc, _)| active_docs.contains(&doc))
-                .map(|(&doc, da)| {
-                    assert!(da.symbols.len() >= da.preproc_symbols_len);
-                    (doc, (da, da.symbols[..da.preproc_symbols_len].to_vec()))
-                })
-                .collect::<HashMap<_, _>>();
+        // シンボルの定義・使用箇所を収集する。
+        let mut doc_map = self
+            .doc_analysis_map
+            .iter()
+            .filter(|(&doc, _)| active_docs.contains(&doc))
+            .map(|(&doc, da)| {
+                assert!(da.symbols.len() >= da.preproc_symbols_len);
+                (doc, (da, da.symbols[..da.preproc_symbols_len].to_vec()))
+            })
+            .collect::<HashMap<_, _>>();
 
-            let mut def_sites = vec![];
-            let mut use_sites = vec![];
+        let mut def_sites = vec![];
+        let mut use_sites = vec![];
 
-            for (&doc, (da, symbols)) in &mut doc_map {
-                let da = &**da;
+        for (&doc, (da, symbols)) in &mut doc_map {
+            let da = &**da;
 
-                crate::analysis::var::analyze_var_def(
-                    doc,
-                    da.tree_opt.as_ref().unwrap(),
-                    symbols,
-                    &mut public_env,
-                    &mut ns_env,
-                    &mut def_sites,
-                    &mut use_sites,
+            crate::analysis::var::analyze_var_def(
+                doc,
+                da.tree_opt.as_ref().unwrap(),
+                symbols,
+                &mut public_env,
+                &mut ns_env,
+                &mut def_sites,
+                &mut use_sites,
+            );
+        }
+
+        for (&doc, (_, symbols)) in &doc_map {
+            for (i, symbol_data) in symbols.iter().enumerate() {
+                let symbol = ASymbol::new(i);
+
+                def_sites.extend(
+                    symbol_data
+                        .def_sites
+                        .iter()
+                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                );
+
+                use_sites.extend(
+                    symbol_data
+                        .use_sites
+                        .iter()
+                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
                 );
             }
-
-            for (&doc, (_, symbols)) in &doc_map {
-                for (i, symbol_data) in symbols.iter().enumerate() {
-                    let symbol = ASymbol::new(i);
-
-                    def_sites.extend(
-                        symbol_data
-                            .def_sites
-                            .iter()
-                            .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
-                    );
-
-                    use_sites.extend(
-                        symbol_data
-                            .use_sites
-                            .iter()
-                            .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
-                    );
-                }
-            }
-
-            let use_site_map = use_sites
-                .iter()
-                .map(|&(ws_symbol, loc)| ((loc.doc, loc.start()), ws_symbol))
-                .collect::<HashMap<_, _>>();
-
-            let mut ctx = Ctx {
-                use_site_map,
-                diagnostics: vec![],
-            };
-
-            for (&doc, (da, _)) in &doc_map {
-                if !active_docs.contains(&doc) {
-                    continue;
-                }
-
-                let root = or!(da.tree_opt.as_ref(), continue);
-
-                for stmt in &root.stmts {
-                    on_stmt(stmt, &mut ctx);
-                }
-            }
-
-            // どのプロジェクトに由来するか覚えておく必要がある
-            diagnostics.extend(ctx.diagnostics.into_iter().map(|(d, loc)| {
-                let msg = match d {
-                    Diagnostic::Undefined => "定義が見つかりません",
-                }
-                .to_string();
-                (msg, loc)
-            }));
         }
+
+        let use_site_map = use_sites
+            .iter()
+            .map(|&(ws_symbol, loc)| ((loc.doc, loc.start()), ws_symbol))
+            .collect::<HashMap<_, _>>();
+
+        let mut ctx = Ctx {
+            use_site_map,
+            diagnostics: vec![],
+        };
+
+        for (&doc, (da, _)) in &doc_map {
+            if !active_docs.contains(&doc) {
+                continue;
+            }
+
+            let root = or!(da.tree_opt.as_ref(), continue);
+
+            for stmt in &root.stmts {
+                on_stmt(stmt, &mut ctx);
+            }
+        }
+
+        // どのプロジェクトに由来するか覚えておく必要がある
+        diagnostics.extend(ctx.diagnostics.into_iter().map(|(d, loc)| {
+            let msg = match d {
+                Diagnostic::Undefined => "定義が見つかりません",
+            }
+            .to_string();
+            (msg, loc)
+        }));
     }
 }
 

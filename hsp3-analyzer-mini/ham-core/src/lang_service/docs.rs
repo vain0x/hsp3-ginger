@@ -249,4 +249,16 @@ impl Docs {
             }
         }
     }
+
+    /// ファイルとDocIdの対応付けを行う。
+    pub(crate) fn ensure_file_opened(&mut self, path: &Path) -> Option<DocId> {
+        let uri = match CanonicalUri::from_file_path(path) {
+            Some(uri) => uri,
+            None => return None,
+        };
+
+        self.change_file(path);
+        let (_, doc) = self.touch_uri(uri);
+        Some(doc)
+    }
 }
