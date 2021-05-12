@@ -478,6 +478,24 @@ impl LangService {
 
         self.poll();
 
-        assists::diagnose::diagnose(&self.docs, &mut self.diagnostics_cache, &mut self.wa)
+        let mut diagnostics =
+            assists::diagnose::diagnose(&self.docs, &mut self.diagnostics_cache, &mut self.wa);
+
+        // hsp3のファイルにdiagnosticsを出さない。
+        diagnostics.retain(|(uri, _, _)| {
+            let ok = uri
+                .to_file_path()
+                .map_or(true, |path| !path.starts_with(&self.hsp3_home));
+
+            if !ok {
+                trace!(
+                    "ファイルはhsp3_homeにあるので {:?} への診断は無視されます。",
+                    uri
+                );
+            }
+
+            ok
+        });
+        diagnostics
     }
 }
