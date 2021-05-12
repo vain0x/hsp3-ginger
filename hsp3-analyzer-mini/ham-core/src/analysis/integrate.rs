@@ -40,11 +40,26 @@ pub(crate) struct ProjectAnalysis {
 
 pub(crate) enum Diagnostic {
     Undefined,
+    VarRequired,
 }
 
 struct Ctx {
     use_site_map: HashMap<(DocId, Pos), AWsSymbol>,
+    doc_symbols_map: HashMap<DocId, Vec<ASymbolData>>,
     diagnostics: Vec<(Diagnostic, Loc)>,
+}
+
+impl Ctx {
+    fn symbol(&self, loc: &Loc) -> Option<(AWsSymbol, Option<&ASymbolData>)> {
+        let ws_symbol = *self.use_site_map.get(&(loc.doc, loc.start()))?;
+
+        let symbol_data_opt = self
+            .doc_symbols_map
+            .get(&ws_symbol.doc)
+            .and_then(|s| s.get(ws_symbol.symbol.get()));
+
+        Some((ws_symbol, symbol_data_opt))
+    }
 }
 
 fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
@@ -53,9 +68,70 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         PStmt::Assign(_) => {}
         PStmt::Command(stmt) => {
             let loc = stmt.command.body.loc;
-            let ws_symbol_opt = ctx.use_site_map.get(&(loc.doc, loc.start()));
-            if ws_symbol_opt.is_none() {
-                ctx.diagnostics.push((Diagnostic::Undefined, loc));
+            let (_, symbol_data_opt) = match ctx.symbol(&loc) {
+                Some(it) => it,
+                None => {
+                    ctx.diagnostics.push((Diagnostic::Undefined, loc));
+                    return;
+                }
+            };
+
+            if let Some(signature_data) = symbol_data_opt.and_then(|s| s.signature_opt.clone()) {
+                for (arg, (param, _, _)) in stmt.args.iter().zip(&signature_data.params) {
+                    match param {
+                        Some(PParamTy::Var) | Some(PParamTy::Modvar) | Some(PParamTy::Array) => {}
+                        _ => continue,
+                    }
+
+                    let mut rval = false;
+                    let mut expr_opt = arg.expr_opt.as_ref();
+                    while let Some(expr) = expr_opt {
+                        match expr {
+                            PExpr::Compound(compound) => {
+                                let name = &compound.name().body;
+
+                                let symbol_data = match ctx.symbol(&name.loc) {
+                                    Some((_, Some(it))) => it,
+                                    _ => break,
+                                };
+
+                                rval = match symbol_data.kind {
+                                    ASymbolKind::Label
+                                    | ASymbolKind::Const
+                                    | ASymbolKind::Enum
+                                    | ASymbolKind::DefFunc
+                                    | ASymbolKind::DefCFunc
+                                    | ASymbolKind::ModFunc
+                                    | ASymbolKind::ModCFunc
+                                    | ASymbolKind::ComInterface
+                                    | ASymbolKind::ComFunc => true,
+                                    ASymbolKind::Param(Some(param)) => match param {
+                                        PParamTy::Var
+                                        | PParamTy::Array
+                                        | PParamTy::Modvar
+                                        | PParamTy::Local => false,
+                                        _ => true,
+                                    },
+                                    _ => false,
+                                };
+                                break;
+                            }
+                            PExpr::Paren(expr) => expr_opt = expr.body_opt.as_deref(),
+                            _ => {
+                                rval = true;
+                                break;
+                            }
+                        }
+                    }
+                    if rval {
+                        let range = match arg.expr_opt.as_ref() {
+                            Some(expr) => expr.compute_range(),
+                            None => stmt.command.body.loc.range,
+                        };
+                        let loc = loc.with_range(range);
+                        ctx.diagnostics.push((Diagnostic::VarRequired, loc));
+                    }
+                }
             }
         }
         PStmt::DefFunc(stmt) => {
@@ -571,6 +647,10 @@ impl AWorkspaceAnalysis {
             .collect::<HashMap<_, _>>();
 
         let mut ctx = Ctx {
+            doc_symbols_map: doc_map
+                .iter()
+                .map(|(&doc, (_, symbols))| (doc, symbols.clone()))
+                .collect(),
             use_site_map,
             diagnostics: vec![],
         };
@@ -591,6 +671,7 @@ impl AWorkspaceAnalysis {
         diagnostics.extend(ctx.diagnostics.into_iter().map(|(d, loc)| {
             let msg = match d {
                 Diagnostic::Undefined => "定義が見つかりません",
+                Diagnostic::VarRequired => "変数か配列の要素が必要です。",
             }
             .to_string();
             (msg, loc)

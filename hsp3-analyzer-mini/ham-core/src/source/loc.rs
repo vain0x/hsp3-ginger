@@ -15,6 +15,10 @@ impl Loc {
         }
     }
 
+    pub(crate) fn with_range(self, range: Range) -> Self {
+        Loc { range, ..self }
+    }
+
     pub(crate) fn start(&self) -> Pos {
         self.range.start()
     }

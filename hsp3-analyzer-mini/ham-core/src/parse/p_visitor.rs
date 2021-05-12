@@ -197,6 +197,14 @@ impl PCompound {
     }
 }
 
+impl PExpr {
+    pub(crate) fn compute_range(&self) -> Range {
+        let mut visitor = VisitorForRange::default();
+        visitor.on_expr(self);
+        visitor.finish()
+    }
+}
+
 impl PStmt {
     pub(crate) fn compute_range(&self) -> Range {
         let mut visitor = VisitorForRange::default();
