@@ -1,11 +1,11 @@
 use crate::{
     source::DocId,
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
+    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
 };
 use std::{
     collections::{HashMap, HashSet},
     mem::take,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 /// テキストドキュメントのバージョン番号
@@ -16,9 +16,14 @@ type TextDocumentVersion = i64;
 pub(crate) const NO_VERSION: TextDocumentVersion = 1;
 
 pub(crate) enum DocChange {
-    Opened { doc: DocId, text: RcStr },
-    Changed { doc: DocId, text: RcStr },
+    Opened { doc: DocId, origin: DocChangeOrigin },
+    Changed { doc: DocId, origin: DocChangeOrigin },
     Closed { doc: DocId },
+}
+
+pub(crate) enum DocChangeOrigin {
+    Editor(RcStr),
+    Path(PathBuf),
 }
 
 /// テキストドキュメントを管理するもの。
@@ -38,7 +43,6 @@ pub(crate) struct Docs {
     doc_to_uri: HashMap<DocId, CanonicalUri>,
     uri_to_doc: HashMap<CanonicalUri, DocId>,
     doc_versions: HashMap<DocId, TextDocumentVersion>,
-    doc_texts: HashMap<DocId, RcStr>,
 
     /// エディタで開かれているドキュメント
     editor_docs: HashSet<DocId>,
@@ -106,28 +110,25 @@ impl Docs {
         changes.extend(self.doc_changes.drain(..));
     }
 
-    fn do_open_doc(&mut self, doc: DocId, version: i64, text: RcStr) -> DocId {
+    fn do_open_doc(&mut self, doc: DocId, version: i64, origin: DocChangeOrigin) -> DocId {
         self.doc_versions.insert(doc, version);
-        self.doc_texts.insert(doc, text.clone());
-        self.doc_changes.push(DocChange::Opened { doc, text });
+        self.doc_changes.push(DocChange::Opened { doc, origin });
         doc
     }
 
-    fn do_change_doc(&mut self, doc: DocId, version: i64, text: RcStr) {
+    fn do_change_doc(&mut self, doc: DocId, version: i64, origin: DocChangeOrigin) {
         self.doc_versions.insert(doc, version);
-        self.doc_texts.insert(doc, text.clone());
-        self.doc_changes.push(DocChange::Changed { doc, text });
+        self.doc_changes.push(DocChange::Changed { doc, origin });
     }
 
     fn do_close_doc(&mut self, doc: DocId, uri: &CanonicalUri) {
         self.doc_to_uri.remove(&doc);
         self.uri_to_doc.remove(&uri);
         self.doc_versions.remove(&doc);
-        self.doc_texts.remove(&doc);
         self.doc_changes.push(DocChange::Closed { doc });
     }
 
-    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
+    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: RcStr) {
         #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが開かれました ({:?} version={}, len={})",
@@ -138,24 +139,15 @@ impl Docs {
 
         let (created, doc) = self.touch_uri(uri);
         if created {
-            self.do_open_doc(doc, version, text.into());
+            self.do_open_doc(doc, version, DocChangeOrigin::Editor(text));
         } else {
-            // ファイルをエディタで開いたとき、内容は同じである可能性が高い。そのときは更新の報告を省略する。
-            let same = self
-                .doc_texts
-                .get(&doc)
-                .map_or(false, |current| current.as_str() == text);
-            if same {
-                self.doc_versions.insert(doc, version);
-            } else {
-                self.do_change_doc(doc, version, text.into());
-            }
+            self.do_change_doc(doc, version, DocChangeOrigin::Editor(text));
         }
 
         self.editor_docs.insert(doc);
     }
 
-    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
+    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: RcStr) {
         #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが変更されました ({:?} version={}, len={})",
@@ -166,9 +158,9 @@ impl Docs {
 
         let (created, doc) = self.touch_uri(uri);
         if created {
-            self.do_open_doc(doc, version, text.into());
+            self.do_open_doc(doc, version, DocChangeOrigin::Editor(text));
         } else {
-            self.do_change_doc(doc, version, text.into());
+            self.do_change_doc(doc, version, DocChangeOrigin::Editor(text));
         }
 
         self.editor_docs.insert(doc);
@@ -190,10 +182,10 @@ impl Docs {
         }
     }
 
-    pub(crate) fn change_file(&mut self, path: &Path) {
+    pub(crate) fn change_file(&mut self, path: &Path) -> Option<DocId> {
         let uri = match CanonicalUri::from_file_path(path) {
             Some(uri) => uri,
-            None => return,
+            None => return None,
         };
 
         let (created, doc) = self.touch_uri(uri);
@@ -202,21 +194,18 @@ impl Docs {
         if open_in_editor {
             #[cfg(trace_docs)]
             trace!("ファイルは開かれているのでロードされません。");
-            return;
+            return Some(doc);
         }
 
-        // FIXME: drain_doc_changesのタイミングまで読み込みを遅延してもいい。
-        let mut text = String::new();
-        if !read_file(path, &mut text) {
-            warn!("ファイルを開けません {:?}", path);
-        }
-
+        let origin = DocChangeOrigin::Path(path.to_path_buf());
         let opened = self.file_docs.insert(doc);
         if opened {
-            self.do_open_doc(doc, NO_VERSION, text.into());
+            self.do_open_doc(doc, NO_VERSION, origin);
         } else {
-            self.do_change_doc(doc, NO_VERSION, text.into());
+            self.do_change_doc(doc, NO_VERSION, origin);
         }
+
+        Some(doc)
     }
 
     pub(crate) fn close_file(&mut self, path: &Path) {
@@ -252,13 +241,6 @@ impl Docs {
 
     /// ファイルとDocIdの対応付けを行う。
     pub(crate) fn ensure_file_opened(&mut self, path: &Path) -> Option<DocId> {
-        let uri = match CanonicalUri::from_file_path(path) {
-            Some(uri) => uri,
-            None => return None,
-        };
-
-        self.change_file(path);
-        let (_, doc) = self.touch_uri(uri);
-        Some(doc)
+        self.change_file(path)
     }
 }

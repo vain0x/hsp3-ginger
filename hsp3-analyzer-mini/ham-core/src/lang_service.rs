@@ -15,6 +15,7 @@ use crate::{
     },
     assists::{self, diagnose::DiagnosticsCache},
     help_source::{collect_all_symbols, HsSymbol},
+    lang_service::docs::DocChangeOrigin,
     utils::{canonical_uri::CanonicalUri, read_file::read_file},
 };
 use lsp_types::*;
@@ -343,7 +344,19 @@ impl LangService {
 
         for change in doc_changes.drain(..) {
             match change {
-                DocChange::Opened { doc, text } | DocChange::Changed { doc, text } => {
+                DocChange::Opened { doc, origin } | DocChange::Changed { doc, origin } => {
+                    let text = match origin {
+                        DocChangeOrigin::Editor(text) => text,
+                        DocChangeOrigin::Path(path) => {
+                            let mut text = String::new();
+                            if !read_file(&path, &mut text) {
+                                warn!("ファイルを開けません。{:?}", path);
+                                continue;
+                            }
+                            text.into()
+                        }
+                    };
+
                     self.wa.update_doc(doc, text);
                 }
                 DocChange::Closed { doc } => {
@@ -369,13 +382,13 @@ impl LangService {
     pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = CanonicalUri::from_url(&uri);
 
-        self.docs.open_doc_in_editor(uri, version, text);
+        self.docs.open_doc_in_editor(uri, version, text.into());
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
         let uri = CanonicalUri::from_url(&uri);
 
-        self.docs.change_doc_in_editor(uri, version, text);
+        self.docs.change_doc_in_editor(uri, version, text.into());
     }
 
     pub(super) fn close_doc(&mut self, uri: Url) {
