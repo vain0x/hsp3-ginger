@@ -19,12 +19,15 @@ fn index_range(range: Range) -> std::ops::Range<usize> {
 }
 
 /// 命令がどのくらい字下げを変化させるか
-fn delta(s: &str) -> Option<i32> {
+///
+/// 結果の1つ目は命令の直前での字下げの変化、2つ目は命令の直後での字下げの変化。
+fn delta(s: &str) -> Option<(i32, i32)> {
     let it = match s {
-        "switch" => 2,
-        "swend" => -2,
-        "repeat" | "foreach" | "for" | "while" => 1,
-        "loop" | "next" | "wend" => -1,
+        "switch" => (0, 2),
+        "swend" => (-2, 0),
+        "case" => (-1, 1),
+        "repeat" | "foreach" | "for" | "while" => (0, 1),
+        "loop" | "next" | "wend" => (-1, 0),
         _ => return None,
     };
     Some(it)
@@ -329,24 +332,10 @@ impl PVisitor for V {
                 }
             }
             PStmt::Command(stmt) => {
-                match delta(stmt.command.body_text()) {
-                    Some(d) if d < 0 => {
-                        self.ground_depth += d;
-                        self.reset_ground_indent(&stmt.command);
-                    }
-                    Some(d) => {
-                        self.reset_ground_indent(&stmt.command);
-                        self.ground_depth += d;
-                    }
-                    _ if stmt.command.body_text() == "case" => {
-                        self.ground_depth -= 1;
-                        self.reset_ground_indent(&stmt.command);
-                        self.ground_depth += 1;
-                    }
-                    None => {
-                        self.reset_ground_indent(&stmt.command);
-                    }
-                }
+                let (d1, d2) = delta(stmt.command.body_text()).unwrap_or((0, 0));
+                self.ground_depth += d1;
+                self.reset_ground_indent(&stmt.command);
+                self.ground_depth += d2;
 
                 self.require_trailing_blank(&stmt.command);
             }
