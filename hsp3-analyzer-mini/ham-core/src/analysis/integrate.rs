@@ -1,11 +1,5 @@
 use super::{
-    a_scope::*,
-    a_symbol::*,
-    comment::{calculate_details, collect_comments},
-    name_system::*,
-    preproc::ASignatureData,
-    syntax_linter::SyntaxLint,
-    ASymbol, ASymbolDetails,
+    a_scope::*, a_symbol::*, name_system::*, syntax_linter::SyntaxLint,  ASymbolDetails,
 };
 use crate::{
     analysis::*,
@@ -18,11 +12,7 @@ use crate::{
     token::TokenKind,
     utils::{rc_slice::RcSlice, rc_str::RcStr},
 };
-use std::{
-    collections::{HashMap, HashSet},
-    mem::take,
-    rc::Rc,
-};
+use std::collections::{HashMap, HashSet};
 
 macro_rules! or {
     ($opt:expr, $alt:expr) => {
@@ -45,20 +35,12 @@ pub(crate) enum Diagnostic {
 
 struct Ctx {
     use_site_map: HashMap<(DocId, Pos), AWsSymbol>,
-    doc_symbols_map: HashMap<DocId, Vec<ASymbolData>>,
     diagnostics: Vec<(Diagnostic, Loc)>,
 }
 
 impl Ctx {
-    fn symbol(&self, loc: &Loc) -> Option<(AWsSymbol, Option<&ASymbolData>)> {
-        let ws_symbol = *self.use_site_map.get(&(loc.doc, loc.start()))?;
-
-        let symbol_data_opt = self
-            .doc_symbols_map
-            .get(&ws_symbol.doc)
-            .and_then(|s| s.get(ws_symbol.symbol.get()));
-
-        Some((ws_symbol, symbol_data_opt))
+    fn symbol(&self, loc: &Loc) -> Option<AWsSymbol> {
+        self.use_site_map.get(&(loc.doc, loc.start())).cloned()
     }
 }
 
@@ -68,7 +50,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         PStmt::Assign(_) => {}
         PStmt::Command(stmt) => {
             let loc = stmt.command.body.loc;
-            let (_, symbol_data_opt) = match ctx.symbol(&loc) {
+            let ws_symbol = match ctx.symbol(&loc) {
                 Some(it) => it,
                 None => {
                     ctx.diagnostics.push((Diagnostic::Undefined, loc));
@@ -76,7 +58,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 }
             };
 
-            if let Some(signature_data) = symbol_data_opt.and_then(|s| s.signature_opt.clone()) {
+            if let Some(signature_data) = ws_symbol.symbol.signature_opt() {
                 for (arg, (param, _, _)) in stmt.args.iter().zip(&signature_data.params) {
                     match param {
                         Some(PParamTy::Var) | Some(PParamTy::Modvar) | Some(PParamTy::Array) => {}
@@ -90,12 +72,12 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                             PExpr::Compound(compound) => {
                                 let name = &compound.name().body;
 
-                                let symbol_data = match ctx.symbol(&name.loc) {
-                                    Some((_, Some(it))) => it,
+                                let symbol = match ctx.symbol(&name.loc) {
+                                    Some(it) => it.symbol,
                                     _ => break,
                                 };
 
-                                rval = match symbol_data.kind {
+                                rval = match symbol.kind {
                                     ASymbolKind::Label
                                     | ASymbolKind::Const
                                     | ASymbolKind::Enum
@@ -152,7 +134,6 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 #[derive(Default)]
 pub(crate) struct HostData {
     pub(crate) builtin_env: SymbolEnv,
-    pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) common_docs: HashMap<String, DocId>,
     pub(crate) entrypoints: Vec<DocId>,
 }
@@ -162,7 +143,6 @@ pub(crate) struct AWorkspaceAnalysis {
     dirty_docs: HashSet<DocId>,
     doc_texts: HashMap<DocId, RcStr>,
 
-    builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     common_docs: HashMap<String, DocId>,
     project_docs: HashMap<String, DocId>,
 
@@ -183,13 +163,11 @@ pub(crate) struct AWorkspaceAnalysis {
 impl AWorkspaceAnalysis {
     pub(crate) fn initialize(&mut self, host_data: HostData) {
         let HostData {
-            builtin_signatures,
             common_docs,
             builtin_env,
             entrypoints,
         } = host_data;
 
-        self.builtin_signatures = builtin_signatures;
         self.common_docs = common_docs;
         self.public_env.builtin = builtin_env;
 
@@ -317,21 +295,25 @@ impl AWorkspaceAnalysis {
             }
 
             debug_assert!(da.after_symbols());
-            for (i, symbol_data) in da.symbols.iter().enumerate() {
-                let symbol = ASymbol::new(i);
-
+            for symbol in da.symbols.iter().cloned() {
+                let ws = AWsSymbol {
+                    doc,
+                    symbol: symbol.clone(),
+                };
                 self.def_sites.extend(
-                    symbol_data
+                    symbol
                         .def_sites
+                        .borrow()
                         .iter()
-                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                        .map(|&loc| (ws.clone(), loc)),
                 );
 
                 self.use_sites.extend(
-                    symbol_data
+                    symbol
                         .use_sites
+                        .borrow()
                         .iter()
-                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                        .map(|&loc| (ws.clone(), loc)),
                 );
             }
         }
@@ -371,43 +353,34 @@ impl AWorkspaceAnalysis {
     ) -> Option<SignatureHelpContext> {
         self.compute();
 
-        let symbol_signatures = self
-            .doc_analysis_map
-            .iter()
-            .flat_map(|(&doc, da)| {
-                da.symbols
-                    .iter()
-                    .enumerate()
-                    .filter_map(move |(i, symbol_data)| {
-                        let symbol = ASymbol::new(i);
-                        let ws_symbol = AWsSymbol { doc, symbol };
-                        let signature = Rc::clone(symbol_data.signature_opt.as_ref()?);
-                        Some((ws_symbol, signature))
-                    })
-            })
-            .collect::<HashMap<_, _>>();
+        // let symbol_signatures = self
+        //     .doc_analysis_map
+        //     .iter()
+        //     .flat_map(|(&doc, da)| {
+        //         da.symbols.iter().cloned().filter_map(move |symbol| {
+        //             let signature = symbol.signature_opt()?;
+        //             let ws_symbol = AWsSymbol { doc, symbol };
+        //             Some((ws_symbol, signature))
+        //         })
+        //     })
+        //     .collect::<HashMap<_, _>>();
 
         let tree = &self.doc_analysis_map.get(&doc)?.tree_opt.as_ref()?;
 
         let use_site_map = self
             .use_sites
             .iter()
-            .filter_map(|&(ws_symbol, loc)| {
+            .filter_map(|&(ref ws_symbol, loc)| {
                 if loc.doc == doc {
-                    Some((loc.start(), ws_symbol))
+                    Some((loc.start(), ws_symbol.clone()))
                 } else {
                     None
                 }
             })
             .collect::<HashMap<_, _>>();
 
-        let mut h = SignatureHelpHost {
-            builtin_signatures: take(&mut self.builtin_signatures),
-            symbol_signatures,
-            use_site_map,
-        };
+        let mut h = SignatureHelpHost { use_site_map };
         let out = h.process(pos, tree);
-        self.builtin_signatures = h.builtin_signatures;
 
         out
     }
@@ -446,22 +419,20 @@ impl AWorkspaceAnalysis {
     }
 
     #[allow(unused)]
-    pub(crate) fn symbol_name(&self, wa_symbol: AWsSymbol) -> Option<&str> {
+    pub(crate) fn symbol_name(&self, wa_symbol: AWsSymbol) -> Option<RcStr> {
         let doc_analysis = self.doc_analysis_map.get(&wa_symbol.doc)?;
-        let symbol_data = &doc_analysis.symbols[wa_symbol.symbol.get()];
-        Some(&symbol_data.name)
+        Some(wa_symbol.symbol.name())
     }
 
     pub(crate) fn get_symbol_details(
         &self,
         wa_symbol: AWsSymbol,
     ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
-        let doc_analysis = self.doc_analysis_map.get(&wa_symbol.doc)?;
-        let symbol_data = &doc_analysis.symbols[wa_symbol.symbol.get()];
+        let symbol = wa_symbol.symbol;
         Some((
-            symbol_data.name.clone(),
-            symbol_data.kind.as_str(),
-            calculate_details(&collect_comments(&symbol_data.leader)),
+            symbol.name(),
+            symbol.kind.as_str(),
+            symbol.compute_details(),
         ))
     }
 
@@ -471,31 +442,31 @@ impl AWorkspaceAnalysis {
         self.diagnose_precisely(diagnostics);
     }
 
-    pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<Loc>) {
+    pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: &AWsSymbol, locs: &mut Vec<Loc>) {
         self.compute();
 
-        for &(s, loc) in &self.def_sites {
-            if s == ws_symbol {
+        for &(ref ws, loc) in &self.def_sites {
+            if ws == ws_symbol {
                 locs.push(loc);
             }
         }
     }
 
-    pub(crate) fn collect_symbol_uses(&mut self, ws_symbol: AWsSymbol, locs: &mut Vec<Loc>) {
+    pub(crate) fn collect_symbol_uses(&mut self, ws_symbol: &AWsSymbol, locs: &mut Vec<Loc>) {
         self.compute();
 
-        for &(s, loc) in &self.use_sites {
-            if s == ws_symbol {
+        for &(ref ws, loc) in &self.use_sites {
+            if ws == ws_symbol {
                 locs.push(loc);
             }
         }
     }
 
-    pub(crate) fn collect_completion_items<'a>(
-        &'a mut self,
+    pub(crate) fn collect_completion_items(
+        &mut self,
         doc: DocId,
         pos: Pos16,
-        completion_items: &mut Vec<ACompletionItem<'a>>,
+        completion_items: &mut Vec<ACompletionItem>,
     ) {
         self.compute();
 
@@ -622,35 +593,36 @@ impl AWorkspaceAnalysis {
         }
 
         for (&doc, (_, symbols)) in &doc_map {
-            for (i, symbol_data) in symbols.iter().enumerate() {
-                let symbol = ASymbol::new(i);
+            for symbol in symbols.iter().cloned() {
+                let ws = AWsSymbol {
+                    doc,
+                    symbol: symbol.clone(),
+                };
 
                 def_sites.extend(
-                    symbol_data
+                    symbol
                         .def_sites
+                        .borrow()
                         .iter()
-                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                        .map(|&loc| (ws.clone(), loc)),
                 );
 
                 use_sites.extend(
-                    symbol_data
+                    symbol
                         .use_sites
+                        .borrow()
                         .iter()
-                        .map(|&loc| (AWsSymbol { doc, symbol }, loc)),
+                        .map(|&loc| (ws.clone(), loc)),
                 );
             }
         }
 
         let use_site_map = use_sites
             .iter()
-            .map(|&(ws_symbol, loc)| ((loc.doc, loc.start()), ws_symbol))
+            .map(|(ws_symbol, loc)| ((loc.doc, loc.start()), ws_symbol.clone()))
             .collect::<HashMap<_, _>>();
 
         let mut ctx = Ctx {
-            doc_symbols_map: doc_map
-                .iter()
-                .map(|(&doc, (_, symbols))| (doc, symbols.clone()))
-                .collect(),
             use_site_map,
             diagnostics: vec![],
         };
@@ -759,7 +731,7 @@ mod tests {
             let actual = wa
                 .locate_symbol(doc, pos.into())
                 .and_then(|(symbol, _)| wa.symbol_name(symbol));
-            assert_eq!(actual, expected_map[name], "name={}", name);
+            assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);
         }
     }
 
@@ -794,7 +766,7 @@ mod tests {
             let actual = wa
                 .locate_symbol(doc, pos.into())
                 .and_then(|(symbol, _)| wa.symbol_name(symbol));
-            assert_eq!(actual, expected_map[name], "name={}", name);
+            assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);
         }
     }
 }

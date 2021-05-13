@@ -277,7 +277,7 @@ pub(crate) fn import_symbol_to_env(
     };
 
     if let Some(env) = env_opt {
-        env.insert(basename.clone(), ws_symbol);
+        env.insert(basename.clone(), ws_symbol.clone());
     }
 
     if let Some(ns) = ns_opt {
@@ -287,44 +287,48 @@ pub(crate) fn import_symbol_to_env(
 
 pub(crate) fn extend_public_env_from_symbols(
     doc: DocId,
-    symbols: &[ASymbolData],
+    symbols: &[ASymbol],
     public_env: &mut APublicEnv,
     ns_env: &mut NsEnv,
 ) {
-    for (i, symbol_data) in symbols.iter().enumerate() {
-        let symbol = ASymbol::new(i);
-        let ws_symbol = AWsSymbol { doc, symbol };
+    for symbol in symbols.iter().cloned() {
+        let ws_symbol = AWsSymbol {
+            doc,
+            symbol: symbol.clone(),
+        };
 
-        if let Some(AScope::Global) = &symbol_data.scope_opt {
+        if let Some(AScope::Global) = &symbol.scope_opt {
             public_env
                 .global
-                .insert(symbol_data.name.clone(), ws_symbol);
+                .insert(symbol.name.clone(), ws_symbol.clone());
         }
 
-        if let Some(ns) = &symbol_data.ns_opt {
+        if let Some(ns) = &symbol.ns_opt {
             ns_env
                 .entry(ns.clone())
                 .or_default()
-                .insert(symbol_data.name.clone(), ws_symbol);
+                .insert(symbol.name.clone(), ws_symbol);
         }
     }
 }
 
 pub(crate) fn extend_local_env_from_symbols(
     doc: DocId,
-    symbols: &[ASymbolData],
+    symbols: &[ASymbol],
     local_env: &mut HashMap<ALocalScope, SymbolEnv>,
 ) {
-    for (i, symbol_data) in symbols.iter().enumerate() {
-        let symbol = ASymbol::new(i);
-        let ws_symbol = AWsSymbol { doc, symbol };
+    for symbol in symbols.iter().cloned() {
+        let ws_symbol = AWsSymbol {
+            doc,
+            symbol: symbol.clone(),
+        };
 
-        match &symbol_data.scope_opt {
+        match &symbol.scope_opt {
             Some(AScope::Local(scope)) if !scope.is_public() => {
                 local_env
                     .entry(scope.clone())
                     .or_default()
-                    .insert(symbol_data.name.clone(), ws_symbol);
+                    .insert(symbol.name.clone(), ws_symbol);
             }
             _ => {}
         }

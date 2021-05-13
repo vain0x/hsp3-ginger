@@ -17,7 +17,7 @@ pub(crate) struct ASignatureData {
 #[derive(Default)]
 struct Ctx {
     doc: DocId,
-    symbols: Vec<ASymbolData>,
+    symbols: Vec<ASymbol>,
     includes: Vec<(RcStr, Loc)>,
     scope: ALocalScope,
     modules: HashMap<AModule, AModuleData>,
@@ -41,8 +41,14 @@ impl Ctx {
         }
     }
 
-    fn add_symbol(&mut self, kind: ASymbolKind, leader: &PToken, name: &PToken, def: ADefScope) {
-        add_symbol(kind, leader, name, def, &self.scope, &mut self.symbols);
+    fn add_symbol(
+        &mut self,
+        kind: ASymbolKind,
+        leader: &PToken,
+        name: &PToken,
+        def: ADefScope,
+    ) -> ASymbol {
+        add_symbol(kind, leader, name, def, &self.scope, &mut self.symbols)
     }
 }
 
@@ -53,24 +59,29 @@ fn add_symbol(
     name: &PToken,
     def: ADefScope,
     local: &ALocalScope,
-    symbols: &mut Vec<ASymbolData>,
-) {
+    symbols: &mut Vec<ASymbol>,
+) -> ASymbol {
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
     } = resolve_name_scope_ns_for_def(&name.body.text, def, local);
 
-    symbols.push(ASymbolData {
+    let symbol = ASymbol::from(ASymbolData {
         kind,
         name: basename,
-        def_sites: vec![name.body.loc],
-        use_sites: vec![],
-        leader: leader.clone(),
+        leader_opt: Some(leader.clone()),
         scope_opt,
         ns_opt,
-        signature_opt: None,
+
+        details_opt: None,
+        def_sites: Default::default(),
+        use_sites: Default::default(),
+        signature_opt: Default::default(),
     });
+    symbol.def_sites.borrow_mut().push(name.body.loc);
+    symbols.push(symbol.clone());
+    symbol
 }
 
 fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
@@ -153,14 +164,13 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             if let Some(name) = name_opt {
                 if onexit_opt.is_none() {
                     let scope = ctx.privacy_scope_or_global(privacy_opt);
-                    symbol_opt = Some(ASymbol::new(ctx.symbols.len()));
-                    ctx.add_symbol(kind, hash, name, scope);
+                    symbol_opt = Some(ctx.add_symbol(kind, hash, name, scope));
                 }
             }
 
             if let Some(symbol) = symbol_opt {
                 if let Some(data) = new_signature_data_for_deffunc(stmt) {
-                    ctx.symbols[symbol.get()].signature_opt = Some(Rc::new(data));
+                    *symbol.signature_opt.borrow_mut() = Some(Rc::new(data));
                 }
             }
 
@@ -193,14 +203,13 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             if let Some(name) = name_opt {
                 if onexit_opt.is_none() {
                     let scope = ctx.privacy_scope_or_local(privacy_opt);
-                    symbol_opt = Some(ASymbol::new(ctx.symbols.len()));
-                    ctx.add_symbol(ASymbolKind::LibFunc, hash, name, scope);
+                    symbol_opt = Some(ctx.add_symbol(ASymbolKind::LibFunc, hash, name, scope));
                 }
             }
 
             if let Some(symbol) = symbol_opt {
                 if let Some(signature_data) = new_signature_data_for_lib_func(stmt) {
-                    ctx.symbols[symbol.get()].signature_opt = Some(Rc::new(signature_data));
+                    *symbol.signature_opt.borrow_mut() = Some(Rc::new(signature_data));
                 }
             }
         }
@@ -352,7 +361,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
 }
 
 pub(crate) struct PreprocAnalysisResult {
-    pub(crate) symbols: Vec<ASymbolData>,
+    pub(crate) symbols: Vec<ASymbol>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,

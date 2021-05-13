@@ -10,8 +10,6 @@ use std::{collections::HashMap, mem::take, rc::Rc};
 
 #[derive(Default)]
 pub(crate) struct SignatureHelpHost {
-    pub(crate) builtin_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
-    pub(crate) symbol_signatures: HashMap<AWsSymbol, Rc<ASignatureData>>,
     pub(crate) use_site_map: HashMap<Pos, AWsSymbol>,
 }
 
@@ -47,11 +45,7 @@ impl V {
     }
 
     fn find_signature(&self, ws_symbol: AWsSymbol) -> Option<Rc<ASignatureData>> {
-        self.host
-            .symbol_signatures
-            .get(&ws_symbol)
-            .or_else(|| self.host.builtin_signatures.get(&ws_symbol))
-            .cloned()
+        ws_symbol.symbol.signature_opt()
     }
 
     fn try_resolve(&mut self, callee: &PToken, args: &[PArg], ctype: bool) {

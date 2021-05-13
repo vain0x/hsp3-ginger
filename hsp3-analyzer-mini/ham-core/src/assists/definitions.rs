@@ -15,7 +15,7 @@ pub(crate) fn definitions(
     let (ws_symbol, _) = wa.locate_symbol(doc, pos)?;
 
     let mut locs = vec![];
-    wa.collect_symbol_defs(ws_symbol, &mut locs);
+    wa.collect_symbol_defs(&ws_symbol, &mut locs);
 
     Some(
         locs.into_iter()

@@ -36,7 +36,7 @@ pub(crate) struct DocAnalysis {
     pub(crate) preproc_symbols_len: usize,
 
     /// ドキュメント内のシンボル
-    pub(crate) symbols: Vec<ASymbolData>,
+    pub(crate) symbols: Vec<ASymbol>,
 }
 
 impl DocAnalysis {

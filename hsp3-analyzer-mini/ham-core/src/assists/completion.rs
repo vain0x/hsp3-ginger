@@ -1,9 +1,5 @@
 use crate::{
-    analysis::{
-        comment::{calculate_details, collect_comments},
-        integrate::AWorkspaceAnalysis,
-        ALocalScope, AScope, ASymbolData, ASymbolKind,
-    },
+    analysis::{integrate::AWorkspaceAnalysis, ALocalScope, AScope, ASymbol, ASymbolKind},
     assists::from_document_position,
     lang_service::docs::Docs,
     parse::{p_param_ty::PParamCategory, PToken},
@@ -12,8 +8,8 @@ use crate::{
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 
-pub(crate) enum ACompletionItem<'a> {
-    Symbol(&'a ASymbolData),
+pub(crate) enum ACompletionItem {
+    Symbol(ASymbol),
 }
 
 pub(crate) fn in_str_or_comment(pos: Pos16, tokens: &[PToken]) -> bool {
@@ -87,10 +83,10 @@ pub(crate) fn collect_preproc_completion_items(
     );
 }
 
-fn collect_local_completion_items<'a>(
-    symbols: &'a [ASymbolData],
+fn collect_local_completion_items(
+    symbols: &[ASymbol],
     local: &ALocalScope,
-    completion_items: &mut Vec<ACompletionItem<'a>>,
+    completion_items: &mut Vec<ACompletionItem>,
 ) {
     for s in symbols {
         let scope = match &s.scope_opt {
@@ -98,27 +94,27 @@ fn collect_local_completion_items<'a>(
             None => continue,
         };
         if scope.is_visible_to(local) {
-            completion_items.push(ACompletionItem::Symbol(s));
+            completion_items.push(ACompletionItem::Symbol(s.clone()));
         }
     }
 }
 
-fn collect_global_completion_items<'a>(
-    symbols: &'a [ASymbolData],
-    completion_items: &mut Vec<ACompletionItem<'a>>,
+fn collect_global_completion_items(
+    symbols: &[ASymbol],
+    completion_items: &mut Vec<ACompletionItem>,
 ) {
     for s in symbols {
         if let Some(AScope::Global) = s.scope_opt {
-            completion_items.push(ACompletionItem::Symbol(s));
+            completion_items.push(ACompletionItem::Symbol(s.clone()));
         }
     }
 }
 
-pub(crate) fn collect_symbols_as_completion_items<'a>(
+pub(crate) fn collect_symbols_as_completion_items(
     doc: DocId,
     scope: ALocalScope,
-    doc_symbols: &[(DocId, &'a [ASymbolData])],
-    completion_items: &mut Vec<ACompletionItem<'a>>,
+    doc_symbols: &[(DocId, &[ASymbol])],
+    completion_items: &mut Vec<ACompletionItem>,
 ) {
     if let Some((_, symbols)) = doc_symbols.iter().find(|&&(d, _)| d == doc) {
         collect_local_completion_items(symbols, &scope, completion_items);
@@ -175,12 +171,12 @@ pub(crate) fn completion(
     for item in completion_items {
         match item {
             ACompletionItem::Symbol(symbol) => {
-                let details = calculate_details(&collect_comments(&symbol.leader));
+                let details = symbol.compute_details();
 
                 use CompletionItemKind as K;
 
                 let kind = match symbol.kind {
-                    ASymbolKind::Unresolved => K::Text,
+                    ASymbolKind::Unresolved | ASymbolKind::Unknown => K::Text,
                     ASymbolKind::Label => K::Value,
                     ASymbolKind::StaticVar => K::Variable,
                     ASymbolKind::Const => K::Constant,

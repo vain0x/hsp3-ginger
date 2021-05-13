@@ -33,11 +33,11 @@ pub(crate) fn rename(
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
         let (doc, pos) = from_document_position(&uri, position, docs)?;
-        let (symbol, _) = wa.locate_symbol(doc, pos)?;
+        let (ws_symbol, _) = wa.locate_symbol(doc, pos)?;
 
         let mut locs = vec![];
-        wa.collect_symbol_defs(symbol, &mut locs);
-        wa.collect_symbol_uses(symbol, &mut locs);
+        wa.collect_symbol_defs(&ws_symbol, &mut locs);
+        wa.collect_symbol_uses(&ws_symbol, &mut locs);
         if locs.is_empty() {
             return None;
         }

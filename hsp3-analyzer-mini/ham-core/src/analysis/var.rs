@@ -20,7 +20,7 @@ struct Ctx<'a> {
     doc: DocId,
 
     /// ドキュメント内のシンボル
-    symbols: &'a mut Vec<ASymbolData>,
+    symbols: &'a mut Vec<ASymbol>,
 
     /// ドキュメント内の環境
     local_env: HashMap<ALocalScope, SymbolEnv>,
@@ -41,26 +41,27 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         ns_opt,
     } = resolve_name_scope_ns_for_def(&name.body.text, ADefScope::Local, &ctx.scope);
 
-    let mut symbol_data = ASymbolData {
+    let symbol_data = ASymbolData {
         kind,
         name: basename.clone(),
-        def_sites: vec![],
-        use_sites: vec![],
-        leader: name.clone(),
+        leader_opt: Some(name.clone()),
         scope_opt: scope_opt.clone(),
         ns_opt: ns_opt.clone(),
 
-        signature_opt: None,
+        details_opt: None,
+        def_sites: Default::default(),
+        use_sites: Default::default(),
+        signature_opt: Default::default(),
     };
 
     if def_site {
-        symbol_data.def_sites.push(name.body.loc);
+        symbol_data.def_sites.borrow_mut().push(name.body.loc);
     } else {
-        symbol_data.use_sites.push(name.body.loc);
+        symbol_data.use_sites.borrow_mut().push(name.body.loc);
     }
 
-    let symbol = ASymbol::new(ctx.symbols.len());
-    ctx.symbols.push(symbol_data);
+    let symbol = ASymbol::from(symbol_data);
+    ctx.symbols.push(symbol.clone());
 
     import_symbol_to_env(
         AWsSymbol { doc, symbol },
@@ -82,13 +83,13 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         &ctx.local_env,
     ) {
         Some(ws_symbol) => {
-            let symbol_data = if ws_symbol.doc != ctx.doc {
+            let symbol = if ws_symbol.doc != ctx.doc {
                 None
             } else {
-                ctx.symbols.get_mut(ws_symbol.symbol.get())
+                Some(ws_symbol.symbol.clone())
             };
-            if let Some(symbol_data) = symbol_data {
-                symbol_data.def_sites.push(name.body.loc);
+            if let Some(symbol) = symbol {
+                symbol.def_sites.borrow_mut().push(name.body.loc);
             } else {
                 ctx.public_def_sites.push((ws_symbol, name.body.loc));
             }
@@ -109,10 +110,10 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
             let symbol_data = if ws_symbol.doc != ctx.doc {
                 None
             } else {
-                ctx.symbols.get_mut(ws_symbol.symbol.get())
+                Some(ws_symbol.symbol.clone())
             };
             if let Some(symbol_data) = symbol_data {
-                symbol_data.use_sites.push(name.body.loc);
+                symbol_data.use_sites.borrow_mut().push(name.body.loc);
             } else {
                 ctx.public_use_sites.push((ws_symbol, name.body.loc));
             }
@@ -300,7 +301,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 pub(crate) fn analyze_var_def(
     doc: DocId,
     root: &PRoot,
-    symbols: &mut Vec<ASymbolData>,
+    symbols: &mut Vec<ASymbol>,
     public_env: &mut APublicEnv,
     ns_env: &mut NsEnv,
     def_sites: &mut Vec<(AWsSymbol, Loc)>,

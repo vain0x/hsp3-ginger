@@ -17,13 +17,13 @@ pub(crate) fn document_highlight(
     let mut locs = vec![];
     let mut highlights = vec![];
 
-    wa.collect_symbol_defs(ws_symbol, &mut locs);
+    wa.collect_symbol_defs(&ws_symbol, &mut locs);
     highlights.extend(
         locs.drain(..)
             .map(|loc| (DocumentHighlightKind::Write, loc)),
     );
 
-    wa.collect_symbol_uses(ws_symbol, &mut locs);
+    wa.collect_symbol_uses(&ws_symbol, &mut locs);
     highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::Read, loc)));
 
     highlights.retain(|(_, loc)| loc.doc == doc);

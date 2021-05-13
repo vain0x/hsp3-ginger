@@ -11,15 +11,16 @@ use crate::{
         integrate::{AWorkspaceAnalysis, HostData},
         name_system::*,
         preproc::ASignatureData,
-        ASymbol,
+        ASymbol, ASymbolData, ASymbolDetails, ASymbolKind,
     },
     assists::{self, diagnose::DiagnosticsCache},
     help_source::{collect_all_symbols, HsSymbol},
     lang_service::docs::DocChangeOrigin,
-    utils::{canonical_uri::CanonicalUri, read_file::read_file},
+    utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
 };
 use lsp_types::*;
 use std::{
+    cell::RefCell,
     collections::HashMap,
     fs,
     mem::take,
@@ -91,7 +92,6 @@ impl LangService {
 
     pub(super) fn did_initialize(&mut self) {
         let mut builtin_env = SymbolEnv::default();
-        let mut builtin_signatures = HashMap::new();
         let mut common_docs = HashMap::new();
         let mut entrypoints = vec![];
 
@@ -115,8 +115,7 @@ impl LangService {
 
         self.hsphelp_symbols = symbols
             .into_iter()
-            .enumerate()
-            .map(|(i, symbol)| {
+            .map(|symbol| {
                 let kind = CompletionItemKind::Function;
                 let HsSymbol {
                     name,
@@ -126,13 +125,9 @@ impl LangService {
                     mut param_info,
                 } = symbol;
 
-                let wa_symbol = AWsSymbol {
-                    doc: hsphelp_doc,
-                    symbol: ASymbol::new(i),
-                };
-                builtin_env.insert(name.clone().into(), wa_symbol);
+                let name_rc = RcStr::from(name.clone());
 
-                if let Some(s) = signature_opt {
+                let signature_opt = signature_opt.map(|s| {
                     let params = {
                         let mut s = s.as_str().trim();
 
@@ -153,12 +148,32 @@ impl LangService {
                             .collect::<Vec<_>>()
                     };
 
-                    let signature_data = ASignatureData {
-                        name: name.clone().into(),
+                    Rc::new(ASignatureData {
+                        name: name_rc.clone(),
                         params,
-                    };
-                    builtin_signatures.insert(wa_symbol, Rc::new(signature_data));
-                }
+                    })
+                });
+
+                let symbol_data = ASymbolData {
+                    kind: ASymbolKind::Unknown,
+                    name: name_rc.clone(),
+                    leader_opt: None,
+                    scope_opt: None,
+                    ns_opt: None,
+                    details_opt: Some(ASymbolDetails {
+                        desc: description.clone().map(RcStr::from),
+                        docs: documentation.clone(),
+                    }),
+                    def_sites: Default::default(),
+                    use_sites: Default::default(),
+                    signature_opt: RefCell::new(signature_opt),
+                };
+
+                let wa_symbol = AWsSymbol {
+                    doc: hsphelp_doc,
+                    symbol: ASymbol::from(symbol_data),
+                };
+                builtin_env.insert(name_rc.clone(), wa_symbol);
 
                 // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
                 let sort_prefix = if name.starts_with("#") || name.starts_with("_") {
@@ -181,14 +196,14 @@ impl LangService {
 
                 CompletionItem {
                     kind: Some(kind),
-                    label: name.to_string(),
+                    label: name,
                     detail: description,
                     documentation: if documentation.is_empty() {
                         None
                     } else {
                         Some(Documentation::String(documentation.join("\r\n\r\n")))
                     },
-                    sort_text: Some(format!("{}{}", sort_prefix, name)),
+                    sort_text: Some(format!("{}{}", sort_prefix, name_rc)),
                     filter_text: word.clone(),
                     insert_text: word,
                     ..Default::default()
@@ -287,7 +302,6 @@ impl LangService {
 
         self.wa.initialize(HostData {
             builtin_env,
-            builtin_signatures,
             common_docs,
             entrypoints,
         });
