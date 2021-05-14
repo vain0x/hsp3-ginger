@@ -1,5 +1,5 @@
 use super::*;
-use super::{a_scope::*, preproc::*};
+use super::{a_scope::*, preproc::*, syntax_linter::SyntaxLint};
 use crate::{
     parse::{PRoot, PToken},
     source::Loc,
@@ -35,6 +35,10 @@ pub(crate) struct DocAnalysis {
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
     pub(crate) preproc_symbols_len: usize,
 
+    // 構文リント:
+    pub(crate) syntax_lint_done: bool,
+    pub(crate) syntax_lints: Vec<(SyntaxLint, Loc)>,
+
     /// ドキュメント内のシンボル
     pub(crate) symbols: Vec<ASymbol>,
 }
@@ -47,6 +51,8 @@ impl DocAnalysis {
         self.includes.clear();
         self.modules.clear();
         self.deffuncs.clear();
+        self.syntax_lint_done = false;
+        self.syntax_lints.clear();
         self.symbols.clear();
     }
 

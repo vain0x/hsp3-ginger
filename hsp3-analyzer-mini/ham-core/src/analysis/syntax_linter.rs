@@ -2,7 +2,9 @@ use crate::{
     parse::{PCommandStmt, PRoot, PStmt},
     source::Loc,
 };
+use std::mem::take;
 
+#[derive(Clone)]
 pub(crate) enum SyntaxLint {
     ReturnInLoop,
 }
@@ -70,8 +72,9 @@ impl<'p> SyntaxLinter<'p> {
     }
 }
 
-pub(crate) fn syntax_lint(root: &PRoot) -> Vec<(SyntaxLint, Loc)> {
+pub(crate) fn syntax_lint(root: &PRoot, lints: &mut Vec<(SyntaxLint, Loc)>) {
     let mut linter = SyntaxLinter::default();
+    linter.lints = take(lints);
     linter.run(root);
-    linter.lints
+    *lints = take(&mut linter.lints);
 }

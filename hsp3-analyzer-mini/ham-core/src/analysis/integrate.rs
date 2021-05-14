@@ -489,13 +489,19 @@ impl AWorkspaceAnalysis {
     pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
         self.compute();
 
-        for (&doc, da) in &self.doc_analysis_map {
+        for (&doc, da) in &mut self.doc_analysis_map {
             if !self.active_docs.contains(&doc) {
                 continue;
             }
 
-            let tree = or!(da.tree_opt.as_ref(), continue);
-            lints.extend(crate::analysis::syntax_linter::syntax_lint(tree));
+            if !da.syntax_lint_done {
+                debug_assert_eq!(da.syntax_lints.len(), 0);
+                let tree = or!(da.tree_opt.as_ref(), continue);
+                crate::analysis::syntax_linter::syntax_lint(&tree, &mut da.syntax_lints);
+                da.syntax_lint_done = true;
+            }
+
+            lints.extend(da.syntax_lints.iter().cloned());
         }
     }
 
