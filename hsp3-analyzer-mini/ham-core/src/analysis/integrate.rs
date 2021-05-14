@@ -1,6 +1,4 @@
-use super::{
-    a_scope::*, a_symbol::*, name_system::*, syntax_linter::SyntaxLint,  ASymbolDetails,
-};
+use super::{a_scope::*, a_symbol::*, name_system::*, syntax_linter::SyntaxLint, ASymbolDetails};
 use crate::{
     analysis::*,
     assists::{
@@ -276,6 +274,16 @@ impl AWorkspaceAnalysis {
                 continue;
             }
 
+            self.def_sites
+                .extend(da.symbols.iter().filter_map(|symbol| {
+                    let loc = symbol.preproc_def_site_opt?;
+                    let ws_symbol = AWsSymbol {
+                        doc,
+                        symbol: symbol.clone(),
+                    };
+                    Some((ws_symbol, loc))
+                }));
+
             crate::analysis::var::analyze_var_def(
                 doc,
                 da.tree_opt.as_ref().unwrap(),
@@ -288,35 +296,18 @@ impl AWorkspaceAnalysis {
             da.symbols_updated();
         }
 
-        // シンボルの定義・使用箇所を収集する。
-        for (&doc, da) in &mut self.doc_analysis_map {
-            if !self.active_docs.contains(&doc) {
-                continue;
-            }
-
-            debug_assert!(da.after_symbols());
-            for symbol in da.symbols.iter().cloned() {
-                let ws = AWsSymbol {
-                    doc,
-                    symbol: symbol.clone(),
-                };
-                self.def_sites.extend(
-                    symbol
-                        .def_sites
-                        .borrow()
-                        .iter()
-                        .map(|&loc| (ws.clone(), loc)),
-                );
-
-                self.use_sites.extend(
-                    symbol
-                        .use_sites
-                        .borrow()
-                        .iter()
-                        .map(|&loc| (ws.clone(), loc)),
-                );
-            }
-        }
+        let total_symbol_count = self
+            .doc_analysis_map
+            .values()
+            .map(|da| da.symbols.len())
+            .sum::<usize>();
+        trace!(
+            "computed: active_docs={} def_sites={} use_sites={} symbols={}",
+            self.active_docs.len(),
+            self.def_sites.len(),
+            self.use_sites.len(),
+            total_symbol_count
+        );
 
         // eprintln!("global_env={:#?}", &self.global_env);
         // eprintln!("analysis_map={:#?}", &self.doc_analysis_map);
@@ -581,6 +572,15 @@ impl AWorkspaceAnalysis {
         for (&doc, (da, symbols)) in &mut doc_map {
             let da = &**da;
 
+            def_sites.extend(symbols.iter().filter_map(|symbol| {
+                let loc = symbol.preproc_def_site_opt?;
+                let ws_symbol = AWsSymbol {
+                    doc,
+                    symbol: symbol.clone(),
+                };
+                Some((ws_symbol, loc))
+            }));
+
             crate::analysis::var::analyze_var_def(
                 doc,
                 da.tree_opt.as_ref().unwrap(),
@@ -590,31 +590,6 @@ impl AWorkspaceAnalysis {
                 &mut def_sites,
                 &mut use_sites,
             );
-        }
-
-        for (&doc, (_, symbols)) in &doc_map {
-            for symbol in symbols.iter().cloned() {
-                let ws = AWsSymbol {
-                    doc,
-                    symbol: symbol.clone(),
-                };
-
-                def_sites.extend(
-                    symbol
-                        .def_sites
-                        .borrow()
-                        .iter()
-                        .map(|&loc| (ws.clone(), loc)),
-                );
-
-                use_sites.extend(
-                    symbol
-                        .use_sites
-                        .borrow()
-                        .iter()
-                        .map(|&loc| (ws.clone(), loc)),
-                );
-            }
         }
 
         let use_site_map = use_sites

@@ -75,11 +75,9 @@ fn add_symbol(
         ns_opt,
 
         details_opt: None,
-        def_sites: Default::default(),
-        use_sites: Default::default(),
+        preproc_def_site_opt: Some(name.body.loc),
         signature_opt: Default::default(),
     });
-    symbol.def_sites.borrow_mut().push(name.body.loc);
     symbols.push(symbol.clone());
     symbol
 }

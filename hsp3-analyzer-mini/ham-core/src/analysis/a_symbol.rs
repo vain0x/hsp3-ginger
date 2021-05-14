@@ -156,9 +156,7 @@ pub(crate) struct ASymbolData {
     pub(crate) ns_opt: Option<RcStr>,
 
     pub(crate) details_opt: Option<ASymbolDetails>,
-
-    pub(crate) def_sites: RefCell<Vec<Loc>>,
-    pub(crate) use_sites: RefCell<Vec<Loc>>,
+    pub(crate) preproc_def_site_opt: Option<Loc>,
 
     // 追加の情報:
     pub(crate) signature_opt: RefCell<Option<Rc<ASignatureData>>>,

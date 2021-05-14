@@ -49,19 +49,22 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         ns_opt: ns_opt.clone(),
 
         details_opt: None,
-        def_sites: Default::default(),
-        use_sites: Default::default(),
+        preproc_def_site_opt: None,
         signature_opt: Default::default(),
     };
 
-    if def_site {
-        symbol_data.def_sites.borrow_mut().push(name.body.loc);
-    } else {
-        symbol_data.use_sites.borrow_mut().push(name.body.loc);
-    }
-
     let symbol = ASymbol::from(symbol_data);
+    let ws_symbol = AWsSymbol {
+        doc,
+        symbol: symbol.clone(),
+    };
     ctx.symbols.push(symbol.clone());
+
+    if def_site {
+        ctx.public_def_sites.push((ws_symbol, name.body.loc));
+    } else {
+        ctx.public_use_sites.push((ws_symbol, name.body.loc));
+    }
 
     import_symbol_to_env(
         AWsSymbol { doc, symbol },
@@ -83,16 +86,7 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         &ctx.local_env,
     ) {
         Some(ws_symbol) => {
-            let symbol = if ws_symbol.doc != ctx.doc {
-                None
-            } else {
-                Some(ws_symbol.symbol.clone())
-            };
-            if let Some(symbol) = symbol {
-                symbol.def_sites.borrow_mut().push(name.body.loc);
-            } else {
-                ctx.public_def_sites.push((ws_symbol, name.body.loc));
-            }
+            ctx.public_def_sites.push((ws_symbol, name.body.loc));
         }
         None => add_symbol(ASymbolKind::StaticVar, name, DEF_SITE, ctx),
     }
@@ -107,16 +101,7 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
         &ctx.local_env,
     ) {
         Some(ws_symbol) => {
-            let symbol_data = if ws_symbol.doc != ctx.doc {
-                None
-            } else {
-                Some(ws_symbol.symbol.clone())
-            };
-            if let Some(symbol_data) = symbol_data {
-                symbol_data.use_sites.borrow_mut().push(name.body.loc);
-            } else {
-                ctx.public_use_sites.push((ws_symbol, name.body.loc));
-            }
+            ctx.public_use_sites.push((ws_symbol, name.body.loc));
         }
         None => {
             let kind = if is_var {

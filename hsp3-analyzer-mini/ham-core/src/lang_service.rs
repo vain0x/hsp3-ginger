@@ -164,8 +164,7 @@ impl LangService {
                         desc: description.clone().map(RcStr::from),
                         docs: documentation.clone(),
                     }),
-                    def_sites: Default::default(),
-                    use_sites: Default::default(),
+                    preproc_def_site_opt: None,
                     signature_opt: RefCell::new(signature_opt),
                 };
 
