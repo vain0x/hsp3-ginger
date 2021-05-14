@@ -23,7 +23,7 @@ pub(crate) fn hover(
 
     let (contents, loc) = (|| -> Option<_> {
         let (symbol, symbol_loc) = wa.locate_symbol(doc, pos)?;
-        let (name, kind, details) = wa.get_symbol_details(symbol)?;
+        let (name, kind, details) = wa.get_symbol_details(&symbol)?;
 
         let mut contents = vec![];
         contents.push(plain_text_to_marked_string(format!("{} ({})", name, kind)));

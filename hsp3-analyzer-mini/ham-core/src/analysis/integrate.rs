@@ -28,12 +28,12 @@ pub(crate) enum Diagnostic {
 }
 
 struct Ctx {
-    use_site_map: HashMap<(DocId, Pos), AWsSymbol>,
+    use_site_map: HashMap<(DocId, Pos), ASymbol>,
     diagnostics: Vec<(Diagnostic, Loc)>,
 }
 
 impl Ctx {
-    fn symbol(&self, loc: &Loc) -> Option<AWsSymbol> {
+    fn symbol(&self, loc: &Loc) -> Option<ASymbol> {
         self.use_site_map.get(&(loc.doc, loc.start())).cloned()
     }
 }
@@ -44,7 +44,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         PStmt::Assign(_) => {}
         PStmt::Command(stmt) => {
             let loc = stmt.command.body.loc;
-            let ws_symbol = match ctx.symbol(&loc) {
+            let symbol = match ctx.symbol(&loc) {
                 Some(it) => it,
                 None => {
                     ctx.diagnostics.push((Diagnostic::Undefined, loc));
@@ -52,7 +52,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 }
             };
 
-            if let Some(signature_data) = ws_symbol.symbol.signature_opt() {
+            if let Some(signature_data) = symbol.signature_opt() {
                 for (arg, (param, _, _)) in stmt.args.iter().zip(&signature_data.params) {
                     match param {
                         Some(PParamTy::Var) | Some(PParamTy::Modvar) | Some(PParamTy::Array) => {}
@@ -67,7 +67,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                                 let name = &compound.name().body;
 
                                 let symbol = match ctx.symbol(&name.loc) {
-                                    Some(it) => it.symbol,
+                                    Some(it) => it,
                                     _ => break,
                                 };
 
@@ -147,8 +147,8 @@ pub(crate) struct AWorkspaceAnalysis {
     active_docs: HashSet<DocId>,
     public_env: APublicEnv,
     ns_env: HashMap<RcStr, SymbolEnv>,
-    def_sites: Vec<(AWsSymbol, Loc)>,
-    use_sites: Vec<(AWsSymbol, Loc)>,
+    def_sites: Vec<(ASymbol, Loc)>,
+    use_sites: Vec<(ASymbol, Loc)>,
 
     // エントリーポイントを起点として構築される情報:
     project_opt: Option<ProjectAnalysis>,
@@ -256,12 +256,7 @@ impl AWorkspaceAnalysis {
                 continue;
             }
 
-            extend_public_env_from_symbols(
-                doc,
-                &da.symbols,
-                &mut self.public_env,
-                &mut self.ns_env,
-            );
+            extend_public_env_from_symbols(&da.symbols, &mut self.public_env, &mut self.ns_env);
         }
 
         // 変数の定義箇所を決定する。
@@ -273,11 +268,7 @@ impl AWorkspaceAnalysis {
             self.def_sites
                 .extend(da.symbols.iter().filter_map(|symbol| {
                     let loc = symbol.preproc_def_site_opt?;
-                    let ws_symbol = AWsSymbol {
-                        doc,
-                        symbol: symbol.clone(),
-                    };
-                    Some((ws_symbol, loc))
+                    Some((symbol.clone(), loc))
                 }));
 
             crate::analysis::var::analyze_var_def(
@@ -340,26 +331,14 @@ impl AWorkspaceAnalysis {
     ) -> Option<SignatureHelpContext> {
         self.compute();
 
-        // let symbol_signatures = self
-        //     .doc_analysis_map
-        //     .iter()
-        //     .flat_map(|(&doc, da)| {
-        //         da.symbols.iter().cloned().filter_map(move |symbol| {
-        //             let signature = symbol.signature_opt()?;
-        //             let ws_symbol = AWsSymbol { doc, symbol };
-        //             Some((ws_symbol, signature))
-        //         })
-        //     })
-        //     .collect::<HashMap<_, _>>();
-
         let tree = &self.doc_analysis_map.get(&doc)?.tree_opt.as_ref()?;
 
         let use_site_map = self
             .use_sites
             .iter()
-            .filter_map(|&(ref ws_symbol, loc)| {
+            .filter_map(|&(ref symbol, loc)| {
                 if loc.doc == doc {
-                    Some((loc.start(), ws_symbol.clone()))
+                    Some((loc.start(), symbol.clone()))
                 } else {
                     None
                 }
@@ -367,15 +346,11 @@ impl AWorkspaceAnalysis {
             .collect::<HashMap<_, _>>();
 
         let mut h = SignatureHelpHost { use_site_map };
-        let out = h.process(pos, tree);
-
-        out
+        h.process(pos, tree)
     }
 
-    pub(crate) fn locate_symbol(&mut self, doc: DocId, pos: Pos16) -> Option<(AWsSymbol, Loc)> {
+    pub(crate) fn locate_symbol(&mut self, doc: DocId, pos: Pos16) -> Option<(ASymbol, Loc)> {
         self.compute();
-
-        // eprintln!("symbol_uses={:?}", &self.use_sites);
 
         self.def_sites
             .iter()
@@ -406,16 +381,15 @@ impl AWorkspaceAnalysis {
     }
 
     #[allow(unused)]
-    pub(crate) fn symbol_name(&self, wa_symbol: AWsSymbol) -> Option<RcStr> {
-        let doc_analysis = self.doc_analysis_map.get(&wa_symbol.doc)?;
-        Some(wa_symbol.symbol.name())
+    pub(crate) fn symbol_name(&self, symbol: ASymbol) -> Option<RcStr> {
+        let doc_analysis = self.doc_analysis_map.get(&symbol.doc)?;
+        Some(symbol.name())
     }
 
     pub(crate) fn get_symbol_details(
         &self,
-        wa_symbol: AWsSymbol,
+        symbol: &ASymbol,
     ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
-        let symbol = wa_symbol.symbol;
         Some((
             symbol.name(),
             symbol.kind.as_str(),
@@ -429,21 +403,21 @@ impl AWorkspaceAnalysis {
         self.diagnose_precisely(diagnostics);
     }
 
-    pub(crate) fn collect_symbol_defs(&mut self, ws_symbol: &AWsSymbol, locs: &mut Vec<Loc>) {
+    pub(crate) fn collect_symbol_defs(&mut self, symbol: &ASymbol, locs: &mut Vec<Loc>) {
         self.compute();
 
-        for &(ref ws, loc) in &self.def_sites {
-            if ws == ws_symbol {
+        for &(ref s, loc) in &self.def_sites {
+            if s == symbol {
                 locs.push(loc);
             }
         }
     }
 
-    pub(crate) fn collect_symbol_uses(&mut self, ws_symbol: &AWsSymbol, locs: &mut Vec<Loc>) {
+    pub(crate) fn collect_symbol_uses(&mut self, symbol: &ASymbol, locs: &mut Vec<Loc>) {
         self.compute();
 
-        for &(ref ws, loc) in &self.use_sites {
-            if ws == ws_symbol {
+        for &(ref s, loc) in &self.use_sites {
+            if s == symbol {
                 locs.push(loc);
             }
         }
@@ -553,7 +527,7 @@ impl AWorkspaceAnalysis {
         public_env.builtin = self.public_env.builtin.clone();
         for (&doc, da) in &self.doc_analysis_map {
             if active_docs.contains(&doc) {
-                extend_public_env_from_symbols(doc, &da.symbols, &mut public_env, &mut ns_env);
+                extend_public_env_from_symbols(&da.symbols, &mut public_env, &mut ns_env);
             }
         }
 
@@ -576,11 +550,7 @@ impl AWorkspaceAnalysis {
 
             def_sites.extend(symbols.iter().filter_map(|symbol| {
                 let loc = symbol.preproc_def_site_opt?;
-                let ws_symbol = AWsSymbol {
-                    doc,
-                    symbol: symbol.clone(),
-                };
-                Some((ws_symbol, loc))
+                Some((symbol.clone(), loc))
             }));
 
             crate::analysis::var::analyze_var_def(
@@ -596,7 +566,7 @@ impl AWorkspaceAnalysis {
 
         let use_site_map = use_sites
             .iter()
-            .map(|(ws_symbol, loc)| ((loc.doc, loc.start()), ws_symbol.clone()))
+            .map(|(symbol, loc)| ((loc.doc, loc.start()), symbol.clone()))
             .collect::<HashMap<_, _>>();
 
         let mut ctx = Ctx {

@@ -12,18 +12,18 @@ pub(crate) fn document_highlight(
     wa: &mut AWorkspaceAnalysis,
 ) -> Option<Vec<DocumentHighlight>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    let (ws_symbol, _) = wa.locate_symbol(doc, pos)?;
+    let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
     let mut locs = vec![];
     let mut highlights = vec![];
 
-    wa.collect_symbol_defs(&ws_symbol, &mut locs);
+    wa.collect_symbol_defs(&symbol, &mut locs);
     highlights.extend(
         locs.drain(..)
             .map(|loc| (DocumentHighlightKind::Write, loc)),
     );
 
-    wa.collect_symbol_uses(&ws_symbol, &mut locs);
+    wa.collect_symbol_uses(&symbol, &mut locs);
     highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::Read, loc)));
 
     highlights.retain(|(_, loc)| loc.doc == doc);

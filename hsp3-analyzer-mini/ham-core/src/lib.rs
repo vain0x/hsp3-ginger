@@ -48,9 +48,9 @@ mod analysis {
 
     pub(crate) use self::{
         a_scope::{ADefFunc, ADefFuncData, AModule, AModuleData},
-        a_symbol::{ASymbol, ASymbolData, ASymbolDetails, ASymbolKind, AWsSymbol},
+        a_symbol::{ASymbol, ASymbolData, ASymbolDetails, ASymbolKind},
         doc_analysis::DocAnalysis,
-        integrate::{AWorkspaceAnalysis, HostData},
+        integrate::AWorkspaceAnalysis,
         name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},
         syntax_linter::SyntaxLint,

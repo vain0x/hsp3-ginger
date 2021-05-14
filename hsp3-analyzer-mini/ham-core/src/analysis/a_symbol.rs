@@ -135,6 +135,7 @@ impl Debug for ASymbol {
 }
 
 pub(crate) struct ASymbolData {
+    pub(crate) doc: DocId,
     pub(crate) kind: ASymbolKind,
     pub(crate) name: RcStr,
     pub(crate) leader_opt: Option<PToken>,
@@ -152,10 +153,4 @@ pub(crate) struct ASymbolData {
 pub(crate) struct ASymbolDetails {
     pub(crate) desc: Option<RcStr>,
     pub(crate) docs: Vec<String>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct AWsSymbol {
-    pub(crate) doc: DocId,
-    pub(crate) symbol: ASymbol,
 }

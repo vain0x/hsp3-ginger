@@ -8,8 +8,8 @@ struct Ctx<'a> {
     ns_env: &'a mut NsEnv,
 
     // 他のドキュメントのシンボルの定義・使用箇所を記録するもの。
-    public_def_sites: &'a mut Vec<(AWsSymbol, Loc)>,
-    public_use_sites: &'a mut Vec<(AWsSymbol, Loc)>,
+    public_def_sites: &'a mut Vec<(ASymbol, Loc)>,
+    public_use_sites: &'a mut Vec<(ASymbol, Loc)>,
 
     doc: DocId,
 
@@ -35,7 +35,8 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         ns_opt,
     } = resolve_name_scope_ns_for_def(&name.body.text, ADefScope::Local, &ctx.scope);
 
-    let symbol_data = ASymbolData {
+    let symbol = ASymbol::from(ASymbolData {
+        doc,
         kind,
         name: basename.clone(),
         leader_opt: Some(name.clone()),
@@ -45,23 +46,17 @@ fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
         details_opt: None,
         preproc_def_site_opt: None,
         signature_opt: Default::default(),
-    };
-
-    let symbol = ASymbol::from(symbol_data);
-    let ws_symbol = AWsSymbol {
-        doc,
-        symbol: symbol.clone(),
-    };
+    });
     ctx.symbols.push(symbol.clone());
 
     if def_site {
-        ctx.public_def_sites.push((ws_symbol, name.body.loc));
+        ctx.public_def_sites.push((symbol.clone(), name.body.loc));
     } else {
-        ctx.public_use_sites.push((ws_symbol, name.body.loc));
+        ctx.public_use_sites.push((symbol.clone(), name.body.loc));
     }
 
     import_symbol_to_env(
-        AWsSymbol { doc, symbol },
+        &symbol,
         basename,
         scope_opt,
         ns_opt,
@@ -79,8 +74,8 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         &ctx.ns_env,
         &ctx.local_env,
     ) {
-        Some(ws_symbol) => {
-            ctx.public_def_sites.push((ws_symbol, name.body.loc));
+        Some(symbol) => {
+            ctx.public_def_sites.push((symbol, name.body.loc));
         }
         None => add_symbol(ASymbolKind::StaticVar, name, DEF_SITE, ctx),
     }
@@ -94,8 +89,8 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
         &ctx.ns_env,
         &ctx.local_env,
     ) {
-        Some(ws_symbol) => {
-            ctx.public_use_sites.push((ws_symbol, name.body.loc));
+        Some(symbol) => {
+            ctx.public_use_sites.push((symbol, name.body.loc));
         }
         None => {
             let kind = if is_var {
@@ -283,11 +278,11 @@ pub(crate) fn analyze_var_def(
     symbols: &mut Vec<ASymbol>,
     public_env: &mut APublicEnv,
     ns_env: &mut NsEnv,
-    def_sites: &mut Vec<(AWsSymbol, Loc)>,
-    use_sites: &mut Vec<(AWsSymbol, Loc)>,
+    def_sites: &mut Vec<(ASymbol, Loc)>,
+    use_sites: &mut Vec<(ASymbol, Loc)>,
 ) {
     let mut local_env = HashMap::new();
-    extend_local_env_from_symbols(doc, &symbols, &mut local_env);
+    extend_local_env_from_symbols(&symbols, &mut local_env);
 
     let mut ctx = Ctx {
         public_env,

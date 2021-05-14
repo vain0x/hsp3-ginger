@@ -62,6 +62,7 @@ fn add_symbol(
     } = resolve_name_scope_ns_for_def(&name.body.text, def, local);
 
     let symbol = ASymbol::from(ASymbolData {
+        doc: leader.body.loc.doc,
         kind,
         name: basename,
         leader_opt: Some(leader.clone()),

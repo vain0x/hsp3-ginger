@@ -6,7 +6,7 @@ use lsp_types::{
 
 #[derive(Default)]
 pub(crate) struct SignatureHelpHost {
-    pub(crate) use_site_map: HashMap<Pos, AWsSymbol>,
+    pub(crate) use_site_map: HashMap<Pos, ASymbol>,
 }
 
 impl SignatureHelpHost {
@@ -36,12 +36,12 @@ struct V {
 }
 
 impl V {
-    fn resolve_symbol(&self, pos: Pos) -> Option<AWsSymbol> {
+    fn resolve_symbol(&self, pos: Pos) -> Option<ASymbol> {
         self.host.use_site_map.get(&pos).cloned()
     }
 
-    fn find_signature(&self, ws_symbol: AWsSymbol) -> Option<Rc<ASignatureData>> {
-        ws_symbol.symbol.signature_opt()
+    fn find_signature(&self, symbol: &ASymbol) -> Option<Rc<ASignatureData>> {
+        symbol.signature_opt()
     }
 
     fn try_resolve(&mut self, callee: &PToken, args: &[PArg], ctype: bool) {
@@ -54,12 +54,12 @@ impl V {
             return;
         }
 
-        let ws_symbol = match self.resolve_symbol(callee.body.loc.start()) {
+        let symbol = match self.resolve_symbol(callee.body.loc.start()) {
             Some(it) => it,
             None => return,
         };
 
-        let signature_data = match self.find_signature(ws_symbol) {
+        let signature_data = match self.find_signature(&symbol) {
             Some(it) => it,
             None => return,
         };

@@ -46,15 +46,15 @@ impl NamePath {
 /// 環境。名前からシンボルへのマップ。
 #[derive(Clone, Debug, Default)]
 pub(crate) struct SymbolEnv {
-    map: HashMap<RcStr, AWsSymbol>,
+    map: HashMap<RcStr, ASymbol>,
 }
 
 impl SymbolEnv {
-    pub(crate) fn get(&self, name: &str) -> Option<AWsSymbol> {
+    pub(crate) fn get(&self, name: &str) -> Option<ASymbol> {
         self.map.get(name).cloned()
     }
 
-    pub(crate) fn insert(&mut self, name: RcStr, symbol: AWsSymbol) {
+    pub(crate) fn insert(&mut self, name: RcStr, symbol: ASymbol) {
         self.map.insert(name, symbol);
     }
 
@@ -76,7 +76,7 @@ pub(crate) struct APublicEnv {
 }
 
 impl APublicEnv {
-    pub(crate) fn resolve(&self, name: &str) -> Option<AWsSymbol> {
+    pub(crate) fn resolve(&self, name: &str) -> Option<ASymbol> {
         self.global.get(name).or_else(|| self.builtin.get(name))
     }
 
@@ -218,7 +218,7 @@ pub(crate) fn resolve_implicit_symbol(
     public_env: &APublicEnv,
     ns_env: &HashMap<RcStr, SymbolEnv>,
     local_env: &HashMap<ALocalScope, SymbolEnv>,
-) -> Option<AWsSymbol> {
+) -> Option<ASymbol> {
     let NameScopeNsTriple {
         basename,
         scope_opt,
@@ -260,7 +260,7 @@ pub(crate) fn resolve_implicit_symbol(
 }
 
 pub(crate) fn import_symbol_to_env(
-    ws_symbol: AWsSymbol,
+    symbol: &ASymbol,
     basename: RcStr,
     scope_opt: Option<AScope>,
     ns_opt: Option<RcStr>,
@@ -275,58 +275,47 @@ pub(crate) fn import_symbol_to_env(
     };
 
     if let Some(env) = env_opt {
-        env.insert(basename.clone(), ws_symbol.clone());
+        env.insert(basename.clone(), symbol.clone());
     }
 
     if let Some(ns) = ns_opt {
-        ns_env.entry(ns).or_default().insert(basename, ws_symbol);
+        ns_env
+            .entry(ns)
+            .or_default()
+            .insert(basename, symbol.clone());
     }
 }
 
 pub(crate) fn extend_public_env_from_symbols(
-    doc: DocId,
     symbols: &[ASymbol],
     public_env: &mut APublicEnv,
     ns_env: &mut NsEnv,
 ) {
     for symbol in symbols.iter().cloned() {
-        let ws_symbol = AWsSymbol {
-            doc,
-            symbol: symbol.clone(),
-        };
-
         if let Some(AScope::Global) = &symbol.scope_opt {
-            public_env
-                .global
-                .insert(symbol.name.clone(), ws_symbol.clone());
+            public_env.global.insert(symbol.name(), symbol.clone());
         }
 
         if let Some(ns) = &symbol.ns_opt {
             ns_env
                 .entry(ns.clone())
                 .or_default()
-                .insert(symbol.name.clone(), ws_symbol);
+                .insert(symbol.name(), symbol.clone());
         }
     }
 }
 
 pub(crate) fn extend_local_env_from_symbols(
-    doc: DocId,
     symbols: &[ASymbol],
     local_env: &mut HashMap<ALocalScope, SymbolEnv>,
 ) {
     for symbol in symbols.iter().cloned() {
-        let ws_symbol = AWsSymbol {
-            doc,
-            symbol: symbol.clone(),
-        };
-
         match &symbol.scope_opt {
             Some(AScope::Local(scope)) if !scope.is_public() => {
                 local_env
                     .entry(scope.clone())
                     .or_default()
-                    .insert(symbol.name.clone(), ws_symbol);
+                    .insert(symbol.name(), symbol.clone());
             }
             _ => {}
         }

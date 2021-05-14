@@ -142,7 +142,8 @@ impl LangService {
                     })
                 });
 
-                let symbol_data = ASymbolData {
+                let symbol = ASymbol::from(ASymbolData {
+                    doc: hsphelp_doc,
                     kind: ASymbolKind::Unknown,
                     name: name_rc.clone(),
                     leader_opt: None,
@@ -154,13 +155,8 @@ impl LangService {
                     }),
                     preproc_def_site_opt: None,
                     signature_opt: RefCell::new(signature_opt),
-                };
-
-                let wa_symbol = AWsSymbol {
-                    doc: hsphelp_doc,
-                    symbol: ASymbol::from(symbol_data),
-                };
-                builtin_env.insert(name_rc.clone(), wa_symbol);
+                });
+                builtin_env.insert(name_rc.clone(), symbol);
 
                 // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
                 let sort_prefix = if name.starts_with("#") || name.starts_with("_") {
