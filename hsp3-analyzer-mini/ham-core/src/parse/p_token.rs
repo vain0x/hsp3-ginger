@@ -1,9 +1,4 @@
-use crate::{
-    source::Loc,
-    token::{TokenData, TokenKind},
-    utils::{rc_item::RcItem, rc_slice::RcSlice},
-};
-use std::{fmt::Debug, iter};
+use super::*;
 
 /// トリビアでないトークンに、前後のトリビアをくっつけたもの。
 #[derive(Clone)]

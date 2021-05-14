@@ -1,8 +1,6 @@
 // 名前解決に関係するもの。スコープや名前空間など。
 
-use super::{a_scope::*, a_symbol::*};
-use crate::{source::*, utils::rc_str::RcStr};
-use std::collections::HashMap;
+use super::*;
 
 /// 名前の修飾子。
 #[derive(Clone, PartialEq, Eq)]

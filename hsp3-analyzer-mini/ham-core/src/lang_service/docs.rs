@@ -1,12 +1,5 @@
-use crate::{
-    source::DocId,
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr},
-};
-use std::{
-    collections::{HashMap, HashSet},
-    mem::take,
-    path::{Path, PathBuf},
-};
+use super::*;
+use crate::source::DocId;
 
 /// テキストドキュメントのバージョン番号
 /// (エディタ上で編集されるたびに変わる番号。

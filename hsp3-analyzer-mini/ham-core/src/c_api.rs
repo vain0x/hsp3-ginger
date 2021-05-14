@@ -1,8 +1,9 @@
 //! C言語や HSP3 などから利用するための関数群
 
+use super::*;
 use crate::lang_service::{LangService, LangServiceOptions};
 use lsp_types::{HoverContents, MarkedString, Position, Url};
-use std::{os::raw::c_char, path::PathBuf, ptr::null_mut, slice, str};
+use std::{os::raw::c_char, ptr::null_mut, slice, str};
 
 const TRUE: i32 = 1;
 const FALSE: i32 = 0;

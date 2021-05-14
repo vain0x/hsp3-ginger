@@ -1,7 +1,9 @@
-use std::cmp::{min, Ordering};
-use std::fmt::{Debug, Display, Formatter};
-use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
+use std::{
+    cmp::{min, Ordering},
+    fmt::{Debug, Display, Formatter},
+    hash::{Hash, Hasher},
+    marker::PhantomData,
+};
 
 pub(crate) struct Id<T>(usize, PhantomData<T>);
 

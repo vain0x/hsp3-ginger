@@ -5,28 +5,16 @@ use self::{
     docs::{DocChange, Docs},
     file_watcher::FileWatcher,
 };
+use super::*;
 use crate::{
-    analysis::{
-        a_symbol::AWsSymbol,
-        integrate::{AWorkspaceAnalysis, HostData},
-        name_system::*,
-        preproc::ASignatureData,
-        ASymbol, ASymbolData, ASymbolDetails, ASymbolKind,
-    },
+    analysis::integrate::HostData,
+    analysis::*,
     assists::{self, diagnose::DiagnosticsCache},
     help_source::{collect_all_symbols, HsSymbol},
     lang_service::docs::DocChangeOrigin,
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
+    utils::read_file::read_file,
 };
 use lsp_types::*;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    fs,
-    mem::take,
-    path::{self, PathBuf},
-    rc::Rc,
-};
 
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,

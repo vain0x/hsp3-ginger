@@ -1,6 +1,5 @@
 use ham_core::start_lsp_server;
-use std::env::ArgsOs;
-use std::path::PathBuf;
+use std::{env::ArgsOs, path::PathBuf};
 
 enum Arg {
     Help,
@@ -24,7 +23,7 @@ fn get_help() -> String {
         -h, --help      Print help
         -V, --version   Print Version
             --hsp       HSP インストールディレクトリ (必須)
-            
+
     ENV:
         HAM_LINT=1      リントを有効化する (既定: 無効)"#,
         version = get_version()

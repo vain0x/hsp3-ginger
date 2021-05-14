@@ -1,8 +1,5 @@
-use crate::{
-    parse::{PCommandStmt, PRoot, PStmt},
-    source::Loc,
-};
-use std::mem::take;
+use super::*;
+use crate::parse::*;
 
 #[derive(Clone)]
 pub(crate) enum SyntaxLint {

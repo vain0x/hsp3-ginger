@@ -1,12 +1,8 @@
 use super::*;
-use crate::{
-    analysis::{a_symbol::*, integrate::*, name_system::*, preproc::ASignatureData},
-    parse::*,
-};
+use crate::{analysis::*, parse::*, source::*};
 use lsp_types::{
     Documentation, ParameterInformation, ParameterLabel, SignatureHelp, SignatureInformation,
 };
-use std::{collections::HashMap, mem::take, rc::Rc};
 
 #[derive(Default)]
 pub(crate) struct SignatureHelpHost {

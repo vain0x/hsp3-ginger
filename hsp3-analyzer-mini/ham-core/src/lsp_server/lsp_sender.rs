@@ -1,6 +1,5 @@
 use super::{LspNotification, LspResponse};
-use std::io;
-use std::io::Write as _;
+use std::io::{self, Write as _};
 
 pub(super) struct LspSender<W: io::Write> {
     out: io::BufWriter<W>,

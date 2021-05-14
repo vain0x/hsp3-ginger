@@ -1,13 +1,7 @@
 // 変数の定義・使用箇所の列挙。
 
-use super::{
-    a_scope::*,
-    a_symbol::{ASymbolData, AWsSymbol},
-    name_system::*,
-    ASymbol, ASymbolKind,
-};
-use crate::{parse::*, source::*};
-use std::{collections::HashMap, mem::replace};
+use super::*;
+use crate::parse::*;
 
 struct Ctx<'a> {
     public_env: &'a mut APublicEnv,

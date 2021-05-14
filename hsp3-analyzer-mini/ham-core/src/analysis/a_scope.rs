@@ -1,9 +1,4 @@
-use crate::{
-    parse::PToken,
-    source::{DocId, Loc},
-    token::{TokenData, TokenKind},
-    utils::{id::Id, rc_str::RcStr},
-};
+use super::*;
 
 pub(crate) type ADefFunc = Id<ADefFuncData>;
 

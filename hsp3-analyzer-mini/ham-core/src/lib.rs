@@ -12,7 +12,30 @@ mod tests;
 
 pub use crate::lsp_server::lsp_main::start_lsp_server;
 
+/// 多くのモジュールからインポートされるシンボル:
+use crate::utils::{
+    canonical_uri::CanonicalUri, id::Id, rc_item::RcItem, rc_slice::RcSlice, rc_str::RcStr,
+};
+
+#[allow(unused)]
+use std::{
+    cell::{Cell, RefCell},
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+    fmt::{self, Debug, Display, Formatter},
+    fs,
+    hash::{Hash, Hasher},
+    io, iter,
+    marker::PhantomData,
+    mem::{replace, take},
+    ops::Deref,
+    path::{self, Path, PathBuf},
+    rc::Rc,
+};
+
 mod analysis {
+    use super::*;
+
     pub(crate) mod a_scope;
     pub(crate) mod a_symbol;
     pub(crate) mod comment;
@@ -24,9 +47,19 @@ mod analysis {
     pub(crate) mod var;
 
     pub(crate) use self::{
-        a_symbol::{ASymbol, ASymbolData, ASymbolDetails, ASymbolKind},
+        a_scope::{ADefFunc, ADefFuncData, AModule, AModuleData},
+        a_symbol::{ASymbol, ASymbolData, ASymbolDetails, ASymbolKind, AWsSymbol},
         doc_analysis::DocAnalysis,
+        integrate::{AWorkspaceAnalysis, HostData},
         name_system::*,
+        preproc::{ASignatureData, PreprocAnalysisResult},
+        syntax_linter::SyntaxLint,
+    };
+
+    use crate::{
+        parse::{PRoot, PToken},
+        source::*,
+        token::{TokenData, TokenKind},
     };
 }
 
@@ -57,6 +90,13 @@ mod parse {
     pub(crate) use p_visitor::PVisitor;
 
     pub(crate) use parse_stmt::parse_root;
+
+    use self::parse_context::Px;
+    use super::*;
+    use crate::{
+        source::*,
+        token::{TokenData, TokenKind},
+    };
 }
 
 mod source {
@@ -89,6 +129,9 @@ mod token {
     pub(crate) use token_data::TokenData;
     pub(crate) use token_kind::TokenKind;
     pub(crate) use tokenize_rules::tokenize;
+
+    use super::*;
+    use crate::source::*;
 }
 
 mod utils {

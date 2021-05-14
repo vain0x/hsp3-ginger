@@ -1,7 +1,7 @@
 //! 字句解析のルール
 
-use super::{tokenize_context::TokenizeContext, TokenData, TokenKind};
-use crate::{source::DocId, utils::rc_str::RcStr};
+use super::tokenize_context::TokenizeContext;
+use super::*;
 
 type Tx = TokenizeContext;
 

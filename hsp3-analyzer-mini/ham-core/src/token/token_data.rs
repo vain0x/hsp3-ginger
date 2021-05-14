@@ -1,6 +1,4 @@
-use super::TokenKind;
-use crate::{source::Loc, utils::rc_str::RcStr};
-use std::fmt;
+use super::*;
 
 /// 字句データ
 #[derive(Clone)]

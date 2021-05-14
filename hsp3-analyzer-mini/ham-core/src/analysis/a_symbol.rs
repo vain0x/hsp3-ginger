@@ -1,20 +1,6 @@
-use super::{
-    comment::{calculate_details, collect_comments},
-    preproc::ASignatureData,
-    AScope,
-};
-use crate::{
-    parse::{PParamTy, PToken},
-    source::{DocId, Loc},
-    utils::rc_str::RcStr,
-};
-use std::{
-    cell::RefCell,
-    fmt::{self, Debug, Formatter},
-    hash::{Hash, Hasher},
-    ops::Deref,
-    rc::Rc,
-};
+use super::comment::*;
+use super::*;
+use crate::parse::PParamTy;
 
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum ASymbolKind {

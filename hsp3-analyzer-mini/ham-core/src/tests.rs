@@ -1,12 +1,11 @@
 #![cfg(test)]
 
+use super::*;
 use crate::{
     lang_service::{docs::NO_VERSION, LangService, LangServiceOptions},
     source::Pos16,
-    utils::canonical_uri::CanonicalUri,
 };
 use lsp_types::{Position, Url};
-use std::{collections::HashMap, fs, path::PathBuf};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum DefOrUse {

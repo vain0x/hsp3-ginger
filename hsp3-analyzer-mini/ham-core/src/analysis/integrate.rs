@@ -1,16 +1,12 @@
-use super::{a_scope::*, a_symbol::*, name_system::*, syntax_linter::SyntaxLint, ASymbolDetails};
+use super::*;
 use crate::{
-    analysis::*,
     assists::{
         completion::ACompletionItem,
         signature_help::{SignatureHelpContext, SignatureHelpHost},
     },
     parse::*,
-    source::{range_is_touched, DocId, Loc, Pos, Pos16},
-    token::TokenKind,
-    utils::{rc_slice::RcSlice, rc_str::RcStr},
+    source::range_is_touched,
 };
-use std::collections::{HashMap, HashSet};
 
 macro_rules! or {
     ($opt:expr, $alt:expr) => {
@@ -661,8 +657,8 @@ fn resolve_scope_at(
 #[cfg(test)]
 mod tests {
     use super::AWorkspaceAnalysis;
+    use super::*;
     use crate::source::{DocId, Pos};
-    use std::collections::HashMap;
 
     /// `<|x|>` のようなマーカーを含む文字列を受け取る。間に挟まれている x の部分をマーカーの名前と呼ぶ。
     /// マーカーを取り除いた文字列 text と、text の中でマーカーが指している位置のリストを返す。

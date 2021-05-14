@@ -1,7 +1,4 @@
-use std::mem::take;
-
 use super::*;
-use crate::source::{Pos, Range};
 
 pub(crate) trait PVisitor {
     fn on_token(&mut self, _token: &PToken) {}

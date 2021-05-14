@@ -1,5 +1,4 @@
-use std::io;
-use std::io::{BufRead as _, Read as _};
+use std::io::{self, BufRead as _, Read as _};
 
 pub(super) struct LspReceiver<R> {
     content: Vec<u8>,

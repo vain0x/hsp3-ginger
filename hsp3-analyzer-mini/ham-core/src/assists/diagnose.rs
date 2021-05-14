@@ -1,14 +1,10 @@
-use std::{collections::HashMap, mem::take};
-
-use lsp_types::{Diagnostic, DiagnosticSeverity, Url};
-
+use super::*;
 use crate::{
     analysis::integrate::AWorkspaceAnalysis,
     assists::{loc_to_range, to_lsp_range},
     lang_service::docs::Docs,
-    source::DocId,
-    utils::canonical_uri::CanonicalUri,
 };
+use lsp_types::{Diagnostic, DiagnosticSeverity, Url};
 
 #[derive(Default)]
 pub(crate) struct DiagnosticsCache {

@@ -1,10 +1,3 @@
-use crate::{
-    lang_service::docs::Docs,
-    source::{DocId, Loc, Pos, Pos16},
-    utils::canonical_uri::CanonicalUri,
-};
-use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};
-
 pub(crate) mod completion;
 pub(crate) mod definitions;
 pub(crate) mod diagnose;
@@ -14,6 +7,10 @@ pub(crate) mod hover;
 pub(crate) mod references;
 pub(crate) mod rename;
 pub(crate) mod signature_help;
+
+use super::*;
+use crate::{lang_service::docs::Docs, source::*, token::TokenKind};
+use lsp_types::{LanguageString, Location, MarkedString, Position, Url};
 
 fn plain_text_to_marked_string(value: String) -> MarkedString {
     MarkedString::LanguageString(LanguageString {
@@ -34,10 +31,10 @@ fn to_position(pos: Pos) -> Position {
 }
 
 fn to_lsp_range(range: crate::source::Range) -> lsp_types::Range {
-    Range::new(to_position(range.start()), to_position(range.end()))
+    lsp_types::Range::new(to_position(range.start()), to_position(range.end()))
 }
 
-fn loc_to_range(loc: Loc) -> Range {
+fn loc_to_range(loc: Loc) -> lsp_types::Range {
     to_lsp_range(loc.range)
 }
 

@@ -1,13 +1,7 @@
 // 構文木を辿ってプロプロセッサ命令に関する情報を集める。
 
-use super::{a_scope::*, a_symbol::*, name_system::*};
-use crate::{
-    parse::*,
-    source::{DocId, Loc},
-    token::TokenKind,
-    utils::rc_str::RcStr,
-};
-use std::{collections::HashMap, mem::replace, rc::Rc};
+use super::*;
+use crate::parse::*;
 
 pub(crate) struct ASignatureData {
     pub(crate) name: RcStr,

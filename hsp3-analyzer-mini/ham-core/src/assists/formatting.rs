@@ -2,17 +2,12 @@
 //!
 //! 字下げや空白を調整する。
 
+use super::*;
 use crate::{
-    analysis::integrate::AWorkspaceAnalysis,
-    assists::to_lsp_range,
-    lang_service::docs::Docs,
+    analysis::integrate::AWorkspaceAnalysis, assists::to_lsp_range, lang_service::docs::Docs,
     parse::*,
-    source::{Pos, Range},
-    token::TokenKind,
-    utils::{canonical_uri::CanonicalUri, rc_item::RcItem, rc_slice::RcSlice, rc_str::RcStr},
 };
 use lsp_types::{TextEdit, Url};
-use std::iter;
 
 fn index_range(range: Range) -> std::ops::Range<usize> {
     range.start().index as usize..range.end().index as usize

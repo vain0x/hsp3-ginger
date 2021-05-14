@@ -1,11 +1,4 @@
 use super::*;
-use super::{a_scope::*, preproc::*, syntax_linter::SyntaxLint};
-use crate::{
-    parse::{PRoot, PToken},
-    source::Loc,
-    utils::{rc_slice::RcSlice, rc_str::RcStr},
-};
-use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd)]
 enum Phase {
