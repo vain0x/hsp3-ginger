@@ -209,16 +209,19 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspNotification<DidOpenTextDocumentParams> =
                     serde_json::from_str(&json).expect("didOpen msg");
                 self.text_document_did_open(msg.params);
+                self.diagnose();
             }
             "textDocument/didChange" => {
                 let msg: LspNotification<DidChangeTextDocumentParams> =
                     serde_json::from_str(&json).expect("didChange msg");
                 self.text_document_did_change(msg.params);
+                self.diagnose();
             }
             "textDocument/didClose" => {
                 let msg = serde_json::from_str::<LspNotification<DidCloseTextDocumentParams>>(json)
                     .unwrap();
                 self.text_document_did_close(msg.params);
+                self.diagnose();
             }
             "textDocument/completion" => {
                 let msg = serde_json::from_str::<LspRequest<CompletionParams>>(json).unwrap();
