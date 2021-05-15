@@ -71,7 +71,7 @@ const newLspClient = (lspBin: string): LanguageClient => {
   const hsp3Home = getHsp3Home()
   const lintEnabled = lintIsEnabled()
 
-  let serverOptions: ServerOptions = {
+  const serverOptions: ServerOptions = {
     command: lspBin,
     args: ["--hsp", hsp3Home, "lsp"],
     options: {
@@ -81,7 +81,7 @@ const newLspClient = (lspBin: string): LanguageClient => {
     }
   }
 
-  let clientOptions: LanguageClientOptions = {
+  const clientOptions: LanguageClientOptions = {
     documentSelector: [
       { scheme: "file", language: "hsp3" },
     ],
