@@ -402,10 +402,8 @@ impl LangService {
     ) -> Vec<CodeAction> {
         self.poll();
 
-        assists::rewrites::declare_local_rewrite::declare_local_rewrite(
-            uri, range, context, &self.docs,
-        )
-        .unwrap_or_default()
+        assists::rewrites::flip_comma::flip_comma(uri, range, context, &self.docs, &mut self.wa)
+            .unwrap_or_default()
     }
 
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {

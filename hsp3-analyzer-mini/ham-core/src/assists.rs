@@ -9,7 +9,9 @@ pub(crate) mod rename;
 pub(crate) mod signature_help;
 
 pub(crate) mod rewrites {
-    pub(crate) mod declare_local_rewrite;
+    use super::*;
+
+    pub(crate) mod flip_comma;
 }
 
 use super::*;

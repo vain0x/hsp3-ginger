@@ -88,7 +88,7 @@ pub(crate) trait PVisitor {
         }
     }
 
-    fn on_param(&mut self, param: &PParam) {
+    fn on_param_default(&mut self, param: &PParam) {
         if let Some((_, token)) = &param.param_ty_opt {
             self.on_token(token);
         }
@@ -96,10 +96,18 @@ pub(crate) trait PVisitor {
         self.on_token_opt(param.comma_opt.as_ref());
     }
 
-    fn on_params(&mut self, params: &[PParam]) {
+    fn on_param(&mut self, param: &PParam) {
+        self.on_param_default(param);
+    }
+
+    fn on_params_default(&mut self, params: &[PParam]) {
         for param in params {
             self.on_param(param);
         }
+    }
+
+    fn on_params(&mut self, params: &[PParam]) {
+        self.on_params_default(params);
     }
 
     fn on_deffunc_stmt(&mut self, stmt: &PDefFuncStmt) {
