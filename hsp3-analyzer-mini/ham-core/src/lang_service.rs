@@ -394,6 +394,20 @@ impl LangService {
         self.docs.close_doc_in_editor(uri);
     }
 
+    pub(super) fn code_action(
+        &mut self,
+        uri: Url,
+        range: Range,
+        context: CodeActionContext,
+    ) -> Vec<CodeAction> {
+        self.poll();
+
+        assists::rewrites::declare_local_rewrite::declare_local_rewrite(
+            uri, range, context, &self.docs,
+        )
+        .unwrap_or_default()
+    }
+
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
 

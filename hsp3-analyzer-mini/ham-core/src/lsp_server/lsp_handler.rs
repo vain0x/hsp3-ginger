@@ -26,6 +26,7 @@ impl<W: io::Write> LspHandler<W> {
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
+                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: None,
                     trigger_characters: None,
@@ -89,6 +90,11 @@ impl<W: io::Write> LspHandler<W> {
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
         self.model.close_doc(params.text_document.uri);
+    }
+
+    fn text_document_code_action(&mut self, params: CodeActionParams) -> Vec<CodeAction> {
+        self.model
+            .code_action(params.text_document.uri, params.range, params.context)
     }
 
     fn text_document_completion(&mut self, params: CompletionParams) -> CompletionList {
@@ -222,6 +228,12 @@ impl<W: io::Write> LspHandler<W> {
                     .unwrap();
                 self.text_document_did_close(msg.params);
                 self.diagnose();
+            }
+            lsp_types::request::CodeActionRequest::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<CodeActionParams>>(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_code_action(msg.params);
+                self.sender.send_response(msg_id, response);
             }
             "textDocument/completion" => {
                 let msg = serde_json::from_str::<LspRequest<CompletionParams>>(json).unwrap();
