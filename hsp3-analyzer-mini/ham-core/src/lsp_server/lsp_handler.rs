@@ -60,7 +60,6 @@ impl<W: io::Write> LspHandler<W> {
 
     fn did_initialize(&mut self) {
         self.model.did_initialize();
-        self.diagnose();
     }
 
     fn shutdown(&mut self) {
@@ -196,6 +195,7 @@ impl<W: io::Write> LspHandler<W> {
             }
             "initialized" => {
                 self.did_initialize();
+                self.diagnose();
             }
             "shutdown" => {
                 let msg = serde_json::from_str::<LspRequest<()>>(json).unwrap();
@@ -235,7 +235,6 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_formatting(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             "textDocument/definition" => {
                 let msg =
@@ -243,7 +242,6 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_definition(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             "textDocument/documentHighlight" => {
                 let msg =
@@ -251,7 +249,6 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_highlight(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             "textDocument/hover" => {
                 let msg: LspRequest<TextDocumentPositionParams> =
@@ -259,7 +256,6 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_hover(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             request::PrepareRenameRequest::METHOD => {
                 let msg: LspRequest<TextDocumentPositionParams> =
@@ -273,21 +269,18 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_references(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             request::Rename::METHOD => {
                 let msg: LspRequest<RenameParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_rename(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             request::SignatureHelpRequest::METHOD => {
                 let msg: LspRequest<SignatureHelpParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_signature_help(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             _ => warn!("Msg unresolved."),
         }
