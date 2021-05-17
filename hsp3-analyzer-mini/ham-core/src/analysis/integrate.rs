@@ -456,6 +456,42 @@ impl AWorkspaceAnalysis {
         );
     }
 
+    pub(crate) fn collect_all_symbols(
+        &mut self,
+        name_filter: &str,
+        symbols: &mut Vec<(ASymbol, Loc)>,
+    ) {
+        self.compute();
+
+        let name_filter = name_filter.trim().to_ascii_lowercase();
+
+        let map = self
+            .def_sites
+            .iter()
+            .filter(|(symbol, _)| symbol.name.contains(&name_filter))
+            .map(|(symbol, loc)| (symbol.clone(), *loc))
+            .collect::<HashMap<_, _>>();
+
+        for (&doc, da) in &self.doc_analysis_map {
+            if !self.active_docs.contains(&doc) {
+                continue;
+            }
+
+            for symbol in &da.symbols {
+                if !symbol.name.contains(&name_filter) {
+                    continue;
+                }
+
+                let def_site = match map.get(symbol) {
+                    Some(it) => *it,
+                    None => continue,
+                };
+
+                symbols.push((symbol.clone(), def_site));
+            }
+        }
+    }
+
     pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
         self.compute();
 

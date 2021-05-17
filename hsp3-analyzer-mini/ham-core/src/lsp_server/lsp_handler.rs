@@ -49,6 +49,7 @@ impl<W: io::Write> LspHandler<W> {
                     ]),
                     ..Default::default()
                 }),
+                workspace_symbol_provider: Some(true),
                 ..ServerCapabilities::default()
             },
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
@@ -174,6 +175,10 @@ impl<W: io::Write> LspHandler<W> {
         self.model.signature_help(uri, position)
     }
 
+    fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
+        self.model.workspace_symbol(params.query)
+    }
+
     fn diagnose(&mut self) {
         let diagnostics = self.model.diagnose();
 
@@ -293,6 +298,12 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_signature_help(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            request::WorkspaceSymbol::METHOD => {
+                let msg: LspRequest<WorkspaceSymbolParams> =
+                    serde_json::from_str(json).expect("workspace/symbol msg");
+                let response = self.workspace_symbol(msg.params);
+                self.sender.send_response(msg.id, response);
             }
             _ => self.sender.send_error_code(msg.id, error::METHOD_NOT_FOUND),
         }
