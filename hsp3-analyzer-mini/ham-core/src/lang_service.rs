@@ -442,6 +442,12 @@ impl LangService {
             .unwrap_or(vec![])
     }
 
+    pub(super) fn document_symbol(&mut self, uri: Url) -> Option<DocumentSymbolResponse> {
+        self.poll();
+
+        assists::document_symbol::symbol(uri, &self.docs, &mut self.wa)
+    }
+
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
 

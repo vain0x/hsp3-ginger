@@ -32,9 +32,10 @@ impl<W: io::Write> LspHandler<W> {
                     trigger_characters: None,
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 }),
-                document_formatting_provider: Some(true),
                 definition_provider: Some(true),
+                document_formatting_provider: Some(true),
                 document_highlight_provider: Some(true),
+                document_symbol_provider: Some(true),
                 hover_provider: Some(true),
                 references_provider: Some(true),
                 rename_provider: Some(RenameProviderCapability::Options(RenameOptions {
@@ -133,6 +134,13 @@ impl<W: io::Write> LspHandler<W> {
     ) -> Vec<lsp_types::DocumentHighlight> {
         self.model
             .document_highlight(params.text_document.uri, params.position)
+    }
+
+    fn text_document_symbol(
+        &mut self,
+        params: DocumentSymbolParams,
+    ) -> Option<lsp_types::DocumentSymbolResponse> {
+        self.model.document_symbol(params.text_document.uri)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {
@@ -266,6 +274,11 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_highlight(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            request::DocumentSymbolRequest::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<DocumentSymbolParams>>(json).unwrap();
+                let response = self.text_document_symbol(msg.params);
+                self.sender.send_response(msg.id, response);
             }
             "textDocument/hover" => {
                 let msg: LspRequest<TextDocumentPositionParams> =
