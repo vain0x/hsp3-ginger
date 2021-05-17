@@ -173,6 +173,7 @@ pub(crate) fn completion(
             ACompletionItem::Symbol(symbol) => {
                 let details = symbol.compute_details();
 
+                // textDocument/documentSymbol, workspace/symbol も参照
                 use CompletionItemKind as K;
 
                 let kind = match symbol.kind {

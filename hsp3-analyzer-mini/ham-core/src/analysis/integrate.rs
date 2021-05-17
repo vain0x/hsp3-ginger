@@ -492,6 +492,27 @@ impl AWorkspaceAnalysis {
         }
     }
 
+    pub(crate) fn collect_doc_symbols(&mut self, doc: DocId, symbols: &mut Vec<(ASymbol, Loc)>) {
+        self.compute();
+
+        let da = match self.doc_analysis_map.get(&doc) {
+            Some(it) => it,
+            None => return,
+        };
+
+        let def_site_map = self
+            .def_sites
+            .iter()
+            .filter(|(_, loc)| loc.doc == doc)
+            .cloned()
+            .collect::<HashMap<_, _>>();
+
+        symbols.extend(da.symbols.iter().filter_map(|symbol| {
+            let loc = def_site_map.get(&symbol)?;
+            Some((symbol.clone(), *loc))
+        }));
+    }
+
     pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
         self.compute();
 
