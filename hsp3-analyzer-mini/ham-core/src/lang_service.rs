@@ -493,6 +493,12 @@ impl LangService {
         assists::signature_help::signature_help(uri, position, &self.docs, &mut self.wa)
     }
 
+    pub(super) fn workspace_symbol(&mut self, query: String) -> Vec<SymbolInformation> {
+        self.poll();
+
+        assists::workspace_symbol::symbol(&query, &self.docs, &mut self.wa)
+    }
+
     pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
         if !self.options.lint_enabled {
             return vec![];

@@ -120,6 +120,14 @@ pub(crate) enum AScope {
 }
 
 impl AScope {
+    /// globalかトップレベル？
+    pub(crate) fn is_public(&self) -> bool {
+        match self {
+            AScope::Global => true,
+            AScope::Local(local) => local.is_public(),
+        }
+    }
+
     /// スコープselfで定義されたシンボルが、スコープotherにおいてみえるか？
     pub(crate) fn is_visible_to(&self, other: &ALocalScope) -> bool {
         match self {

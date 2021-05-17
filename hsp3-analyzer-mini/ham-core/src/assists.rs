@@ -7,6 +7,7 @@ pub(crate) mod hover;
 pub(crate) mod references;
 pub(crate) mod rename;
 pub(crate) mod signature_help;
+pub(crate) mod workspace_symbol;
 
 pub(crate) mod rewrites {
     use super::*;

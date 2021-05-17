@@ -122,6 +122,8 @@ impl PartialEq for ASymbol {
     }
 }
 
+impl Eq for ASymbol {}
+
 impl Hash for ASymbol {
     fn hash<H: Hasher>(&self, state: &mut H) {
         (self.0.as_ref() as *const _ as usize).hash(state)
