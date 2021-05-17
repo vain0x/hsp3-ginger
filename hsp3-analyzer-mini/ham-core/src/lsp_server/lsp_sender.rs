@@ -77,7 +77,7 @@ impl<W: io::Write> LspSender<W> {
                 error: LspError {
                     code,
                     msg: "Something wrong.".into(),
-                    data: Value::Null,
+                    // data: Value::Null,
                 },
             },
         )

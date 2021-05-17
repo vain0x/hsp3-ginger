@@ -4,11 +4,11 @@ pub(super) mod lsp_receiver;
 pub(super) mod lsp_sender;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub(self) use lsp_handler::LspHandler;
 pub(self) use lsp_receiver::LspReceiver;
 pub(self) use lsp_sender::LspSender;
-use serde_json::Value;
 
 #[derive(Serialize, Deserialize)]
 pub(super) struct LspRequest<Params> {
@@ -37,7 +37,7 @@ pub(super) struct LspErrorResponse {
 pub(super) struct LspError {
     pub(crate) code: i64,
     pub(crate) msg: String,
-    pub(crate) data: Value,
+    // pub(crate) data: Value,
 }
 
 #[derive(Serialize, Deserialize)]
