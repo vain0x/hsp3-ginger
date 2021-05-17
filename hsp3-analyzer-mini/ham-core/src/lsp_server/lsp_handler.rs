@@ -294,7 +294,7 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.text_document_signature_help(msg.params);
                 self.sender.send_response(msg_id, response);
             }
-            _ => warn!("Msg unresolved."),
+            _ => self.sender.send_error_code(msg.id, error::METHOD_NOT_FOUND),
         }
     }
 
