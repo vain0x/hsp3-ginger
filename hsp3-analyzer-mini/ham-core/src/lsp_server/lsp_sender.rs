@@ -1,4 +1,6 @@
-use super::{LspNotification, LspResponse};
+use serde_json::Value;
+
+use super::{LspError, LspErrorResponse, LspNotification, LspResponse};
 use std::io::{self, Write as _};
 
 pub(super) struct LspSender<W: io::Write> {
@@ -58,6 +60,25 @@ impl<W: io::Write> LspSender<W> {
                 jsonrpc: "2.0".to_string(),
                 id,
                 result,
+            },
+        )
+        .unwrap();
+
+        self.do_send(&buf);
+    }
+
+    pub(crate) fn send_error_code(&mut self, id: Option<Value>, code: i64) {
+        let mut buf = Vec::new();
+        serde_json::to_writer(
+            &mut buf,
+            &LspErrorResponse {
+                jsonrpc: "2.0".to_string(),
+                id: id.unwrap_or(Value::Null),
+                error: LspError {
+                    code,
+                    msg: "Something wrong.".into(),
+                    data: Value::Null,
+                },
             },
         )
         .unwrap();
