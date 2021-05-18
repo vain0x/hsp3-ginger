@@ -33,7 +33,7 @@ struct Ctx {
 }
 
 impl Ctx {
-    fn symbol(&self, loc: &Loc) -> Option<ASymbol> {
+    fn symbol(&self, loc: Loc) -> Option<ASymbol> {
         self.use_site_map.get(&(loc.doc, loc.start())).cloned()
     }
 }
@@ -44,7 +44,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         PStmt::Assign(_) => {}
         PStmt::Command(stmt) => {
             let loc = stmt.command.body.loc;
-            let symbol = match ctx.symbol(&loc) {
+            let symbol = match ctx.symbol(loc) {
                 Some(it) => it,
                 None => {
                     ctx.diagnostics.push((Diagnostic::Undefined, loc));
@@ -66,7 +66,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                             PExpr::Compound(compound) => {
                                 let name = &compound.name().body;
 
-                                let symbol = match ctx.symbol(&name.loc) {
+                                let symbol = match ctx.symbol(name.loc) {
                                     Some(it) => it,
                                     _ => break,
                                 };
