@@ -17,9 +17,20 @@ macro_rules! or {
     };
 }
 
+pub(crate) enum EntryPoints {
+    Docs(Vec<DocId>),
+    NonCommon,
+}
+
+impl Default for EntryPoints {
+    fn default() -> Self {
+        EntryPoints::Docs(vec![])
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct ProjectAnalysis {
-    pub(crate) entrypoints: Vec<DocId>,
+    pub(crate) entrypoints: EntryPoints,
 }
 
 pub(crate) enum Diagnostic {
@@ -166,7 +177,9 @@ impl AWorkspaceAnalysis {
         self.public_env.builtin = builtin_env;
 
         self.project_opt = if !entrypoints.is_empty() {
-            Some(ProjectAnalysis { entrypoints })
+            Some(ProjectAnalysis {
+                entrypoints: EntryPoints::Docs(entrypoints),
+            })
         } else {
             None
         };
@@ -188,6 +201,77 @@ impl AWorkspaceAnalysis {
 
     pub(crate) fn set_project_docs(&mut self, project_docs: Rc<HashMap<String, DocId>>) {
         self.project_docs = project_docs;
+    }
+
+    fn compute_active_docs(
+        &self,
+        entrypoints: &EntryPoints,
+        active_docs: &mut HashSet<DocId>,
+        diagnostics: &mut Vec<(String, Loc)>,
+    ) {
+        match entrypoints {
+            EntryPoints::Docs(entrypoints) => {
+                assert_ne!(entrypoints.len(), 0);
+
+                // エントリーポイントから推移的にincludeされるドキュメントを集める。
+                let mut stack = entrypoints
+                    .iter()
+                    .map(|&doc| (doc, None))
+                    .collect::<Vec<_>>();
+                active_docs.extend(stack.iter().map(|&(doc, _)| doc));
+
+                while let Some((doc, _)) = stack.pop() {
+                    debug_assert!(active_docs.contains(&doc));
+                    let da = or!(self.doc_analysis_map.get(&doc), continue);
+
+                    for (path, loc) in &da.includes {
+                        let path = path.as_str();
+                        let doc_opt = self
+                            .project_docs
+                            .get(path)
+                            .cloned()
+                            .or_else(|| self.common_docs.get(path).cloned());
+                        let d = match doc_opt {
+                            Some(it) => it,
+                            None => {
+                                diagnostics.push((
+                                    format!("includeを解決できません: {:?}", path),
+                                    loc.clone(),
+                                ));
+                                continue;
+                            }
+                        };
+                        if active_docs.insert(d) {
+                            stack.push((d, Some(loc)));
+                        }
+                    }
+                }
+            }
+            EntryPoints::NonCommon => {
+                // includeされていないcommonのファイルだけ除外する。
+
+                let mut included_docs = HashSet::new();
+                let in_common = self.common_docs.values().cloned().collect::<HashSet<_>>();
+
+                for (&doc, da) in &self.doc_analysis_map {
+                    if in_common.contains(&doc) {
+                        continue;
+                    }
+
+                    for (include, _) in &da.includes {
+                        let doc_opt = self.common_docs.get(include.as_str()).cloned();
+                        included_docs.extend(doc_opt);
+                    }
+                }
+
+                active_docs.extend(
+                    self.doc_analysis_map
+                        .keys()
+                        .cloned()
+                        .filter(|doc| !in_common.contains(&doc) || included_docs.contains(&doc)),
+                );
+            }
+        }
     }
 
     fn compute(&mut self) {
@@ -228,27 +312,11 @@ impl AWorkspaceAnalysis {
             .values()
             .all(|da| da.after_preproc() && !da.after_symbols()));
 
-        // 有効なドキュメントを検出する。(includeされていないcommonのファイルは無視する。)
-        let mut included_docs = HashSet::new();
-        let in_common = self.common_docs.values().cloned().collect::<HashSet<_>>();
-
-        for (&doc, da) in &self.doc_analysis_map {
-            if in_common.contains(&doc) {
-                continue;
-            }
-
-            for (include, _) in &da.includes {
-                let doc_opt = self.common_docs.get(include.as_str()).cloned();
-                included_docs.extend(doc_opt);
-            }
-        }
-
-        self.active_docs.extend(
-            self.doc_analysis_map
-                .keys()
-                .cloned()
-                .filter(|doc| !in_common.contains(&doc) || included_docs.contains(&doc)),
-        );
+        let mut active_docs = take(&mut self.active_docs);
+        let mut diagnostics = vec![];
+        self.compute_active_docs(&EntryPoints::NonCommon, &mut active_docs, &mut diagnostics);
+        self.active_docs = active_docs;
+        assert_eq!(diagnostics.len(), 0);
 
         // 複数ファイルに渡る環境を構築する。
         for (&doc, da) in &self.doc_analysis_map {
@@ -540,42 +608,8 @@ impl AWorkspaceAnalysis {
             None => return,
         };
 
-        assert_ne!(p.entrypoints.len(), 0);
-
         let mut active_docs = HashSet::new();
-
-        // エントリーポイントから推移的にincludeされるドキュメントを集める。
-        let mut stack = p
-            .entrypoints
-            .iter()
-            .map(|&doc| (doc, None))
-            .collect::<Vec<_>>();
-        active_docs.extend(stack.iter().map(|&(doc, _)| doc));
-
-        while let Some((doc, _)) = stack.pop() {
-            debug_assert!(active_docs.contains(&doc));
-            let da = or!(self.doc_analysis_map.get(&doc), continue);
-
-            for (path, loc) in &da.includes {
-                let path = path.as_str();
-                let doc_opt = self
-                    .project_docs
-                    .get(path)
-                    .cloned()
-                    .or_else(|| self.common_docs.get(path).cloned());
-                let d = match doc_opt {
-                    Some(it) => it,
-                    None => {
-                        diagnostics
-                            .push((format!("includeを解決できません: {:?}", path), loc.clone()));
-                        continue;
-                    }
-                };
-                if active_docs.insert(d) {
-                    stack.push((d, Some(loc)));
-                }
-            }
-        }
+        self.compute_active_docs(&p.entrypoints, &mut active_docs, diagnostics);
 
         // 複数ファイルに渡る環境を構築する。
         let mut public_env = APublicEnv::default();
