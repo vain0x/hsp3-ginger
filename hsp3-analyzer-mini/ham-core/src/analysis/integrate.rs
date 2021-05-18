@@ -127,8 +127,8 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 /// ワークスペースの外側のデータ
 #[derive(Default)]
 pub(crate) struct HostData {
-    pub(crate) builtin_env: SymbolEnv,
-    pub(crate) common_docs: HashMap<String, DocId>,
+    pub(crate) builtin_env: Rc<SymbolEnv>,
+    pub(crate) common_docs: Rc<HashMap<String, DocId>>,
     pub(crate) entrypoints: Vec<DocId>,
 }
 
@@ -137,8 +137,8 @@ pub(crate) struct AWorkspaceAnalysis {
     dirty_docs: HashSet<DocId>,
     doc_texts: HashMap<DocId, RcStr>,
 
-    common_docs: HashMap<String, DocId>,
-    project_docs: HashMap<String, DocId>,
+    common_docs: Rc<HashMap<String, DocId>>,
+    project_docs: Rc<HashMap<String, DocId>>,
 
     // ドキュメントごとの解析結果:
     doc_analysis_map: HashMap<DocId, DocAnalysis>,
@@ -186,7 +186,7 @@ impl AWorkspaceAnalysis {
         self.doc_analysis_map.remove(&doc);
     }
 
-    pub(crate) fn set_project_docs(&mut self, project_docs: HashMap<String, DocId>) {
+    pub(crate) fn set_project_docs(&mut self, project_docs: Rc<HashMap<String, DocId>>) {
         self.project_docs = project_docs;
     }
 

@@ -284,8 +284,8 @@ impl LangService {
         }
 
         self.wa.initialize(HostData {
-            builtin_env,
-            common_docs,
+            builtin_env: Rc::new(builtin_env),
+            common_docs: Rc::new(common_docs),
             entrypoints,
         });
 
@@ -365,7 +365,7 @@ impl LangService {
         if changed {
             if let Some(root_uri) = &self.root_uri_opt {
                 let project_docs = self.docs.get_docs_in(root_uri);
-                self.wa.set_project_docs(project_docs);
+                self.wa.set_project_docs(Rc::new(project_docs));
             }
         }
     }

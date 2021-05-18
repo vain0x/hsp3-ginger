@@ -69,7 +69,7 @@ pub(crate) type NsEnv = HashMap<RcStr, SymbolEnv>;
 #[derive(Default)]
 pub(crate) struct APublicEnv {
     /// 標準命令などのシンボルが属す環境。(この環境はソースファイルの変更時に無効化しないので、globalと分けている。)
-    pub(crate) builtin: SymbolEnv,
+    pub(crate) builtin: Rc<SymbolEnv>,
 
     /// あらゆる場所で使えるシンボルが属す環境。(標準命令や `#define global` で定義されたマクロなど)
     pub(crate) global: SymbolEnv,
