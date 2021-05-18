@@ -274,6 +274,59 @@ impl AWorkspaceAnalysis {
         }
     }
 
+    fn compute_symbols<'a>(
+        &self,
+        active_docs: &HashSet<DocId>,
+        public_env: &mut APublicEnv,
+        ns_env: &mut HashMap<RcStr, SymbolEnv>,
+        def_sites: &mut Vec<(ASymbol, Loc)>,
+        use_sites: &mut Vec<(ASymbol, Loc)>,
+        doc_symbols: &mut HashMap<DocId, Vec<ASymbol>>,
+    ) {
+        // 複数ファイルに渡る環境を構築する。
+        for (&doc, da) in &self.doc_analysis_map {
+            if !active_docs.contains(&doc) {
+                continue;
+            }
+
+            extend_public_env_from_symbols(&da.symbols, public_env, ns_env);
+        }
+
+        // 変数の定義箇所を決定する。
+        doc_symbols.extend(
+            self.doc_analysis_map
+                .iter()
+                .filter(|(&doc, _)| active_docs.contains(&doc))
+                .map(|(&doc, da)| {
+                    assert!(da.symbols.len() >= da.preproc_symbols_len);
+                    (doc, da.symbols[..da.preproc_symbols_len].to_vec())
+                }),
+        );
+
+        for (&doc, da) in &self.doc_analysis_map {
+            if !active_docs.contains(&doc) {
+                continue;
+            }
+
+            let symbols = doc_symbols.get_mut(&doc).unwrap();
+
+            def_sites.extend(symbols.iter().filter_map(|symbol| {
+                let loc = symbol.preproc_def_site_opt?;
+                Some((symbol.clone(), loc))
+            }));
+
+            crate::analysis::var::analyze_var_def(
+                doc,
+                da.tree_opt.as_ref().unwrap(),
+                symbols,
+                public_env,
+                ns_env,
+                def_sites,
+                use_sites,
+            );
+        }
+    }
+
     fn compute(&mut self) {
         // eprintln!("compute (dirty={:?})", &self.dirty_docs);
         if self.dirty_docs.is_empty() {
@@ -303,6 +356,13 @@ impl AWorkspaceAnalysis {
         self.def_sites.clear();
         self.use_sites.clear();
 
+        let mut active_docs = take(&mut self.active_docs);
+        let mut public_env = take(&mut self.public_env);
+        let mut ns_env = take(&mut self.ns_env);
+        let mut def_sites = take(&mut self.def_sites);
+        let mut use_sites = take(&mut self.use_sites);
+        let mut diagnostics = vec![];
+
         for da in self.doc_analysis_map.values_mut() {
             da.rollback_to_preproc();
         }
@@ -312,45 +372,35 @@ impl AWorkspaceAnalysis {
             .values()
             .all(|da| da.after_preproc() && !da.after_symbols()));
 
-        let mut active_docs = take(&mut self.active_docs);
-        let mut diagnostics = vec![];
         self.compute_active_docs(&EntryPoints::NonCommon, &mut active_docs, &mut diagnostics);
-        self.active_docs = active_docs;
-        assert_eq!(diagnostics.len(), 0);
 
-        // 複数ファイルに渡る環境を構築する。
-        for (&doc, da) in &self.doc_analysis_map {
-            if !self.active_docs.contains(&doc) {
-                continue;
-            }
+        let mut doc_map = HashMap::new();
 
-            extend_public_env_from_symbols(&da.symbols, &mut self.public_env, &mut self.ns_env);
-        }
+        self.compute_symbols(
+            &active_docs,
+            &mut public_env,
+            &mut ns_env,
+            &mut def_sites,
+            &mut use_sites,
+            &mut doc_map,
+        );
 
-        // 変数の定義箇所を決定する。
         for (&doc, da) in &mut self.doc_analysis_map {
-            if !self.active_docs.contains(&doc) {
-                continue;
-            }
-
-            self.def_sites
-                .extend(da.symbols.iter().filter_map(|symbol| {
-                    let loc = symbol.preproc_def_site_opt?;
-                    Some((symbol.clone(), loc))
-                }));
-
-            crate::analysis::var::analyze_var_def(
-                doc,
-                da.tree_opt.as_ref().unwrap(),
-                &mut da.symbols,
-                &mut self.public_env,
-                &mut self.ns_env,
-                &mut self.def_sites,
-                &mut self.use_sites,
-            );
+            da.symbols
+                .extend(doc_map.remove(&doc).into_iter().flatten());
             da.symbols_updated();
         }
 
+        self.active_docs = active_docs;
+        self.public_env = public_env;
+        self.ns_env = ns_env;
+        self.def_sites = def_sites;
+        self.use_sites = use_sites;
+
+        assert_eq!(diagnostics.len(), 0);
+        assert_eq!(doc_map.len(), 0);
+
+        // デバッグ用: 集計を出す。
         let total_symbol_count = self
             .doc_analysis_map
             .values()
@@ -609,51 +659,29 @@ impl AWorkspaceAnalysis {
         };
 
         let mut active_docs = HashSet::new();
-        self.compute_active_docs(&p.entrypoints, &mut active_docs, diagnostics);
-
-        // 複数ファイルに渡る環境を構築する。
         let mut public_env = APublicEnv::default();
         let mut ns_env = HashMap::new();
-
-        public_env.builtin = self.public_env.builtin.clone();
-        for (&doc, da) in &self.doc_analysis_map {
-            if active_docs.contains(&doc) {
-                extend_public_env_from_symbols(&da.symbols, &mut public_env, &mut ns_env);
-            }
-        }
-
-        // シンボルの定義・使用箇所を収集する。
-        let mut doc_map = self
-            .doc_analysis_map
-            .iter()
-            .filter(|(&doc, _)| active_docs.contains(&doc))
-            .map(|(&doc, da)| {
-                assert!(da.symbols.len() >= da.preproc_symbols_len);
-                (doc, (da, da.symbols[..da.preproc_symbols_len].to_vec()))
-            })
-            .collect::<HashMap<_, _>>();
-
         let mut def_sites = vec![];
         let mut use_sites = vec![];
+        let mut doc_map = HashMap::new();
 
-        for (&doc, (da, symbols)) in &mut doc_map {
-            let da = &**da;
+        self.compute_active_docs(&p.entrypoints, &mut active_docs, diagnostics);
 
-            def_sites.extend(symbols.iter().filter_map(|symbol| {
-                let loc = symbol.preproc_def_site_opt?;
-                Some((symbol.clone(), loc))
-            }));
+        self.compute_symbols(
+            &active_docs,
+            &mut public_env,
+            &mut ns_env,
+            &mut def_sites,
+            &mut use_sites,
+            &mut doc_map,
+        );
 
-            crate::analysis::var::analyze_var_def(
-                doc,
-                da.tree_opt.as_ref().unwrap(),
-                symbols,
-                &mut public_env,
-                &mut ns_env,
-                &mut def_sites,
-                &mut use_sites,
-            );
-        }
+        let doc_map = doc_map
+            .into_iter()
+            .map(|(doc, symbols)| (doc, (self.doc_analysis_map.get(&doc).unwrap(), symbols)))
+            .collect::<HashMap<_, _>>();
+
+        // diagnose:
 
         let use_site_map = use_sites
             .iter()
