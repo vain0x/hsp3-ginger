@@ -17,6 +17,11 @@ macro_rules! or {
     };
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum Ty {
+    Int,
+}
+
 #[derive(Default)]
 pub(crate) struct ProjectAnalysis {
     pub(crate) entrypoints: Vec<DocId>,
@@ -25,6 +30,121 @@ pub(crate) struct ProjectAnalysis {
 pub(crate) enum Diagnostic {
     Undefined,
     VarRequired,
+}
+
+#[derive(Default)]
+struct T {
+    // constraints: Vec<HashSet<*const PCompound>>,
+    assigns: Vec<Vec<(*const PCompound, *const PExpr)>>,
+    symbol_tys: HashMap<ASymbol, Ty>,
+    use_site_map: HashMap<(DocId, Pos), ASymbol>,
+}
+
+impl T {
+    fn symbol(&self, loc: Loc) -> Option<ASymbol> {
+        self.use_site_map.get(&(loc.doc, loc.start())).cloned()
+    }
+
+    fn symbol_ty(&self, symbol: &ASymbol) -> Option<Ty> {
+        self.symbol_tys.get(symbol).cloned()
+    }
+
+    fn assume_symbol_ty(&mut self, symbol: ASymbol, ty: Ty) {
+        trace!("assume {}: {:?}", symbol.name(), ty);
+        self.symbol_tys.insert(symbol, ty);
+    }
+
+    fn request_assign(&mut self, compound: &PCompound, arg: &PExpr) {
+        trace!("request {:?} :> {:?}", compound, arg);
+        self.assigns
+            .last_mut()
+            .unwrap()
+            .push((compound as *const _, arg as *const _));
+    }
+
+    fn expr_ty(&self, expr: &PExpr) -> Option<Ty> {
+        match expr {
+            PExpr::Literal(token) => match token.kind() {
+                TokenKind::Number => Some(Ty::Int),
+                _ => None,
+            },
+            PExpr::Label(_) => None,
+            PExpr::Compound(compound) => {
+                let symbol = self.symbol(compound.name().body.loc)?;
+                if let it @ Some(_) = self.symbol_ty(&symbol) {
+                    return it;
+                }
+
+                match symbol.kind {
+                    ASymbolKind::Param(Some(PParamTy::Int)) => Some(Ty::Int),
+                    _ => None,
+                }
+            }
+            PExpr::Paren(expr) => self.expr_ty(expr.body_opt.as_ref()?),
+            PExpr::Prefix(expr) => self.expr_ty(expr.arg_opt.as_ref()?),
+            PExpr::Infix(_) => None, // TODO
+        }
+    }
+
+    fn enter(&mut self) {
+        trace!("enter");
+        self.assigns.push(vec![]);
+    }
+
+    fn leave(&mut self) {
+        trace!("leave");
+        let assigns = self.assigns.pop().unwrap();
+
+        for (l, r) in assigns {
+            let l = unsafe { &*l };
+            let r = unsafe { &*r };
+
+            trace!("symbol? {:?}", self.symbol(l.name().body.loc));
+            let symbol = or!(self.symbol(l.name().body.loc), continue);
+            let l_ty = self.symbol_ty(&symbol);
+            let r_ty = self.expr_ty(r);
+
+            match (l_ty, r_ty) {
+                (None, Some(ty)) => {
+                    self.assume_symbol_ty(symbol, ty);
+                }
+                _ => {
+                    trace!(
+                        "lower bound (ignored) {}: {:?} <: {:?}",
+                        symbol.name(),
+                        l_ty,
+                        r_ty
+                    );
+                }
+            }
+        }
+    }
+}
+
+impl PVisitor for T {
+    fn on_stmt(&mut self, stmt: &PStmt) {
+        self.enter();
+
+        match stmt {
+            PStmt::Assign(stmt) => {
+                match (stmt.op_opt.as_ref().map(|t| t.kind()), stmt.args.as_slice()) {
+                    (Some(TokenKind::Equal), [arg]) => {
+                        if let Some(arg) = &arg.expr_opt {
+                            self.request_assign(&stmt.left, arg);
+                        }
+                    }
+                    _ => {
+                        // todo
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        self.on_stmt_default(stmt);
+
+        self.leave();
+    }
 }
 
 struct Ctx {
@@ -652,6 +772,34 @@ impl AWorkspaceAnalysis {
             .to_string();
             (msg, loc)
         }));
+
+        // 型検査 (試し)
+        let mut x = T::default();
+        x.use_site_map = def_sites
+            .iter()
+            .chain(use_sites.iter())
+            .map(|(symbol, loc)| ((loc.doc, loc.start()), symbol.clone()))
+            .collect::<HashMap<_, _>>();
+        trace!("use_site_map {:#?}", &x.use_site_map);
+
+        for (&doc, (da, _)) in &doc_map {
+            if !active_docs.contains(&doc) {
+                continue;
+            }
+
+            x.enter();
+            let root = or!(da.tree_opt.as_ref(), continue);
+            x.on_root(root);
+            x.leave();
+        }
+
+        trace!(
+            "symbol_tys: {:#?}",
+            x.symbol_tys
+                .into_iter()
+                .map(|(symbol, ty)| format!("{}: {:?}", symbol.name(), ty))
+                .collect::<Vec<_>>()
+        );
     }
 }
 
