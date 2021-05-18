@@ -158,6 +158,7 @@ pub(crate) struct AWorkspaceAnalysis {
     active_docs: HashSet<DocId>,
     public_env: APublicEnv,
     ns_env: HashMap<RcStr, SymbolEnv>,
+    doc_symbols_map: HashMap<DocId, Vec<ASymbol>>,
     def_sites: Vec<(ASymbol, Loc)>,
     use_sites: Vec<(ASymbol, Loc)>,
 
@@ -279,9 +280,9 @@ impl AWorkspaceAnalysis {
         active_docs: &HashSet<DocId>,
         public_env: &mut APublicEnv,
         ns_env: &mut HashMap<RcStr, SymbolEnv>,
+        doc_symbols_map: &mut HashMap<DocId, Vec<ASymbol>>,
         def_sites: &mut Vec<(ASymbol, Loc)>,
         use_sites: &mut Vec<(ASymbol, Loc)>,
-        doc_symbols: &mut HashMap<DocId, Vec<ASymbol>>,
     ) {
         // 複数ファイルに渡る環境を構築する。
         for (&doc, da) in &self.doc_analysis_map {
@@ -289,18 +290,15 @@ impl AWorkspaceAnalysis {
                 continue;
             }
 
-            extend_public_env_from_symbols(&da.symbols, public_env, ns_env);
+            extend_public_env_from_symbols(&da.preproc_symbols, public_env, ns_env);
         }
 
         // 変数の定義箇所を決定する。
-        doc_symbols.extend(
+        doc_symbols_map.extend(
             self.doc_analysis_map
                 .iter()
                 .filter(|(&doc, _)| active_docs.contains(&doc))
-                .map(|(&doc, da)| {
-                    assert!(da.symbols.len() >= da.preproc_symbols_len);
-                    (doc, da.symbols[..da.preproc_symbols_len].to_vec())
-                }),
+                .map(|(&doc, da)| (doc, da.preproc_symbols.clone())),
         );
 
         for (&doc, da) in &self.doc_analysis_map {
@@ -308,7 +306,7 @@ impl AWorkspaceAnalysis {
                 continue;
             }
 
-            let symbols = doc_symbols.get_mut(&doc).unwrap();
+            let symbols = doc_symbols_map.get_mut(&doc).unwrap();
 
             def_sites.extend(symbols.iter().filter_map(|symbol| {
                 let loc = symbol.preproc_def_site_opt?;
@@ -359,52 +357,36 @@ impl AWorkspaceAnalysis {
         let mut active_docs = take(&mut self.active_docs);
         let mut public_env = take(&mut self.public_env);
         let mut ns_env = take(&mut self.ns_env);
+        let mut doc_symbols_map = take(&mut self.doc_symbols_map);
         let mut def_sites = take(&mut self.def_sites);
         let mut use_sites = take(&mut self.use_sites);
         let mut diagnostics = vec![];
 
-        for da in self.doc_analysis_map.values_mut() {
-            da.rollback_to_preproc();
-        }
-
-        debug_assert!(self
-            .doc_analysis_map
-            .values()
-            .all(|da| da.after_preproc() && !da.after_symbols()));
-
         self.compute_active_docs(&EntryPoints::NonCommon, &mut active_docs, &mut diagnostics);
-
-        let mut doc_map = HashMap::new();
 
         self.compute_symbols(
             &active_docs,
             &mut public_env,
             &mut ns_env,
+            &mut doc_symbols_map,
             &mut def_sites,
             &mut use_sites,
-            &mut doc_map,
         );
-
-        for (&doc, da) in &mut self.doc_analysis_map {
-            da.symbols
-                .extend(doc_map.remove(&doc).into_iter().flatten());
-            da.symbols_updated();
-        }
 
         self.active_docs = active_docs;
         self.public_env = public_env;
         self.ns_env = ns_env;
+        self.doc_symbols_map = doc_symbols_map;
         self.def_sites = def_sites;
         self.use_sites = use_sites;
 
         assert_eq!(diagnostics.len(), 0);
-        assert_eq!(doc_map.len(), 0);
 
         // デバッグ用: 集計を出す。
         let total_symbol_count = self
-            .doc_analysis_map
+            .doc_symbols_map
             .values()
-            .map(|da| da.symbols.len())
+            .map(|symbols| symbols.len())
             .sum::<usize>();
         trace!(
             "computed: active_docs={} def_sites={} use_sites={} symbols={}",
@@ -413,11 +395,6 @@ impl AWorkspaceAnalysis {
             self.use_sites.len(),
             total_symbol_count
         );
-
-        // eprintln!("global_env={:#?}", &self.global_env);
-        // eprintln!("analysis_map={:#?}", &self.doc_analysis_map);
-        // eprintln!("def_sites={:#?}", &self.def_sites);
-        // eprintln!("use_sites={:#?}", &self.use_sites);
     }
 
     pub(crate) fn in_preproc(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
@@ -555,11 +532,11 @@ impl AWorkspaceAnalysis {
         };
 
         let doc_symbols = self
-            .doc_analysis_map
+            .doc_symbols_map
             .iter()
-            .filter_map(|(&d, da)| {
+            .filter_map(|(&d, symbols)| {
                 if d == doc || self.active_docs.contains(&d) {
-                    Some((d, da.symbols.as_slice()))
+                    Some((d, symbols.as_slice()))
                 } else {
                     None
                 }
@@ -590,12 +567,12 @@ impl AWorkspaceAnalysis {
             .map(|(symbol, loc)| (symbol.clone(), *loc))
             .collect::<HashMap<_, _>>();
 
-        for (&doc, da) in &self.doc_analysis_map {
+        for (&doc, doc_symbols) in &self.doc_symbols_map {
             if !self.active_docs.contains(&doc) {
                 continue;
             }
 
-            for symbol in &da.symbols {
+            for symbol in doc_symbols {
                 if !symbol.name.contains(&name_filter) {
                     continue;
                 }
@@ -613,7 +590,7 @@ impl AWorkspaceAnalysis {
     pub(crate) fn collect_doc_symbols(&mut self, doc: DocId, symbols: &mut Vec<(ASymbol, Loc)>) {
         self.compute();
 
-        let da = match self.doc_analysis_map.get(&doc) {
+        let doc_symbols = match self.doc_symbols_map.get(&doc) {
             Some(it) => it,
             None => return,
         };
@@ -625,7 +602,7 @@ impl AWorkspaceAnalysis {
             .cloned()
             .collect::<HashMap<_, _>>();
 
-        symbols.extend(da.symbols.iter().filter_map(|symbol| {
+        symbols.extend(doc_symbols.iter().filter_map(|symbol| {
             let loc = def_site_map.get(&symbol)?;
             Some((symbol.clone(), *loc))
         }));
@@ -663,7 +640,7 @@ impl AWorkspaceAnalysis {
         let mut ns_env = HashMap::new();
         let mut def_sites = vec![];
         let mut use_sites = vec![];
-        let mut doc_map = HashMap::new();
+        let mut doc_symbols_map = HashMap::new();
 
         self.compute_active_docs(&p.entrypoints, &mut active_docs, diagnostics);
 
@@ -671,15 +648,10 @@ impl AWorkspaceAnalysis {
             &active_docs,
             &mut public_env,
             &mut ns_env,
+            &mut doc_symbols_map,
             &mut def_sites,
             &mut use_sites,
-            &mut doc_map,
         );
-
-        let doc_map = doc_map
-            .into_iter()
-            .map(|(doc, symbols)| (doc, (self.doc_analysis_map.get(&doc).unwrap(), symbols)))
-            .collect::<HashMap<_, _>>();
 
         // diagnose:
 
@@ -693,7 +665,7 @@ impl AWorkspaceAnalysis {
             diagnostics: vec![],
         };
 
-        for (&doc, (da, _)) in &doc_map {
+        for (&doc, da) in &self.doc_analysis_map {
             if !active_docs.contains(&doc) {
                 continue;
             }
