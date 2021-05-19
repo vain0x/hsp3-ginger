@@ -51,7 +51,8 @@ mod analysis {
 
     pub(crate) use self::{
         a_scope::{
-            module_name_as_ident, ADefFuncData, AModuleData, DefFuncKey, ModuleKey, ModuleNameMap,
+            module_name_as_ident, ADefFuncData, DefFuncKey, ModuleData, ModuleKey, ModuleMap,
+            ModuleRc,
         },
         doc_analysis::DocAnalysis,
         name_system::*,

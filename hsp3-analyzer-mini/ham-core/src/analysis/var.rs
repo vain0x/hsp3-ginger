@@ -4,7 +4,7 @@ use super::*;
 use crate::parse::*;
 
 struct Ctx<'a> {
-    module_name_map: &'a ModuleNameMap,
+    module_map: &'a ModuleMap,
     public_env: &'a mut PublicEnv,
     ns_env: &'a mut NsEnv,
 
@@ -38,7 +38,7 @@ fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx)
         &name.body.text,
         ImportMode::Local,
         &ctx.scope,
-        ctx.module_name_map,
+        ctx.module_map,
     );
 
     let symbol = SymbolRc::from(ASymbolData {
@@ -79,7 +79,7 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         &ctx.public_env,
         &ctx.ns_env,
         &ctx.local_env,
-        ctx.module_name_map,
+        ctx.module_map,
     ) {
         Some(symbol) => {
             ctx.public_def_sites.push((symbol, name.body.loc));
@@ -95,7 +95,7 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
         &ctx.public_env,
         &ctx.ns_env,
         &ctx.local_env,
-        &ctx.module_name_map,
+        &ctx.module_map,
     ) {
         Some(symbol) => {
             ctx.public_use_sites.push((symbol, name.body.loc));
@@ -282,7 +282,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 pub(crate) fn analyze_var_def(
     doc: DocId,
     root: &PRoot,
-    module_name_map: &ModuleNameMap,
+    module_map: &ModuleMap,
     symbols: &mut Vec<SymbolRc>,
     public_env: &mut PublicEnv,
     ns_env: &mut NsEnv,
@@ -295,7 +295,7 @@ pub(crate) fn analyze_var_def(
     let mut ctx = Ctx {
         public_env,
         ns_env,
-        module_name_map,
+        module_map,
         public_def_sites: def_sites,
         public_use_sites: use_sites,
         doc,

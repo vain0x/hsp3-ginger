@@ -133,11 +133,7 @@ impl ProjectAnalysis {
         }
     }
 
-    fn compute_symbols(
-        &mut self,
-        doc_analysis_map: &DocAnalysisMap,
-        module_name_map: &ModuleNameMap,
-    ) {
+    fn compute_symbols(&mut self, doc_analysis_map: &DocAnalysisMap, module_map: &ModuleMap) {
         let active_docs = &self.active_docs;
         let public_env = &mut self.public_env;
         let ns_env = &mut self.ns_env;
@@ -177,7 +173,7 @@ impl ProjectAnalysis {
             crate::analysis::var::analyze_var_def(
                 doc,
                 da.tree_opt.as_ref().unwrap(),
-                &module_name_map,
+                &module_map,
                 symbols,
                 public_env,
                 ns_env,
@@ -190,7 +186,7 @@ impl ProjectAnalysis {
     pub(crate) fn compute<'a>(
         &'a mut self,
         doc_analysis_map: &'a DocAnalysisMap,
-        module_name_map: &ModuleNameMap,
+        module_map: &ModuleMap,
     ) -> ProjectAnalysisRef<'a> {
         if self.computed {
             return ProjectAnalysisRef {
@@ -201,7 +197,7 @@ impl ProjectAnalysis {
         self.computed = true;
 
         self.compute_active_docs(doc_analysis_map);
-        self.compute_symbols(doc_analysis_map, module_name_map);
+        self.compute_symbols(doc_analysis_map, module_map);
 
         // デバッグ用: 集計を出す。
         let total_symbol_count = self
@@ -299,7 +295,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         let p = self.project;
 
         let scope = match doc_analysis_map.get(&doc) {
-            Some(da) => resolve_scope_at(&da.modules, &da.deffuncs, pos),
+            Some(da) => resolve_scope_at(&da.module_map, &da.deffuncs, pos),
             None => LocalScope::default(),
         };
 
@@ -373,13 +369,13 @@ impl<'a> ProjectAnalysisRef<'a> {
 }
 
 fn resolve_scope_at(
-    modules: &HashMap<ModuleKey, AModuleData>,
+    module_map: &ModuleMap,
     deffuncs: &HashMap<DefFuncKey, ADefFuncData>,
     pos: Pos16,
 ) -> LocalScope {
     let mut scope = LocalScope::default();
 
-    scope.module_opt = modules.iter().find_map(|(m, module_data)| {
+    scope.module_opt = module_map.iter().find_map(|(&m, module_data)| {
         if range_is_touched(&module_data.content_loc.range, pos) {
             Some(m.clone())
         } else {

@@ -17,7 +17,7 @@ pub(crate) struct ADefFuncData {
     pub(crate) content_loc: Loc,
 }
 
-pub(crate) type ModuleNameMap = HashMap<ModuleKey, RcStr>;
+pub(crate) type ModuleMap = HashMap<ModuleKey, ModuleRc>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct ModuleKey {
@@ -31,9 +31,25 @@ impl ModuleKey {
     }
 }
 
-pub(crate) struct AModuleData {
-    #[allow(unused)]
-    pub(crate) keyword_loc: Loc,
+#[derive(Clone)]
+pub(crate) struct ModuleRc(Rc<ModuleData>);
+
+impl ModuleRc {
+    pub(crate) fn new(data: ModuleData) -> Self {
+        Self(Rc::new(data))
+    }
+}
+
+impl Deref for ModuleRc {
+    type Target = ModuleData;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.deref()
+    }
+}
+
+pub(crate) struct ModuleData {
+    pub(crate) name_opt: Option<RcStr>,
     pub(crate) content_loc: Loc,
 }
 

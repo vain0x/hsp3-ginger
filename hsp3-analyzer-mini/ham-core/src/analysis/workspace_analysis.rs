@@ -17,7 +17,7 @@ pub(crate) struct WorkspaceAnalysis {
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     doc_analysis_map: DocAnalysisMap,
-    module_name_map: ModuleNameMap,
+    module_map: ModuleMap,
     project1: ProjectAnalysis,
     project_opt: Option<ProjectAnalysis>,
 }
@@ -80,7 +80,7 @@ impl WorkspaceAnalysis {
         }
 
         let mut doc_analysis_map = take(&mut self.doc_analysis_map);
-        self.module_name_map.clear();
+        self.module_map.clear();
 
         for doc in self.dirty_docs.drain() {
             let text = match self.doc_texts.get(&doc) {
@@ -97,11 +97,8 @@ impl WorkspaceAnalysis {
             da.set_syntax(p_tokens, root);
             da.set_preproc(preproc);
 
-            self.module_name_map.extend(
-                da.module_name_map
-                    .iter()
-                    .map(|(&m, name)| (m, name.clone())),
-            );
+            self.module_map
+                .extend(da.module_map.iter().map(|(&m, rc)| (m, rc.clone())));
         }
 
         self.doc_analysis_map = doc_analysis_map;
@@ -111,7 +108,7 @@ impl WorkspaceAnalysis {
             .iter_mut()
             .flatten()
         {
-            p.compute(&self.doc_analysis_map, &self.module_name_map);
+            p.compute(&self.doc_analysis_map, &self.module_map);
         }
 
         assert_eq!(self.project1.diagnostics.len(), 0);
@@ -164,7 +161,7 @@ impl WorkspaceAnalysis {
         self.compute();
 
         let p = self.project_opt.as_mut().unwrap_or(&mut self.project1);
-        p.compute(&self.doc_analysis_map, &self.module_name_map)
+        p.compute(&self.doc_analysis_map, &self.module_map)
     }
 
     pub(crate) fn require_project_for_doc(&mut self, doc: DocId) -> ProjectAnalysisRef {
@@ -173,13 +170,13 @@ impl WorkspaceAnalysis {
         if let Some(p) = self.project_opt.as_mut() {
             if p.active_docs.contains(&doc) {
                 debug_assert!(p.is_computed());
-                return p.compute(&self.doc_analysis_map, &self.module_name_map);
+                return p.compute(&self.doc_analysis_map, &self.module_map);
             }
         }
 
         debug_assert!(self.project1.is_computed());
         self.project1
-            .compute(&self.doc_analysis_map, &self.module_name_map)
+            .compute(&self.doc_analysis_map, &self.module_map)
     }
 
     pub(crate) fn diagnose(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
