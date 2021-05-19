@@ -64,11 +64,14 @@ impl LangService {
     pub(crate) fn new_standalone() -> Self {
         let hsp3_home = PathBuf::from("/tmp/.not_exist");
         let options = LangServiceOptions::minimal();
-        Self {
+
+        let mut ls = Self {
             hsp3_home,
             options,
             ..Default::default()
-        }
+        };
+        ls.wa.initialize(WorkspaceHost::default());
+        ls
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {

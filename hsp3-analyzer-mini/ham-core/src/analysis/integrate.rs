@@ -37,6 +37,7 @@ mod tests {
     #[test]
     fn test_locate_static_var_def() {
         let mut wa = WorkspaceAnalysis::default();
+        wa.initialize(WorkspaceHost::default());
 
         let doc: DocId = 1;
         let text = r#"
@@ -62,6 +63,7 @@ mod tests {
     #[test]
     fn test_it_works() {
         let mut wa = WorkspaceAnalysis::default();
+        wa.initialize(WorkspaceHost::default());
 
         let doc: DocId = 1;
         let text = r#"

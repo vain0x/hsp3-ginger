@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::{
-    lang_service::{docs::NO_VERSION, LangService, LangServiceOptions},
+    lang_service::{docs::NO_VERSION, LangService},
     source::Pos16,
 };
 use lsp_types::{Position, Url};
@@ -22,15 +22,9 @@ fn path_to_uri(path: PathBuf) -> Url {
 // 各シンボルの定義・使用箇所を調べて、`@def` と書かれた行が定義箇所として検出され、`@use` が書かれた行が使用箇所として検出されていたら成功。過不足があったら失敗。
 #[test]
 fn symbols_tests() {
-    let hsp3_home: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3");
     let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests");
 
-    let options = LangServiceOptions {
-        lint_enabled: false,
-        watcher_enabled: false,
-    };
-
-    let mut ls = LangService::new(PathBuf::from(hsp3_home), options);
+    let mut ls = LangService::new_standalone();
 
     let mut texts = HashMap::new();
 
@@ -140,7 +134,6 @@ fn symbols_tests() {
 // 各シンボルの定義・使用箇所を調べて、`@def` と書かれた行が定義箇所として検出され、`@use` が書かれた行が使用箇所として検出されていたら成功。過不足があったら失敗。
 #[test]
 fn namespace_tests() {
-    let hsp3_home: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/.none");
     let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests");
 
     fn rows(rows: usize) -> Pos16 {
@@ -156,11 +149,7 @@ fn namespace_tests() {
         &["symbols/namespace_deffunc_local.hsp"],
         &["symbols/namespace_deffunc_qualified.hsp"],
     ] {
-        let options = LangServiceOptions {
-            lint_enabled: false,
-            watcher_enabled: false,
-        };
-        let mut ls = LangService::new(PathBuf::from(hsp3_home), options);
+        let mut ls = LangService::new_standalone();
 
         // 各ファイルの内容を行ごとに分割したもの。
         let mut lines_map: HashMap<Url, Vec<String>> = HashMap::new();
