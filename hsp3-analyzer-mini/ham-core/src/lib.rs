@@ -43,6 +43,7 @@ mod analysis {
     pub(crate) mod integrate;
     pub(crate) mod name_system;
     pub(crate) mod preproc;
+    mod project_analysis;
     pub(crate) mod syntax_linter;
     pub(crate) mod var;
 
@@ -53,7 +54,12 @@ mod analysis {
         integrate::AWorkspaceAnalysis,
         name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},
+        project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
         syntax_linter::SyntaxLint,
+    };
+    pub(crate) use super::assists::{
+        completion::{in_preproc, in_str_or_comment, ACompletionItem},
+        signature_help::{SignatureHelpContext, SignatureHelpHost},
     };
 
     use crate::{
