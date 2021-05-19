@@ -35,7 +35,8 @@ pub(crate) fn symbol(
     wa: &mut AWorkspaceAnalysis,
 ) -> Vec<SymbolInformation> {
     let mut symbols = vec![];
-    wa.collect_all_symbols(query, &mut symbols);
+    wa.require_some_project()
+        .collect_all_symbols(query, &mut symbols);
 
     symbols
         .into_iter()

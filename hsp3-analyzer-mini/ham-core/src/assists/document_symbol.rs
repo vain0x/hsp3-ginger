@@ -39,7 +39,8 @@ pub(crate) fn symbol(
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
 
     let mut symbols = vec![];
-    wa.collect_doc_symbols(doc, &mut symbols);
+    wa.require_project_for_doc(doc)
+        .collect_doc_symbols(doc, &mut symbols);
 
     symbols.sort_by_key(|s| s.1.start());
 

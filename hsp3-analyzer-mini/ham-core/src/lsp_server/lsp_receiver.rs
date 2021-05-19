@@ -43,7 +43,7 @@ impl<R: io::Read> LspReceiver<R> {
 
         let json = String::from_utf8_lossy(&self.content);
 
-        debug!(
+        trace!(
             "Received {}\n",
             if content_length < 0x1000 {
                 &json

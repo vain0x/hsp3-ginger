@@ -20,10 +20,11 @@ pub(crate) fn hover(
     hsphelp_symbols: &[CompletionItem],
 ) -> Option<Hover> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let project = wa.require_project_for_doc(doc);
 
     let (contents, loc) = (|| -> Option<_> {
-        let (symbol, symbol_loc) = wa.locate_symbol(doc, pos)?;
-        let (name, kind, details) = wa.get_symbol_details(&symbol)?;
+        let (symbol, symbol_loc) = project.locate_symbol(doc, pos)?;
+        let (name, kind, details) = project.get_symbol_details(&symbol)?;
 
         let mut contents = vec![];
         contents.push(plain_text_to_marked_string(format!("{} ({})", name, kind)));

@@ -166,7 +166,8 @@ pub(crate) fn completion(
     }
 
     let mut completion_items = vec![];
-    wa.collect_completion_items(doc, pos, &mut completion_items);
+    wa.require_project_for_doc(doc)
+        .collect_completion_items(doc, pos, &mut completion_items);
 
     for item in completion_items {
         match item {

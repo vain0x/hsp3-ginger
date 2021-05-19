@@ -137,7 +137,9 @@ impl Debug for ASymbol {
 }
 
 pub(crate) struct ASymbolData {
+    #[allow(unused)]
     pub(crate) doc: DocId,
+
     pub(crate) kind: ASymbolKind,
     pub(crate) name: RcStr,
     pub(crate) leader_opt: Option<PToken>,

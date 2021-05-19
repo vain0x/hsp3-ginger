@@ -128,7 +128,9 @@ pub(crate) fn signature_help(
         signature_data,
         ctype,
         arg_index,
-    } = wa.get_signature_help_context(doc, pos)?;
+    } = wa
+        .require_project_for_doc(doc)
+        .get_signature_help_context(doc, pos)?;
 
     let command = NamePath::new(&signature_data.name).base;
 

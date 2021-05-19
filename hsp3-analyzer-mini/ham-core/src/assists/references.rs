@@ -13,13 +13,14 @@ pub(crate) fn references(
     wa: &mut AWorkspaceAnalysis,
 ) -> Option<Vec<Location>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    let (symbol, _) = wa.locate_symbol(doc, pos)?;
+    let project = wa.require_project_for_doc(doc);
+    let (symbol, _) = project.locate_symbol(doc, pos)?;
 
     let mut locs = vec![];
     if include_definition {
-        wa.collect_symbol_defs(&symbol, &mut locs);
+        project.collect_symbol_defs(&symbol, &mut locs);
     }
-    wa.collect_symbol_uses(&symbol, &mut locs);
+    project.collect_symbol_uses(&symbol, &mut locs);
 
     Some(
         locs.into_iter()
