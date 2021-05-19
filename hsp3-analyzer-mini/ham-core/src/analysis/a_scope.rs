@@ -1,6 +1,16 @@
 use super::*;
 
-pub(crate) type DefFuncKey = Id<ADefFuncData>;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct DefFuncKey {
+    pub(crate) doc: DocId,
+    pub(crate) index: usize,
+}
+
+impl DefFuncKey {
+    pub(crate) fn new(doc: DocId, index: usize) -> Self {
+        Self { doc, index }
+    }
+}
 
 #[derive(Debug)]
 pub(crate) struct ADefFuncData {
@@ -9,7 +19,7 @@ pub(crate) struct ADefFuncData {
 
 pub(crate) type ModuleNameMap = HashMap<ModuleKey, RcStr>;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct ModuleKey {
     pub(crate) doc: DocId,
     pub(crate) index: usize,

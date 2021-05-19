@@ -14,7 +14,7 @@ pub use crate::lsp_server::lsp_main::start_lsp_server;
 
 /// 多くのモジュールからインポートされるシンボル:
 use crate::utils::{
-    canonical_uri::CanonicalUri, id::Id, rc_item::RcItem, rc_slice::RcSlice, rc_str::RcStr,
+    canonical_uri::CanonicalUri, rc_item::RcItem, rc_slice::RcSlice, rc_str::RcStr,
 };
 
 #[allow(unused)]

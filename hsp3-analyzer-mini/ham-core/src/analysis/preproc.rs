@@ -144,8 +144,8 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 ..
             } = stmt;
 
+            let deffunc = DefFuncKey::new(ctx.doc, ctx.deffunc_len);
             ctx.deffunc_len += 1;
-            let deffunc = DefFuncKey::new(ctx.deffunc_len);
             ctx.deffuncs.insert(
                 deffunc,
                 ADefFuncData {

@@ -235,8 +235,8 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             on_args(&args, ctx);
         }
         PStmt::DefFunc(PDefFuncStmt { stmts, .. }) => {
+            let deffunc = DefFuncKey::new(ctx.doc, ctx.deffunc_len);
             ctx.deffunc_len += 1;
-            let deffunc = DefFuncKey::new(ctx.deffunc_len);
 
             let parent_deffunc = replace(&mut ctx.scope.deffunc_opt, Some(deffunc));
 
