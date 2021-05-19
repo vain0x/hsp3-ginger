@@ -504,7 +504,7 @@ impl LangService {
         assists::workspace_symbol::symbol(&query, &self.docs, &mut self.wa)
     }
 
-    pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
+    pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<lsp_types::Diagnostic>)> {
         if !self.options.lint_enabled {
             return vec![];
         }

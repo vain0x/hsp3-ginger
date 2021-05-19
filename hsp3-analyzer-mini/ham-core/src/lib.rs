@@ -44,6 +44,7 @@ mod analysis {
     pub(crate) mod name_system;
     pub(crate) mod preproc;
     mod project_analysis;
+    mod sema;
     pub(crate) mod syntax_linter;
     pub(crate) mod var;
     mod workspace_analysis;
@@ -55,6 +56,7 @@ mod analysis {
         name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
+        sema::{Diagnostic, Sema},
         syntax_linter::SyntaxLint,
         workspace_analysis::{AWorkspaceAnalysis, HostData},
     };
