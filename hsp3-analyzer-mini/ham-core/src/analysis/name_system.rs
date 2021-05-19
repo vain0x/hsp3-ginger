@@ -88,10 +88,10 @@ impl PublicEnv {
 /// globalではないスコープ
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub(crate) struct LocalScope {
-    pub(crate) module_opt: Option<AModule>,
+    pub(crate) module_opt: Option<ModuleKey>,
 
     /// `#deffunc` 系命令の下の部分。(このスコープに属して定義されるのはパラメータだけ。)
-    pub(crate) deffunc_opt: Option<ADefFunc>,
+    pub(crate) deffunc_opt: Option<DefFuncKey>,
 }
 
 impl LocalScope {
@@ -152,7 +152,7 @@ pub(crate) struct NameScopeNsTriple {
     pub(crate) ns_opt: Option<RcStr>,
 }
 
-fn module_name(m: AModule, module_name_map: &ModuleNameMap) -> Option<RcStr> {
+fn module_name(m: ModuleKey, module_name_map: &ModuleNameMap) -> Option<RcStr> {
     module_name_map.get(&m).cloned()
 }
 

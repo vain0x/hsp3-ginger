@@ -15,8 +15,8 @@ struct Ctx {
     includes: Vec<(RcStr, Loc)>,
     scope: LocalScope,
     module_name_map: ModuleNameMap,
-    modules: HashMap<AModule, AModuleData>,
-    deffuncs: HashMap<ADefFunc, ADefFuncData>,
+    modules: HashMap<ModuleKey, AModuleData>,
+    deffuncs: HashMap<DefFuncKey, ADefFuncData>,
     module_len: usize,
     deffunc_len: usize,
 }
@@ -145,7 +145,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             } = stmt;
 
             ctx.deffunc_len += 1;
-            let deffunc = ADefFunc::new(ctx.deffunc_len);
+            let deffunc = DefFuncKey::new(ctx.deffunc_len);
             ctx.deffuncs.insert(
                 deffunc,
                 ADefFuncData {
@@ -264,7 +264,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             behind,
             ..
         }) => {
-            let module = AModule::new(ctx.doc, ctx.module_len);
+            let module = ModuleKey::new(ctx.doc, ctx.module_len);
             ctx.module_len += 1;
 
             ctx.modules.insert(
@@ -380,8 +380,8 @@ pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<SymbolRc>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) module_name_map: ModuleNameMap,
-    pub(crate) modules: HashMap<AModule, AModuleData>,
-    pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
+    pub(crate) modules: HashMap<ModuleKey, AModuleData>,
+    pub(crate) deffuncs: HashMap<DefFuncKey, ADefFuncData>,
 }
 
 pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult {

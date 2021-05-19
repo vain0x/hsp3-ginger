@@ -236,7 +236,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }
         PStmt::DefFunc(PDefFuncStmt { stmts, .. }) => {
             ctx.deffunc_len += 1;
-            let deffunc = ADefFunc::new(ctx.deffunc_len);
+            let deffunc = DefFuncKey::new(ctx.deffunc_len);
 
             let parent_deffunc = replace(&mut ctx.scope.deffunc_opt, Some(deffunc));
 
@@ -247,7 +247,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ctx.scope.deffunc_opt = parent_deffunc;
         }
         PStmt::Module(PModuleStmt { stmts, .. }) => {
-            let module = AModule::new(ctx.doc, ctx.module_len);
+            let module = ModuleKey::new(ctx.doc, ctx.module_len);
             ctx.module_len += 1;
 
             let parent_scope = replace(

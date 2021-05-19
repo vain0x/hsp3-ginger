@@ -9,8 +9,8 @@ pub(crate) struct DocAnalysis {
     // プリプロセス:
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) module_name_map: ModuleNameMap,
-    pub(crate) modules: HashMap<AModule, AModuleData>,
-    pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
+    pub(crate) modules: HashMap<ModuleKey, AModuleData>,
+    pub(crate) deffuncs: HashMap<DefFuncKey, ADefFuncData>,
     pub(crate) preproc_symbols: Vec<SymbolRc>,
 
     // 構文リント:

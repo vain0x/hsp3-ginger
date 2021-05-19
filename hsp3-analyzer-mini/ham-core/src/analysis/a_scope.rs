@@ -1,22 +1,22 @@
 use super::*;
 
-pub(crate) type ADefFunc = Id<ADefFuncData>;
+pub(crate) type DefFuncKey = Id<ADefFuncData>;
 
 #[derive(Debug)]
 pub(crate) struct ADefFuncData {
     pub(crate) content_loc: Loc,
 }
 
-pub(crate) type ModuleNameMap = HashMap<AModule, RcStr>;
+pub(crate) type ModuleNameMap = HashMap<ModuleKey, RcStr>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct AModule {
+pub(crate) struct ModuleKey {
     pub(crate) doc: DocId,
     pub(crate) index: usize,
 }
 
-impl AModule {
-    pub(crate) fn new(doc: DocId, index: usize) -> AModule {
+impl ModuleKey {
+    pub(crate) fn new(doc: DocId, index: usize) -> ModuleKey {
         Self { doc, index }
     }
 }
