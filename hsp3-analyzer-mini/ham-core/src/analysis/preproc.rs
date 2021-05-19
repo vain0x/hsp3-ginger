@@ -14,6 +14,7 @@ struct Ctx {
     symbols: Vec<SymbolRc>,
     includes: Vec<(RcStr, Loc)>,
     scope: LocalScope,
+    module_name_map: ModuleNameMap,
     modules: HashMap<AModule, AModuleData>,
     deffuncs: HashMap<ADefFunc, ADefFuncData>,
     module_len: usize,
@@ -42,7 +43,15 @@ impl Ctx {
         name: &PToken,
         def: ImportMode,
     ) -> SymbolRc {
-        add_symbol(kind, leader, name, def, &self.scope, &mut self.symbols)
+        add_symbol(
+            kind,
+            leader,
+            name,
+            def,
+            &self.scope,
+            &self.module_name_map,
+            &mut self.symbols,
+        )
     }
 }
 
@@ -53,13 +62,14 @@ fn add_symbol(
     name: &PToken,
     def: ImportMode,
     local: &LocalScope,
+    module_name_map: &ModuleNameMap,
     symbols: &mut Vec<SymbolRc>,
 ) -> SymbolRc {
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_name_scope_ns_for_def(&name.body.text, def, local);
+    } = resolve_name_scope_ns_for_def(&name.body.text, def, local, module_name_map);
 
     let symbol = SymbolRc::from(ASymbolData {
         doc: leader.body.loc.doc,
@@ -254,7 +264,8 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             behind,
             ..
         }) => {
-            let module = AModule::new(ctx.doc, &mut ctx.module_len, name_opt);
+            let module = AModule::new(ctx.doc, ctx.module_len);
+            ctx.module_len += 1;
 
             ctx.modules.insert(
                 module.clone(),
@@ -263,6 +274,13 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                     content_loc: hash.body.loc.unite(&behind),
                 },
             );
+
+            if let Some(name) = name_opt
+                .as_ref()
+                .and_then(|t| module_name_as_ident(&t.body))
+            {
+                ctx.module_name_map.insert(module, name.clone());
+            }
 
             let parent_scope = replace(
                 &mut ctx.scope,
@@ -361,6 +379,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<SymbolRc>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
+    pub(crate) module_name_map: ModuleNameMap,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
 }
@@ -376,6 +395,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
     let Ctx {
         symbols,
         includes,
+        module_name_map,
         modules,
         deffuncs,
         ..
@@ -384,6 +404,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
     PreprocAnalysisResult {
         symbols,
         includes,
+        module_name_map,
         modules,
         deffuncs,
     }

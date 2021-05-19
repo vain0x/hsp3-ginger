@@ -7,27 +7,17 @@ pub(crate) struct ADefFuncData {
     pub(crate) content_loc: Loc,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) type ModuleNameMap = HashMap<AModule, RcStr>;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct AModule {
     pub(crate) doc: DocId,
     pub(crate) index: usize,
-    pub(crate) name_opt: Option<RcStr>,
 }
 
 impl AModule {
-    pub(crate) fn new(doc: DocId, index: &mut usize, name_opt: &Option<PToken>) -> AModule {
-        let name_opt = name_opt
-            .as_ref()
-            .and_then(|n| module_name_as_ident(&n.body));
-
-        let module = AModule {
-            doc,
-            index: *index,
-            name_opt,
-        };
-        *index += 1;
-
-        module
+    pub(crate) fn new(doc: DocId, index: usize) -> AModule {
+        Self { doc, index }
     }
 }
 

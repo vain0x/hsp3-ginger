@@ -4,6 +4,7 @@ use super::*;
 use crate::parse::*;
 
 struct Ctx<'a> {
+    module_name_map: &'a ModuleNameMap,
     public_env: &'a mut PublicEnv,
     ns_env: &'a mut NsEnv,
 
@@ -33,7 +34,12 @@ fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx)
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_name_scope_ns_for_def(&name.body.text, ImportMode::Local, &ctx.scope);
+    } = resolve_name_scope_ns_for_def(
+        &name.body.text,
+        ImportMode::Local,
+        &ctx.scope,
+        ctx.module_name_map,
+    );
 
     let symbol = SymbolRc::from(ASymbolData {
         doc,
@@ -73,6 +79,7 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         &ctx.public_env,
         &ctx.ns_env,
         &ctx.local_env,
+        ctx.module_name_map,
     ) {
         Some(symbol) => {
             ctx.public_def_sites.push((symbol, name.body.loc));
@@ -88,6 +95,7 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
         &ctx.public_env,
         &ctx.ns_env,
         &ctx.local_env,
+        &ctx.module_name_map,
     ) {
         Some(symbol) => {
             ctx.public_use_sites.push((symbol, name.body.loc));
@@ -238,10 +246,9 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             ctx.scope.deffunc_opt = parent_deffunc;
         }
-        PStmt::Module(PModuleStmt {
-            name_opt, stmts, ..
-        }) => {
-            let module = AModule::new(ctx.doc, &mut ctx.module_len, name_opt);
+        PStmt::Module(PModuleStmt { stmts, .. }) => {
+            let module = AModule::new(ctx.doc, ctx.module_len);
+            ctx.module_len += 1;
 
             let parent_scope = replace(
                 &mut ctx.scope,
@@ -275,6 +282,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 pub(crate) fn analyze_var_def(
     doc: DocId,
     root: &PRoot,
+    module_name_map: &ModuleNameMap,
     symbols: &mut Vec<SymbolRc>,
     public_env: &mut PublicEnv,
     ns_env: &mut NsEnv,
@@ -287,6 +295,7 @@ pub(crate) fn analyze_var_def(
     let mut ctx = Ctx {
         public_env,
         ns_env,
+        module_name_map,
         public_def_sites: def_sites,
         public_use_sites: use_sites,
         doc,

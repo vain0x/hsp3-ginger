@@ -50,7 +50,9 @@ mod analysis {
     mod workspace_analysis;
 
     pub(crate) use self::{
-        a_scope::{ADefFunc, ADefFuncData, AModule, AModuleData},
+        a_scope::{
+            module_name_as_ident, ADefFunc, ADefFuncData, AModule, AModuleData, ModuleNameMap,
+        },
         doc_analysis::DocAnalysis,
         name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},

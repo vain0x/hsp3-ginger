@@ -133,7 +133,11 @@ impl ProjectAnalysis {
         }
     }
 
-    fn compute_symbols(&mut self, doc_analysis_map: &DocAnalysisMap) {
+    fn compute_symbols(
+        &mut self,
+        doc_analysis_map: &DocAnalysisMap,
+        module_name_map: &ModuleNameMap,
+    ) {
         let active_docs = &self.active_docs;
         let public_env = &mut self.public_env;
         let ns_env = &mut self.ns_env;
@@ -173,6 +177,7 @@ impl ProjectAnalysis {
             crate::analysis::var::analyze_var_def(
                 doc,
                 da.tree_opt.as_ref().unwrap(),
+                &module_name_map,
                 symbols,
                 public_env,
                 ns_env,
@@ -185,6 +190,7 @@ impl ProjectAnalysis {
     pub(crate) fn compute<'a>(
         &'a mut self,
         doc_analysis_map: &'a DocAnalysisMap,
+        module_name_map: &ModuleNameMap,
     ) -> ProjectAnalysisRef<'a> {
         if self.computed {
             return ProjectAnalysisRef {
@@ -195,7 +201,7 @@ impl ProjectAnalysis {
         self.computed = true;
 
         self.compute_active_docs(doc_analysis_map);
-        self.compute_symbols(doc_analysis_map);
+        self.compute_symbols(doc_analysis_map, module_name_map);
 
         // デバッグ用: 集計を出す。
         let total_symbol_count = self

@@ -152,11 +152,16 @@ pub(crate) struct NameScopeNsTriple {
     pub(crate) ns_opt: Option<RcStr>,
 }
 
+fn module_name(m: AModule, module_name_map: &ModuleNameMap) -> Option<RcStr> {
+    module_name_map.get(&m).cloned()
+}
+
 /// 定義箇所の名前に関連付けられるスコープと名前空間を決定する。
 pub(crate) fn resolve_name_scope_ns_for_def(
     basename: &RcStr,
     mode: ImportMode,
     local: &LocalScope,
+    module_name_map: &ModuleNameMap,
 ) -> NameScopeNsTriple {
     let NamePath { base, qual } = NamePath::new(basename);
 
@@ -184,7 +189,7 @@ pub(crate) fn resolve_name_scope_ns_for_def(
         (Qual::Toplevel, _, _)
         | (Qual::Unqualified, ImportMode::Global, _)
         | (Qual::Unqualified, ImportMode::Local, None) => Some("".into()),
-        (Qual::Unqualified, ImportMode::Local, Some(m)) => m.name_opt.clone(),
+        (Qual::Unqualified, ImportMode::Local, Some(m)) => module_name(*m, module_name_map),
     };
 
     NameScopeNsTriple {
@@ -198,6 +203,7 @@ pub(crate) fn resolve_name_scope_ns_for_def(
 pub(crate) fn resolve_name_scope_ns_for_use(
     basename: &RcStr,
     local: &LocalScope,
+    module_name_map: &ModuleNameMap,
 ) -> NameScopeNsTriple {
     let NamePath { base, qual } = NamePath::new(basename);
 
@@ -210,7 +216,7 @@ pub(crate) fn resolve_name_scope_ns_for_use(
     let ns_opt: Option<RcStr> = match (qual, &local.module_opt) {
         (Qual::Module(ns), _) => Some(ns),
         (Qual::Toplevel, _) | (Qual::Unqualified, None) => Some("".into()),
-        (Qual::Unqualified, Some(m)) => m.name_opt.clone(),
+        (Qual::Unqualified, Some(m)) => module_name(*m, module_name_map),
     };
 
     NameScopeNsTriple {
@@ -226,12 +232,13 @@ pub(crate) fn resolve_implicit_symbol(
     public_env: &PublicEnv,
     ns_env: &HashMap<RcStr, SymbolEnv>,
     local_env: &HashMap<LocalScope, SymbolEnv>,
+    module_name_map: &ModuleNameMap,
 ) -> Option<SymbolRc> {
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_name_scope_ns_for_use(name, local);
+    } = resolve_name_scope_ns_for_use(name, local, module_name_map);
 
     if let Some(Scope::Local(scope)) = &scope_opt {
         // ローカル環境で探す

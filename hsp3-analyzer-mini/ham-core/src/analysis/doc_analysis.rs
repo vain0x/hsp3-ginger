@@ -8,6 +8,7 @@ pub(crate) struct DocAnalysis {
 
     // プリプロセス:
     pub(crate) includes: Vec<(RcStr, Loc)>,
+    pub(crate) module_name_map: ModuleNameMap,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
     pub(crate) preproc_symbols: Vec<SymbolRc>,
@@ -22,6 +23,7 @@ impl DocAnalysis {
         self.tokens = [].into();
         self.tree_opt = None;
         self.includes.clear();
+        self.module_name_map.clear();
         self.modules.clear();
         self.deffuncs.clear();
         self.preproc_symbols.clear();
@@ -36,6 +38,7 @@ impl DocAnalysis {
 
     pub(crate) fn set_preproc(&mut self, preproc: PreprocAnalysisResult) {
         self.includes = preproc.includes;
+        self.module_name_map = preproc.module_name_map;
         self.modules = preproc.modules;
         self.deffuncs = preproc.deffuncs;
         self.preproc_symbols = preproc.symbols;
