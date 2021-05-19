@@ -6,7 +6,7 @@ pub(crate) enum Diagnostic {
     VarRequired,
 }
 
-type UseSiteMap = HashMap<(DocId, Pos), ASymbol>;
+type UseSiteMap = HashMap<(DocId, Pos), SymbolRc>;
 
 pub(crate) struct Sema {
     pub(crate) use_site_map: UseSiteMap,
@@ -20,7 +20,7 @@ impl Sema {
         }
     }
 
-    fn symbol(&self, loc: Loc) -> Option<ASymbol> {
+    fn symbol(&self, loc: Loc) -> Option<SymbolRc> {
         self.use_site_map.get(&(loc.doc, loc.start())).cloned()
     }
 }
@@ -59,16 +59,16 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Sema) {
                                 };
 
                                 rval = match symbol.kind {
-                                    ASymbolKind::Label
-                                    | ASymbolKind::Const
-                                    | ASymbolKind::Enum
-                                    | ASymbolKind::DefFunc
-                                    | ASymbolKind::DefCFunc
-                                    | ASymbolKind::ModFunc
-                                    | ASymbolKind::ModCFunc
-                                    | ASymbolKind::ComInterface
-                                    | ASymbolKind::ComFunc => true,
-                                    ASymbolKind::Param(Some(param)) => match param {
+                                    HspSymbolKind::Label
+                                    | HspSymbolKind::Const
+                                    | HspSymbolKind::Enum
+                                    | HspSymbolKind::DefFunc
+                                    | HspSymbolKind::DefCFunc
+                                    | HspSymbolKind::ModFunc
+                                    | HspSymbolKind::ModCFunc
+                                    | HspSymbolKind::ComInterface
+                                    | HspSymbolKind::ComFunc => true,
+                                    HspSymbolKind::Param(Some(param)) => match param {
                                         PParamTy::Var
                                         | PParamTy::Array
                                         | PParamTy::Modvar

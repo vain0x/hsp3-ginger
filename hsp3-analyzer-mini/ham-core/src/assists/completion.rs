@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    analysis::{ALocalScope, AScope, ASymbol, ASymbolKind},
+    analysis::{HspSymbolKind, LocalScope, Scope, SymbolRc},
     assists::from_document_position,
     lang_service::docs::Docs,
     parse::{p_param_ty::PParamCategory, PToken},
@@ -10,7 +10,7 @@ use crate::{
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 
 pub(crate) enum ACompletionItem {
-    Symbol(ASymbol),
+    Symbol(SymbolRc),
 }
 
 pub(crate) fn in_str_or_comment(pos: Pos16, tokens: &[PToken]) -> bool {
@@ -85,8 +85,8 @@ pub(crate) fn collect_preproc_completion_items(
 }
 
 fn collect_local_completion_items(
-    symbols: &[ASymbol],
-    local: &ALocalScope,
+    symbols: &[SymbolRc],
+    local: &LocalScope,
     completion_items: &mut Vec<ACompletionItem>,
 ) {
     for s in symbols {
@@ -101,11 +101,11 @@ fn collect_local_completion_items(
 }
 
 fn collect_global_completion_items(
-    symbols: &[ASymbol],
+    symbols: &[SymbolRc],
     completion_items: &mut Vec<ACompletionItem>,
 ) {
     for s in symbols {
-        if let Some(AScope::Global) = s.scope_opt {
+        if let Some(Scope::Global) = s.scope_opt {
             completion_items.push(ACompletionItem::Symbol(s.clone()));
         }
     }
@@ -113,8 +113,8 @@ fn collect_global_completion_items(
 
 pub(crate) fn collect_symbols_as_completion_items(
     doc: DocId,
-    scope: ALocalScope,
-    doc_symbols: &[(DocId, &[ASymbol])],
+    scope: LocalScope,
+    doc_symbols: &[(DocId, &[SymbolRc])],
     completion_items: &mut Vec<ACompletionItem>,
 ) {
     if let Some((_, symbols)) = doc_symbols.iter().find(|&&(d, _)| d == doc) {
@@ -147,7 +147,7 @@ pub(crate) fn completion(
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
     other_items: &[CompletionItem],
 ) -> Option<CompletionList> {
     let mut items = vec![];
@@ -179,43 +179,44 @@ pub(crate) fn completion(
                 use CompletionItemKind as K;
 
                 let kind = match symbol.kind {
-                    ASymbolKind::Unresolved | ASymbolKind::Unknown => K::Text,
-                    ASymbolKind::Label => K::Value,
-                    ASymbolKind::StaticVar => K::Variable,
-                    ASymbolKind::Const => K::Constant,
-                    ASymbolKind::Enum => K::EnumMember,
-                    ASymbolKind::Macro { ctype: false } => K::Value,
-                    ASymbolKind::Macro { ctype: true } => K::Function,
-                    ASymbolKind::DefFunc => K::Method,
-                    ASymbolKind::DefCFunc => K::Function,
-                    ASymbolKind::ModFunc => K::Method,
-                    ASymbolKind::ModCFunc => K::Function,
-                    ASymbolKind::Param(None) => K::Variable,
-                    ASymbolKind::Param(Some(param)) => match param.category() {
+                    HspSymbolKind::Unresolved | HspSymbolKind::Unknown => K::Text,
+                    HspSymbolKind::Label => K::Value,
+                    HspSymbolKind::StaticVar => K::Variable,
+                    HspSymbolKind::Const => K::Constant,
+                    HspSymbolKind::Enum => K::EnumMember,
+                    HspSymbolKind::Macro { ctype: false } => K::Value,
+                    HspSymbolKind::Macro { ctype: true } => K::Function,
+                    HspSymbolKind::DefFunc => K::Method,
+                    HspSymbolKind::DefCFunc => K::Function,
+                    HspSymbolKind::ModFunc => K::Method,
+                    HspSymbolKind::ModCFunc => K::Function,
+                    HspSymbolKind::Param(None) => K::Variable,
+                    HspSymbolKind::Param(Some(param)) => match param.category() {
                         PParamCategory::ByValue => K::Value,
                         PParamCategory::ByRef => K::Property,
                         PParamCategory::Local => K::Variable,
                         PParamCategory::Auto => K::Text,
                     },
-                    ASymbolKind::Module => K::Module,
-                    ASymbolKind::Field => K::Field,
-                    ASymbolKind::LibFunc => K::Function,
-                    ASymbolKind::PluginCmd => K::Keyword,
-                    ASymbolKind::ComInterface => K::Interface,
-                    ASymbolKind::ComFunc => K::Method,
+                    HspSymbolKind::Module => K::Module,
+                    HspSymbolKind::Field => K::Field,
+                    HspSymbolKind::LibFunc => K::Function,
+                    HspSymbolKind::PluginCmd => K::Keyword,
+                    HspSymbolKind::ComInterface => K::Interface,
+                    HspSymbolKind::ComFunc => K::Method,
                 };
 
                 // 候補の順番を制御するための文字。(スコープが狭いものを上に出す。)
                 let sort_prefix = match (&symbol.scope_opt, symbol.kind) {
-                    (Some(AScope::Local(local)), _) => match (&local.module_opt, local.deffunc_opt)
-                    {
-                        (Some(_), Some(_)) => 'a',
-                        (Some(_), None) => 'b',
-                        (None, None) => 'c',
-                        (None, Some(_)) => 'd',
-                    },
-                    (_, ASymbolKind::Module) => 'f',
-                    (Some(AScope::Global), _) => 'e',
+                    (Some(Scope::Local(local)), _) => {
+                        match (&local.module_opt, local.deffunc_opt) {
+                            (Some(_), Some(_)) => 'a',
+                            (Some(_), None) => 'b',
+                            (None, None) => 'c',
+                            (None, Some(_)) => 'd',
+                        }
+                    }
+                    (_, HspSymbolKind::Module) => 'f',
+                    (Some(Scope::Global), _) => 'e',
                     (None, _) => 'g',
                 };
 

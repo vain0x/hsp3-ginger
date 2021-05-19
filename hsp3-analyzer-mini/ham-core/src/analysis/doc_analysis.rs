@@ -10,7 +10,7 @@ pub(crate) struct DocAnalysis {
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,
-    pub(crate) preproc_symbols: Vec<ASymbol>,
+    pub(crate) preproc_symbols: Vec<SymbolRc>,
 
     // 構文リント:
     pub(crate) syntax_lint_done: bool,

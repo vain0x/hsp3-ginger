@@ -6,7 +6,7 @@ pub(crate) fn document_highlight(
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<DocumentHighlight>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
     let project = wa.require_project_for_doc(doc);

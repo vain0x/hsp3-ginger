@@ -4,38 +4,38 @@ use super::*;
 use crate::parse::*;
 
 struct Ctx<'a> {
-    public_env: &'a mut APublicEnv,
+    public_env: &'a mut PublicEnv,
     ns_env: &'a mut NsEnv,
 
     // 他のドキュメントのシンボルの定義・使用箇所を記録するもの。
-    public_def_sites: &'a mut Vec<(ASymbol, Loc)>,
-    public_use_sites: &'a mut Vec<(ASymbol, Loc)>,
+    public_def_sites: &'a mut Vec<(SymbolRc, Loc)>,
+    public_use_sites: &'a mut Vec<(SymbolRc, Loc)>,
 
     doc: DocId,
 
     /// ドキュメント内のシンボル
-    symbols: &'a mut Vec<ASymbol>,
+    symbols: &'a mut Vec<SymbolRc>,
 
     /// ドキュメント内の環境
-    local_env: HashMap<ALocalScope, SymbolEnv>,
+    local_env: HashMap<LocalScope, SymbolEnv>,
 
     deffunc_len: usize,
     module_len: usize,
-    scope: ALocalScope,
+    scope: LocalScope,
 }
 
 const DEF_SITE: bool = true;
 const USE_SITE: bool = false;
 
-fn add_symbol(kind: ASymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
+fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
     let doc = ctx.doc;
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_name_scope_ns_for_def(&name.body.text, ADefScope::Local, &ctx.scope);
+    } = resolve_name_scope_ns_for_def(&name.body.text, ImportMode::Local, &ctx.scope);
 
-    let symbol = ASymbol::from(ASymbolData {
+    let symbol = SymbolRc::from(ASymbolData {
         doc,
         kind,
         name: basename.clone(),
@@ -77,7 +77,7 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         Some(symbol) => {
             ctx.public_def_sites.push((symbol, name.body.loc));
         }
-        None => add_symbol(ASymbolKind::StaticVar, name, DEF_SITE, ctx),
+        None => add_symbol(HspSymbolKind::StaticVar, name, DEF_SITE, ctx),
     }
 }
 
@@ -94,9 +94,9 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
         }
         None => {
             let kind = if is_var {
-                ASymbolKind::StaticVar
+                HspSymbolKind::StaticVar
             } else {
-                ASymbolKind::Unresolved
+                HspSymbolKind::Unresolved
             };
             add_symbol(kind, name, USE_SITE, ctx);
         }
@@ -181,7 +181,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
         PStmt::Label(PLabel { name_opt, .. }) => {
             if let Some(name) = name_opt {
-                add_symbol(ASymbolKind::Label, name, DEF_SITE, ctx);
+                add_symbol(HspSymbolKind::Label, name, DEF_SITE, ctx);
             }
         }
         PStmt::Assign(PAssignStmt {
@@ -245,7 +245,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             let parent_scope = replace(
                 &mut ctx.scope,
-                ALocalScope {
+                LocalScope {
                     deffunc_opt: None,
                     module_opt: Some(module),
                 },
@@ -275,11 +275,11 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 pub(crate) fn analyze_var_def(
     doc: DocId,
     root: &PRoot,
-    symbols: &mut Vec<ASymbol>,
-    public_env: &mut APublicEnv,
+    symbols: &mut Vec<SymbolRc>,
+    public_env: &mut PublicEnv,
     ns_env: &mut NsEnv,
-    def_sites: &mut Vec<(ASymbol, Loc)>,
-    use_sites: &mut Vec<(ASymbol, Loc)>,
+    def_sites: &mut Vec<(SymbolRc, Loc)>,
+    use_sites: &mut Vec<(SymbolRc, Loc)>,
 ) {
     let mut local_env = HashMap::new();
     extend_local_env_from_symbols(&symbols, &mut local_env);
@@ -294,7 +294,7 @@ pub(crate) fn analyze_var_def(
         local_env,
         deffunc_len: 0,
         module_len: 0,
-        scope: ALocalScope::default(),
+        scope: LocalScope::default(),
     };
 
     for stmt in &root.stmts {

@@ -8,7 +8,7 @@ pub(crate) fn prepare_rename(
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<PrepareRenameResponse> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
     let project = wa.require_project_for_doc(doc);
@@ -25,7 +25,7 @@ pub(crate) fn rename(
     position: Position,
     new_name: String,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<WorkspaceEdit> {
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {

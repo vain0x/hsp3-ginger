@@ -3,30 +3,30 @@ use crate::{analysis::*, parse::p_param_ty::PParamCategory};
 use lsp_types::{DocumentSymbolResponse, SymbolInformation};
 
 // completion, workspace/symbol も参照
-fn to_lsp_symbol_kind(kind: ASymbolKind) -> Option<lsp_types::SymbolKind> {
+fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
     use lsp_types::SymbolKind as K;
     let it = match kind {
-        ASymbolKind::Unresolved => return None,
-        ASymbolKind::Unknown | ASymbolKind::Module | ASymbolKind::Param(None) => K::Unknown,
-        ASymbolKind::StaticVar => K::Variable,
-        ASymbolKind::Label
-        | ASymbolKind::Const
-        | ASymbolKind::Enum
-        | ASymbolKind::Macro { ctype: false }
-        | ASymbolKind::PluginCmd => K::Constant,
-        ASymbolKind::Macro { ctype: true }
-        | ASymbolKind::DefFunc
-        | ASymbolKind::DefCFunc
-        | ASymbolKind::LibFunc => K::Function,
-        ASymbolKind::ModFunc | ASymbolKind::ModCFunc | ASymbolKind::ComFunc => K::Method,
-        ASymbolKind::Param(Some(param)) => match param.category() {
+        HspSymbolKind::Unresolved => return None,
+        HspSymbolKind::Unknown | HspSymbolKind::Module | HspSymbolKind::Param(None) => K::Unknown,
+        HspSymbolKind::StaticVar => K::Variable,
+        HspSymbolKind::Label
+        | HspSymbolKind::Const
+        | HspSymbolKind::Enum
+        | HspSymbolKind::Macro { ctype: false }
+        | HspSymbolKind::PluginCmd => K::Constant,
+        HspSymbolKind::Macro { ctype: true }
+        | HspSymbolKind::DefFunc
+        | HspSymbolKind::DefCFunc
+        | HspSymbolKind::LibFunc => K::Function,
+        HspSymbolKind::ModFunc | HspSymbolKind::ModCFunc | HspSymbolKind::ComFunc => K::Method,
+        HspSymbolKind::Param(Some(param)) => match param.category() {
             PParamCategory::ByValue => K::Constant,
             PParamCategory::ByRef => K::Property,
             PParamCategory::Local => K::Variable,
             PParamCategory::Auto => return None,
         },
-        ASymbolKind::Field => K::Field,
-        ASymbolKind::ComInterface => K::Interface,
+        HspSymbolKind::Field => K::Field,
+        HspSymbolKind::ComInterface => K::Interface,
     };
     Some(it)
 }
@@ -34,7 +34,7 @@ fn to_lsp_symbol_kind(kind: ASymbolKind) -> Option<lsp_types::SymbolKind> {
 pub(crate) fn symbol(
     uri: Url,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<DocumentSymbolResponse> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
 

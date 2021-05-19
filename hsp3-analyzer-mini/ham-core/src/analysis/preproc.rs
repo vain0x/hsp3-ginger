@@ -11,9 +11,9 @@ pub(crate) struct ASignatureData {
 #[derive(Default)]
 struct Ctx {
     doc: DocId,
-    symbols: Vec<ASymbol>,
+    symbols: Vec<SymbolRc>,
     includes: Vec<(RcStr, Loc)>,
-    scope: ALocalScope,
+    scope: LocalScope,
     modules: HashMap<AModule, AModuleData>,
     deffuncs: HashMap<ADefFunc, ADefFuncData>,
     module_len: usize,
@@ -21,47 +21,47 @@ struct Ctx {
 }
 
 impl Ctx {
-    fn privacy_scope_or_local(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ADefScope {
+    fn privacy_scope_or_local(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ImportMode {
         match privacy_opt {
-            Some((PPrivacy::Global, _)) => ADefScope::Global,
-            _ => ADefScope::Local,
+            Some((PPrivacy::Global, _)) => ImportMode::Global,
+            _ => ImportMode::Local,
         }
     }
 
-    fn privacy_scope_or_global(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ADefScope {
+    fn privacy_scope_or_global(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ImportMode {
         match privacy_opt {
-            Some((PPrivacy::Local, _)) => ADefScope::Local,
-            _ => ADefScope::Global,
+            Some((PPrivacy::Local, _)) => ImportMode::Local,
+            _ => ImportMode::Global,
         }
     }
 
     fn add_symbol(
         &mut self,
-        kind: ASymbolKind,
+        kind: HspSymbolKind,
         leader: &PToken,
         name: &PToken,
-        def: ADefScope,
-    ) -> ASymbol {
+        def: ImportMode,
+    ) -> SymbolRc {
         add_symbol(kind, leader, name, def, &self.scope, &mut self.symbols)
     }
 }
 
 fn add_symbol(
-    kind: ASymbolKind,
+    kind: HspSymbolKind,
     // 構文ノードの先頭のトークン
     leader: &PToken,
     name: &PToken,
-    def: ADefScope,
-    local: &ALocalScope,
-    symbols: &mut Vec<ASymbol>,
-) -> ASymbol {
+    def: ImportMode,
+    local: &LocalScope,
+    symbols: &mut Vec<SymbolRc>,
+) -> SymbolRc {
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
     } = resolve_name_scope_ns_for_def(&name.body.text, def, local);
 
-    let symbol = ASymbol::from(ASymbolData {
+    let symbol = SymbolRc::from(ASymbolData {
         doc: leader.body.loc.doc,
         kind,
         name: basename,
@@ -81,7 +81,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
         PStmt::Label(PLabel { star, name_opt }) => {
             if let Some(name) = name_opt {
-                ctx.add_symbol(ASymbolKind::Label, star, name, ADefScope::Local);
+                ctx.add_symbol(HspSymbolKind::Label, star, name, ImportMode::Local);
             }
         }
         PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
@@ -93,7 +93,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }) => {
             if let Some(name) = name_opt {
                 let scope = ctx.privacy_scope_or_local(privacy_opt);
-                ctx.add_symbol(ASymbolKind::Const, hash, name, scope);
+                ctx.add_symbol(HspSymbolKind::Const, hash, name, scope);
             }
         }
         PStmt::Define(PDefineStmt {
@@ -106,7 +106,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             if let Some(name) = name_opt {
                 let scope = ctx.privacy_scope_or_local(privacy_opt);
                 let ctype = ctype_opt.is_some();
-                ctx.add_symbol(ASymbolKind::Macro { ctype }, hash, name, scope);
+                ctx.add_symbol(HspSymbolKind::Macro { ctype }, hash, name, scope);
             }
         }
         PStmt::Enum(PEnumStmt {
@@ -117,7 +117,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }) => {
             if let Some(name) = name_opt {
                 let scope = ctx.privacy_scope_or_local(privacy_opt);
-                ctx.add_symbol(ASymbolKind::Enum, hash, name, scope);
+                ctx.add_symbol(HspSymbolKind::Enum, hash, name, scope);
             }
         }
         PStmt::DefFunc(stmt) => {
@@ -146,12 +146,12 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             let mut symbol_opt = None;
 
             let kind = match *kind {
-                PDefFuncKind::DefFunc => ASymbolKind::DefFunc,
-                PDefFuncKind::DefCFunc => ASymbolKind::DefCFunc,
+                PDefFuncKind::DefFunc => HspSymbolKind::DefFunc,
+                PDefFuncKind::DefCFunc => HspSymbolKind::DefCFunc,
                 PDefFuncKind::ModInit | PDefFuncKind::ModTerm | PDefFuncKind::ModFunc => {
-                    ASymbolKind::ModFunc
+                    HspSymbolKind::ModFunc
                 }
-                PDefFuncKind::ModCFunc => ASymbolKind::ModCFunc,
+                PDefFuncKind::ModCFunc => HspSymbolKind::ModCFunc,
             };
 
             if let Some(name) = name_opt {
@@ -172,7 +172,12 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             for param in params {
                 if let Some(name) = &param.name_opt {
                     let param_ty = param.param_ty_opt.as_ref().map(|&(t, _)| t);
-                    ctx.add_symbol(ASymbolKind::Param(param_ty), hash, name, ADefScope::Param);
+                    ctx.add_symbol(
+                        HspSymbolKind::Param(param_ty),
+                        hash,
+                        name,
+                        ImportMode::Param,
+                    );
                 }
             }
 
@@ -196,7 +201,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             if let Some(name) = name_opt {
                 if onexit_opt.is_none() {
                     let scope = ctx.privacy_scope_or_local(privacy_opt);
-                    symbol_opt = Some(ctx.add_symbol(ASymbolKind::LibFunc, hash, name, scope));
+                    symbol_opt = Some(ctx.add_symbol(HspSymbolKind::LibFunc, hash, name, scope));
                 }
             }
 
@@ -214,7 +219,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }) => {
             if let Some(name) = name_opt {
                 let scope = ctx.privacy_scope_or_local(privacy_opt);
-                ctx.add_symbol(ASymbolKind::ComInterface, hash, name, scope);
+                ctx.add_symbol(HspSymbolKind::ComInterface, hash, name, scope);
             }
         }
         PStmt::ComFunc(PComFuncStmt {
@@ -225,7 +230,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }) => {
             if let Some(name) = name_opt {
                 let scope = ctx.privacy_scope_or_global(privacy_opt);
-                ctx.add_symbol(ASymbolKind::ComFunc, hash, name, scope);
+                ctx.add_symbol(HspSymbolKind::ComFunc, hash, name, scope);
             }
         }
         PStmt::RegCmd(_) => {}
@@ -237,7 +242,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         }) => {
             if let Some(name) = name_opt {
                 let scope = ctx.privacy_scope_or_local(privacy_opt);
-                ctx.add_symbol(ASymbolKind::PluginCmd, hash, name, scope);
+                ctx.add_symbol(HspSymbolKind::PluginCmd, hash, name, scope);
             }
         }
         PStmt::Module(PModuleStmt {
@@ -261,18 +266,18 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             let parent_scope = replace(
                 &mut ctx.scope,
-                ALocalScope {
+                LocalScope {
                     module_opt: Some(module),
                     deffunc_opt: None,
                 },
             );
 
             if let Some(name) = name_opt {
-                ctx.add_symbol(ASymbolKind::Module, hash, name, ADefScope::Global);
+                ctx.add_symbol(HspSymbolKind::Module, hash, name, ImportMode::Global);
             }
 
             for field in fields.iter().filter_map(|param| param.name_opt.as_ref()) {
-                ctx.add_symbol(ASymbolKind::Field, field, field, ADefScope::Local);
+                ctx.add_symbol(HspSymbolKind::Field, field, field, ImportMode::Local);
             }
 
             for stmt in stmts {
@@ -354,7 +359,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
 }
 
 pub(crate) struct PreprocAnalysisResult {
-    pub(crate) symbols: Vec<ASymbol>,
+    pub(crate) symbols: Vec<SymbolRc>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) modules: HashMap<AModule, AModuleData>,
     pub(crate) deffuncs: HashMap<ADefFunc, ADefFuncData>,

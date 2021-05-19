@@ -61,7 +61,7 @@ fn filter_diagnostics(
 pub(crate) fn diagnose(
     docs: &Docs,
     cache: &mut DiagnosticsCache,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
     let mut dd = vec![];
     wa.diagnose(&mut dd);

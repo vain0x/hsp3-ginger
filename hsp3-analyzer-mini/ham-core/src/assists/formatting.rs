@@ -342,7 +342,7 @@ impl PVisitor for V {
 pub(crate) fn formatting(
     uri: Url,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<TextEdit>> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
     let (text, tokens, root) = wa.get_tokens(doc)?;

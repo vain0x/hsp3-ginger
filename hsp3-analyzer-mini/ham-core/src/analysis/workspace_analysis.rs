@@ -4,14 +4,14 @@ type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
 
 /// ワークスペースの外側のデータ
 #[derive(Default)]
-pub(crate) struct HostData {
+pub(crate) struct WorkspaceHost {
     pub(crate) builtin_env: Rc<SymbolEnv>,
     pub(crate) common_docs: Rc<HashMap<String, DocId>>,
     pub(crate) entrypoints: Vec<DocId>,
 }
 
 #[derive(Default)]
-pub(crate) struct AWorkspaceAnalysis {
+pub(crate) struct WorkspaceAnalysis {
     dirty_docs: HashSet<DocId>,
     doc_texts: HashMap<DocId, RcStr>,
 
@@ -21,13 +21,13 @@ pub(crate) struct AWorkspaceAnalysis {
     project_opt: Option<ProjectAnalysis>,
 }
 
-impl AWorkspaceAnalysis {
-    pub(crate) fn initialize(&mut self, host_data: HostData) {
-        let HostData {
+impl WorkspaceAnalysis {
+    pub(crate) fn initialize(&mut self, host: WorkspaceHost) {
+        let WorkspaceHost {
             common_docs,
             builtin_env,
             entrypoints,
-        } = host_data;
+        } = host;
 
         self.project_opt = if !entrypoints.is_empty() {
             let mut p = ProjectAnalysis::default();

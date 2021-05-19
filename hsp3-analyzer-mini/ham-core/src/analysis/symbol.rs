@@ -3,7 +3,7 @@ use super::*;
 use crate::parse::PParamTy;
 
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ASymbolKind {
+pub(crate) enum HspSymbolKind {
     /// 定義箇所がみつからない。
     Unresolved,
     /// 不明 (hsphelpに書いてあるシンボル)
@@ -41,43 +41,43 @@ pub(crate) enum ASymbolKind {
     ComFunc,
 }
 
-impl ASymbolKind {
+impl HspSymbolKind {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
-            ASymbolKind::Unresolved => "未解決",
-            ASymbolKind::Unknown => "不明",
-            ASymbolKind::Const => "定数",
-            ASymbolKind::Enum => "列挙子",
-            ASymbolKind::Macro { ctype: false } => "マクロ",
-            ASymbolKind::Macro { ctype: true } => "関数形式マクロ",
-            ASymbolKind::DefFunc => "命令",
-            ASymbolKind::DefCFunc => "関数",
-            ASymbolKind::ModFunc => "命令(モジュール変数)",
-            ASymbolKind::ModCFunc => "関数(モジュール変数)",
-            ASymbolKind::Param(None) => "パラメータ",
-            ASymbolKind::Param(Some(param)) => param.to_str(),
-            ASymbolKind::LibFunc => "ライブラリ関数",
-            ASymbolKind::PluginCmd => "プラグインコマンド",
-            ASymbolKind::Module => "モジュール",
-            ASymbolKind::Field => "モジュール変数",
-            ASymbolKind::Label => "ラベル",
-            ASymbolKind::StaticVar => "変数",
-            ASymbolKind::ComInterface => "COMインターフェイス",
-            ASymbolKind::ComFunc => "COMメソッド",
+            HspSymbolKind::Unresolved => "未解決",
+            HspSymbolKind::Unknown => "不明",
+            HspSymbolKind::Const => "定数",
+            HspSymbolKind::Enum => "列挙子",
+            HspSymbolKind::Macro { ctype: false } => "マクロ",
+            HspSymbolKind::Macro { ctype: true } => "関数形式マクロ",
+            HspSymbolKind::DefFunc => "命令",
+            HspSymbolKind::DefCFunc => "関数",
+            HspSymbolKind::ModFunc => "命令(モジュール変数)",
+            HspSymbolKind::ModCFunc => "関数(モジュール変数)",
+            HspSymbolKind::Param(None) => "パラメータ",
+            HspSymbolKind::Param(Some(param)) => param.to_str(),
+            HspSymbolKind::LibFunc => "ライブラリ関数",
+            HspSymbolKind::PluginCmd => "プラグインコマンド",
+            HspSymbolKind::Module => "モジュール",
+            HspSymbolKind::Field => "モジュール変数",
+            HspSymbolKind::Label => "ラベル",
+            HspSymbolKind::StaticVar => "変数",
+            HspSymbolKind::ComInterface => "COMインターフェイス",
+            HspSymbolKind::ComFunc => "COMメソッド",
         }
     }
 }
 
-impl Default for ASymbolKind {
+impl Default for HspSymbolKind {
     fn default() -> Self {
-        ASymbolKind::Unresolved
+        HspSymbolKind::Unresolved
     }
 }
 
 #[derive(Clone)]
-pub(crate) struct ASymbol(Rc<ASymbolData>);
+pub(crate) struct SymbolRc(Rc<ASymbolData>);
 
-impl ASymbol {
+impl SymbolRc {
     pub(crate) fn from(data: ASymbolData) -> Self {
         Self(Rc::new(data))
     }
@@ -102,13 +102,13 @@ impl ASymbol {
     }
 }
 
-impl AsRef<ASymbolData> for ASymbol {
+impl AsRef<ASymbolData> for SymbolRc {
     fn as_ref(&self) -> &ASymbolData {
         self.0.as_ref()
     }
 }
 
-impl Deref for ASymbol {
+impl Deref for SymbolRc {
     type Target = ASymbolData;
 
     fn deref(&self) -> &ASymbolData {
@@ -116,21 +116,21 @@ impl Deref for ASymbol {
     }
 }
 
-impl PartialEq for ASymbol {
+impl PartialEq for SymbolRc {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.0, &other.0)
     }
 }
 
-impl Eq for ASymbol {}
+impl Eq for SymbolRc {}
 
-impl Hash for ASymbol {
+impl Hash for SymbolRc {
     fn hash<H: Hasher>(&self, state: &mut H) {
         (self.0.as_ref() as *const _ as usize).hash(state)
     }
 }
 
-impl Debug for ASymbol {
+impl Debug for SymbolRc {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Debug::fmt(&self.0.name, f)
     }
@@ -140,10 +140,10 @@ pub(crate) struct ASymbolData {
     #[allow(unused)]
     pub(crate) doc: DocId,
 
-    pub(crate) kind: ASymbolKind,
+    pub(crate) kind: HspSymbolKind,
     pub(crate) name: RcStr,
     pub(crate) leader_opt: Option<PToken>,
-    pub(crate) scope_opt: Option<AScope>,
+    pub(crate) scope_opt: Option<Scope>,
     pub(crate) ns_opt: Option<RcStr>,
 
     pub(crate) details_opt: Option<ASymbolDetails>,

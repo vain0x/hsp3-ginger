@@ -46,15 +46,15 @@ impl NamePath {
 /// 環境。名前からシンボルへのマップ。
 #[derive(Clone, Debug, Default)]
 pub(crate) struct SymbolEnv {
-    map: HashMap<RcStr, ASymbol>,
+    map: HashMap<RcStr, SymbolRc>,
 }
 
 impl SymbolEnv {
-    pub(crate) fn get(&self, name: &str) -> Option<ASymbol> {
+    pub(crate) fn get(&self, name: &str) -> Option<SymbolRc> {
         self.map.get(name).cloned()
     }
 
-    pub(crate) fn insert(&mut self, name: RcStr, symbol: ASymbol) {
+    pub(crate) fn insert(&mut self, name: RcStr, symbol: SymbolRc) {
         self.map.insert(name, symbol);
     }
 
@@ -67,7 +67,7 @@ impl SymbolEnv {
 pub(crate) type NsEnv = HashMap<RcStr, SymbolEnv>;
 
 #[derive(Default)]
-pub(crate) struct APublicEnv {
+pub(crate) struct PublicEnv {
     /// 標準命令などのシンボルが属す環境。(この環境はソースファイルの変更時に無効化しないので、globalと分けている。)
     pub(crate) builtin: Rc<SymbolEnv>,
 
@@ -75,8 +75,8 @@ pub(crate) struct APublicEnv {
     pub(crate) global: SymbolEnv,
 }
 
-impl APublicEnv {
-    pub(crate) fn resolve(&self, name: &str) -> Option<ASymbol> {
+impl PublicEnv {
+    pub(crate) fn resolve(&self, name: &str) -> Option<SymbolRc> {
         self.global.get(name).or_else(|| self.builtin.get(name))
     }
 
@@ -87,14 +87,14 @@ impl APublicEnv {
 
 /// globalではないスコープ
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-pub(crate) struct ALocalScope {
+pub(crate) struct LocalScope {
     pub(crate) module_opt: Option<AModule>,
 
     /// `#deffunc` 系命令の下の部分。(このスコープに属して定義されるのはパラメータだけ。)
     pub(crate) deffunc_opt: Option<ADefFunc>,
 }
 
-impl ALocalScope {
+impl LocalScope {
     pub(crate) fn is_public(&self) -> bool {
         self.module_opt.is_none() && self.deffunc_opt.is_none()
     }
@@ -104,7 +104,7 @@ impl ALocalScope {
     }
 
     /// スコープselfで定義されたシンボルが、スコープotherにおいてみえるか？
-    pub(crate) fn is_visible_to(&self, other: &ALocalScope) -> bool {
+    pub(crate) fn is_visible_to(&self, other: &LocalScope) -> bool {
         // 異なるモジュールに定義されたものはみえない。
         // deffuncの中で定義されたものは、その中でしかみえないが、外で定義されたものは中からもみえる。
         self.module_opt == other.module_opt
@@ -114,24 +114,24 @@ impl ALocalScope {
 
 /// スコープ。シンボルの有効範囲
 #[derive(Clone, Debug)]
-pub(crate) enum AScope {
+pub(crate) enum Scope {
     Global,
-    Local(ALocalScope),
+    Local(LocalScope),
 }
 
-impl AScope {
+impl Scope {
     /// globalかトップレベル？
     pub(crate) fn is_public(&self) -> bool {
         match self {
-            AScope::Global => true,
-            AScope::Local(local) => local.is_public(),
+            Scope::Global => true,
+            Scope::Local(local) => local.is_public(),
         }
     }
 
     /// スコープselfで定義されたシンボルが、スコープotherにおいてみえるか？
-    pub(crate) fn is_visible_to(&self, other: &ALocalScope) -> bool {
+    pub(crate) fn is_visible_to(&self, other: &LocalScope) -> bool {
         match self {
-            AScope::Local(scope) => scope.is_visible_to(other),
+            Scope::Local(scope) => scope.is_visible_to(other),
             _ => false,
         }
     }
@@ -139,7 +139,7 @@ impl AScope {
 
 /// シンボルをスコープに追加するときのモード
 #[derive(Clone, Copy)]
-pub(crate) enum ADefScope {
+pub(crate) enum ImportMode {
     Global,
     Local,
     Param,
@@ -148,43 +148,43 @@ pub(crate) enum ADefScope {
 /// 名前、スコープ、名前空間。
 pub(crate) struct NameScopeNsTriple {
     pub(crate) basename: RcStr,
-    pub(crate) scope_opt: Option<AScope>,
+    pub(crate) scope_opt: Option<Scope>,
     pub(crate) ns_opt: Option<RcStr>,
 }
 
 /// 定義箇所の名前に関連付けられるスコープと名前空間を決定する。
 pub(crate) fn resolve_name_scope_ns_for_def(
     basename: &RcStr,
-    def: ADefScope,
-    local: &ALocalScope,
+    mode: ImportMode,
+    local: &LocalScope,
 ) -> NameScopeNsTriple {
     let NamePath { base, qual } = NamePath::new(basename);
 
     // 識別子が非修飾のときはスコープに属す。
     // 例外的に、`@` で修飾された識別子はglobalスコープかtoplevelスコープに属す。
-    let scope_opt = match (&qual, def, &local.module_opt) {
-        (Qual::Unqualified, ADefScope::Param, _) => Some(AScope::Local(local.clone())),
-        (Qual::Unqualified, ADefScope::Global, _) | (Qual::Toplevel, ADefScope::Global, _) => {
-            Some(AScope::Global)
+    let scope_opt = match (&qual, mode, &local.module_opt) {
+        (Qual::Unqualified, ImportMode::Param, _) => Some(Scope::Local(local.clone())),
+        (Qual::Unqualified, ImportMode::Global, _) | (Qual::Toplevel, ImportMode::Global, _) => {
+            Some(Scope::Global)
         }
-        (Qual::Unqualified, ADefScope::Local, _) => {
-            let scope = AScope::Local(ALocalScope {
+        (Qual::Unqualified, ImportMode::Local, _) => {
+            let scope = Scope::Local(LocalScope {
                 deffunc_opt: None,
                 ..local.clone()
             });
             Some(scope)
         }
-        (Qual::Toplevel, ADefScope::Local, _) => Some(AScope::Local(ALocalScope::default())),
+        (Qual::Toplevel, ImportMode::Local, _) => Some(Scope::Local(LocalScope::default())),
         _ => None,
     };
 
-    let ns_opt: Option<RcStr> = match (qual, def, &local.module_opt) {
-        (_, ADefScope::Param, _) => None,
+    let ns_opt: Option<RcStr> = match (qual, mode, &local.module_opt) {
+        (_, ImportMode::Param, _) => None,
         (Qual::Module(ns), _, _) => Some(ns),
         (Qual::Toplevel, _, _)
-        | (Qual::Unqualified, ADefScope::Global, _)
-        | (Qual::Unqualified, ADefScope::Local, None) => Some("".into()),
-        (Qual::Unqualified, ADefScope::Local, Some(m)) => m.name_opt.clone(),
+        | (Qual::Unqualified, ImportMode::Global, _)
+        | (Qual::Unqualified, ImportMode::Local, None) => Some("".into()),
+        (Qual::Unqualified, ImportMode::Local, Some(m)) => m.name_opt.clone(),
     };
 
     NameScopeNsTriple {
@@ -197,13 +197,13 @@ pub(crate) fn resolve_name_scope_ns_for_def(
 /// 使用箇所の名前に関連付けられるスコープと名前空間を決定する。
 pub(crate) fn resolve_name_scope_ns_for_use(
     basename: &RcStr,
-    local: &ALocalScope,
+    local: &LocalScope,
 ) -> NameScopeNsTriple {
     let NamePath { base, qual } = NamePath::new(basename);
 
     let scope_opt = match &qual {
-        Qual::Unqualified => Some(AScope::Local(local.clone())),
-        Qual::Toplevel => Some(AScope::Local(ALocalScope::default())),
+        Qual::Unqualified => Some(Scope::Local(local.clone())),
+        Qual::Toplevel => Some(Scope::Local(LocalScope::default())),
         Qual::Module(_) => None,
     };
 
@@ -222,18 +222,18 @@ pub(crate) fn resolve_name_scope_ns_for_use(
 
 pub(crate) fn resolve_implicit_symbol(
     name: &RcStr,
-    local: &ALocalScope,
-    public_env: &APublicEnv,
+    local: &LocalScope,
+    public_env: &PublicEnv,
     ns_env: &HashMap<RcStr, SymbolEnv>,
-    local_env: &HashMap<ALocalScope, SymbolEnv>,
-) -> Option<ASymbol> {
+    local_env: &HashMap<LocalScope, SymbolEnv>,
+) -> Option<SymbolRc> {
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
     } = resolve_name_scope_ns_for_use(name, local);
 
-    if let Some(AScope::Local(scope)) = &scope_opt {
+    if let Some(Scope::Local(scope)) = &scope_opt {
         // ローカル環境で探す
         if let it @ Some(_) = local_env.get(&scope).and_then(|env| env.get(&basename)) {
             return it;
@@ -241,7 +241,7 @@ pub(crate) fn resolve_implicit_symbol(
 
         // deffuncの外からも探す。
         if scope.deffunc_opt.is_some() {
-            let scope = ALocalScope {
+            let scope = LocalScope {
                 deffunc_opt: None,
                 ..scope.clone()
             };
@@ -268,17 +268,17 @@ pub(crate) fn resolve_implicit_symbol(
 }
 
 pub(crate) fn import_symbol_to_env(
-    symbol: &ASymbol,
+    symbol: &SymbolRc,
     basename: RcStr,
-    scope_opt: Option<AScope>,
+    scope_opt: Option<Scope>,
     ns_opt: Option<RcStr>,
-    public_env: &mut APublicEnv,
+    public_env: &mut PublicEnv,
     ns_env: &mut NsEnv,
-    local_env: &mut HashMap<ALocalScope, SymbolEnv>,
+    local_env: &mut HashMap<LocalScope, SymbolEnv>,
 ) {
     let env_opt = match scope_opt {
-        Some(AScope::Global) => Some(&mut public_env.global),
-        Some(AScope::Local(scope)) => Some(local_env.entry(scope).or_default()),
+        Some(Scope::Global) => Some(&mut public_env.global),
+        Some(Scope::Local(scope)) => Some(local_env.entry(scope).or_default()),
         None => None,
     };
 
@@ -295,12 +295,12 @@ pub(crate) fn import_symbol_to_env(
 }
 
 pub(crate) fn extend_public_env_from_symbols(
-    symbols: &[ASymbol],
-    public_env: &mut APublicEnv,
+    symbols: &[SymbolRc],
+    public_env: &mut PublicEnv,
     ns_env: &mut NsEnv,
 ) {
     for symbol in symbols.iter().cloned() {
-        if let Some(AScope::Global) = &symbol.scope_opt {
+        if let Some(Scope::Global) = &symbol.scope_opt {
             public_env.global.insert(symbol.name(), symbol.clone());
         }
 
@@ -314,12 +314,12 @@ pub(crate) fn extend_public_env_from_symbols(
 }
 
 pub(crate) fn extend_local_env_from_symbols(
-    symbols: &[ASymbol],
-    local_env: &mut HashMap<ALocalScope, SymbolEnv>,
+    symbols: &[SymbolRc],
+    local_env: &mut HashMap<LocalScope, SymbolEnv>,
 ) {
     for symbol in symbols.iter().cloned() {
         match &symbol.scope_opt {
-            Some(AScope::Local(scope)) if !scope.is_public() => {
+            Some(Scope::Local(scope)) if !scope.is_public() => {
                 local_env
                     .entry(scope.clone())
                     .or_default()

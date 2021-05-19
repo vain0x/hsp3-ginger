@@ -36,29 +36,29 @@ use std::{
 mod analysis {
     use super::*;
 
-    pub(crate) mod a_scope;
-    pub(crate) mod a_symbol;
-    pub(crate) mod comment;
-    pub(crate) mod doc_analysis;
-    pub(crate) mod integrate;
-    pub(crate) mod name_system;
-    pub(crate) mod preproc;
+    mod a_scope;
+    mod comment;
+    mod doc_analysis;
+    mod integrate;
+    mod name_system;
+    mod preproc;
     mod project_analysis;
     mod sema;
-    pub(crate) mod syntax_linter;
-    pub(crate) mod var;
+    mod symbol;
+    mod syntax_linter;
+    mod var;
     mod workspace_analysis;
 
     pub(crate) use self::{
         a_scope::{ADefFunc, ADefFuncData, AModule, AModuleData},
-        a_symbol::{ASymbol, ASymbolData, ASymbolDetails, ASymbolKind},
         doc_analysis::DocAnalysis,
         name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
         sema::{Diagnostic, Sema},
+        symbol::{ASymbolData, ASymbolDetails, HspSymbolKind, SymbolRc},
         syntax_linter::SyntaxLint,
-        workspace_analysis::{AWorkspaceAnalysis, HostData},
+        workspace_analysis::{WorkspaceAnalysis, WorkspaceHost},
     };
     pub(crate) use super::assists::{
         completion::{
@@ -131,11 +131,11 @@ mod source {
 mod token {
     //! 字句・字句解析
 
-    pub(crate) mod token_data;
-    pub(crate) mod token_kind;
-    pub(crate) mod tokenize_context;
-    pub(crate) mod tokenize_rules;
-    pub(crate) mod tokenize_tests;
+    mod token_data;
+    mod token_kind;
+    mod tokenize_context;
+    mod tokenize_rules;
+    mod tokenize_tests;
 
     pub(crate) use token_data::TokenData;
     pub(crate) use token_kind::TokenKind;

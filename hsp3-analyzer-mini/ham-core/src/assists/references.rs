@@ -5,7 +5,7 @@ pub(crate) fn references(
     position: Position,
     include_definition: bool,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<Location>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
     let project = wa.require_project_for_doc(doc);

@@ -8,7 +8,7 @@ pub(crate) fn hover(
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
     hsphelp_symbols: &[CompletionItem],
 ) -> Option<Hover> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;

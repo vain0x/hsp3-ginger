@@ -41,7 +41,7 @@ impl Default for LangServiceOptions {
 
 #[derive(Default)]
 pub(super) struct LangService {
-    wa: AWorkspaceAnalysis,
+    wa: WorkspaceAnalysis,
     hsp3_home: PathBuf,
     root_uri_opt: Option<CanonicalUri>,
     options: LangServiceOptions,
@@ -141,9 +141,9 @@ impl LangService {
                     })
                 });
 
-                let symbol = ASymbol::from(ASymbolData {
+                let symbol = SymbolRc::from(ASymbolData {
                     doc: hsphelp_doc,
-                    kind: ASymbolKind::Unknown,
+                    kind: HspSymbolKind::Unknown,
                     name: name_rc.clone(),
                     leader_opt: None,
                     scope_opt: None,
@@ -282,7 +282,7 @@ impl LangService {
             );
         }
 
-        self.wa.initialize(HostData {
+        self.wa.initialize(WorkspaceHost {
             builtin_env: Rc::new(builtin_env),
             common_docs: Rc::new(common_docs),
             entrypoints,

@@ -31,11 +31,11 @@ pub(crate) struct ProjectAnalysis {
     // 解析結果:
     computed: bool,
     pub(super) active_docs: HashSet<DocId>,
-    pub(super) public_env: APublicEnv,
+    pub(super) public_env: PublicEnv,
     pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
-    pub(super) doc_symbols_map: HashMap<DocId, Vec<ASymbol>>,
-    pub(super) def_sites: Vec<(ASymbol, Loc)>,
-    pub(super) use_sites: Vec<(ASymbol, Loc)>,
+    pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
+    pub(super) def_sites: Vec<(SymbolRc, Loc)>,
+    pub(super) use_sites: Vec<(SymbolRc, Loc)>,
 
     diagnosed: bool,
     pub(super) diagnostics: Vec<(String, Loc)>,
@@ -247,7 +247,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         h.process(pos, tree)
     }
 
-    pub(crate) fn locate_symbol(self, doc: DocId, pos: Pos16) -> Option<(ASymbol, Loc)> {
+    pub(crate) fn locate_symbol(self, doc: DocId, pos: Pos16) -> Option<(SymbolRc, Loc)> {
         self.project
             .def_sites
             .iter()
@@ -258,7 +258,7 @@ impl<'a> ProjectAnalysisRef<'a> {
 
     pub(crate) fn get_symbol_details(
         self,
-        symbol: &ASymbol,
+        symbol: &SymbolRc,
     ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
         Some((
             symbol.name(),
@@ -267,7 +267,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         ))
     }
 
-    pub(crate) fn collect_symbol_defs(self, symbol: &ASymbol, locs: &mut Vec<Loc>) {
+    pub(crate) fn collect_symbol_defs(self, symbol: &SymbolRc, locs: &mut Vec<Loc>) {
         for &(ref s, loc) in &self.project.def_sites {
             if s == symbol {
                 locs.push(loc);
@@ -275,7 +275,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         }
     }
 
-    pub(crate) fn collect_symbol_uses(self, symbol: &ASymbol, locs: &mut Vec<Loc>) {
+    pub(crate) fn collect_symbol_uses(self, symbol: &SymbolRc, locs: &mut Vec<Loc>) {
         for &(ref s, loc) in &self.project.use_sites {
             if s == symbol {
                 locs.push(loc);
@@ -294,7 +294,7 @@ impl<'a> ProjectAnalysisRef<'a> {
 
         let scope = match doc_analysis_map.get(&doc) {
             Some(da) => resolve_scope_at(&da.modules, &da.deffuncs, pos),
-            None => ALocalScope::default(),
+            None => LocalScope::default(),
         };
 
         let doc_symbols = p
@@ -312,7 +312,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         collect_symbols_as_completion_items(doc, scope, &doc_symbols, completion_items);
     }
 
-    pub(crate) fn collect_all_symbols(self, name_filter: &str, symbols: &mut Vec<(ASymbol, Loc)>) {
+    pub(crate) fn collect_all_symbols(self, name_filter: &str, symbols: &mut Vec<(SymbolRc, Loc)>) {
         let p = self.project;
 
         let name_filter = name_filter.trim().to_ascii_lowercase();
@@ -344,7 +344,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         }
     }
 
-    pub(crate) fn collect_doc_symbols(self, doc: DocId, symbols: &mut Vec<(ASymbol, Loc)>) {
+    pub(crate) fn collect_doc_symbols(self, doc: DocId, symbols: &mut Vec<(SymbolRc, Loc)>) {
         let p = self.project;
 
         let doc_symbols = match p.doc_symbols_map.get(&doc) {
@@ -370,8 +370,8 @@ fn resolve_scope_at(
     modules: &HashMap<AModule, AModuleData>,
     deffuncs: &HashMap<ADefFunc, ADefFuncData>,
     pos: Pos16,
-) -> ALocalScope {
-    let mut scope = ALocalScope::default();
+) -> LocalScope {
+    let mut scope = LocalScope::default();
 
     scope.module_opt = modules.iter().find_map(|(m, module_data)| {
         if range_is_touched(&module_data.content_loc.range, pos) {

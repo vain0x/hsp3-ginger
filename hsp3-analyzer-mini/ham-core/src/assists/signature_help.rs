@@ -6,7 +6,7 @@ use lsp_types::{
 
 #[derive(Default)]
 pub(crate) struct SignatureHelpHost {
-    pub(crate) use_site_map: HashMap<Pos, ASymbol>,
+    pub(crate) use_site_map: HashMap<Pos, SymbolRc>,
 }
 
 impl SignatureHelpHost {
@@ -36,11 +36,11 @@ struct V {
 }
 
 impl V {
-    fn resolve_symbol(&self, pos: Pos) -> Option<ASymbol> {
+    fn resolve_symbol(&self, pos: Pos) -> Option<SymbolRc> {
         self.host.use_site_map.get(&pos).cloned()
     }
 
-    fn find_signature(&self, symbol: &ASymbol) -> Option<Rc<ASignatureData>> {
+    fn find_signature(&self, symbol: &SymbolRc) -> Option<Rc<ASignatureData>> {
         symbol.signature_opt()
     }
 
@@ -116,7 +116,7 @@ pub(crate) fn signature_help(
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<SignatureHelp> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
 

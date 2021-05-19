@@ -3,28 +3,28 @@ use crate::analysis::*;
 use lsp_types::SymbolInformation;
 
 // completion, textDocument/documentSymbol も参照
-fn to_lsp_symbol_kind(kind: ASymbolKind) -> Option<lsp_types::SymbolKind> {
+fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
     use lsp_types::SymbolKind as K;
     let it = match kind {
         // パラメータなどの単一ファイルにだけ属するシンボルはworkspace/symbolリクエストの結果には含めない。
-        ASymbolKind::Unresolved
-        | ASymbolKind::Unknown
-        | ASymbolKind::Param(_)
-        | ASymbolKind::Module
-        | ASymbolKind::Field => return None,
+        HspSymbolKind::Unresolved
+        | HspSymbolKind::Unknown
+        | HspSymbolKind::Param(_)
+        | HspSymbolKind::Module
+        | HspSymbolKind::Field => return None,
 
-        ASymbolKind::StaticVar => K::Variable,
-        ASymbolKind::Label
-        | ASymbolKind::Const
-        | ASymbolKind::Enum
-        | ASymbolKind::Macro { ctype: false }
-        | ASymbolKind::PluginCmd => K::Constant,
-        ASymbolKind::Macro { ctype: true }
-        | ASymbolKind::DefFunc
-        | ASymbolKind::DefCFunc
-        | ASymbolKind::LibFunc => K::Function,
-        ASymbolKind::ModFunc | ASymbolKind::ModCFunc | ASymbolKind::ComFunc => K::Method,
-        ASymbolKind::ComInterface => K::Interface,
+        HspSymbolKind::StaticVar => K::Variable,
+        HspSymbolKind::Label
+        | HspSymbolKind::Const
+        | HspSymbolKind::Enum
+        | HspSymbolKind::Macro { ctype: false }
+        | HspSymbolKind::PluginCmd => K::Constant,
+        HspSymbolKind::Macro { ctype: true }
+        | HspSymbolKind::DefFunc
+        | HspSymbolKind::DefCFunc
+        | HspSymbolKind::LibFunc => K::Function,
+        HspSymbolKind::ModFunc | HspSymbolKind::ModCFunc | HspSymbolKind::ComFunc => K::Method,
+        HspSymbolKind::ComInterface => K::Interface,
     };
     Some(it)
 }
@@ -32,7 +32,7 @@ fn to_lsp_symbol_kind(kind: ASymbolKind) -> Option<lsp_types::SymbolKind> {
 pub(crate) fn symbol(
     query: &str,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Vec<SymbolInformation> {
     let mut symbols = vec![];
     wa.require_some_project()

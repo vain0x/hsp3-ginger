@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::{
-    analysis::AWorkspaceAnalysis, assists::from_document_position, lang_service::docs::Docs,
+    analysis::WorkspaceAnalysis, assists::from_document_position, lang_service::docs::Docs,
     parse::*,
 };
 use lsp_types::{
@@ -74,7 +74,7 @@ pub(crate) fn flip_comma(
     range: Range,
     _context: CodeActionContext,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<CodeAction>> {
     let (doc, pos) = from_document_position(&uri, range.start, &docs)?;
     let version = docs.get_version(doc);
