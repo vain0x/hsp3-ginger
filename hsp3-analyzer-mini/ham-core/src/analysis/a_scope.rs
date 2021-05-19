@@ -13,7 +13,7 @@ impl DefFuncKey {
 }
 
 #[derive(Debug)]
-pub(crate) struct ADefFuncData {
+pub(crate) struct DefFuncData {
     pub(crate) content_loc: Loc,
 }
 

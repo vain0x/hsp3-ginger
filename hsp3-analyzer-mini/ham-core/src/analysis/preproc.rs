@@ -15,7 +15,7 @@ struct Ctx {
     includes: Vec<(RcStr, Loc)>,
     scope: LocalScope,
     module_map: ModuleMap,
-    deffuncs: HashMap<DefFuncKey, ADefFuncData>,
+    deffuncs: HashMap<DefFuncKey, DefFuncData>,
     module_len: usize,
     deffunc_len: usize,
 }
@@ -147,7 +147,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             ctx.deffunc_len += 1;
             ctx.deffuncs.insert(
                 deffunc,
-                ADefFuncData {
+                DefFuncData {
                     content_loc: hash.body.loc.unite(behind),
                 },
             );
@@ -375,7 +375,7 @@ pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<SymbolRc>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) module_map: ModuleMap,
-    pub(crate) deffuncs: HashMap<DefFuncKey, ADefFuncData>,
+    pub(crate) deffuncs: HashMap<DefFuncKey, DefFuncData>,
 }
 
 pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult {

@@ -370,7 +370,7 @@ impl<'a> ProjectAnalysisRef<'a> {
 
 fn resolve_scope_at(
     module_map: &ModuleMap,
-    deffuncs: &HashMap<DefFuncKey, ADefFuncData>,
+    deffuncs: &HashMap<DefFuncKey, DefFuncData>,
     pos: Pos16,
 ) -> LocalScope {
     let mut scope = LocalScope::default();
