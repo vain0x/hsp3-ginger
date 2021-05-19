@@ -295,7 +295,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         let p = self.project;
 
         let scope = match doc_analysis_map.get(&doc) {
-            Some(da) => resolve_scope_at(&da.module_map, &da.deffuncs, pos),
+            Some(da) => resolve_scope_at(&da.module_map, &da.deffunc_map, pos),
             None => LocalScope::default(),
         };
 
@@ -368,11 +368,7 @@ impl<'a> ProjectAnalysisRef<'a> {
     }
 }
 
-fn resolve_scope_at(
-    module_map: &ModuleMap,
-    deffuncs: &HashMap<DefFuncKey, DefFuncData>,
-    pos: Pos16,
-) -> LocalScope {
+fn resolve_scope_at(module_map: &ModuleMap, deffunc_map: &DefFuncMap, pos: Pos16) -> LocalScope {
     let mut scope = LocalScope::default();
 
     scope.module_opt = module_map.iter().find_map(|(&m, module_data)| {
@@ -383,7 +379,7 @@ fn resolve_scope_at(
         }
     });
 
-    scope.deffunc_opt = deffuncs.iter().find_map(|(&d, deffunc_data)| {
+    scope.deffunc_opt = deffunc_map.iter().find_map(|(&d, deffunc_data)| {
         if range_is_touched(&deffunc_data.content_loc.range, pos) {
             Some(d)
         } else {

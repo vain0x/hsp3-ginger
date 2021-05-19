@@ -1,5 +1,7 @@
 use super::*;
 
+pub(crate) type DefFuncMap = HashMap<DefFuncKey, DefFuncData>;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct DefFuncKey {
     pub(crate) doc: DocId,
@@ -12,7 +14,6 @@ impl DefFuncKey {
     }
 }
 
-#[derive(Debug)]
 pub(crate) struct DefFuncData {
     pub(crate) content_loc: Loc,
 }

@@ -9,7 +9,7 @@ pub(crate) struct DocAnalysis {
     // プリプロセス:
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) module_map: ModuleMap,
-    pub(crate) deffuncs: HashMap<DefFuncKey, DefFuncData>,
+    pub(crate) deffunc_map: DefFuncMap,
     pub(crate) preproc_symbols: Vec<SymbolRc>,
 
     // 構文リント:
@@ -23,7 +23,7 @@ impl DocAnalysis {
         self.tree_opt = None;
         self.includes.clear();
         self.module_map.clear();
-        self.deffuncs.clear();
+        self.deffunc_map.clear();
         self.preproc_symbols.clear();
         self.syntax_lint_done = false;
         self.syntax_lints.clear();
@@ -37,7 +37,7 @@ impl DocAnalysis {
     pub(crate) fn set_preproc(&mut self, preproc: PreprocAnalysisResult) {
         self.includes = preproc.includes;
         self.module_map = preproc.module_map;
-        self.deffuncs = preproc.deffuncs;
+        self.deffunc_map = preproc.deffunc_map;
         self.preproc_symbols = preproc.symbols;
     }
 }
