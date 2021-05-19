@@ -7,7 +7,6 @@ use self::{
 };
 use super::*;
 use crate::{
-    analysis::integrate::HostData,
     analysis::*,
     assists::{self, diagnose::DiagnosticsCache},
     help_source::{collect_all_symbols, HsSymbol},

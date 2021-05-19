@@ -46,19 +46,22 @@ mod analysis {
     mod project_analysis;
     pub(crate) mod syntax_linter;
     pub(crate) mod var;
+    mod workspace_analysis;
 
     pub(crate) use self::{
         a_scope::{ADefFunc, ADefFuncData, AModule, AModuleData},
         a_symbol::{ASymbol, ASymbolData, ASymbolDetails, ASymbolKind},
         doc_analysis::DocAnalysis,
-        integrate::AWorkspaceAnalysis,
         name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
         syntax_linter::SyntaxLint,
+        workspace_analysis::{AWorkspaceAnalysis, HostData},
     };
     pub(crate) use super::assists::{
-        completion::{in_preproc, in_str_or_comment, ACompletionItem},
+        completion::{
+            collect_symbols_as_completion_items, in_preproc, in_str_or_comment, ACompletionItem,
+        },
         signature_help::{SignatureHelpContext, SignatureHelpHost},
     };
 

@@ -17,7 +17,13 @@ pub(crate) mod rewrites {
 }
 
 use super::*;
-use crate::{lang_service::docs::Docs, source::*, token::TokenKind};
+use crate::{
+    analysis::*,
+    assists::completion::collect_preproc_completion_items,
+    lang_service::docs::{Docs, NO_VERSION},
+    source::*,
+    token::TokenKind,
+};
 use lsp_types::{LanguageString, Location, MarkedString, Position, Url};
 
 fn plain_text_to_marked_string(value: String) -> MarkedString {

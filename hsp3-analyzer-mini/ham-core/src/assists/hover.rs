@@ -1,12 +1,4 @@
-use super::{from_document_position, loc_to_range, plain_text_to_marked_string};
-use crate::{
-    analysis::integrate::AWorkspaceAnalysis,
-    assists::{
-        completion::{collect_preproc_completion_items, in_preproc},
-        markdown_marked_string,
-    },
-    lang_service::docs::Docs,
-};
+use super::*;
 use lsp_types::{
     CompletionItem, Documentation, Hover, HoverContents, MarkedString, MarkupContent, MarkupKind,
     Position, Url,

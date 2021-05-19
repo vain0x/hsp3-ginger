@@ -309,12 +309,7 @@ impl<'a> ProjectAnalysisRef<'a> {
             })
             .collect::<Vec<_>>();
 
-        crate::assists::completion::collect_symbols_as_completion_items(
-            doc,
-            scope,
-            &doc_symbols,
-            completion_items,
-        );
+        collect_symbols_as_completion_items(doc, scope, &doc_symbols, completion_items);
     }
 
     pub(crate) fn collect_all_symbols(self, name_filter: &str, symbols: &mut Vec<(ASymbol, Loc)>) {

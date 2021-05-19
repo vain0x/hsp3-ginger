@@ -1,5 +1,6 @@
+use super::*;
 use crate::{
-    analysis::{integrate::AWorkspaceAnalysis, ALocalScope, AScope, ASymbol, ASymbolKind},
+    analysis::{ALocalScope, AScope, ASymbol, ASymbolKind},
     assists::from_document_position,
     lang_service::docs::Docs,
     parse::{p_param_ty::PParamCategory, PToken},

@@ -1,6 +1,5 @@
 use super::*;
 use crate::{
-    analysis::integrate::AWorkspaceAnalysis,
     assists::{loc_to_range, to_lsp_range},
     lang_service::docs::Docs,
 };

@@ -1,9 +1,4 @@
-use super::loc_to_location;
-use crate::{
-    analysis::integrate::AWorkspaceAnalysis, assists::from_document_position,
-    lang_service::docs::Docs,
-};
-use lsp_types::{Location, Position, Url};
+use super::*;
 
 pub(crate) fn references(
     uri: Url,

@@ -1,8 +1,4 @@
-use super::{from_document_position, loc_to_location, loc_to_range};
-use crate::{
-    analysis::integrate::AWorkspaceAnalysis,
-    lang_service::docs::{self, Docs},
-};
+use super::*;
 use lsp_types::{
     DocumentChanges, Position, PrepareRenameResponse, TextDocumentEdit, TextEdit, Url,
     VersionedTextDocumentIdentifier, WorkspaceEdit,
@@ -69,7 +65,7 @@ pub(crate) fn rename(
                 return None;
             }
 
-            let version = docs.get_version(loc.doc).unwrap_or(docs::NO_VERSION);
+            let version = docs.get_version(loc.doc).unwrap_or(NO_VERSION);
 
             let text_document = VersionedTextDocumentIdentifier {
                 uri,
