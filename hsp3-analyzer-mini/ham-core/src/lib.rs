@@ -36,7 +36,6 @@ use std::{
 mod analysis {
     use super::*;
 
-    mod a_scope;
     mod comment;
     mod doc_analysis;
     mod integrate;
@@ -50,15 +49,15 @@ mod analysis {
     mod workspace_analysis;
 
     pub(crate) use self::{
-        a_scope::{
-            module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,
-            ModuleMap, ModuleRc,
-        },
         doc_analysis::DocAnalysis,
         name_system::*,
         preproc::{ASignatureData, PreprocAnalysisResult},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
         sema::{Diagnostic, Sema},
+        symbol::{
+            module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,
+            ModuleMap, ModuleRc,
+        },
         symbol::{ASymbolData, ASymbolDetails, HspSymbolKind, SymbolRc},
         syntax_linter::SyntaxLint,
         workspace_analysis::{WorkspaceAnalysis, WorkspaceHost},
