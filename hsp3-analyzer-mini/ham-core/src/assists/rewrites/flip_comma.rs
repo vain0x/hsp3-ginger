@@ -10,10 +10,6 @@ use lsp_types::{
     VersionedTextDocumentIdentifier, WorkspaceEdit,
 };
 
-fn p(t: &PToken) -> Pos16 {
-    Pos16::from(t.body.loc.start())
-}
-
 /// 構文木におけるトークンの深さを計算するためのビジター。
 #[derive(Default)]
 struct V {
@@ -24,7 +20,7 @@ struct V {
 impl PVisitor for V {
     fn on_token(&mut self, token: &PToken) {
         let depth = self.depth;
-        self.depths.insert(p(token), depth);
+        self.depths.insert(token.body_pos16(), depth);
     }
 
     fn on_compound(&mut self, compound: &PCompound) {
@@ -83,7 +79,7 @@ pub(crate) fn flip_comma(
 
     // 補完位置に隣接しているカンマをみつける。
     let (comma_index, comma) = {
-        let i = match tokens.binary_search_by_key(&pos, p) {
+        let i = match tokens.binary_search_by_key(&pos, PToken::body_pos16) {
             Ok(i) | Err(i) => i.saturating_sub(1),
         };
         let (offset, comma) = tokens[i..].iter().enumerate().take(3).find(|(_, t)| {
@@ -102,7 +98,7 @@ pub(crate) fn flip_comma(
         v.on_root(root);
         v.depths
     };
-    let d = |t: &PToken| depths.get(&p(t)).cloned().unwrap_or(0);
+    let d = |t: &PToken| depths.get(&t.body_pos16()).cloned().unwrap_or(0);
 
     // カンマの両脇の構文ノードに含まれるトークンをみつける。
     let comma_depth = d(comma);

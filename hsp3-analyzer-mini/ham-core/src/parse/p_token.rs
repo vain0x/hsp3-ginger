@@ -18,6 +18,14 @@ impl PToken {
         self.body.text.as_str()
     }
 
+    pub(crate) fn body_pos(&self) -> Pos {
+        self.body.loc.start()
+    }
+
+    pub(crate) fn body_pos16(&self) -> Pos16 {
+        Pos16::from(self.body.loc.start())
+    }
+
     pub(crate) fn ahead(&self) -> Loc {
         match self.leading.first() {
             Some(first) => first.loc.ahead(),

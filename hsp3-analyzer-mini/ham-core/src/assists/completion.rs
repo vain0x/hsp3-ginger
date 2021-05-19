@@ -34,14 +34,13 @@ pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
     // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。
 
     // 指定位置付近のトークンを探す。
-    let mut i = match tokens.binary_search_by_key(&pos, |token| Pos16::from(token.body.loc.start()))
-    {
+    let mut i = match tokens.binary_search_by_key(&pos, |token| token.body_pos16()) {
         Ok(i) | Err(i) => i,
     };
 
     // 遡って '#' の位置を探す。ただしEOSをみつけたら終わり。
     loop {
-        match tokens.get(i).map(|t| (t.kind(), t.body.loc.start())) {
+        match tokens.get(i).map(|t| (t.kind(), t.body_pos())) {
             Some((TokenKind::Hash, p)) if p <= pos => return true,
             Some((TokenKind::Eos, p)) if p < pos => return false,
             _ if i == 0 => return false,

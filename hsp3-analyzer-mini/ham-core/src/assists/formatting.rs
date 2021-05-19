@@ -39,7 +39,7 @@ fn trailing_is_all_blank(token: &PToken) -> bool {
 }
 
 fn leading_blank_range(token: &PToken) -> Range {
-    let e = token.body.loc.start();
+    let e = token.body_pos();
     let mut s = e;
 
     for t in token.leading.iter().rev() {
@@ -110,15 +110,19 @@ impl V {
     }
 
     fn find_previous_token(&mut self, token: &PToken) -> Option<RcItem<PToken>> {
-        let pos = |t: &PToken| t.body.loc.start();
-        let i = self.tokens.binary_search_by_key(&pos(token), pos).ok()?;
+        let i = self
+            .tokens
+            .binary_search_by_key(&token.body_pos(), PToken::body_pos)
+            .ok()?;
         self.tokens.item(i.saturating_sub(1))
     }
 
     #[cfg(unused)]
     fn find_next_token(&mut self, token: &PToken) -> Option<RcItem<PToken>> {
-        let pos = |t: &PToken| t.body.loc.start();
-        let i = self.tokens.binary_search_by_key(&pos(token), pos).ok()?;
+        let i = self
+            .tokens
+            .binary_search_by_key(token.body_pos(), PToken::body_pos)
+            .ok()?;
         self.tokens.item(i + 1)
     }
 
@@ -195,7 +199,7 @@ impl V {
         // 波カッコをカウントして深さを調節する。
         loop {
             match self.braces.last() {
-                Some(brace) if brace.body.loc.start() <= s => {
+                Some(brace) if brace.body_pos() <= s => {
                     let brace = self.braces.pop().unwrap();
                     match brace.kind() {
                         TokenKind::LeftBrace => {
@@ -217,12 +221,12 @@ impl V {
     }
 
     fn reset_ground_indent(&mut self, token: &PToken) {
-        self.compute_ground_depth(token.body.loc.start());
+        self.compute_ground_depth(token.body_pos());
         self.do_reset_ground_indent(token);
     }
 
     fn do_reset_ground_indent(&mut self, token: &PToken) {
-        assert!(self.last_depth_pos >= token.body.loc.start());
+        assert!(self.last_depth_pos >= token.body_pos());
         if self.ground_depth <= 0 {
             return;
         }
@@ -306,7 +310,7 @@ impl PVisitor for V {
             _ => None,
         };
         if let Some(hash) = hash_opt {
-            self.compute_ground_depth(hash.body.loc.start());
+            self.compute_ground_depth(hash.body_pos());
             self.ground_depth = 1;
         }
 

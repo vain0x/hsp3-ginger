@@ -135,7 +135,7 @@ impl WorkspaceAnalysis {
         self.compute();
 
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
-        let token = match tokens.binary_search_by_key(&pos, |t| t.body.loc.start().into()) {
+        let token = match tokens.binary_search_by_key(&pos, |t| t.body_pos16()) {
             Ok(i) => tokens[i].body.as_ref(),
             Err(i) => tokens
                 .iter()

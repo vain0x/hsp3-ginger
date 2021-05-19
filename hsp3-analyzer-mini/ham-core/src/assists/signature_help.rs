@@ -54,7 +54,7 @@ impl V {
             return;
         }
 
-        let symbol = match self.resolve_symbol(callee.body.loc.start()) {
+        let symbol = match self.resolve_symbol(callee.body_pos()) {
             Some(it) => it,
             None => return,
         };
