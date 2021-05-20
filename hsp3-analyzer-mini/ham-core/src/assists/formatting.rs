@@ -17,9 +17,9 @@ fn delta(s: &str) -> Option<(i32, i32)> {
     let it = match s {
         "switch" => (0, 2),
         "swend" => (-2, 0),
-        "case" => (-1, 1),
-        "repeat" | "foreach" | "for" | "while" => (0, 1),
-        "loop" | "next" | "wend" => (-1, 0),
+        "case" | "default" => (-1, 1),
+        "repeat" | "foreach" | "for" | "while" | "do" => (0, 1),
+        "loop" | "next" | "wend" | "until" => (-1, 0),
         _ => return None,
     };
     Some(it)

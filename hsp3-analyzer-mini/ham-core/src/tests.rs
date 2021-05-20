@@ -3,7 +3,8 @@
 use super::*;
 use crate::{
     lang_service::{docs::NO_VERSION, LangService},
-    source::Pos16,
+    source::{DocId, Pos, Pos16},
+    token::tokenize,
 };
 use lsp_types::{Position, Url};
 
@@ -243,6 +244,157 @@ fn namespace_tests() {
                     redundant, missing
                     )
             }
+        }
+    }
+}
+
+/// フォーマッティングのテスト。
+#[test]
+fn formatting_tests() {
+    let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests");
+
+    fn to_pos16(p: Position) -> Pos16 {
+        Pos16::new(p.line as u32, p.character as u32)
+    }
+
+    fn collect_indent_markers(text: &str) -> Vec<(Pos, usize)> {
+        let mut v = vec![];
+        for (i, _) in text.match_indices("^indent=") {
+            let s = &text[i..];
+            let n = {
+                eprintln!("i={} s={:?}", i, s.chars().take(10).collect::<String>());
+                let s = &s["^indent=".len()..];
+                let c = s.chars().next().unwrap();
+                assert!(c.is_ascii_digit());
+                (c as u8 - b'0') as usize
+            };
+            let pos = Pos::from(&text[..i]);
+            v.push((pos, n));
+        }
+        v
+    }
+
+    fn apply_edits(text: &str, mut edits: Vec<lsp_types::TextEdit>) -> String {
+        // Pos16からインデックスへのマップを作る。
+        let mut rev = HashMap::new();
+        let mut p = Pos16::new(0, 0);
+        for (i, c) in text.char_indices() {
+            rev.insert(p, i);
+            p += Pos16::from(c);
+        }
+        rev.insert(p, text.len());
+
+        // 編集をマージする。
+        let mut edits = {
+            edits.sort_by_key(|e| e.range.start);
+            edits.into_iter()
+        };
+        let mut output = String::new();
+        let mut i = 0;
+        loop {
+            let edit_opt = edits.next();
+
+            let start = edit_opt
+                .as_ref()
+                .map(|e| rev[&to_pos16(e.range.start)])
+                .unwrap_or(text.len());
+            debug_assert!(i <= start);
+
+            output += &text[i..start];
+
+            let edit = match edit_opt {
+                Some(it) => it,
+                None => break,
+            };
+            output += &edit.new_text;
+            i = rev[&to_pos16(edit.range.end)];
+        }
+
+        output
+    }
+
+    const NO_DOC: DocId = 1;
+
+    fn check_indents(text: &str) -> Vec<(Pos, usize)> {
+        let lines = text.lines().collect::<Vec<_>>();
+        let mut v = vec![];
+
+        for (mark_pos, _) in collect_indent_markers(text) {
+            debug_assert_ne!(mark_pos.row, 0);
+
+            let row = mark_pos.row as usize - 1;
+            let line = &lines[row];
+
+            let mut n = 0;
+
+            if let Some(t) = tokenize(NO_DOC, RcStr::from(line.to_string()))
+                .into_iter()
+                .take_while(|t| t.kind.is_space())
+                .next()
+            {
+                for c in t.text.chars().skip_while(|&c| c == '\r' || c == '\n') {
+                    if c == '\t' {
+                        n += 1;
+                    } else {
+                        n = 0;
+                        break;
+                    }
+                }
+            }
+
+            v.push((mark_pos, n));
+        }
+        v
+    }
+
+    for filename in &["formatting/indent.hsp"] {
+        let path = tests_dir.join(filename);
+        let text = fs::read_to_string(&path).expect("read");
+        let uri = path_to_uri(path);
+
+        let expected = collect_indent_markers(&text);
+        assert_ne!(expected.len(), 0);
+
+        let formatted = {
+            let mut ls = LangService::new_standalone();
+            ls.open_doc(uri.clone(), NO_VERSION, text.to_string());
+            let edits = ls.formatting(uri.clone()).expect("formatting");
+            apply_edits(&text, edits)
+        };
+
+        let actual = check_indents(&formatted);
+
+        let f = |xs: Vec<(Pos, usize)>| {
+            xs.into_iter()
+                .map(|(pos, n)| (Pos16::from(pos), n))
+                .collect::<Vec<_>>()
+        };
+
+        let expected = f(expected);
+        let actual = f(actual);
+
+        if actual != expected {
+            eprintln!(
+                "uri: {:?}\nactual: {:#?}\nexpected: {:#?}\nformatted: {}",
+                uri, actual, expected, formatted,
+            );
+
+            let redundant = actual
+                .iter()
+                .filter(|x| !expected.contains(x))
+                .map(|(pos, n)| format!("  - {}:{} n={}", uri, pos, n))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let missing = expected
+                .iter()
+                .filter(|x| !actual.contains(x))
+                .map(|(pos, n)| format!("  - {}:{} n={}", uri, pos, n))
+                .collect::<Vec<_>>()
+                .join("\n");
+            panic!(
+                "{}\n\n過剰:\n{}\n不足:\n{}",
+                "フォーマッティングの結果が期待通りではありませんでした。", redundant, missing
+            )
         }
     }
 }

@@ -1,0 +1,108 @@
+// フォーマッティングにより字下げが修正されることを確認する。
+
+// コメントに `^` の書かれた行は、その上の行の字下げの深さとして期待される値を表している。
+
+// ===============================================
+
+// 地の文は深さ1。
+
+	mes "こんにちは"
+	// ^indent=1
+	a = 1
+	// ^indent=1
+
+mes
+	// ^indent=1
+
+		mes
+	// ^indent=1
+
+a = 0
+	// ^indent=1
+
+// ===============================================
+
+// ラベルは字下げされない。
+
+*l_label_at_ground
+// ^indent=0
+
+// ===============================================
+
+// repeat-loopや if {} などの間は字下げが深くなる。
+
+repeat
+	// ^indent=1
+mes
+		// ^indent=2
+loop
+	// ^indent=1
+
+if 1 {
+mes
+		// ^indent=2
+} else {
+	// ^indent=1
+mes
+		// ^indent=2
+	}
+
+	mes
+	// ^indent=1
+
+	switch
+	// ^indent=1
+		case 1
+		// ^indent=2
+			swbreak
+			// ^indent=3
+
+case 2
+		// ^indent=2
+swbreak
+			// ^indent=3
+
+default
+		// ^indent=2
+swbreak
+			// ^indent=3
+	swend
+	// ^indent=1
+
+	while 0
+		for i, 0, 0
+		// ^indent=2
+			mes
+			// ^indent=3
+
+			do
+			// ^indent=3
+				mes
+				// ^indent=4
+			until 1
+			// ^indent=3
+
+			mes
+			// ^indent=3
+		next
+		// ^indent=2
+
+		mes
+		// ^indent=2
+	wend
+
+// ===============================================
+
+// 1行のifで字下げは増えない。
+
+	if 0 : mes
+	if 0 : mes
+	// ^indent=1
+
+// ===============================================
+
+// プリプロセッサ命令は字下げされない。
+
+#ifndef indent_hsp_included
+#define indent_hsp_included
+#endif
