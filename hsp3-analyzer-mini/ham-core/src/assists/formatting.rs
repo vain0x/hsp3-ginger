@@ -371,7 +371,16 @@ pub(crate) fn formatting(
     ctx.on_root(root);
 
     let mut edits = ctx.edits;
-    edits.sort();
+    edits.sort_by_key(|(range, text)| (range.start(), text.len()));
+
+    // 重なった変更を削除する。
+    let mut last = Pos16::new(0, 0);
+    edits.retain(|(range, _)| {
+        let ok = last <= range.start();
+        last = range.end().into();
+        ok
+    });
+
     let edits = edits
         .into_iter()
         .map(|(range, new_text)| TextEdit {
