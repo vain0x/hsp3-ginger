@@ -1,2 +1,5 @@
 * text=auto
 *.bat text eol=crlf
+
+
+*.expected.*    linguist-vendored

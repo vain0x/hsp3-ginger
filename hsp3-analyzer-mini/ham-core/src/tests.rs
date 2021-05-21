@@ -6,6 +6,7 @@ use crate::{
     source::{DocId, Pos, Pos16},
     token::tokenize,
 };
+use expect_test::expect_file;
 use lsp_types::{Position, Url};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -248,14 +249,55 @@ fn namespace_tests() {
     }
 }
 
+const NO_DOC: DocId = 1;
+
+fn to_pos16(p: Position) -> Pos16 {
+    Pos16::new(p.line as u32, p.character as u32)
+}
+
+fn apply_edits(text: &str, mut edits: Vec<lsp_types::TextEdit>) -> String {
+    // Pos16からインデックスへのマップを作る。
+    let mut rev = HashMap::new();
+    let mut p = Pos16::new(0, 0);
+    for (i, c) in text.char_indices() {
+        rev.insert(p, i);
+        p += Pos16::from(c);
+    }
+    rev.insert(p, text.len());
+
+    // 編集をマージする。
+    let mut edits = {
+        edits.sort_by_key(|e| e.range.start);
+        edits.into_iter()
+    };
+    let mut output = String::new();
+    let mut i = 0;
+    loop {
+        let edit_opt = edits.next();
+
+        let start = edit_opt
+            .as_ref()
+            .map(|e| rev[&to_pos16(e.range.start)])
+            .unwrap_or(text.len());
+        debug_assert!(i <= start);
+
+        output += &text[i..start];
+
+        let edit = match edit_opt {
+            Some(it) => it,
+            None => break,
+        };
+        output += &edit.new_text;
+        i = rev[&to_pos16(edit.range.end)];
+    }
+
+    output
+}
+
 /// フォーマッティングのテスト。
 #[test]
 fn formatting_tests() {
     let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests");
-
-    fn to_pos16(p: Position) -> Pos16 {
-        Pos16::new(p.line as u32, p.character as u32)
-    }
 
     fn collect_indent_markers(text: &str) -> Vec<(Pos, usize)> {
         let mut v = vec![];
@@ -273,47 +315,6 @@ fn formatting_tests() {
         }
         v
     }
-
-    fn apply_edits(text: &str, mut edits: Vec<lsp_types::TextEdit>) -> String {
-        // Pos16からインデックスへのマップを作る。
-        let mut rev = HashMap::new();
-        let mut p = Pos16::new(0, 0);
-        for (i, c) in text.char_indices() {
-            rev.insert(p, i);
-            p += Pos16::from(c);
-        }
-        rev.insert(p, text.len());
-
-        // 編集をマージする。
-        let mut edits = {
-            edits.sort_by_key(|e| e.range.start);
-            edits.into_iter()
-        };
-        let mut output = String::new();
-        let mut i = 0;
-        loop {
-            let edit_opt = edits.next();
-
-            let start = edit_opt
-                .as_ref()
-                .map(|e| rev[&to_pos16(e.range.start)])
-                .unwrap_or(text.len());
-            debug_assert!(i <= start);
-
-            output += &text[i..start];
-
-            let edit = match edit_opt {
-                Some(it) => it,
-                None => break,
-            };
-            output += &edit.new_text;
-            i = rev[&to_pos16(edit.range.end)];
-        }
-
-        output
-    }
-
-    const NO_DOC: DocId = 1;
 
     fn check_indents(text: &str) -> Vec<(Pos, usize)> {
         let lines = text.lines().collect::<Vec<_>>();
@@ -397,4 +398,23 @@ fn formatting_tests() {
             )
         }
     }
+}
+
+#[test]
+fn formatting_blank_test() {
+    let text = include_str!["../../tests/formatting/blank.hsp"];
+    let expected = expect_file!["../../tests/formatting/blank.expected.hsp"];
+
+    let uri = CanonicalUri::from_file_path(&PathBuf::from("blank.hsp"))
+        .unwrap()
+        .into_url();
+
+    let actual = {
+        let mut ls = LangService::new_standalone();
+        ls.open_doc(uri.clone(), NO_VERSION, text.to_string());
+        let edits = ls.formatting(uri.clone()).expect("formatting");
+        apply_edits(&text, edits)
+    };
+
+    expected.assert_eq(&actual);
 }
