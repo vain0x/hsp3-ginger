@@ -57,3 +57,26 @@ ginger: HSP3 ビルドツール
     -V, --version
         バージョン情報を表示します。
 ```
+
+----
+
+## 開発環境
+
+インストールするもの:
+
+- PowerShell (>= 7)
+- HSP (>= 3.6)
+
+### ビルド
+
+注意: HSP3_HOMEの下の `ginger.exe` と、`bin/ginger.exe` の両方が上書きされる。
+
+pwshでこのディレクトリを開く。
+
+```pwsh
+# HSPのインストールディレクトリを設定する。(ファイルパスは適当に変更してください。)
+$env:HSP3_HOME = 'C:/hsp36'
+
+# ビルドする。
+bootstrap/bootstrap
+```
