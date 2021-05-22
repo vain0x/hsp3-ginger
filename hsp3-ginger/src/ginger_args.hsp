@@ -158,7 +158,7 @@
 // --ref-name オプションの値を取得する
 //
 // 指定されていたら stat=true
-#deffunc gigner_args_get_ref_name var ref_name
+#deffunc ginger_args_get_ref_name var ref_name
 
 	ref_name = s_ref_name
 	return s_ref_name_exists

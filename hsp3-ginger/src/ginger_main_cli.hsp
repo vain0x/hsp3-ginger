@@ -9,6 +9,21 @@
 
 #module m_ginger_infra
 
+#uselib "kernel32.dll"
+#func GetStdHandle "GetStdHandle" sptr
+#func SetConsoleOutputCP "SetConsoleOutputCP" sptr
+#func WriteFile "WriteFile" sptr, sptr, sptr, sptr, sptr
+
+#deffunc ginger_infra_init
+
+	// コンソールコードページをUTF-8にする。
+	// (標準出力に書き込むデータをUTF-8として解釈してもらうために必要。)
+	SetConsoleOutputCP 65001
+
+	// 標準出力のハンドル。
+	s_stdout = GetStdHandle(-11)
+	return
+
 // ginger コマンド自身の実行ファイル名を取得する
 #deffunc ginger_infra_get_exe_name var name
 
@@ -24,17 +39,24 @@
 // 標準出力に書き出す
 #deffunc ginger_infra_stdout var text
 
-	mes text
+	WriteFile s_stdout, text, strlen(text), 0, 0
+
+	// なぜか分からないけどmesだと文字化けする。
+	// mes text
 	return
 
 // 致命的なエラーを報告する
-#deffunc ginger_infra_error var text
+#deffunc ginger_infra_error var text, \
+	local s
 
 	if text != "" {
-		mes "ERROR: " + text
+		s = "ERROR: "
+		ginger_infra_stdout s
+		ginger_infra_stdout text
 	}
 	return
 
 #global
 
+	ginger_infra_init
 	ginger_core_main

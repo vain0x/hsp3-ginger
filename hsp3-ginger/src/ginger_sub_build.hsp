@@ -106,7 +106,7 @@
 	noteunsel
 
 	// ref_name を再設定する。
-	gigner_args_get_ref_name ref_name
+	ginger_args_get_ref_name ref_name
 	if stat == false {
 		ref_name = getpath(getpath(s_src_path, getpath_no_ext), getpath_basename)
 	}
