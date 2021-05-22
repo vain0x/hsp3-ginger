@@ -28,4 +28,4 @@
 
 #enum global s_default_window_id = 0
 
-#define global GINGER_VERSION "0.2.0"
+#define global GINGER_VERSION "0.3.0"
