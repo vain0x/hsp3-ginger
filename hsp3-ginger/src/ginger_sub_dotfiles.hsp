@@ -9,14 +9,20 @@
 // dotfiles コマンドのエントリーポイント
 //
 // 成功したら stat=true
-#deffunc ginger_sub_dotfiles_main var _args, int _argc, int show_help, var error
+#deffunc ginger_sub_dotfiles_main var _args, int _argc, int show_help, var error, \
+	local output
 
 	if show_help {
 		ginger_sub_dotfiles_help
 		return stat
 	}
 
-	ginger_sub_dotfiles_run error
+	output = ""
+	ginger_sub_dotfiles_run output, error
+
+	if output != "" {
+		ginger_infra_stdout output
+	}
 	return stat
 
 #deffunc ginger_sub_dotfiles_help \
@@ -40,7 +46,7 @@
 // .editorconfigを生成する。
 //
 // 成功したら stat=true。
-#deffunc ginger_sub_dotfiles_run var error, \
+#deffunc ginger_sub_dotfiles_run var output, var error, \
 	local new_content, \
 	local lines, \
 	local line_count, \
@@ -65,7 +71,7 @@ trim_trailing_whitespace = true
 		notesave ".editorconfig"
 		noteunsel
 
-		mes ".editorconfigを作成しました。"
+		output += ".editorconfigを作成しました。"
 		return true
 	}
 
@@ -98,7 +104,7 @@ trim_trailing_whitespace = true
 		}
 	loop
 	if line_index >= 0 {
-		mes ".editorconfigは設定済みなので、更新しませんでした。"
+		output += ".editorconfigは設定済みなので、更新しませんでした。"
 		return true
 	}
 
@@ -116,7 +122,7 @@ trim_trailing_whitespace = true
 	}
 
 	bsave ".editorconfig", new_content, strlen(new_content), old_size
-	mes ".editorconfigに追記しました。"
+	output += ".editorconfigに追記しました。"
 	return true
 
 #global
