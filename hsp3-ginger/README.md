@@ -4,7 +4,7 @@
 
 ## インストール
 
-[ginger.exe をダウンロード](https://github.com/vain0x/hsp3-ginger/raw/master/hsp3-ginger/bin/ginger.exe) して、HSP3 のインストールディレクトリに配置してください。(HSP3 のコンパイラである `hspcmp.dll` を使用するため、他のディレクトリには配置できません。)
+[ginger.exe をダウンロード](https://github.com/vain0x/hsp3-ginger/raw/main/hsp3-ginger/bin/ginger.exe) して、HSP3 のインストールディレクトリに配置してください。(HSP3 のコンパイラである `hspcmp.dll` を使用するため、他のディレクトリには配置できません。)
 
 パスを通すかエイリアスを張ると便利です。
 
