@@ -44,6 +44,7 @@ pub(crate) fn symbol(
 
     symbols.sort_by_key(|s| s.1.start());
 
+    let empty = empty_symbol_information();
     let symbol_information_list = symbols
         .into_iter()
         .filter_map(|(symbol, loc)| {
@@ -55,8 +56,7 @@ pub(crate) fn symbol(
                 name: name.to_string(),
                 kind,
                 location,
-                container_name: None,
-                deprecated: None,
+                ..empty.clone()
             })
         })
         .collect();

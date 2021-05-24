@@ -87,7 +87,7 @@ fn symbols_tests() {
         let line = &texts[&uri][row];
         let column = line.find(&word).unwrap();
 
-        let pos = Position::new(row as u64, column as u64);
+        let pos = Position::new(row as u32, column as u32);
         let def_sites = ls.definitions(uri.clone(), pos);
         let use_sites = ls.references(uri.clone(), pos, EXCLUDE_DEFINITION);
 
@@ -203,7 +203,7 @@ fn namespace_tests() {
             let (_, uri, pos) = expected.first().unwrap().clone();
 
             const EXCLUDE_DEFINITION: bool = false;
-            let pos = Position::new(pos.row as u64, pos.column as u64);
+            let pos = Position::new(pos.row as u32, pos.column as u32);
             let def_sites = ls.definitions(uri.clone(), pos);
             let use_sites = ls.references(uri.clone(), pos, EXCLUDE_DEFINITION);
 

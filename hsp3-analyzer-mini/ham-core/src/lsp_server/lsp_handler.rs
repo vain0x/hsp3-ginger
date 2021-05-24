@@ -30,15 +30,15 @@ impl<W: io::Write> LspHandler<W> {
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: None,
                     trigger_characters: None,
-                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                    ..CompletionOptions::default()
                 }),
-                definition_provider: Some(true),
-                document_formatting_provider: Some(true),
-                document_highlight_provider: Some(true),
-                document_symbol_provider: Some(true),
-                hover_provider: Some(true),
-                references_provider: Some(true),
-                rename_provider: Some(RenameProviderCapability::Options(RenameOptions {
+                definition_provider: Some(OneOf::Left(true)),
+                document_formatting_provider: Some(OneOf::Left(true)),
+                document_highlight_provider: Some(OneOf::Left(true)),
+                document_symbol_provider: Some(OneOf::Left(true)),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
+                references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Right(RenameOptions {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 })),
@@ -50,9 +50,10 @@ impl<W: io::Write> LspHandler<W> {
                     ]),
                     ..Default::default()
                 }),
-                workspace_symbol_provider: Some(true),
+                workspace_symbol_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
+            offset_encoding: None,
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -85,7 +86,7 @@ impl<W: io::Write> LspHandler<W> {
             .unwrap_or("".to_string());
 
         let doc = params.text_document;
-        let version = doc.version.unwrap_or(0);
+        let version = doc.version;
 
         self.model.change_doc(doc.uri, version, text);
     }

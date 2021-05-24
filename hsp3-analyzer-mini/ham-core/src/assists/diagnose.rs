@@ -7,12 +7,12 @@ use lsp_types::{Diagnostic, DiagnosticSeverity, Url};
 
 #[derive(Default)]
 pub(crate) struct DiagnosticsCache {
-    map1: HashMap<Url, (Option<i64>, String)>,
-    map2: HashMap<Url, (Option<i64>, String)>,
+    map1: HashMap<Url, (Option<i32>, String)>,
+    map2: HashMap<Url, (Option<i32>, String)>,
 }
 
 fn filter_diagnostics(
-    diagnostics: &mut Vec<(Url, Option<i64>, Vec<Diagnostic>)>,
+    diagnostics: &mut Vec<(Url, Option<i32>, Vec<Diagnostic>)>,
     docs: &Docs,
     cache: &mut DiagnosticsCache,
 ) {
@@ -62,7 +62,7 @@ pub(crate) fn diagnose(
     docs: &Docs,
     cache: &mut DiagnosticsCache,
     wa: &mut WorkspaceAnalysis,
-) -> Vec<(Url, Option<i64>, Vec<Diagnostic>)> {
+) -> Vec<(Url, Option<i32>, Vec<Diagnostic>)> {
     let mut dd = vec![];
     wa.diagnose(&mut dd);
 

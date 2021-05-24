@@ -378,13 +378,13 @@ impl LangService {
         }
     }
 
-    pub(super) fn open_doc(&mut self, uri: Url, version: i64, text: String) {
+    pub(super) fn open_doc(&mut self, uri: Url, version: i32, text: String) {
         let uri = CanonicalUri::from_url(&uri);
 
         self.docs.open_doc_in_editor(uri, version, text.into());
     }
 
-    pub(super) fn change_doc(&mut self, uri: Url, version: i64, text: String) {
+    pub(super) fn change_doc(&mut self, uri: Url, version: i32, text: String) {
         let uri = CanonicalUri::from_url(&uri);
 
         self.docs.change_doc_in_editor(uri, version, text.into());
@@ -507,7 +507,7 @@ impl LangService {
         assists::workspace_symbol::symbol(&query, &self.docs, &mut self.wa)
     }
 
-    pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i64>, Vec<lsp_types::Diagnostic>)> {
+    pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
         if !self.options.lint_enabled {
             return vec![];
         }

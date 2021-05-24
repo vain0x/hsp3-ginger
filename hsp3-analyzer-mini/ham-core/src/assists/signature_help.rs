@@ -149,7 +149,7 @@ pub(crate) fn signature_help(
         for (i, (ty_opt, name_opt, info_opt)) in signature_data.params.iter().enumerate() {
             s += sep;
 
-            let start = s.len() as u64;
+            let start = s.len() as u32;
             match (ty_opt, &name_opt) {
                 (Some(ty), Some(name)) => {
                     s += ty.to_str();
@@ -161,7 +161,7 @@ pub(crate) fn signature_help(
                 _ => s += "???",
             }
 
-            let end = s.len() as u64;
+            let end = s.len() as u32;
             params[i].label = ParameterLabel::LabelOffsets([start, end]);
             params[i].documentation = info_opt.clone().map(|s| Documentation::String(s));
 
@@ -179,8 +179,9 @@ pub(crate) fn signature_help(
             label: signature_label,
             parameters: Some(params),
             documentation: None,
+            active_parameter: None,
         }],
-        active_parameter: Some(arg_index as i64),
+        active_parameter: Some(arg_index as u32),
         active_signature: None,
     })
 }

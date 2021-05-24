@@ -24,7 +24,7 @@ use crate::{
     source::*,
     token::TokenKind,
 };
-use lsp_types::{LanguageString, Location, MarkedString, Position, Url};
+use lsp_types::{LanguageString, Location, MarkedString, Position, SymbolInformation, Url};
 
 fn plain_text_to_marked_string(value: String) -> MarkedString {
     MarkedString::LanguageString(LanguageString {
@@ -41,7 +41,7 @@ fn markdown_marked_string(value: String) -> MarkedString {
 }
 
 fn to_position(pos: Pos) -> Position {
-    Position::new(pos.row as u64, pos.column16 as u64)
+    Position::new(pos.row as u32, pos.column16 as u32)
 }
 
 fn to_lsp_range(range: crate::source::Range) -> lsp_types::Range {
@@ -69,4 +69,41 @@ fn from_document_position(uri: &Url, position: Position, docs: &Docs) -> Option<
     };
 
     Some((doc, pos))
+}
+
+// HACK: SymbolInformation.deprecatedがdeprecated属性がついているので、初期化するとdeprecated警告が出てしまう。それを回避するため、空のインスタンスを動的に生成する。
+fn empty_symbol_information() -> SymbolInformation {
+    thread_local! {
+        static CACHE: RefCell<Option<SymbolInformation>> = RefCell::default();
+    }
+
+    CACHE.with(|cell: &RefCell<Option<SymbolInformation>>| {
+        let mut opt = cell.borrow_mut();
+        if let Some(it) = &*opt {
+            return it.clone();
+        }
+
+        let it: SymbolInformation = serde_json::from_str(
+            r#"{
+                "name": "",
+                "kind": 1,
+                "location": {
+                    "uri": "http://example.com",
+                    "range": {
+                        "start": {
+                            "line": 0,
+                            "character": 0
+                        },
+                        "end": {
+                            "line": 0,
+                            "character": 0
+                        }
+                    }
+                }
+            }"#,
+        )
+        .unwrap();
+        *opt = Some(it.clone());
+        it
+    })
 }

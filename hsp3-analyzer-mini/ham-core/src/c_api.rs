@@ -68,7 +68,7 @@ fn position_from_raw(line: i32, character: i32) -> Option<Position> {
     }
 
     // FIXME: 列番号をエンコーディングに基づいて変換する？
-    Some(Position::new(line as u64, character as u64))
+    Some(Position::new(line as u32, character as u32))
 }
 
 fn marked_string_to_string(it: MarkedString) -> String {
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn ham_doc_did_open(
         None => return FALSE,
     };
 
-    (*instance).lang_service.open_doc(uri, version as i64, text);
+    (*instance).lang_service.open_doc(uri, version, text);
     TRUE
 }
 
@@ -168,9 +168,7 @@ pub unsafe extern "C" fn ham_doc_did_change(
         None => return FALSE,
     };
 
-    (*instance)
-        .lang_service
-        .change_doc(uri, version as i64, text);
+    (*instance).lang_service.change_doc(uri, version, text);
     TRUE
 }
 

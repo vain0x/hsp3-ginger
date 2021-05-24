@@ -1,7 +1,7 @@
 use super::*;
 use lsp_types::{
-    DocumentChanges, Position, PrepareRenameResponse, TextDocumentEdit, TextEdit, Url,
-    VersionedTextDocumentIdentifier, WorkspaceEdit,
+    DocumentChanges, OneOf, OptionalVersionedTextDocumentIdentifier, Position,
+    PrepareRenameResponse, TextDocumentEdit, TextEdit, Url, WorkspaceEdit,
 };
 
 pub(crate) fn prepare_rename(
@@ -67,7 +67,7 @@ pub(crate) fn rename(
 
             let version = docs.get_version(loc.doc).unwrap_or(NO_VERSION);
 
-            let text_document = VersionedTextDocumentIdentifier {
+            let text_document = OptionalVersionedTextDocumentIdentifier {
                 uri,
                 version: Some(version),
             };
@@ -78,7 +78,7 @@ pub(crate) fn rename(
 
             edits.push(TextDocumentEdit {
                 text_document,
-                edits: vec![text_edit],
+                edits: vec![OneOf::Left(text_edit)],
             });
         }
 

@@ -4,7 +4,7 @@ use crate::source::DocId;
 /// テキストドキュメントのバージョン番号
 /// (エディタ上で編集されるたびに変わる番号。
 ///  いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
-type TextDocumentVersion = i64;
+type TextDocumentVersion = i32;
 
 pub(crate) const NO_VERSION: TextDocumentVersion = 1;
 
@@ -103,13 +103,13 @@ impl Docs {
         changes.extend(self.doc_changes.drain(..));
     }
 
-    fn do_open_doc(&mut self, doc: DocId, version: i64, origin: DocChangeOrigin) -> DocId {
+    fn do_open_doc(&mut self, doc: DocId, version: i32, origin: DocChangeOrigin) -> DocId {
         self.doc_versions.insert(doc, version);
         self.doc_changes.push(DocChange::Opened { doc, origin });
         doc
     }
 
-    fn do_change_doc(&mut self, doc: DocId, version: i64, origin: DocChangeOrigin) {
+    fn do_change_doc(&mut self, doc: DocId, version: i32, origin: DocChangeOrigin) {
         self.doc_versions.insert(doc, version);
         self.doc_changes.push(DocChange::Changed { doc, origin });
     }
@@ -121,7 +121,7 @@ impl Docs {
         self.doc_changes.push(DocChange::Closed { doc });
     }
 
-    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: RcStr) {
+    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i32, text: RcStr) {
         #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが開かれました ({:?} version={}, len={})",
@@ -140,7 +140,7 @@ impl Docs {
         self.editor_docs.insert(doc);
     }
 
-    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: RcStr) {
+    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i32, text: RcStr) {
         #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが変更されました ({:?} version={}, len={})",

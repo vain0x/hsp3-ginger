@@ -6,8 +6,8 @@ use crate::{
     parse::*,
 };
 use lsp_types::{
-    CodeAction, CodeActionContext, DocumentChanges, Range, TextDocumentEdit, TextEdit, Url,
-    VersionedTextDocumentIdentifier, WorkspaceEdit,
+    CodeAction, CodeActionContext, DocumentChanges, OneOf, OptionalVersionedTextDocumentIdentifier,
+    Range, TextDocumentEdit, TextEdit, Url, WorkspaceEdit,
 };
 
 /// 構文木におけるトークンの深さを計算するためのビジター。
@@ -137,19 +137,19 @@ pub(crate) fn flip_comma(
         kind: Some("refactor.rewrite".into()),
         edit: Some(WorkspaceEdit {
             document_changes: Some(DocumentChanges::Edits(vec![TextDocumentEdit {
-                text_document: VersionedTextDocumentIdentifier {
+                text_document: OptionalVersionedTextDocumentIdentifier {
                     uri: uri.clone(),
                     version: version,
                 },
                 edits: vec![
-                    TextEdit {
+                    OneOf::Left(TextEdit {
                         range: to_lsp_range(l_range),
                         new_text: r_text.to_string(),
-                    },
-                    TextEdit {
+                    }),
+                    OneOf::Left(TextEdit {
                         range: to_lsp_range(r_range),
                         new_text: l_text.to_string(),
-                    },
+                    }),
                 ],
             }])),
             ..WorkspaceEdit::default()
