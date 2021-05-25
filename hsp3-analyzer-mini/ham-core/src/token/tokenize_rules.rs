@@ -240,6 +240,14 @@ fn eat_escaped_text(quote: char, tx: &mut Tx) {
     }
 }
 
+fn ident_to_kind(s: &str) -> TokenKind {
+    match s {
+        "if" => TokenKind::If,
+        "else" => TokenKind::Else,
+        _ => TokenKind::Ident,
+    }
+}
+
 pub(crate) fn do_tokenize(tx: &mut Tx) {
     loop {
         match lookahead(tx) {
@@ -367,7 +375,8 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
                 }
 
                 assert!(!tx.current_text().is_empty());
-                tx.commit(TokenKind::Ident);
+                let kind = ident_to_kind(tx.current_text());
+                tx.commit(kind);
             }
             Lookahead::Token(kind, len) => {
                 tx.bump_many(len);
@@ -592,6 +601,12 @@ mod tests {
     #[test]
     fn ident_with_backticks() {
         assert_eq!(tokenize_str_to_kinds("`"), vec![TokenKind::Ident]);
+    }
+
+    #[test]
+    fn ident_keyword() {
+        assert_eq!(tokenize_str_to_kinds("if"), vec![TokenKind::If]);
+        assert_eq!(tokenize_str_to_kinds("iff"), vec![TokenKind::Ident]);
     }
 
     #[test]

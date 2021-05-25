@@ -2,10 +2,13 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[must_use]
 pub(crate) enum TokenKind {
+    // マーカー:
     /// ファイルの終わり (end of file)
     Eof,
     /// 改行やファイル終端の直前 (end of statement)
     Eos,
+
+    // トリビア:
     /// 改行でない空白。連続する複数の空白を1個のトークンとする。
     Blank,
     /// 改行文字。
@@ -16,14 +19,22 @@ pub(crate) enum TokenKind {
     Comment,
     /// その他 (不明な文字)
     Bad,
+
+    // リテラル:
     /// 整数または浮動小数点数のリテラル
     Number,
     /// 文字リテラル
     Char,
     /// 文字列リテラル
     Str,
+
+    // 識別子とキーワード:
     /// 識別子 (`@` も含む)
     Ident,
+    If,
+    Else,
+
+    // 記号:
     /// `(`
     LeftParen,
     /// `)`
