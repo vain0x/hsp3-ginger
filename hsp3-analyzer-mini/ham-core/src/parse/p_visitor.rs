@@ -108,6 +108,16 @@ pub(crate) trait PVisitor {
         self.on_params_default(params);
     }
 
+    fn on_block(&mut self, block: &PBlock) {
+        self.on_stmts(&block.outer_stmts);
+
+        if let Some(left) = &block.left_opt {
+            self.on_token(left);
+            self.on_stmts(&block.inner_stmts);
+            self.on_token_opt(block.right_opt.as_ref());
+        }
+    }
+
     fn on_deffunc_stmt(&mut self, stmt: &PDefFuncStmt) {
         self.on_token(&stmt.hash);
         self.on_token(&stmt.keyword);
@@ -146,6 +156,16 @@ pub(crate) trait PVisitor {
                 self.on_token_opt(stmt.arrow_opt.as_ref());
                 self.on_expr_opt(stmt.method_opt.as_ref());
                 self.on_args(&stmt.args);
+            }
+            PStmt::If(stmt) => {
+                self.on_token(&stmt.command);
+                self.on_expr_opt(stmt.cond_opt.as_ref());
+                self.on_block(&stmt.body);
+
+                if let Some(e) = &stmt.else_opt {
+                    self.on_token(e);
+                    self.on_block(&stmt.alt);
+                }
             }
             PStmt::Const(_) | PStmt::Define(_) | PStmt::Enum(_) => {
                 // FIXME: implement

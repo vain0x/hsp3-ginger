@@ -234,6 +234,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             on_expr_opt(method_opt.as_ref(), ctx);
             on_args(&args, ctx);
         }
+        PStmt::If(_) => todo!(),
         PStmt::DefFunc(PDefFuncStmt { stmts, .. }) => {
             let deffunc = DefFuncKey::new(ctx.doc, ctx.deffunc_len);
             ctx.deffunc_len += 1;

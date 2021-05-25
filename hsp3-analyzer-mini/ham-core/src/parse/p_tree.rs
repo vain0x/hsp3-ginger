@@ -280,6 +280,69 @@ pub(crate) struct PInvokeStmt {
     pub(crate) args: Vec<PArg>,
 }
 
+/// ブロック (`{ ... }`)
+///
+/// ifやelseの本体である文の並びを表す。
+/// `{}` の前に書かれた文をouter_stmtsと呼び、内部に書かれた文をinner_stmtsと呼ぶことにする。
+///
+/// ```hsp
+/// if cond : outer_stmts { inner_stmts }
+/// ```
+#[must_use]
+#[derive(Default)]
+pub(crate) struct PBlock {
+    pub(crate) outer_stmts: Vec<PStmt>,
+    pub(crate) left_opt: Option<PToken>,
+    pub(crate) inner_stmts: Vec<PStmt>,
+    pub(crate) right_opt: Option<PToken>,
+}
+
+impl Debug for PBlock {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for stmt in &self.outer_stmts {
+            write!(f, " : ")?;
+            Debug::fmt(stmt, f)?;
+        }
+
+        if let Some(left) = &self.left_opt {
+            Debug::fmt(left, f)?;
+            f.debug_list().entries(&self.inner_stmts).finish()?;
+            debug_fmt_opt(self.right_opt.as_ref(), "?}?", f)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[must_use]
+pub(crate) struct PIfStmt {
+    /// `if` キーワード
+    pub(crate) command: PToken,
+    /// `if` の条件
+    pub(crate) cond_opt: Option<PExpr>,
+    /// `if` の本体
+    pub(crate) body: PBlock,
+    /// `else` キーワード
+    pub(crate) else_opt: Option<PToken>,
+    /// `else` の本体
+    pub(crate) alt: PBlock,
+}
+
+impl Debug for PIfStmt {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.command, f)?;
+        write!(f, " ")?;
+        debug_fmt_opt(self.cond_opt.as_ref(), "?cond?", f)?;
+        Debug::fmt(&self.body, f)?;
+
+        if let Some(e) = &self.else_opt {
+            Debug::fmt(e, f)?;
+            Debug::fmt(&self.alt, f)?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PConstStmt {
@@ -486,6 +549,7 @@ pub(crate) enum PStmt {
     Assign(PAssignStmt),
     Command(PCommandStmt),
     Invoke(PInvokeStmt),
+    If(PIfStmt),
     Const(PConstStmt),
     Define(PDefineStmt),
     Enum(PEnumStmt),
@@ -511,6 +575,7 @@ impl Debug for PStmt {
             PStmt::Assign(it) => Debug::fmt(it, f),
             PStmt::Command(it) => Debug::fmt(it, f),
             PStmt::Invoke(it) => Debug::fmt(it, f),
+            PStmt::If(it) => Debug::fmt(it, f),
             PStmt::Const(it) => Debug::fmt(it, f),
             PStmt::Define(it) => Debug::fmt(it, f),
             PStmt::Enum(it) => Debug::fmt(it, f),

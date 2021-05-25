@@ -1,9 +1,9 @@
 use super::{
     p_op_kind::POpKind,
     parse_context::Px,
-    parse_expr::{parse_args, parse_atomic_expr, parse_compound, parse_label},
+    parse_expr::{parse_args, parse_atomic_expr, parse_compound, parse_expr, parse_label},
     parse_preproc::parse_preproc_stmt,
-    PAssignStmt, PCommandStmt, PInvokeStmt, PJumpModifier, PRoot, PStmt, PToken,
+    PAssignStmt, PBlock, PCommandStmt, PIfStmt, PInvokeStmt, PJumpModifier, PRoot, PStmt, PToken,
 };
 use crate::token::TokenKind;
 
@@ -166,9 +166,76 @@ fn parse_invoke_stmt(px: &mut Px) -> Option<PInvokeStmt> {
     })
 }
 
+fn parse_block(px: &mut Px) -> PBlock {
+    let mut block = PBlock::default();
+
+    // outer_stmtsをパースしながら `{` または `else` を探す。
+    let left = loop {
+        match px.next() {
+            TokenKind::Eof | TokenKind::Eos | TokenKind::RightBrace | TokenKind::Else => {
+                return block
+            }
+            TokenKind::LeftBrace => break px.bump(),
+            TokenKind::Colon => {
+                px.skip();
+                block.outer_stmts.extend(parse_stmt(px));
+            }
+            _ => px.skip(),
+        }
+    };
+    block.left_opt = Some(left);
+
+    // inner_stmtsをパースしながら `}` を探す。
+    let right = loop {
+        match px.next() {
+            TokenKind::Eof => return block,
+            TokenKind::RightBrace => break px.bump(),
+            TokenKind::Eos | TokenKind::Colon => px.skip(),
+            _ => match parse_stmt(px) {
+                Some(stmt) => block.inner_stmts.push(stmt),
+                None => px.skip(),
+            },
+        }
+    };
+    block.right_opt = Some(right);
+
+    block
+}
+
+fn parse_if_stmt(px: &mut Px) -> Option<PIfStmt> {
+    let command = px.bump();
+    let cond_opt = parse_expr(px);
+    let body = parse_block(px);
+
+    let else_opt = match (px.next(), px.nth(1)) {
+        // elseの直前は1個だけ改行が認められる。
+        (TokenKind::Eos, TokenKind::Else) => {
+            px.skip();
+            Some(px.bump()) // else
+        }
+        (TokenKind::Else, _) => Some(px.bump()),
+        _ => None,
+    };
+    let alt = if else_opt.is_some() {
+        parse_block(px)
+    } else {
+        PBlock::default()
+    };
+    parse_end_of_stmt(px);
+
+    Some(PIfStmt {
+        command,
+        cond_opt,
+        body,
+        else_opt,
+        alt,
+    })
+}
+
 pub(crate) fn parse_stmt(px: &mut Px) -> Option<PStmt> {
     let stmt_opt = match px.next() {
         TokenKind::Ident => parse_expr_like_stmt(px),
+        TokenKind::If => parse_if_stmt(px).map(PStmt::If),
         TokenKind::Star => parse_label(px).map(PStmt::Label),
         TokenKind::Hash => parse_preproc_stmt(px),
         _ => return None,

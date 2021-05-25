@@ -94,6 +94,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             }
         }
         PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
+        PStmt::If(_) => todo!(),
         PStmt::Const(PConstStmt {
             hash,
             privacy_opt,

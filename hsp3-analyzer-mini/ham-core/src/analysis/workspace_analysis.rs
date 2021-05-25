@@ -69,7 +69,6 @@ impl WorkspaceAnalysis {
     }
 
     fn compute(&mut self) {
-        // eprintln!("compute (dirty={:?})", &self.dirty_docs);
         if self.dirty_docs.is_empty() {
             return;
         }
