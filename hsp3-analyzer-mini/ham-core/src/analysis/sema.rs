@@ -107,6 +107,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Sema) {
                 on_stmt(stmt, ctx);
             }
         }
+        // PStmt::If
         _ => {}
     }
 }

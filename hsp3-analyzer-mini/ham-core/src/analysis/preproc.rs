@@ -86,6 +86,15 @@ fn add_symbol(
     symbol
 }
 
+fn on_block(block: &PBlock, ctx: &mut Ctx) {
+    for stmt in &block.outer_stmts {
+        on_stmt(stmt, ctx);
+    }
+    for stmt in &block.inner_stmts {
+        on_stmt(stmt, ctx);
+    }
+}
+
 fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
         PStmt::Label(PLabel { star, name_opt }) => {
@@ -94,7 +103,10 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             }
         }
         PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
-        PStmt::If(_) => todo!(),
+        PStmt::If(stmt) => {
+            on_block(&stmt.body, ctx);
+            on_block(&stmt.alt, ctx);
+        }
         PStmt::Const(PConstStmt {
             hash,
             privacy_opt,

@@ -98,6 +98,21 @@ swbreak
 	if 0 : mes
 	if 0 : mes
 	// ^indent=1
+	if 0 { mes }
+	if 0 { mes }
+	// ^indent=1
+
+// ifがouter_stmtsを持つケース。
+
+	if 0 : *@ {
+		goto *@b
+		// ^indent=2
+	}
+	else : *@f {
+	// ^indent=1
+		goto *@f
+		// ^indent=2
+	}
 
 // ===============================================
 

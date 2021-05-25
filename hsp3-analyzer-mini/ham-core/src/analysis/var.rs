@@ -234,7 +234,22 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             on_expr_opt(method_opt.as_ref(), ctx);
             on_args(&args, ctx);
         }
-        PStmt::If(_) => todo!(),
+        PStmt::If(stmt) => {
+            on_expr_opt(stmt.cond_opt.as_ref(), ctx);
+
+            for stmt in &stmt.body.outer_stmts {
+                on_stmt(stmt, ctx);
+            }
+            for stmt in &stmt.body.inner_stmts {
+                on_stmt(stmt, ctx);
+            }
+            for stmt in &stmt.alt.outer_stmts {
+                on_stmt(stmt, ctx);
+            }
+            for stmt in &stmt.alt.inner_stmts {
+                on_stmt(stmt, ctx);
+            }
+        }
         PStmt::DefFunc(PDefFuncStmt { stmts, .. }) => {
             let deffunc = DefFuncKey::new(ctx.doc, ctx.deffunc_len);
             ctx.deffunc_len += 1;

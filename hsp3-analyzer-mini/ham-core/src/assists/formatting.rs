@@ -73,15 +73,7 @@ fn trailing_blank_range(token: &PToken) -> Range {
 
 struct V {
     /// 地の文 (プリプロセッサ命令以外) の字下げ
-    ///
-    /// (パーサーが波カッコを捨ててしまうので、ビジターだけでは字下げを計算できない。
-    ///  トークン列に含まれる波カッコをみて深さを調整する。
-    ///  波カッコを数えるのは深さの値が必要になるタイミングだけでいい。
-    ///  深さを計算する必要になった位置より前にある波カッコを `braces` から取り出して数える。)
     ground_depth: i32,
-    /// トークン列上の波カッコを逆順に並べたもの。(後ろから順番に取り出すため。)
-    braces: Vec<PToken>,
-    last_depth_pos: Pos,
 
     text: RcStr,
     tokens: RcSlice<PToken>,
@@ -192,47 +184,19 @@ impl V {
         self.require_trailing_blank(token);
     }
 
-    fn compute_ground_depth(&mut self, s: Pos) -> usize {
-        assert!(self.last_depth_pos <= s);
-        self.last_depth_pos = s;
-
-        // 波カッコをカウントして深さを調節する。
-        loop {
-            match self.braces.last() {
-                Some(brace) if brace.body_pos() <= s => {
-                    let brace = self.braces.pop().unwrap();
-                    match brace.kind() {
-                        TokenKind::LeftBrace => {
-                            self.do_reset_ground_indent(&brace);
-                            self.ground_depth += 1;
-                        }
-                        TokenKind::RightBrace => {
-                            self.ground_depth -= 1;
-                            self.do_reset_ground_indent(&brace);
-                        }
-                        _ => unreachable!(),
-                    }
-                }
-                _ => break,
-            }
-        }
-
-        (self.ground_depth - 1).max(0) as usize + 1
-    }
-
     fn reset_ground_indent(&mut self, token: &PToken) {
-        self.compute_ground_depth(token.body_pos());
-        self.do_reset_ground_indent(token);
-    }
-
-    fn do_reset_ground_indent(&mut self, token: &PToken) {
-        assert!(self.last_depth_pos >= token.body_pos());
         if self.ground_depth <= 0 {
             return;
         }
         let depth = self.ground_depth as usize;
 
-        let range = self.get_leading_blank_range(token);
+        // 同じ行の前方に他のトークンがある場合、字下げの調整はできない。
+        let leaded_by_newlines = token.leading.iter().any(|t| t.kind == TokenKind::Newlines);
+        if !leaded_by_newlines {
+            return;
+        }
+
+        let range = leading_blank_range(token);
 
         // インデントを挿入する範囲にタブ文字以外のものが含まれていたら書き換えないでおく。
         let mut n = 0;
@@ -304,13 +268,7 @@ impl PVisitor for V {
     }
 
     fn on_stmt(&mut self, stmt: &PStmt) {
-        let hash_opt = match stmt {
-            PStmt::DefFunc(stmt) => Some(&stmt.hash),
-            PStmt::Module(stmt) => Some(&stmt.hash),
-            _ => None,
-        };
-        if let Some(hash) = hash_opt {
-            self.compute_ground_depth(hash.body_pos());
+        if let PStmt::DefFunc(_) | PStmt::Module(_) = stmt {
             self.ground_depth = 1;
         }
 
@@ -333,12 +291,33 @@ impl PVisitor for V {
                 self.reset_ground_indent(&stmt.command);
                 self.ground_depth += d2;
 
-                self.require_trailing_blank(&stmt.command);
+                if !stmt.args.is_empty() {
+                    self.require_trailing_blank(&stmt.command);
+                }
             }
             PStmt::Invoke(stmt) => {
                 self.reset_ground_indent(stmt.left.name());
             }
+            PStmt::If(stmt) => {
+                self.reset_ground_indent(&stmt.command);
+                self.require_trailing_blank(&stmt.command);
+            }
             _ => {}
+        }
+    }
+
+    fn on_block(&mut self, block: &PBlock) {
+        self.on_stmts(&block.outer_stmts);
+
+        if let (Some(left), Some(right)) = (&block.left_opt, &block.right_opt) {
+            self.require_leading_blank(left);
+
+            self.ground_depth += 1;
+            self.on_stmts(&block.inner_stmts);
+            self.ground_depth -= 1;
+
+            self.reset_ground_indent(right);
+            self.require_trailing_blank(right);
         }
     }
 }
@@ -351,19 +330,8 @@ pub(crate) fn formatting(
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
     let (text, tokens, root) = wa.get_tokens(doc)?;
 
-    let braces = tokens
-        .iter()
-        .rev()
-        .filter_map(|token| match token.kind() {
-            TokenKind::LeftBrace | TokenKind::RightBrace => Some(token.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-
     let mut ctx = V {
         ground_depth: 1,
-        braces,
-        last_depth_pos: Pos::default(),
         text,
         tokens,
         edits: vec![],

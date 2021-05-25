@@ -12,6 +12,10 @@
 	screen x,y,z
 	a(x,y,z) = f(x,y), g(z,w)
 
+	// {} の前後に空白が入る。
+	if 1{}else{}
+	if 1{mes}else{mes}
+
 	// カッコの内側の空白が削除される。
 	a(  1  )++
 

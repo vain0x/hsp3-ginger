@@ -26,7 +26,11 @@ impl Px {
     }
 
     pub(crate) fn nth(&self, offset: usize) -> TokenKind {
-        self.nth_token(offset).kind()
+        if offset < self.tokens.len() {
+            self.tokens[self.tokens.len() - offset - 1].kind()
+        } else {
+            TokenKind::Eof
+        }
     }
 
     pub(crate) fn next_token(&self) -> &PToken {

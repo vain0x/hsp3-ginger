@@ -58,6 +58,7 @@ impl<'p> SyntaxLinter<'p> {
                     self.on_stmt(stmt);
                 }
             }
+            // PStmt::If
             _ => {}
         }
     }
