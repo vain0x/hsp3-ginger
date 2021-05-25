@@ -4,6 +4,7 @@
 use super::{parse_root, PToken};
 use crate::{
     source::DocId,
+    token::TokenKind,
     utils::{rc_str::RcStr, read_file::read_file},
 };
 use std::{fs, path::PathBuf, rc::Rc};
@@ -20,6 +21,7 @@ fn parse_standard_files() {
 
     let mut last_id = 0;
     let mut text = Rc::new(String::new());
+    let mut ok = true;
 
     let paths = vec![
         glob::glob(&format!("{}/common/**/*.hsp", hsp3_home)).unwrap(),
@@ -60,6 +62,16 @@ fn parse_standard_files() {
             let tokens = crate::token::tokenize(doc, RcStr::new(text.clone(), 0, text.len()));
             let tokens = PToken::from_tokens(tokens.into());
             let root = parse_root(tokens);
+
+            for t in root
+                .skipped
+                .iter()
+                .filter(|t| t.kind() != TokenKind::Eos && t.kind() != TokenKind::Colon)
+            {
+                eprintln!("path={:?} skipped {:?}{:?}", path, t.kind(), t.body.loc);
+                ok = false;
+            }
+
             format!("{:#?}\n", root)
         };
 
@@ -70,5 +82,8 @@ fn parse_standard_files() {
 
     if last_id == 0 {
         panic!("no files");
+    }
+    if !ok {
+        panic!("something wrong")
     }
 }
