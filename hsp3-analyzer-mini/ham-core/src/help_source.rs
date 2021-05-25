@@ -6,15 +6,12 @@ use crate::utils::read_file::read_file;
 const EOL: &str = "\r\n";
 
 /// ヘルプソースファイルから抽出したシンボル情報
-#[derive(Clone, Debug, Default)]
+#[derive(Default)]
 pub(crate) struct HsSymbol {
     pub(crate) name: String,
     pub(crate) description: Option<String>,
     pub(crate) documentation: Vec<String>,
-
-    /// %prm の1行目
-    pub(crate) signature_opt: Option<String>,
-    pub(crate) param_info: Vec<String>,
+    pub(crate) params_opt: Option<Vec<HsParamInfo>>,
 }
 
 fn str_is_whitespace(s: &str) -> bool {
@@ -182,35 +179,10 @@ fn parse_for_symbols(
         let description = Some(index_lines.join(EOL));
 
         let mut documentation = vec![];
-        let mut signature_opt = None;
-        let mut param_info = vec![];
+        let mut params_opt = None;
 
         if let Some(prm) = map.get("prm") {
-            signature_opt = prm.first().map(|s| s.to_string());
-
-            let mut l = 1;
-            loop {
-                // 空行を飛ばす。
-                l += prm[l..]
-                    .iter()
-                    .take_while(|s| s.trim_start().is_empty())
-                    .count();
-                if l >= prm.len() {
-                    break;
-                }
-
-                // 次のブロックが始まるまでを1個のブロックとして追加する。
-                // 空行か、字下げのない行が出てきたら次のブロックの始まりとみなす。
-                let starts_new_block =
-                    |s: &str| s.chars().next().map_or(true, |c| !c.is_whitespace());
-                let len = 1 + prm[l + 1..]
-                    .iter()
-                    .take_while(|s| !starts_new_block(s))
-                    .count();
-                param_info.push(prm[l..l + len].join(EOL));
-                l += len;
-            }
-
+            params_opt = Some(parse_prm_section(prm));
             documentation.push(prm.join(EOL));
         }
 
@@ -226,11 +198,93 @@ fn parse_for_symbols(
             name: name.trim().to_string(),
             description,
             documentation,
-            signature_opt,
-            param_info,
-            ..Default::default()
+            params_opt,
         });
     }
+}
+
+pub(crate) struct HsParamInfo {
+    pub(crate) name: String,
+    pub(crate) details_opt: Option<String>,
+}
+
+/// `%prm` の中身を解析する。
+///
+/// 先頭行はシグネチャとみなす。
+/// 命令の場合はパラメータの名前をカンマ区切りで並べて p1, p2 のように書く。
+/// 関数の場合は全体をカッコで囲んで `(p1, p2)` とかく。
+/// パラメータの名前の代わりに文字列リテラルを使ってもよい。
+///
+/// 先頭以外の行は各パラメータの説明書きとみなす。
+/// 行の先頭にパラメータ名があったら、その行はそのパラメータの説明とみなす。
+/// また、以降の行が空白で始まっている (字下げされている) 限り、その説明が続くとみなす。
+/// 例:
+///
+/// ```hs
+/// %prm
+/// "message", mode
+///
+/// "message": 表示する文字列
+/// mode (0): 表示するモード
+///           省略したら0
+/// ```
+fn parse_prm_section(prm: &[&str]) -> Vec<HsParamInfo> {
+    let mut params: Vec<HsParamInfo>;
+
+    // 先頭行:
+    {
+        let mut s = match prm.first() {
+            Some(it) => *it,
+            None => "",
+        };
+
+        if s.starts_with('(') {
+            s = s[1..].trim_end_matches(')').trim();
+        }
+
+        params = s
+            .split(",")
+            .map(|name| HsParamInfo {
+                name: name.trim().to_string(),
+                details_opt: None,
+            })
+            .collect();
+    }
+
+    // 先頭以外:
+    let mut row = 1;
+    loop {
+        // 空行を飛ばす。
+        row += prm[row..]
+            .iter()
+            .take_while(|s| s.trim_start().is_empty())
+            .count();
+        if row >= prm.len() {
+            break;
+        }
+
+        // このブロックの行数を調べる。
+        let count = {
+            1 + prm[row + 1..]
+                .iter()
+                .take_while(|s| match s.chars().next() {
+                    Some(c) => c.is_whitespace(),
+                    None => false,
+                })
+                .count()
+        };
+        let details = prm[row..row + count].join("\n");
+        row += count;
+
+        if let Some(p) = params
+            .iter_mut()
+            .find(|p| details.starts_with(&p.name) && p.details_opt.is_none())
+        {
+            p.details_opt = Some(details);
+        }
+    }
+
+    params
 }
 
 /// ディレクトリに含まれるすべてのヘルプソースファイルからすべてのシンボル情報を抽出する。
@@ -267,4 +321,76 @@ pub(crate) fn collect_all_symbols(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use expect_test::expect;
+
+    #[test]
+    fn test_parse_prm_section() {
+        let prm = r#""message", model, mode
+"message": 表示する文字列
+mode (0): モード
+          これは2行目。
+model: モデル"#;
+
+        let lines = prm.lines().collect::<Vec<_>>();
+        let params = parse_prm_section(&lines);
+        expect![[r#"
+            [
+                (
+                    "\"message\"",
+                    Some(
+                        "\"message\": 表示する文字列",
+                    ),
+                ),
+                (
+                    "model",
+                    Some(
+                        "model: モデル",
+                    ),
+                ),
+                (
+                    "mode",
+                    Some(
+                        "mode (0): モード\n          これは2行目。",
+                    ),
+                ),
+            ]"#]]
+        .assert_eq(&format!(
+            "{:#?}",
+            params
+                .into_iter()
+                .map(|p| (p.name, p.details_opt))
+                .collect::<Vec<_>>()
+        ));
+    }
+
+    #[test]
+    fn test_parse_prm_section_func() {
+        let prm = r#"(n)
+n 数値"#;
+
+        let lines = prm.lines().collect::<Vec<_>>();
+        let params = parse_prm_section(&lines);
+
+        expect![[r#"
+            [
+                (
+                    "n",
+                    Some(
+                        "n 数値",
+                    ),
+                ),
+            ]"#]]
+        .assert_eq(&format!(
+            "{:#?}",
+            params
+                .into_iter()
+                .map(|p| (p.name, p.details_opt))
+                .collect::<Vec<_>>()
+        ));
+    }
 }

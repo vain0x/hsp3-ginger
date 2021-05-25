@@ -111,32 +111,16 @@ impl LangService {
                     name,
                     description,
                     documentation,
-                    signature_opt,
-                    mut param_info,
+                    params_opt,
                 } = symbol;
 
                 let name_rc = RcStr::from(name.clone());
 
-                let signature_opt = signature_opt.map(|s| {
-                    let params = {
-                        let mut s = s.as_str().trim();
-
-                        if s.starts_with('(') {
-                            s = s[1..].trim_end_matches(')').trim();
-                        }
-
-                        s.split(",")
-                            .map(|name| {
-                                let name = name.trim().to_string();
-                                let info_opt = param_info
-                                    .iter_mut()
-                                    .find(|s| s.starts_with(&name))
-                                    .map(take);
-
-                                (None, Some(name.into()), info_opt)
-                            })
-                            .collect::<Vec<_>>()
-                    };
+                let signature_opt = params_opt.map(|params| {
+                    let params = params
+                        .into_iter()
+                        .map(|p| (None, Some(p.name.into()), p.details_opt))
+                        .collect();
 
                     Rc::new(ASignatureData {
                         name: name_rc.clone(),
