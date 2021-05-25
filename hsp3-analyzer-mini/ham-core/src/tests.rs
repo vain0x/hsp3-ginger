@@ -304,7 +304,6 @@ fn formatting_tests() {
         for (i, _) in text.match_indices("^indent=") {
             let s = &text[i..];
             let n = {
-                eprintln!("i={} s={:?}", i, s.chars().take(10).collect::<String>());
                 let s = &s["^indent=".len()..];
                 let c = s.chars().next().unwrap();
                 assert!(c.is_ascii_digit());
