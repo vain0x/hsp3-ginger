@@ -112,6 +112,7 @@ impl LangService {
                     description,
                     documentation,
                     params_opt,
+                    builtin,
                 } = symbol;
 
                 let name_rc = RcStr::from(name.clone());
@@ -145,16 +146,7 @@ impl LangService {
                 builtin_env.insert(name_rc.clone(), symbol);
 
                 // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
-                let sort_prefix = if name.starts_with("#") || name.starts_with("_") {
-                    'y'
-                } else if documentation
-                    .last()
-                    .map_or(false, |s| s.contains("標準命令") || s.contains("標準関数"))
-                {
-                    'x'
-                } else {
-                    'z'
-                };
+                let sort_prefix = if builtin { 'x' } else { 'y' };
 
                 // '#' なし
                 let word = if name.as_str().starts_with("#") {

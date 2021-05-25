@@ -12,6 +12,9 @@ pub(crate) struct HsSymbol {
     pub(crate) description: Option<String>,
     pub(crate) documentation: Vec<String>,
     pub(crate) params_opt: Option<Vec<HsParamInfo>>,
+
+    /// 標準命令か関数？
+    pub(crate) builtin: bool,
 }
 
 fn str_is_whitespace(s: &str) -> bool {
@@ -180,6 +183,7 @@ fn parse_for_symbols(
 
         let mut documentation = vec![];
         let mut params_opt = None;
+        let mut builtin = false;
 
         if let Some(prm) = map.get("prm") {
             params_opt = Some(parse_prm_section(prm));
@@ -191,6 +195,15 @@ fn parse_for_symbols(
         }
 
         if let Some(note) = map.get("note") {
+            if !name.starts_with("#")
+                && !name.starts_with("_")
+                && note
+                    .iter()
+                    .any(|s| s.contains("標準命令") || s.contains("標準関数"))
+            {
+                builtin = true;
+            }
+
             documentation.push(note.join(EOL));
         }
 
@@ -199,6 +212,7 @@ fn parse_for_symbols(
             description,
             documentation,
             params_opt,
+            builtin,
         });
     }
 }
