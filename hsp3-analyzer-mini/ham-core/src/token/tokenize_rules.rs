@@ -609,6 +609,16 @@ mod tests {
         assert_eq!(tokenize_str_to_kinds("iff"), vec![TokenKind::Ident]);
     }
 
+    // 数値の直後にある不要な文字は識別子トークンとみなすべきではないが、これで問題になるケースはたぶんなかったはずなので後回し。
+    #[test]
+    #[cfg(skip)]
+    fn number_immediately_followed_by_ident() {
+        assert_eq!(
+            tokenize_str_to_kinds("1a"),
+            vec![TokenKind::Number, TokenKind::Bad]
+        );
+    }
+
     #[test]
     fn punctuations() {
         assert_eq!(
