@@ -188,16 +188,20 @@ pub(crate) fn signature_help(
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::lang_service::{docs::NO_VERSION, LangService};
 
-    use super::*;
+    fn dummy_url(s: &str) -> Url {
+        let dummy_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".no_exist");
+        Url::from_file_path(&dummy_root.join(s)).unwrap()
+    }
 
     #[test]
     fn test() {
         let mut ls = LangService::new_standalone();
 
         ls.open_doc(
-            Url::from_file_path("/mod_signature_help.hsp").unwrap(),
+            dummy_url("mod_signature_help.hsp"),
             NO_VERSION,
             r#"
 #module
@@ -208,7 +212,7 @@ mod tests {
             .into(),
         );
 
-        let main_uri = Url::from_file_path("/main.hsp").unwrap();
+        let main_uri = dummy_url("main.hsp");
         ls.open_doc(
             main_uri.clone(),
             NO_VERSION,
@@ -266,7 +270,7 @@ f 1, ""
         let mut ls = LangService::new_standalone();
 
         ls.open_doc(
-            Url::from_file_path("/mod_signature_help.hsp").unwrap(),
+            dummy_url("mod_signature_help.hsp"),
             NO_VERSION,
             r#"
 #module
@@ -277,7 +281,7 @@ f 1, ""
             .into(),
         );
 
-        let main_uri = Url::from_file_path("/main.hsp").unwrap();
+        let main_uri = dummy_url("main.hsp");
         ls.open_doc(main_uri.clone(), NO_VERSION, r#"mes f(1, "")"#.into());
 
         let opt = ls.signature_help(
