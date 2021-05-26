@@ -52,6 +52,7 @@ fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx)
         details_opt: None,
         preproc_def_site_opt: None,
         signature_opt: Default::default(),
+        linked_symbol_opt: Default::default(),
     });
     ctx.symbols.push(symbol.clone());
 

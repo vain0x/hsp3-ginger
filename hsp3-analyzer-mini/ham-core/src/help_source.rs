@@ -1,7 +1,6 @@
 //! HSP Help Source (.hs) ファイルの解析
 
 use super::*;
-use crate::utils::read_file::read_file;
 
 const EOL: &str = "\r\n";
 
@@ -21,24 +20,8 @@ fn str_is_whitespace(s: &str) -> bool {
     s.chars().all(|c| c.is_whitespace())
 }
 
-/// ディレクトリにあるヘルプソースファイルを列挙する
-fn read_dir(hsphelp_dir: &Path, out: &mut Vec<PathBuf>) -> io::Result<()> {
-    for entry in fs::read_dir(&hsphelp_dir)? {
-        let entry = entry?;
-
-        if entry.path().extension().map_or(true, |ext| ext != "hs") {
-            continue;
-        }
-
-        out.push(hsphelp_dir.join(entry.path()));
-    }
-
-    Ok(())
-}
-
 /// ヘルプソースファイルを解析してシンボル情報を集める。
-fn parse_for_symbols(
-    file_path: &str,
+pub(crate) fn parse_for_symbols(
     content: &str,
     symbols: &mut Vec<HsSymbol>,
     warnings: &mut Vec<String>,
@@ -164,7 +147,7 @@ fn parse_for_symbols(
         let index_lines = match map.get_mut("index") {
             None => {
                 // unreachable?
-                warnings.push(format!("%index がみつかりません {}", file_path));
+                warnings.push("%index がみつかりません。".into());
                 continue;
             }
             Some(index_lines) => index_lines,
@@ -173,7 +156,7 @@ fn parse_for_symbols(
         let name = match index_lines.drain(..1).next() {
             None => {
                 // unreachable?
-                warnings.push(format!("%index が空です {}", file_path));
+                warnings.push("%index が空です。".into());
                 continue;
             }
             Some(name) => name,
@@ -299,42 +282,6 @@ fn parse_prm_section(prm: &[&str]) -> Vec<HsParamInfo> {
     }
 
     params
-}
-
-/// ディレクトリに含まれるすべてのヘルプソースファイルからすべてのシンボル情報を抽出する。
-pub(crate) fn collect_all_symbols(
-    hsp3_home: &Path,
-    file_count: &mut usize,
-    symbols: &mut Vec<HsSymbol>,
-    warnings: &mut Vec<String>,
-) -> io::Result<()> {
-    let hsphelp_dir = hsp3_home.join("hsphelp");
-
-    let mut help_files = vec![];
-    read_dir(&hsphelp_dir, &mut help_files)?;
-
-    let mut content = String::new();
-    for file in help_files {
-        content.clear();
-
-        if !read_file(&file, &mut content) {
-            warnings.push(format!(
-                "ファイル {} は開けないか、shift_jis でも UTF-8 でもありません。",
-                file.to_str().unwrap_or("???.hs")
-            ));
-            continue;
-        }
-
-        parse_for_symbols(
-            file.to_str().unwrap_or("???.hs"),
-            &content,
-            symbols,
-            warnings,
-        );
-        *file_count += 1;
-    }
-
-    Ok(())
 }
 
 #[cfg(test)]

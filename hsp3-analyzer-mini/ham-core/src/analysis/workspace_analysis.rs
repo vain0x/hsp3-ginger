@@ -7,6 +7,7 @@ type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
 pub(crate) struct WorkspaceHost {
     pub(crate) builtin_env: Rc<SymbolEnv>,
     pub(crate) common_docs: Rc<HashMap<String, DocId>>,
+    pub(crate) hsphelp_info: Rc<HspHelpInfo>,
     pub(crate) entrypoints: Vec<DocId>,
 }
 
@@ -26,6 +27,7 @@ impl WorkspaceAnalysis {
     pub(crate) fn initialize(&mut self, host: WorkspaceHost) {
         let WorkspaceHost {
             common_docs,
+            hsphelp_info,
             builtin_env,
             entrypoints,
         } = host;
@@ -34,6 +36,7 @@ impl WorkspaceAnalysis {
             let mut p = ProjectAnalysis::default();
             p.entrypoints = EntryPoints::Docs(entrypoints);
             p.common_docs = common_docs.clone();
+            p.hsphelp_info = hsphelp_info.clone();
             p.public_env.builtin = builtin_env.clone();
             Some(p)
         } else {
@@ -42,6 +45,7 @@ impl WorkspaceAnalysis {
 
         self.project1.entrypoints = EntryPoints::NonCommon;
         self.project1.common_docs = common_docs;
+        self.project1.hsphelp_info = hsphelp_info;
         self.project1.public_env.builtin = builtin_env;
     }
 

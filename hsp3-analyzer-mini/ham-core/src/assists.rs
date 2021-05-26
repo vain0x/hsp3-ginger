@@ -19,7 +19,6 @@ pub(crate) mod rewrites {
 use super::*;
 use crate::{
     analysis::*,
-    assists::completion::collect_preproc_completion_items,
     lang_service::docs::{Docs, NO_VERSION},
     source::*,
     token::TokenKind,

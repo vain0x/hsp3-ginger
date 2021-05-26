@@ -1,7 +1,7 @@
 pub(crate) mod docs;
 pub(crate) mod file_watcher;
 mod search_common;
-mod search_hsphelp;
+pub(crate) mod search_hsphelp;
 
 use self::{
     docs::{DocChange, Docs},
@@ -11,7 +11,7 @@ use super::*;
 use crate::{
     analysis::*,
     assists::{self, diagnose::DiagnosticsCache},
-    help_source::{collect_all_symbols, HsSymbol},
+    help_source::HsSymbol,
     lang_service::{
         docs::DocChangeOrigin, search_common::search_common, search_hsphelp::search_hsphelp,
     },
@@ -51,7 +51,6 @@ pub(super) struct LangService {
     options: LangServiceOptions,
     docs: Docs,
     diagnostics_cache: DiagnosticsCache,
-    hsphelp_symbols: Vec<CompletionItem>,
     file_watcher_opt: Option<FileWatcher>,
 }
 
@@ -91,12 +90,13 @@ impl LangService {
 
         search_common(&self.hsp3_home, &mut self.docs, &mut common_docs);
 
-        search_hsphelp(
+        let hsphelp_info = search_hsphelp(
             &self.hsp3_home,
+            &common_docs,
             &mut self.docs,
             &mut builtin_env,
-            &mut self.hsphelp_symbols,
-        );
+        )
+        .unwrap_or_default();
 
         info!("ルートディレクトリからgingerプロジェクトファイルを収集します。");
         {
@@ -146,6 +146,7 @@ impl LangService {
         self.wa.initialize(WorkspaceHost {
             builtin_env: Rc::new(builtin_env),
             common_docs: Rc::new(common_docs),
+            hsphelp_info: Rc::new(hsphelp_info),
             entrypoints,
         });
 
@@ -273,14 +274,8 @@ impl LangService {
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
 
-        assists::completion::completion(
-            uri,
-            position,
-            &self.docs,
-            &mut self.wa,
-            &self.hsphelp_symbols,
-        )
-        .unwrap_or_else(assists::completion::incomplete_completion_list)
+        assists::completion::completion(uri, position, &self.docs, &mut self.wa)
+            .unwrap_or_else(assists::completion::incomplete_completion_list)
     }
 
     pub(crate) fn formatting(&mut self, uri: Url) -> Option<Vec<TextEdit>> {
@@ -315,13 +310,7 @@ impl LangService {
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
 
-        assists::hover::hover(
-            uri,
-            position,
-            &self.docs,
-            &mut self.wa,
-            &self.hsphelp_symbols,
-        )
+        assists::hover::hover(uri, position, &self.docs, &mut self.wa)
     }
 
     pub(super) fn references(

@@ -81,6 +81,7 @@ fn add_symbol(
         details_opt: None,
         preproc_def_site_opt: Some(name.body.loc),
         signature_opt: Default::default(),
+        linked_symbol_opt: Default::default(),
     });
     symbols.push(symbol.clone());
     symbol

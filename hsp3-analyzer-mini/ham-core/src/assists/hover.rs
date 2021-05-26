@@ -1,7 +1,6 @@
 use super::*;
 use lsp_types::{
-    CompletionItem, Documentation, Hover, HoverContents, MarkedString, MarkupContent, MarkupKind,
-    Position, Url,
+    Documentation, Hover, HoverContents, MarkedString, MarkupContent, MarkupKind, Position, Url,
 };
 
 pub(crate) fn hover(
@@ -9,7 +8,6 @@ pub(crate) fn hover(
     position: Position,
     docs: &Docs,
     wa: &mut WorkspaceAnalysis,
-    hsphelp_symbols: &[CompletionItem],
 ) -> Option<Hover> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
     let project = wa.require_project_for_doc(doc);
@@ -34,17 +32,14 @@ pub(crate) fn hover(
         let (_, tokens, _) = wa.get_tokens(doc)?;
 
         let mut completion_items = vec![];
-        let items = if in_preproc(pos, &tokens) {
-            collect_preproc_completion_items(&hsphelp_symbols, &mut completion_items);
-            &completion_items
-        } else {
-            hsphelp_symbols
-        };
+        if in_preproc(pos, &tokens) {
+            wa.require_project_for_doc(doc)
+                .collect_preproc_completion_items(&mut completion_items);
+        }
 
-        let item = items
-            .iter()
-            .find(|s| s.label.trim_start_matches('#') == name.as_str())?
-            .clone();
+        let item = completion_items
+            .into_iter()
+            .find(|s| s.label.trim_start_matches('#') == name.as_str())?;
 
         let mut contents = vec![];
         contents.push(plain_text_to_marked_string(name.to_string())); // FIXME: %prmの1行目を使ったほうがいい

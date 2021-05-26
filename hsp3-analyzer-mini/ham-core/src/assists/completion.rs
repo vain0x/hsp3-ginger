@@ -49,40 +49,6 @@ pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
     }
 }
 
-pub(crate) fn collect_preproc_completion_items(
-    other_items: &[CompletionItem],
-    items: &mut Vec<CompletionItem>,
-) {
-    let sort_prefix = 'a';
-
-    for (keyword, detail) in &[
-        ("ctype", "関数形式のマクロを表す"),
-        ("global", "グローバルスコープを表す"),
-        ("local", "localパラメータ、またはローカルスコープを表す"),
-        ("int", "整数型のパラメータ、または整数型の定数を表す"),
-        ("double", "実数型のパラメータ、または実数型の定数を表す"),
-        ("str", "文字列型のパラメータを表す"),
-        ("label", "ラベル型のパラメータを表す"),
-        ("var", "変数 (配列要素) のパラメータを表す"),
-        ("array", "配列変数のパラメータを表す"),
-    ] {
-        items.push(CompletionItem {
-            kind: Some(CompletionItemKind::Keyword),
-            label: keyword.to_string(),
-            detail: Some(detail.to_string()),
-            sort_text: Some(format!("{}{}", sort_prefix, keyword)),
-            ..CompletionItem::default()
-        });
-    }
-
-    items.extend(
-        other_items
-            .iter()
-            .filter(|item| item.label.starts_with("#"))
-            .cloned(),
-    );
-}
-
 fn collect_local_completion_items(
     symbols: &[SymbolRc],
     local: &LocalScope,
@@ -147,7 +113,6 @@ pub(crate) fn completion(
     position: Position,
     docs: &Docs,
     wa: &mut WorkspaceAnalysis,
-    other_items: &[CompletionItem],
 ) -> Option<CompletionList> {
     let mut items = vec![];
 
@@ -158,7 +123,8 @@ pub(crate) fn completion(
     }
 
     if wa.in_preproc(doc, pos).unwrap_or(false) {
-        collect_preproc_completion_items(other_items, &mut items);
+        wa.require_project_for_doc(doc)
+            .collect_preproc_completion_items(&mut items);
         return Some(CompletionList {
             is_incomplete: false,
             items,
@@ -166,8 +132,8 @@ pub(crate) fn completion(
     }
 
     let mut completion_items = vec![];
-    wa.require_project_for_doc(doc)
-        .collect_completion_items(doc, pos, &mut completion_items);
+    let p = wa.require_project_for_doc(doc);
+    p.collect_completion_items(doc, pos, &mut completion_items);
 
     for item in completion_items {
         match item {
@@ -219,15 +185,18 @@ pub(crate) fn completion(
                     (None, _) => 'g',
                 };
 
+                let detail = details.desc.map(|s| s.to_string());
+                let documentation = if details.docs.is_empty() {
+                    None
+                } else {
+                    Some(Documentation::String(details.docs.join("\r\n\r\n")))
+                };
+
                 items.push(CompletionItem {
                     kind: Some(kind),
                     label: symbol.name.to_string(),
-                    detail: details.desc.map(|s| s.to_string()),
-                    documentation: if details.docs.is_empty() {
-                        None
-                    } else {
-                        Some(Documentation::String(details.docs.join("\r\n\r\n")))
-                    },
+                    detail,
+                    documentation,
                     sort_text: Some(format!("{}{}", sort_prefix, symbol.name)),
                     ..CompletionItem::default()
                 });
@@ -235,12 +204,7 @@ pub(crate) fn completion(
         }
     }
 
-    items.extend(
-        other_items
-            .iter()
-            .filter(|item| !item.label.starts_with("#"))
-            .cloned(),
-    );
+    p.collect_hsphelp_completion_items(&mut items);
 
     Some(CompletionList {
         is_incomplete: false,

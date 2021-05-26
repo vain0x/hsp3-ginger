@@ -26,11 +26,15 @@ pub(crate) struct ProjectAnalysis {
     // 入力:
     pub(crate) entrypoints: EntryPoints,
     pub(super) common_docs: Rc<HashMap<String, DocId>>,
+    pub(super) hsphelp_info: Rc<HspHelpInfo>,
     pub(super) project_docs: Rc<ProjectDocs>,
 
     // 解析結果:
     computed: bool,
     pub(super) active_docs: HashSet<DocId>,
+    pub(super) active_help_docs: HashSet<DocId>,
+    // common doc -> hsphelp doc
+    pub(super) help_docs: HashMap<DocId, DocId>,
     pub(super) public_env: PublicEnv,
     pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
     pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
@@ -45,6 +49,8 @@ impl ProjectAnalysis {
     pub(crate) fn invalidate(&mut self) {
         self.computed = false;
         self.active_docs.clear();
+        self.active_help_docs.clear();
+        self.help_docs.clear();
         self.public_env.clear();
         self.ns_env.clear();
         self.doc_symbols_map.clear();
@@ -61,9 +67,12 @@ impl ProjectAnalysis {
 
     fn compute_active_docs(&mut self, doc_analysis_map: &DocAnalysisMap) {
         let entrypoints = &self.entrypoints;
-        let common_docs = &self.common_docs;
-        let project_docs = &self.project_docs;
+        let common_docs = self.common_docs.as_ref();
+        let hsphelp_info = self.hsphelp_info.as_ref();
+        let project_docs = self.project_docs.as_ref();
         let active_docs = &mut self.active_docs;
+        let help_docs = &mut self.help_docs;
+        let active_help_docs = &mut self.active_help_docs;
         let diagnostics = &mut self.diagnostics;
 
         match entrypoints {
@@ -130,6 +139,19 @@ impl ProjectAnalysis {
                 );
             }
         }
+
+        // hsphelp
+        {
+            trace!("active_help_docs.len={}", active_help_docs.len());
+            active_help_docs.extend(hsphelp_info.builtin_docs.iter().cloned());
+
+            for (&common_doc, &hs_doc) in &hsphelp_info.linked_docs {
+                if active_docs.contains(&common_doc) {
+                    active_help_docs.insert(hs_doc);
+                    help_docs.insert(common_doc, hs_doc);
+                }
+            }
+        }
     }
 
     fn compute_symbols(&mut self, doc_analysis_map: &DocAnalysisMap, module_map: &ModuleMap) {
@@ -179,6 +201,30 @@ impl ProjectAnalysis {
                 def_sites,
                 use_sites,
             );
+
+            // ヘルプファイルの情報をシンボルに統合する。
+            if let Some(hs_doc) = self.help_docs.get(&doc) {
+                if let Some(hs_symbols) = self.hsphelp_info.doc_symbols.get(&hs_doc) {
+                    let mut hs_symbols_map = hs_symbols
+                        .iter()
+                        .map(|s| (s.label.as_str(), s.clone()))
+                        .collect::<HashMap<_, _>>();
+
+                    for symbol in symbols {
+                        let mut link_opt = symbol.linked_symbol_opt.borrow_mut();
+                        if link_opt.is_some() {
+                            continue;
+                        }
+
+                        let s = match hs_symbols_map.remove(symbol.name.as_str()) {
+                            Some(it) => it,
+                            None => continue,
+                        };
+
+                        *link_opt = Some(s.clone());
+                    }
+                }
+            }
         }
     }
 
@@ -311,6 +357,62 @@ impl<'a> ProjectAnalysisRef<'a> {
             .collect::<Vec<_>>();
 
         collect_symbols_as_completion_items(doc, scope, &doc_symbols, completion_items);
+    }
+
+    // FIXME: lsp_typesをここで使うべきではない
+    pub(crate) fn collect_hsphelp_completion_items(
+        self,
+        completion_items: &mut Vec<lsp_types::CompletionItem>,
+    ) {
+        let p = self.project;
+
+        completion_items.extend(
+            p.hsphelp_info
+                .doc_symbols
+                .iter()
+                .filter(|(&doc, _)| p.active_help_docs.contains(&doc))
+                .flat_map(|(_, symbols)| symbols.iter().filter(|s| !s.label.starts_with("#")))
+                .cloned(),
+        );
+    }
+
+    // FIXME: lsp_typesをここで使うべきではない
+    pub(crate) fn collect_preproc_completion_items(
+        self,
+        completion_items: &mut Vec<lsp_types::CompletionItem>,
+    ) {
+        let p = self.project;
+
+        for (keyword, detail) in &[
+            ("ctype", "関数形式のマクロを表す"),
+            ("global", "グローバルスコープを表す"),
+            ("local", "localパラメータ、またはローカルスコープを表す"),
+            ("int", "整数型のパラメータ、または整数型の定数を表す"),
+            ("double", "実数型のパラメータ、または実数型の定数を表す"),
+            ("str", "文字列型のパラメータを表す"),
+            ("label", "ラベル型のパラメータを表す"),
+            ("var", "変数 (配列要素) のパラメータを表す"),
+            ("array", "配列変数のパラメータを表す"),
+        ] {
+            use lsp_types::{CompletionItem as CI, CompletionItemKind as K};
+            let sort_prefix = 'a';
+            completion_items.push(CI {
+                kind: Some(K::Keyword),
+                label: keyword.to_string(),
+                detail: Some(detail.to_string()),
+                sort_text: Some(format!("{}{}", sort_prefix, keyword)),
+                ..CI::default()
+            });
+        }
+
+        completion_items.extend(
+            p.hsphelp_info
+                .doc_symbols
+                .iter()
+                .filter(|(&doc, _)| p.active_help_docs.contains(&doc))
+                .flat_map(|(_, symbols)| symbols.iter().filter(|s| s.label.starts_with("#")))
+                .cloned(),
+        );
     }
 
     pub(crate) fn collect_all_symbols(self, name_filter: &str, symbols: &mut Vec<(SymbolRc, Loc)>) {

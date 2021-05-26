@@ -95,6 +95,22 @@ impl SymbolRc {
             return details.clone();
         }
 
+        let item_opt = self.linked_symbol_opt.borrow();
+        if let Some(item) = item_opt.as_ref() {
+            return ASymbolDetails {
+                desc: item.detail.clone().map(RcStr::from),
+                docs: item
+                    .documentation
+                    .as_ref()
+                    .into_iter()
+                    .flat_map(|text| match text {
+                        lsp_types::Documentation::String(it) => Some(it.clone()),
+                        _ => None,
+                    })
+                    .collect(),
+            };
+        }
+
         match &self.leader_opt {
             Some(leader) => calculate_details(&collect_comments(leader)),
             None => ASymbolDetails::default(),
@@ -151,6 +167,7 @@ pub(crate) struct ASymbolData {
 
     // 追加の情報:
     pub(crate) signature_opt: RefCell<Option<Rc<ASignatureData>>>,
+    pub(crate) linked_symbol_opt: RefCell<Option<lsp_types::CompletionItem>>,
 }
 
 #[derive(Clone, Default)]
