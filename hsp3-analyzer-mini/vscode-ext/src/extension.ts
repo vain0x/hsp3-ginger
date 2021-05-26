@@ -26,8 +26,11 @@ const retrying = async <A>(action: () => Promise<A>, options: { count: number, i
 
     try {
       return await action()
-    } catch {
-      // Pass.
+    } catch (err) {
+      // 初回だけエラーを報告する。
+      if (count === options.count) {
+        console.warn("warn: Error occurred.", err, "Retrying...")
+      }
     }
     count--
     await delay(options.interval)
