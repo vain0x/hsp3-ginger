@@ -8,6 +8,13 @@ pub(crate) struct Loc {
 }
 
 impl Loc {
+    pub(crate) fn from_doc(doc: DocId) -> Self {
+        Loc {
+            doc,
+            range: Range::empty(Pos::default()),
+        }
+    }
+
     pub(crate) fn new3(doc: DocId, start: Pos, end: Pos) -> Self {
         Loc {
             doc,

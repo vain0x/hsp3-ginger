@@ -41,6 +41,9 @@ pub(crate) struct ProjectAnalysis {
     pub(super) def_sites: Vec<(SymbolRc, Loc)>,
     pub(super) use_sites: Vec<(SymbolRc, Loc)>,
 
+    /// (loc, doc): locにあるincludeがdocに解決されたことを表す。
+    pub(super) include_resolution: Vec<(Loc, DocId)>,
+
     diagnosed: bool,
     pub(super) diagnostics: Vec<(String, Loc)>,
 }
@@ -56,6 +59,7 @@ impl ProjectAnalysis {
         self.doc_symbols_map.clear();
         self.def_sites.clear();
         self.use_sites.clear();
+        self.include_resolution.clear();
 
         self.diagnosed = false;
         self.diagnostics.clear();
@@ -73,6 +77,7 @@ impl ProjectAnalysis {
         let active_docs = &mut self.active_docs;
         let help_docs = &mut self.help_docs;
         let active_help_docs = &mut self.active_help_docs;
+        let include_resolution = &mut self.include_resolution;
         let diagnostics = &mut self.diagnostics;
 
         match entrypoints {
@@ -93,7 +98,7 @@ impl ProjectAnalysis {
                         None => continue,
                     };
 
-                    for (path, loc) in &da.includes {
+                    for &(ref path, loc) in &da.includes {
                         let path = path.as_str();
                         let doc_opt = project_docs
                             .find(path, Some(loc.doc))
@@ -108,6 +113,7 @@ impl ProjectAnalysis {
                                 continue;
                             }
                         };
+                        include_resolution.push((loc, d));
                         if active_docs.insert(d) {
                             stack.push((d, Some(loc)));
                         }
@@ -466,6 +472,16 @@ impl<'a> ProjectAnalysisRef<'a> {
             let loc = def_site_map.get(&symbol)?;
             Some((symbol.clone(), *loc))
         }));
+    }
+
+    pub(crate) fn find_include_target(self, doc: DocId, pos: Pos16) -> Option<DocId> {
+        let p = self.project;
+        let (_, dest_doc) = *p
+            .include_resolution
+            .iter()
+            .find(|&(loc, _)| loc.is_touched(doc, pos))?;
+
+        Some(dest_doc)
     }
 }
 
