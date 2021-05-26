@@ -1,5 +1,6 @@
 pub(crate) mod docs;
 pub(crate) mod file_watcher;
+mod search_common;
 
 use self::{
     docs::{DocChange, Docs},
@@ -10,7 +11,7 @@ use crate::{
     analysis::*,
     assists::{self, diagnose::DiagnosticsCache},
     help_source::{collect_all_symbols, HsSymbol},
-    lang_service::docs::DocChangeOrigin,
+    lang_service::{docs::DocChangeOrigin, search_common::search_common},
     utils::read_file::read_file,
 };
 use lsp_types::*;
@@ -84,6 +85,8 @@ impl LangService {
         let mut builtin_env = SymbolEnv::default();
         let mut common_docs = HashMap::new();
         let mut entrypoints = vec![];
+
+        search_common(&self.hsp3_home, &mut self.docs, &mut common_docs);
 
         info!("hsphelp ファイルからシンボルを探索します。");
         let mut file_count = 0;
@@ -171,50 +174,6 @@ impl LangService {
                 }
             })
             .collect();
-
-        info!("common ディレクトリからシンボルを探索します。");
-        {
-            let common_dir = self.hsp3_home.join("common");
-
-            let patterns = match common_dir.to_str() {
-                Some(dir) => vec![format!("{}/**/*.hsp", dir), format!("{}/**/*.as", dir)],
-                None => vec![],
-            };
-
-            for path in patterns
-                .into_iter()
-                .flat_map(|pattern| glob::glob(&pattern).unwrap())
-                .flat_map(|result| result.ok())
-            {
-                if let Some(uri) = CanonicalUri::from_file_path(&path) {
-                    let mut contents = String::new();
-                    if !read_file(&path, &mut contents) {
-                        warn!("cannot read {:?}", path);
-                        continue;
-                    };
-                    self.open_doc(uri.clone().into_url(), 1, contents);
-
-                    let doc = self.docs.find_by_uri(&uri).unwrap();
-
-                    (|| -> Option<()> {
-                        let relative = path
-                            .strip_prefix(&common_dir)
-                            .ok()?
-                            .components()
-                            .map(|c| match c {
-                                path::Component::Normal(s) => s.to_str(),
-                                _ => None,
-                            })
-                            .collect::<Option<Vec<&str>>>()?
-                            .join("/");
-
-                        common_docs.insert(relative, doc);
-
-                        None
-                    })();
-                }
-            }
-        }
 
         info!("ルートディレクトリからgingerプロジェクトファイルを収集します。");
         {
