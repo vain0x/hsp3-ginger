@@ -319,7 +319,16 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.workspace_symbol(msg.params);
                 self.sender.send_response(msg.id, response);
             }
-            _ => self.sender.send_error_code(msg.id, error::METHOD_NOT_FOUND),
+            "$/cancelRequest" => self.sender.send_error_code(
+                msg.id,
+                error::METHOD_NOT_FOUND,
+                "キャンセルは未実装です。",
+            ),
+            _ => self.sender.send_error_code(
+                msg.id,
+                error::METHOD_NOT_FOUND,
+                "未実装のメソッドを無視します。",
+            ),
         }
     }
 

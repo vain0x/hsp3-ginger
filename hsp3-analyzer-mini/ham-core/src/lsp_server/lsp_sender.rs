@@ -67,7 +67,7 @@ impl<W: io::Write> LspSender<W> {
         self.do_send(&buf);
     }
 
-    pub(crate) fn send_error_code(&mut self, id: Option<Value>, code: i64) {
+    pub(crate) fn send_error_code(&mut self, id: Option<Value>, code: i64, msg: &str) {
         let mut buf = Vec::new();
         serde_json::to_writer(
             &mut buf,
@@ -76,7 +76,7 @@ impl<W: io::Write> LspSender<W> {
                 id: id.unwrap_or(Value::Null),
                 error: LspError {
                     code,
-                    msg: "Something wrong.".into(),
+                    msg: msg.to_string(),
                     // data: Value::Null,
                 },
             },
