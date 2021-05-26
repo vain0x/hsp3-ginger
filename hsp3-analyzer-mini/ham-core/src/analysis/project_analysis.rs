@@ -26,7 +26,7 @@ pub(crate) struct ProjectAnalysis {
     // 入力:
     pub(crate) entrypoints: EntryPoints,
     pub(super) common_docs: Rc<HashMap<String, DocId>>,
-    pub(super) project_docs: Rc<HashMap<String, DocId>>,
+    pub(super) project_docs: Rc<ProjectDocs>,
 
     // 解析結果:
     computed: bool,
@@ -87,8 +87,7 @@ impl ProjectAnalysis {
                     for (path, loc) in &da.includes {
                         let path = path.as_str();
                         let doc_opt = project_docs
-                            .get(path)
-                            .cloned()
+                            .find(path, Some(loc.doc))
                             .or_else(|| common_docs.get(path).cloned());
                         let d = match doc_opt {
                             Some(it) => it,

@@ -59,7 +59,7 @@ impl WorkspaceAnalysis {
         self.doc_analysis_map.remove(&doc);
     }
 
-    pub(crate) fn set_project_docs(&mut self, project_docs: Rc<HashMap<String, DocId>>) {
+    pub(crate) fn set_project_docs(&mut self, project_docs: Rc<ProjectDocs>) {
         for p in [Some(&mut self.project1), self.project_opt.as_mut()]
             .iter_mut()
             .flatten()

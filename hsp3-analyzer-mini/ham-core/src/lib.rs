@@ -70,6 +70,7 @@ mod analysis {
     };
 
     use crate::{
+        lang_service::docs::ProjectDocs,
         parse::{PRoot, PToken},
         source::*,
         token::{TokenData, TokenKind},
