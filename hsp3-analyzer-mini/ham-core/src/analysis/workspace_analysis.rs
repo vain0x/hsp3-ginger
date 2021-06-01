@@ -271,5 +271,7 @@ impl WorkspaceAnalysis {
             .to_string();
             (msg, loc)
         }));
+
+        diagnostics.extend(p.diagnostics.clone());
     }
 }
