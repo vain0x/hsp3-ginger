@@ -3,15 +3,42 @@
 use super::*;
 use crate::parse::*;
 
+pub(crate) struct IncludeGuard<'a> {
+    pub(crate) define_stmt: Option<&'a PDefineStmt>,
+}
+
+impl<'a> IncludeGuard<'a> {
+    pub(crate) fn is_define_hash(&self, hash: &PToken) -> bool {
+        self.define_stmt
+            .map_or(false, |d| d.hash.body_pos() == hash.body_pos())
+    }
+}
+
+pub(crate) fn find_include_guard(root: &PRoot) -> Option<IncludeGuard> {
+    let (s1, s2) = match (root.stmts.get(0)?, root.stmts.get(1)?) {
+        (PStmt::UnknownPreProc(s1), PStmt::Define(s2)) => (s1, s2),
+        _ => return None,
+    };
+
+    let name = s2.name_opt.as_ref()?.body_text();
+    if !s1.tokens.iter().any(|t| t.body_text().contains(name)) {
+        return None;
+    }
+    Some(IncludeGuard {
+        define_stmt: Some(s2),
+    })
+}
+
 pub(crate) struct ASignatureData {
     pub(crate) name: RcStr,
     pub(crate) params: Vec<(Option<PParamTy>, Option<RcStr>, Option<String>)>,
 }
 
 #[derive(Default)]
-struct Ctx {
+struct Ctx<'a> {
     doc: DocId,
     symbols: Vec<SymbolRc>,
+    include_guard: Option<IncludeGuard<'a>>,
     includes: Vec<(RcStr, Loc)>,
     scope: LocalScope,
     module_map: ModuleMap,
@@ -20,7 +47,7 @@ struct Ctx {
     deffunc_len: usize,
 }
 
-impl Ctx {
+impl<'a> Ctx<'a> {
     fn privacy_scope_or_local(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ImportMode {
         match privacy_opt {
             Some((PPrivacy::Global, _)) => ImportMode::Global,
@@ -126,6 +153,14 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             name_opt,
             ..
         }) => {
+            if ctx
+                .include_guard
+                .as_ref()
+                .map_or(false, |g| g.is_define_hash(hash))
+            {
+                return;
+            }
+
             if let Some(name) = name_opt {
                 let scope = ctx.privacy_scope_or_local(privacy_opt);
                 let ctype = ctype_opt.is_some();
@@ -394,6 +429,7 @@ pub(crate) struct PreprocAnalysisResult {
 pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult {
     let mut ctx = Ctx::default();
     ctx.doc = doc;
+    ctx.include_guard = find_include_guard(root);
 
     for stmt in &root.stmts {
         on_stmt(stmt, &mut ctx);
