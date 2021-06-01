@@ -9,6 +9,12 @@ pub(crate) trait PVisitor {
         }
     }
 
+    fn on_tokens(&mut self, tokens: &[PToken]) {
+        for token in tokens {
+            self.on_token(token);
+        }
+    }
+
     fn on_label(&mut self, label: &PLabel) {
         self.on_token(&label.star);
         self.on_token_opt(label.name_opt.as_ref());
@@ -167,7 +173,29 @@ pub(crate) trait PVisitor {
                     self.on_block(&stmt.alt);
                 }
             }
-            PStmt::Const(_) | PStmt::Define(_) | PStmt::Enum(_) => {
+            PStmt::Const(_) => {
+                // FIXME: implement
+            }
+            PStmt::Define(stmt) => {
+                self.on_token(&stmt.hash);
+                self.on_token(&stmt.keyword);
+                self.on_token_opt(stmt.privacy_opt.as_ref().map(|(_, t)| t));
+                self.on_token_opt(stmt.ctype_opt.as_ref());
+                self.on_token_opt(stmt.name_opt.as_ref());
+                self.on_token_opt(stmt.left_paren_opt.as_ref());
+
+                for param in &stmt.params {
+                    self.on_token_opt(param.percent_opt.as_ref());
+                    self.on_token_opt(param.number_opt.as_ref());
+                    self.on_token_opt(param.equal_opt.as_ref());
+                    self.on_tokens(&param.init);
+                    self.on_token_opt(param.comma_opt.as_ref());
+                }
+
+                self.on_token_opt(stmt.right_paren_opt.as_ref());
+                self.on_tokens(&stmt.tokens);
+            }
+            PStmt::Enum(_) => {
                 // FIXME: implement
             }
             PStmt::DefFunc(stmt) => self.on_deffunc_stmt(stmt),
@@ -180,8 +208,12 @@ pub(crate) trait PVisitor {
                 // FIXME: implement
             }
             PStmt::Module(stmt) => self.on_module_stmt(stmt),
-            PStmt::Global(_) | PStmt::Include(_) | PStmt::UnknownPreProc(_) => {
+            PStmt::Global(_) | PStmt::Include(_) => {
                 // FIXME: implement
+            }
+            PStmt::UnknownPreProc(stmt) => {
+                self.on_token(&stmt.hash);
+                self.on_tokens(&stmt.tokens);
             }
         }
     }
