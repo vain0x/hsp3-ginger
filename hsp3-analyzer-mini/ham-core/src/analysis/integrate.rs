@@ -48,7 +48,7 @@ mod tests {
             .collect::<HashMap<_, _>>();
         let (text, cursors) = parse_cursor_string(text);
 
-        wa.update_doc(doc, text.into());
+        wa.update_doc(doc, Lang::Hsp3, text.into());
 
         let p = wa.require_project_for_doc(doc);
 
@@ -86,7 +86,7 @@ mod tests {
         .collect::<HashMap<_, _>>();
         let (text, cursors) = parse_cursor_string(text);
 
-        wa.update_doc(doc, text.into());
+        wa.update_doc(doc, Lang::Hsp3, text.into());
 
         let p = wa.require_project_for_doc(doc);
 

@@ -14,7 +14,7 @@ pub(crate) struct WorkspaceHost {
 #[derive(Default)]
 pub(crate) struct WorkspaceAnalysis {
     dirty_docs: HashSet<DocId>,
-    doc_texts: HashMap<DocId, RcStr>,
+    doc_texts: HashMap<DocId, (Lang, RcStr)>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     doc_analysis_map: DocAnalysisMap,
@@ -49,9 +49,9 @@ impl WorkspaceAnalysis {
         self.project1.public_env.builtin = builtin_env;
     }
 
-    pub(crate) fn update_doc(&mut self, doc: DocId, text: RcStr) {
+    pub(crate) fn update_doc(&mut self, doc: DocId, lang: Lang, text: RcStr) {
         self.dirty_docs.insert(doc);
-        self.doc_texts.insert(doc, text);
+        self.doc_texts.insert(doc, (lang, text));
         self.doc_analysis_map
             .entry(doc)
             .and_modify(|a| a.invalidate());
@@ -86,10 +86,18 @@ impl WorkspaceAnalysis {
         self.module_map.clear();
 
         for doc in self.dirty_docs.drain() {
-            let text = match self.doc_texts.get(&doc) {
-                Some(text) => text,
+            let (lang, text) = match self.doc_texts.get(&doc) {
+                Some(it) => it,
                 None => continue,
             };
+
+            match lang {
+                Lang::HelpSource => {
+                    // todo
+                    continue;
+                }
+                Lang::Hsp3 => {}
+            }
 
             let tokens = crate::token::tokenize(doc, text.clone());
             let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
@@ -134,7 +142,10 @@ impl WorkspaceAnalysis {
     pub(crate) fn get_tokens(&mut self, doc: DocId) -> Option<(RcStr, RcSlice<PToken>, &PRoot)> {
         self.compute();
 
-        let text = self.doc_texts.get(&doc)?;
+        let (_, text) = self
+            .doc_texts
+            .get(&doc)
+            .filter(|&&(lang, _)| lang == Lang::Hsp3)?;
         let da = self.doc_analysis_map.get(&doc)?;
         Some((text.clone(), da.tokens.clone(), da.tree_opt.as_ref()?))
     }

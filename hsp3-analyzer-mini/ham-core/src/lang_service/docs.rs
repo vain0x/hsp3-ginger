@@ -9,9 +9,19 @@ type TextDocumentVersion = i32;
 pub(crate) const NO_VERSION: TextDocumentVersion = 1;
 
 pub(crate) enum DocChange {
-    Opened { doc: DocId, origin: DocChangeOrigin },
-    Changed { doc: DocId, origin: DocChangeOrigin },
-    Closed { doc: DocId },
+    Opened {
+        doc: DocId,
+        lang: Lang,
+        origin: DocChangeOrigin,
+    },
+    Changed {
+        doc: DocId,
+        lang: Lang,
+        origin: DocChangeOrigin,
+    },
+    Closed {
+        doc: DocId,
+    },
 }
 
 pub(crate) enum DocChangeOrigin {
@@ -125,15 +135,23 @@ impl Docs {
         changes.extend(self.doc_changes.drain(..));
     }
 
-    fn do_open_doc(&mut self, doc: DocId, version: i32, origin: DocChangeOrigin) -> DocId {
+    fn do_open_doc(
+        &mut self,
+        doc: DocId,
+        version: i32,
+        lang: Lang,
+        origin: DocChangeOrigin,
+    ) -> DocId {
         self.doc_versions.insert(doc, version);
-        self.doc_changes.push(DocChange::Opened { doc, origin });
+        self.doc_changes
+            .push(DocChange::Opened { doc, lang, origin });
         doc
     }
 
-    fn do_change_doc(&mut self, doc: DocId, version: i32, origin: DocChangeOrigin) {
+    fn do_change_doc(&mut self, doc: DocId, version: i32, lang: Lang, origin: DocChangeOrigin) {
         self.doc_versions.insert(doc, version);
-        self.doc_changes.push(DocChange::Changed { doc, origin });
+        self.doc_changes
+            .push(DocChange::Changed { doc, lang, origin });
     }
 
     fn do_close_doc(&mut self, doc: DocId, uri: &CanonicalUri) {
@@ -154,9 +172,9 @@ impl Docs {
 
         let (created, doc) = self.touch_uri(uri);
         if created {
-            self.do_open_doc(doc, version, DocChangeOrigin::Editor(text));
+            self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         } else {
-            self.do_change_doc(doc, version, DocChangeOrigin::Editor(text));
+            self.do_change_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         }
 
         self.editor_docs.insert(doc);
@@ -173,9 +191,9 @@ impl Docs {
 
         let (created, doc) = self.touch_uri(uri);
         if created {
-            self.do_open_doc(doc, version, DocChangeOrigin::Editor(text));
+            self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         } else {
-            self.do_change_doc(doc, version, DocChangeOrigin::Editor(text));
+            self.do_change_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         }
 
         self.editor_docs.insert(doc);
@@ -212,12 +230,13 @@ impl Docs {
             return Some(doc);
         }
 
+        let lang = Lang::from_path(path)?;
         let origin = DocChangeOrigin::Path(path.to_path_buf());
         let opened = self.file_docs.insert(doc);
         if opened {
-            self.do_open_doc(doc, NO_VERSION, origin);
+            self.do_open_doc(doc, NO_VERSION, lang, origin);
         } else {
-            self.do_change_doc(doc, NO_VERSION, origin);
+            self.do_change_doc(doc, NO_VERSION, lang, origin);
         }
 
         Some(doc)

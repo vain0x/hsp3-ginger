@@ -12,6 +12,7 @@ use crate::{
     analysis::*,
     assists::{self, diagnose::DiagnosticsCache},
     help_source::HsSymbol,
+    lang::Lang,
     lang_service::{
         docs::DocChangeOrigin, search_common::search_common, search_hsphelp::search_hsphelp,
     },
@@ -206,7 +207,8 @@ impl LangService {
 
         for change in doc_changes.drain(..) {
             match change {
-                DocChange::Opened { doc, origin } | DocChange::Changed { doc, origin } => {
+                DocChange::Opened { doc, lang, origin }
+                | DocChange::Changed { doc, lang, origin } => {
                     let text = match origin {
                         DocChangeOrigin::Editor(text) => text,
                         DocChangeOrigin::Path(path) => {
@@ -219,7 +221,7 @@ impl LangService {
                         }
                     };
 
-                    self.wa.update_doc(doc, text);
+                    self.wa.update_doc(doc, lang, text);
                 }
                 DocChange::Closed { doc } => {
                     self.wa.close_doc(doc);
