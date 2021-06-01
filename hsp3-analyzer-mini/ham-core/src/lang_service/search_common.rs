@@ -14,10 +14,18 @@ pub(crate) fn search_common(
         None => vec![],
     };
 
+    // 条件コンパイルが実装されていないのでhspdef経由でhsp261cmpをincludeしているとみなされるが、不要なので読み込まない。
+    let is_excluded = |path: &Path| {
+        path.file_name()
+            .and_then(|name| name.to_str())
+            .map_or(false, |name| name == "hsp261cmp.as")
+    };
+
     for path in patterns
         .into_iter()
         .flat_map(|pattern| glob::glob(&pattern).unwrap())
         .flat_map(|result| result.ok())
+        .filter(|path| !is_excluded(&path))
     {
         (|| -> Option<()> {
             // commonに対する相対パス
