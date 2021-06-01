@@ -3,29 +3,36 @@
 use super::*;
 use crate::parse::*;
 
-pub(crate) struct IncludeGuard<'a> {
-    pub(crate) define_stmt: Option<&'a PDefineStmt>,
-}
-
-impl<'a> IncludeGuard<'a> {
-    pub(crate) fn is_define_hash(&self, hash: &PToken) -> bool {
-        self.define_stmt
-            .map_or(false, |d| d.hash.body_pos() == hash.body_pos())
-    }
+pub(crate) struct IncludeGuard {
+    /// `#if` と `#define` の範囲
+    pub(crate) loc: Loc,
 }
 
 pub(crate) fn find_include_guard(root: &PRoot) -> Option<IncludeGuard> {
-    let (s1, s2) = match (root.stmts.get(0)?, root.stmts.get(1)?) {
-        (PStmt::UnknownPreProc(s1), PStmt::Define(s2)) => (s1, s2),
+    let s1 = root.stmts.get(0)?;
+    let s2 = root.stmts.get(1)?;
+
+    let (pp_if_stmt, define_stmt) = match (s1, s2) {
+        (PStmt::UnknownPreProc(i), PStmt::Define(d)) => (i, d),
         _ => return None,
     };
 
-    let name = s2.name_opt.as_ref()?.body_text();
-    if !s1.tokens.iter().any(|t| t.body_text().contains(name)) {
+    let name = define_stmt.name_opt.as_ref()?.body_text();
+    if !pp_if_stmt
+        .tokens
+        .iter()
+        .any(|t| t.body_text().contains(name))
+    {
         return None;
     }
+
+    // endif は略
+
+    let doc = define_stmt.hash.body.loc.doc;
+    let range = s1.compute_range().join(s2.compute_range());
+
     Some(IncludeGuard {
-        define_stmt: Some(s2),
+        loc: Loc::new(doc, range),
     })
 }
 
@@ -35,10 +42,10 @@ pub(crate) struct ASignatureData {
 }
 
 #[derive(Default)]
-struct Ctx<'a> {
+struct Ctx {
     doc: DocId,
     symbols: Vec<SymbolRc>,
-    include_guard: Option<IncludeGuard<'a>>,
+    include_guard: Option<IncludeGuard>,
     includes: Vec<(RcStr, Loc)>,
     scope: LocalScope,
     module_map: ModuleMap,
@@ -47,7 +54,7 @@ struct Ctx<'a> {
     deffunc_len: usize,
 }
 
-impl<'a> Ctx<'a> {
+impl Ctx {
     fn privacy_scope_or_local(&self, privacy_opt: &Option<(PPrivacy, PToken)>) -> ImportMode {
         match privacy_opt {
             Some((PPrivacy::Global, _)) => ImportMode::Global,
@@ -153,11 +160,9 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             name_opt,
             ..
         }) => {
-            if ctx
-                .include_guard
-                .as_ref()
-                .map_or(false, |g| g.is_define_hash(hash))
-            {
+            if ctx.include_guard.as_ref().map_or(false, |g| {
+                g.loc.is_touched(hash.body.loc.doc, hash.body_pos16())
+            }) {
                 return;
             }
 
@@ -421,6 +426,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
 
 pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<SymbolRc>,
+    pub(crate) include_guard: Option<IncludeGuard>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
     pub(crate) module_map: ModuleMap,
     pub(crate) deffunc_map: HashMap<DefFuncKey, DefFuncData>,
@@ -437,6 +443,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
 
     let Ctx {
         symbols,
+        include_guard,
         includes,
         module_map,
         deffunc_map,
@@ -445,6 +452,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
 
     PreprocAnalysisResult {
         symbols,
+        include_guard,
         includes,
         module_map,
         deffunc_map,

@@ -139,6 +139,19 @@ impl WorkspaceAnalysis {
         Some(in_str_or_comment(pos, tokens))
     }
 
+    pub(crate) fn on_include_guard(&mut self, doc: DocId, pos: Pos16) -> Option<Loc> {
+        self.compute();
+
+        Some(
+            self.doc_analysis_map
+                .get(&doc)?
+                .include_guard
+                .as_ref()
+                .filter(|g| g.loc.is_touched(doc, pos))?
+                .loc,
+        )
+    }
+
     pub(crate) fn get_tokens(&mut self, doc: DocId) -> Option<(RcStr, RcSlice<PToken>, &PRoot)> {
         self.compute();
 

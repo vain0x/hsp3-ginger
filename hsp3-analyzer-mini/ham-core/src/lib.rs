@@ -51,7 +51,7 @@ mod analysis {
     pub(crate) use self::{
         doc_analysis::DocAnalysis,
         name_system::*,
-        preproc::{ASignatureData, PreprocAnalysisResult},
+        preproc::{ASignatureData, IncludeGuard, PreprocAnalysisResult},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
         sema::{Diagnostic, Sema},
         symbol::{

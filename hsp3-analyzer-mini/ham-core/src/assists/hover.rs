@@ -53,6 +53,18 @@ pub(crate) fn hover(
         }
 
         Some((contents, loc))
+    })
+    .or_else(|| {
+        if let Some(loc) = wa.on_include_guard(doc, pos) {
+            Some((
+                vec![plain_text_to_marked_string(
+                    "インクルードガード".to_string(),
+                )],
+                loc,
+            ))
+        } else {
+            None
+        }
     })?;
 
     Some(Hover {
