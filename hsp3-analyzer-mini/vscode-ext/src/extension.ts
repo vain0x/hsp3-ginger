@@ -225,6 +225,7 @@ const dev = (context: ExtensionContext): void => {
  * 拡張機能が起動されたときに自動的に呼ばれる。
  */
 export const activate = async (context: ExtensionContext): Promise<void> => {
+  console.log(process.env.HSP3_ANALYZER_MINI_DEV, process.env.HSP3_ANALYZER_MINI_LSP_BIN)
   if (DEV) {
     dev(context)
     return
