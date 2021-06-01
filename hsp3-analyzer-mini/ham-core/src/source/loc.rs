@@ -14,6 +14,9 @@ impl Loc {
             range: Range::empty(Pos::default()),
         }
     }
+    pub(crate) fn new(doc: DocId, range: Range) -> Self {
+        Loc { doc, range }
+    }
 
     pub(crate) fn new3(doc: DocId, start: Pos, end: Pos) -> Self {
         Loc {
