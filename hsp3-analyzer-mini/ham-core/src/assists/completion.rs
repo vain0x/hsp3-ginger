@@ -140,6 +140,13 @@ pub(crate) fn completion(
             ACompletionItem::Symbol(symbol) => {
                 let details = symbol.compute_details();
 
+                let sort_prefix_opt = symbol
+                    .linked_symbol_opt
+                    .borrow()
+                    .as_ref()
+                    .and_then(|item| item.sort_text.as_ref())
+                    .and_then(|s| s.chars().next());
+
                 // textDocument/documentSymbol, workspace/symbol も参照
                 use CompletionItemKind as K;
 
@@ -171,19 +178,20 @@ pub(crate) fn completion(
                 };
 
                 // 候補の順番を制御するための文字。(スコープが狭いものを上に出す。)
-                let sort_prefix = match (&symbol.scope_opt, symbol.kind) {
-                    (Some(Scope::Local(local)), _) => {
-                        match (&local.module_opt, local.deffunc_opt) {
-                            (Some(_), Some(_)) => 'a',
-                            (Some(_), None) => 'b',
-                            (None, None) => 'c',
-                            (None, Some(_)) => 'd',
+                let sort_prefix =
+                    sort_prefix_opt.unwrap_or_else(|| match (&symbol.scope_opt, symbol.kind) {
+                        (Some(Scope::Local(local)), _) => {
+                            match (&local.module_opt, local.deffunc_opt) {
+                                (Some(_), Some(_)) => 'a',
+                                (Some(_), None) => 'b',
+                                (None, None) => 'c',
+                                (None, Some(_)) => 'd',
+                            }
                         }
-                    }
-                    (_, HspSymbolKind::Module) => 'f',
-                    (Some(Scope::Global), _) => 'e',
-                    (None, _) => 'g',
-                };
+                        (_, HspSymbolKind::Module) => 'f',
+                        (Some(Scope::Global), _) => 'e',
+                        (None, _) => 'g',
+                    });
 
                 let detail = details.desc.map(|s| s.to_string());
                 let documentation = if details.docs.is_empty() {

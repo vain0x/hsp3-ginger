@@ -63,10 +63,16 @@ fn convert_symbol(doc: DocId, hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem)
     });
 
     // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
-    let sort_prefix = if builtin { 'x' } else { 'y' };
+    let sort_prefix = if builtin {
+        'x'
+    } else if !name.starts_with("_") {
+        'y'
+    } else {
+        'z'
+    };
 
     // '#' なし
-    let word = if name.as_str().starts_with("#") {
+    let word = if name.starts_with("#") {
         Some(name.as_str().chars().skip(1).collect::<String>())
     } else {
         None
