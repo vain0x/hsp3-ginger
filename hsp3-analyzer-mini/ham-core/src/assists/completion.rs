@@ -210,6 +210,11 @@ pub(crate) fn completion(
 
     p.collect_hsphelp_completion_items(&mut items);
 
+    // HACK: 不要な候補を削除する。(__hspdef__ はスクリプトの記述的にインクルードガードとみなされないので有効なシンボルとして登録されてしまう。)
+    if let Some(i) = items.iter().position(|item| item.label == "__hspdef__") {
+        items.swap_remove(i);
+    }
+
     // 重複した候補を削除する。
     {
         let mut set = HashSet::new();
