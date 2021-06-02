@@ -265,12 +265,25 @@ impl LangService {
         &mut self,
         uri: Url,
         range: Range,
-        context: CodeActionContext,
+        _context: CodeActionContext,
     ) -> Vec<CodeAction> {
         self.poll();
 
-        assists::rewrites::flip_comma::flip_comma(uri, range, context, &self.docs, &mut self.wa)
-            .unwrap_or_default()
+        let mut actions = vec![];
+        actions.extend(
+            assists::rewrites::flip_comma::flip_comma(&uri, range, &self.docs, &mut self.wa)
+                .unwrap_or_default(),
+        );
+        actions.extend(
+            assists::rewrites::generate_include_guard::generate_include_guard(
+                &uri,
+                range,
+                &self.docs,
+                &mut self.wa,
+            )
+            .unwrap_or_default(),
+        );
+        actions
     }
 
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {

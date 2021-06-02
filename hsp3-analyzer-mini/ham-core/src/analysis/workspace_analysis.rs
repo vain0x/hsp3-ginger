@@ -139,6 +139,14 @@ impl WorkspaceAnalysis {
         Some(in_str_or_comment(pos, tokens))
     }
 
+    pub(crate) fn has_include_guard(&mut self, doc: DocId) -> bool {
+        self.compute();
+
+        self.doc_analysis_map
+            .get(&doc)
+            .map_or(false, |da| da.include_guard.is_some())
+    }
+
     pub(crate) fn on_include_guard(&mut self, doc: DocId, pos: Pos16) -> Option<Loc> {
         self.compute();
 

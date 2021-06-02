@@ -14,6 +14,7 @@ pub(crate) mod rewrites {
     use super::*;
 
     pub(crate) mod flip_comma;
+    pub(crate) mod generate_include_guard;
 }
 
 use super::*;

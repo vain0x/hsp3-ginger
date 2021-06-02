@@ -1,13 +1,10 @@
 //! カンマの両側を交換するアクション
 
 use super::*;
-use crate::{
-    analysis::WorkspaceAnalysis, assists::from_document_position, lang_service::docs::Docs,
-    parse::*,
-};
+use crate::parse::*;
 use lsp_types::{
-    CodeAction, CodeActionContext, DocumentChanges, OneOf, OptionalVersionedTextDocumentIdentifier,
-    Range, TextDocumentEdit, TextEdit, Url, WorkspaceEdit,
+    CodeAction, DocumentChanges, OneOf, OptionalVersionedTextDocumentIdentifier, Range,
+    TextDocumentEdit, TextEdit, Url, WorkspaceEdit,
 };
 
 /// 構文木におけるトークンの深さを計算するためのビジター。
@@ -66,13 +63,12 @@ impl PVisitor for V {
 }
 
 pub(crate) fn flip_comma(
-    uri: Url,
+    uri: &Url,
     range: Range,
-    _context: CodeActionContext,
     docs: &Docs,
     wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<CodeAction>> {
-    let (doc, pos) = from_document_position(&uri, range.start, &docs)?;
+    let (doc, pos) = from_document_position(uri, range.start, &docs)?;
     let version = docs.get_version(doc);
 
     let (text, tokens, root) = wa.get_tokens(doc)?;
