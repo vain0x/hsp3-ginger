@@ -210,6 +210,20 @@ pub(crate) fn completion(
 
     p.collect_hsphelp_completion_items(&mut items);
 
+    // 重複した候補を削除する。
+    {
+        let mut set = HashSet::new();
+        let retain = items
+            .iter()
+            .map(|item| set.insert(item.label.as_str()))
+            .collect::<Vec<_>>();
+        let mut i = 0;
+        items.retain(|_| {
+            i += 1;
+            retain[i - 1]
+        });
+    }
+
     Some(CompletionList {
         is_incomplete: false,
         items,
