@@ -1,6 +1,6 @@
 # HSP3 アナライザー・ミニ
 
-HSP3 の実用最小限な静的解析ツールです。Language Server Protocol (LSP) 準拠。
+HSP3 の静的解析ツールです。Language Server Protocol (LSP) 準拠。
 
 機能などは [vscode-ext/README.md](./vscode-ext/README.md) を参照。
 
