@@ -9,7 +9,7 @@ use std::{fs, path::PathBuf, rc::Rc};
 
 #[test]
 fn tokenize_standard_files() {
-    let hsp3_home: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3");
+    let hsp3_root: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3");
 
     let tests_dir = {
         let project_dir: &'static str = env!("CARGO_MANIFEST_DIR");
@@ -20,17 +20,17 @@ fn tokenize_standard_files() {
     let mut text = Rc::new(String::new());
 
     let paths = vec![
-        glob::glob(&format!("{}/common/**/*.hsp", hsp3_home)).unwrap(),
-        glob::glob(&format!("{}/common/**/*.as", hsp3_home)).unwrap(),
-        glob::glob(&format!("{}/sample/**/*.hsp", hsp3_home)).unwrap(),
-        glob::glob(&format!("{}/sample/**/*.as", hsp3_home)).unwrap(),
+        glob::glob(&format!("{}/common/**/*.hsp", hsp3_root)).unwrap(),
+        glob::glob(&format!("{}/common/**/*.as", hsp3_root)).unwrap(),
+        glob::glob(&format!("{}/sample/**/*.hsp", hsp3_root)).unwrap(),
+        glob::glob(&format!("{}/sample/**/*.as", hsp3_root)).unwrap(),
     ];
     for path in paths.into_iter().flatten() {
         let path = path.unwrap();
 
         let output_path = {
             let name = path
-                .strip_prefix(&hsp3_home)
+                .strip_prefix(&hsp3_root)
                 .unwrap()
                 .to_str()
                 .unwrap()

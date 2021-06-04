@@ -47,7 +47,7 @@ impl Default for LangServiceOptions {
 #[derive(Default)]
 pub(super) struct LangService {
     wa: WorkspaceAnalysis,
-    hsp3_home: PathBuf,
+    hsp3_root: PathBuf,
     root_uri_opt: Option<CanonicalUri>,
     options: LangServiceOptions,
     docs: Docs,
@@ -56,9 +56,9 @@ pub(super) struct LangService {
 }
 
 impl LangService {
-    pub(super) fn new(hsp3_home: PathBuf, options: LangServiceOptions) -> Self {
+    pub(super) fn new(hsp3_root: PathBuf, options: LangServiceOptions) -> Self {
         Self {
-            hsp3_home,
+            hsp3_root,
             options,
             ..Default::default()
         }
@@ -66,11 +66,11 @@ impl LangService {
 
     #[cfg(test)]
     pub(crate) fn new_standalone() -> Self {
-        let hsp3_home = PathBuf::from("/tmp/.not_exist");
+        let hsp3_root = PathBuf::from("/tmp/.not_exist");
         let options = LangServiceOptions::minimal();
 
         let mut ls = Self {
-            hsp3_home,
+            hsp3_root,
             options,
             ..Default::default()
         };
@@ -89,10 +89,10 @@ impl LangService {
         let mut common_docs = HashMap::new();
         let mut entrypoints = vec![];
 
-        search_common(&self.hsp3_home, &mut self.docs, &mut common_docs);
+        search_common(&self.hsp3_root, &mut self.docs, &mut common_docs);
 
         let hsphelp_info = search_hsphelp(
-            &self.hsp3_home,
+            &self.hsp3_root,
             &common_docs,
             &mut self.docs,
             &mut builtin_env,
@@ -394,11 +394,11 @@ impl LangService {
         diagnostics.retain(|(uri, _, _)| {
             let ok = uri
                 .to_file_path()
-                .map_or(true, |path| !path.starts_with(&self.hsp3_home));
+                .map_or(true, |path| !path.starts_with(&self.hsp3_root));
 
             if !ok {
                 trace!(
-                    "ファイルはhsp3_homeにあるので {:?} への診断は無視されます。",
+                    "ファイルはhsp3_rootにあるので {:?} への診断は無視されます。",
                     uri
                 );
             }

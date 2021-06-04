@@ -97,14 +97,14 @@ fn convert_symbol(doc: DocId, hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem)
 }
 
 pub(crate) fn search_hsphelp(
-    hsp3_home: &Path,
+    hsp3_root: &Path,
     common_docs: &HashMap<String, DocId>,
     docs: &mut Docs,
     builtin_env: &mut SymbolEnv,
 ) -> Option<HspHelpInfo> {
     // info!("hsphelpディレクトリにあるhsファイルを開きます。");
 
-    let hsphelp_dir = hsp3_home.join("hsphelp");
+    let hsphelp_dir = hsp3_root.join("hsphelp");
 
     let entries = match fs::read_dir(&hsphelp_dir) {
         Ok(it) => it,

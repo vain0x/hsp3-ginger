@@ -14,7 +14,7 @@ HSP3 の実用最小限な静的解析ツールです。Language Server Protocol
 
 ```json
 {
-    "hsp3-analyzer-mini.hsp3-home": "C:/Program Files/hsp351",
+    "hsp3-analyzer-mini.hsp3-root": "C:/Program Files/hsp351",
     "[hsp3]": {
         "files.autoGuessEncoding": true
     }

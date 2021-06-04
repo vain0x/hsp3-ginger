@@ -87,16 +87,16 @@ pub extern "C" fn ham_init() {
 // FIXME: オプションを設定できるようにする。
 #[no_mangle]
 pub unsafe extern "C" fn ham_create(
-    hsp3_home: *const c_char,
-    hsp3_home_len: i32,
+    hsp3_root: *const c_char,
+    hsp3_root_len: i32,
 ) -> *mut HamInstance {
-    let hsp3_home = match str_from_raw_parts(hsp3_home, hsp3_home_len) {
+    let hsp3_root = match str_from_raw_parts(hsp3_root, hsp3_root_len) {
         Some(x) => PathBuf::from(x),
         None => return null_mut(),
     };
 
     let mut instance = HamInstance {
-        lang_service: LangService::new(hsp3_home, LangServiceOptions::default()),
+        lang_service: LangService::new(hsp3_root, LangServiceOptions::default()),
     };
 
     instance.lang_service.did_initialize();

@@ -10,10 +10,10 @@
 // hsp3-analyzer-mini (ham) を起動する
 //
 // %prm
-// hsp3_home, hsp3_home_len
+// hsp3_root, hsp3_root_len
 //
-// hsp3_home: HSP のインストールディレクトリへの絶対パス
-// hsp3_home_len: hsp3_home の長さ
+// hsp3_root: HSP のインストールディレクトリへの絶対パス
+// hsp3_root_len: hsp3_root の長さ
 // stat: ham インスタンスのポインタ。失敗したら 0
 //
 // %inst

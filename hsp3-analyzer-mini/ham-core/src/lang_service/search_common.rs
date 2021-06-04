@@ -2,12 +2,12 @@ use super::*;
 use crate::source::DocId;
 
 pub(crate) fn search_common(
-    hsp3_home: &Path,
+    hsp3_root: &Path,
     docs: &mut Docs,
     common_docs: &mut HashMap<String, DocId>,
 ) {
     // trace!("commonディレクトリにあるファイルを開きます。");
-    let common_dir = hsp3_home.join("common");
+    let common_dir = hsp3_root.join("common");
 
     let patterns = match common_dir.to_str() {
         Some(dir) => vec![format!("{}/**/*.hsp", dir), format!("{}/**/*.as", dir)],
