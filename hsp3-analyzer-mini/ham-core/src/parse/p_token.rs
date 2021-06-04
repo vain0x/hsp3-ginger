@@ -1,9 +1,4 @@
-use crate::{
-    source::Loc,
-    token::{TokenData, TokenKind},
-    utils::{rc_item::RcItem, rc_slice::RcSlice},
-};
-use std::fmt::Debug;
+use super::*;
 
 /// トリビアでないトークンに、前後のトリビアをくっつけたもの。
 #[derive(Clone)]
@@ -23,7 +18,14 @@ impl PToken {
         self.body.text.as_str()
     }
 
-    #[cfg(unused)]
+    pub(crate) fn body_pos(&self) -> Pos {
+        self.body.loc.start()
+    }
+
+    pub(crate) fn body_pos16(&self) -> Pos16 {
+        Pos16::from(self.body.loc.start())
+    }
+
     pub(crate) fn ahead(&self) -> Loc {
         match self.leading.first() {
             Some(first) => first.loc.ahead(),
@@ -37,6 +39,13 @@ impl PToken {
             Some(last) => last.loc.behind(),
             None => self.body.loc.behind(),
         }
+    }
+
+    pub(crate) fn iter<'a>(&'a self) -> impl Iterator<Item = &'a TokenData> + 'a {
+        self.leading
+            .iter()
+            .chain(iter::once(self.body.as_ref()))
+            .chain(self.trailing.iter())
     }
 
     pub(crate) fn from_tokens(tokens: RcSlice<TokenData>) -> Vec<PToken> {
@@ -57,10 +66,9 @@ impl PToken {
             }
             let leading = tokens.slice(leading_start, index);
 
-            let body = match tokens.get(index) {
+            let body = match tokens.item(index) {
                 Some(body) => {
                     assert!(!body.kind.is_leading_trivia());
-                    let body = tokens.item(index);
                     index += 1;
                     body
                 }

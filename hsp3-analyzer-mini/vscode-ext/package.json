@@ -1,8 +1,8 @@
 {
   "name": "hsp3-analyzer-mini",
   "displayName": "HSP3 アナライザー・ミニ (LSP)",
-  "version": "0.3.0",
-  "description": "HSP3 の実用最小限なインテリセンス",
+  "version": "0.3.1",
+  "description": "HSP3 のインテリセンス",
   "repository": "https://github.com/vain0x/hsp3-ginger",
   "author": "vain0x",
   "publisher": "vain0x",
@@ -41,18 +41,14 @@
       "type": "object",
       "title": "hsp3-analyzer-mini config",
       "properties": {
-        "hsp3-analyzer-mini.hsp3-home": {
+        "hsp3-analyzer-mini.hsp3-root": {
           "type": "string",
-          "description": "HSP3のインストールディレクトリへの絶対パス。未設定のときは環境変数 HSP3_HOME を参照します。"
+          "description": "HSP3のインストールディレクトリへの絶対パス。未設定のときは環境変数 HSP3_ROOT を参照します。"
         },
         "hsp3-analyzer-mini.lint-enabled": {
           "type": "boolean",
           "description": "trueならリント(静的検証)を行い、スクリプトの誤りと思われる箇所に警告を出します。falseを設定すると無効化できます。(default: true)",
           "default": true
-        },
-        "hsp3-analyzer-mini.hsp3-root": {
-          "type": "string",
-          "description": "[廃止予定] 'hsp3-analyzer-mini.hsp3-home' を使ってください。"
         },
         "hsp3-analyzer-mini.lsp-bin": {
           "type": "string",

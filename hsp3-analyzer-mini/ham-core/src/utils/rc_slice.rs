@@ -103,17 +103,20 @@ impl<T> RcSlice<T> {
     }
 
     /// `index` 番目の要素への参照を作る。
-    pub(crate) fn item(&self, index: usize) -> RcItem<T> {
+    pub(crate) fn item(&self, index: usize) -> Option<RcItem<T>> {
         match self.repr {
-            Repr::Empty => panic!(),
+            Repr::Empty => None,
             Repr::NonEmpty {
                 ref underlying,
                 start,
                 end,
             } => {
                 let i = start + index;
-                assert!(i < end);
-                RcItem::new(underlying.clone(), i)
+                if i < end {
+                    Some(RcItem::new(underlying.clone(), i))
+                } else {
+                    None
+                }
             }
         }
     }

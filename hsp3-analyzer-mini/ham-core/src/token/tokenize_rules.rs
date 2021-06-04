@@ -1,7 +1,7 @@
 //! 字句解析のルール
 
-use super::{tokenize_context::TokenizeContext, TokenData, TokenKind};
-use crate::{source::DocId, utils::rc_str::RcStr};
+use super::tokenize_context::TokenizeContext;
+use super::*;
 
 type Tx = TokenizeContext;
 
@@ -160,6 +160,17 @@ fn eat_blank(tx: &mut Tx) {
     }
 }
 
+/// すべての空白を読み飛ばす。
+fn eat_spaces(tx: &mut Tx) {
+    loop {
+        match tx.next() {
+            ' ' | '\n' | '\r' | '\t' | '\u{3000}' => tx.bump(),
+            c if c.is_whitespace() => tx.bump(),
+            _ => break,
+        }
+    }
+}
+
 /// 行末まで読み飛ばす。改行自体は読まない。
 fn eat_line(tx: &mut Tx) {
     match tx.find("\n") {
@@ -229,6 +240,14 @@ fn eat_escaped_text(quote: char, tx: &mut Tx) {
     }
 }
 
+fn ident_to_kind(s: &str) -> TokenKind {
+    match s {
+        "if" => TokenKind::If,
+        "else" => TokenKind::Else,
+        _ => TokenKind::Ident,
+    }
+}
+
 pub(crate) fn do_tokenize(tx: &mut Tx) {
     loop {
         match lookahead(tx) {
@@ -242,11 +261,13 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
             Lookahead::CrLf => {
                 tx.bump_many(2);
 
+                eat_spaces(tx);
                 tx.commit(TokenKind::Newlines);
             }
             Lookahead::Lf => {
                 tx.bump();
 
+                eat_spaces(tx);
                 tx.commit(TokenKind::Newlines);
             }
             Lookahead::EscapedCrLf => {
@@ -354,7 +375,8 @@ pub(crate) fn do_tokenize(tx: &mut Tx) {
                 }
 
                 assert!(!tx.current_text().is_empty());
-                tx.commit(TokenKind::Ident);
+                let kind = ident_to_kind(tx.current_text());
+                tx.commit(kind);
             }
             Lookahead::Token(kind, len) => {
                 tx.bump_many(len);
@@ -409,7 +431,7 @@ mod tests {
     fn space() {
         assert_eq!(
             tokenize_str_to_kinds(" \r\n\t\u{3000}　"),
-            vec![TokenKind::Blank, TokenKind::Newlines, TokenKind::Blank]
+            vec![TokenKind::Blank, TokenKind::Newlines]
         );
     }
 
@@ -428,7 +450,7 @@ mod tests {
     fn comment_semi_with_eol() {
         assert_eq!(
             tokenize_str_to_kinds("; comment\n    "),
-            vec![TokenKind::Comment, TokenKind::Newlines, TokenKind::Blank]
+            vec![TokenKind::Comment, TokenKind::Newlines]
         );
     }
 
@@ -582,6 +604,22 @@ mod tests {
     }
 
     #[test]
+    fn ident_keyword() {
+        assert_eq!(tokenize_str_to_kinds("if"), vec![TokenKind::If]);
+        assert_eq!(tokenize_str_to_kinds("iff"), vec![TokenKind::Ident]);
+    }
+
+    // 数値の直後にある不要な文字は識別子トークンとみなすべきではないが、これで問題になるケースはたぶんなかったはずなので後回し。
+    #[test]
+    #[cfg(skip)]
+    fn number_immediately_followed_by_ident() {
+        assert_eq!(
+            tokenize_str_to_kinds("1a"),
+            vec![TokenKind::Number, TokenKind::Bad]
+        );
+    }
+
+    #[test]
     fn punctuations() {
         assert_eq!(
             tokenize_str_to_kinds("(){}=->"),
@@ -613,5 +651,27 @@ mod tests {
                 TokenKind::Ident,
             ]
         )
+    }
+
+    // 未実装
+    #[test]
+    #[cfg(unimplemented)]
+    fn macro_parameter() {
+        assert_eq!(
+            tokenize_str_to_kinds("#define id(%1) %1"),
+            vec![
+                TokenKind::Hash,
+                TokenKind::Ident,
+                TokenKind::Blank,
+                TokenKind::Ident,
+                TokenKind::LeftParen,
+                TokenKind::Percent, // <- macro parameter であるべき
+                TokenKind::Number,
+                TokenKind::RightParen,
+                TokenKind::Blank,
+                TokenKind::Percent,
+                TokenKind::Number,
+            ]
+        );
     }
 }

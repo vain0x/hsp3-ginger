@@ -1,0 +1,23 @@
+// `#deffunc` によって修飾つきの識別子を定義するときの、シンボルのスコープ・名前空間のテスト。
+
+#module m4
+
+// `@m_another` で修飾されているので、グローバルでもモジュールm4でもなく、`m_another` の名前空間に定義される。
+// どのスコープにも入らないので、これを参照するには `f4@m_another` と書くしかない。
+#deffunc f4@m_another
+	//   ^def f4_another
+	return
+
+	f4 = 0
+//  ^def f4_m4
+
+	f4@m4 = 0
+//  ^def f4_m4
+
+	f4@m_another
+//  ^use f4_another
+
+#global
+
+	f4@m_another
+//  ^use f4_another

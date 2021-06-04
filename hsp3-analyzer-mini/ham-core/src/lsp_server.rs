@@ -4,6 +4,7 @@ pub(super) mod lsp_receiver;
 pub(super) mod lsp_sender;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub(self) use lsp_handler::LspHandler;
 pub(self) use lsp_receiver::LspReceiver;
@@ -25,6 +26,21 @@ pub(super) struct LspResponse<Result> {
 }
 
 #[derive(Serialize, Deserialize)]
+pub(super) struct LspErrorResponse {
+    pub(crate) jsonrpc: String,
+    pub(crate) id: Value,
+    pub(crate) error: LspError,
+}
+
+/// <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#responseMessage>
+#[derive(Serialize, Deserialize)]
+pub(super) struct LspError {
+    pub(crate) code: i64,
+    pub(crate) msg: String,
+    // pub(crate) data: Value,
+}
+
+#[derive(Serialize, Deserialize)]
 pub(super) struct LspNotification<Params> {
     pub(crate) jsonrpc: String,
     pub(crate) method: String,
@@ -36,4 +52,9 @@ pub(super) struct LspNotification<Params> {
 #[derive(Deserialize)]
 pub(super) struct LspMessageOpaque {
     pub(crate) method: String,
+    pub(crate) id: Option<Value>,
+}
+
+pub(crate) mod error {
+    pub(crate) const METHOD_NOT_FOUND: i64 = -32601;
 }

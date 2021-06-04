@@ -1,5 +1,4 @@
-use super::{TokenData, TokenKind};
-use crate::{source::*, utils::rc_str::RcStr};
+use super::*;
 
 /// Tokenization context. 字句解析の文脈
 pub(crate) struct TokenizeContext {

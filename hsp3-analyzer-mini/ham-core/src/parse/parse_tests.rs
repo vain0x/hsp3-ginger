@@ -4,6 +4,7 @@
 use super::{parse_root, PToken};
 use crate::{
     source::DocId,
+    token::TokenKind,
     utils::{rc_str::RcStr, read_file::read_file},
 };
 use std::{fs, path::PathBuf, rc::Rc};
@@ -11,7 +12,7 @@ use std::{fs, path::PathBuf, rc::Rc};
 // FIXME: tokenize_tests と重複
 #[test]
 fn parse_standard_files() {
-    let hsp3_home: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3");
+    let hsp3_root: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3");
 
     let tests_dir = {
         let project_dir: &'static str = env!("CARGO_MANIFEST_DIR");
@@ -20,19 +21,20 @@ fn parse_standard_files() {
 
     let mut last_id = 0;
     let mut text = Rc::new(String::new());
+    let mut ok = true;
 
     let paths = vec![
-        glob::glob(&format!("{}/common/**/*.hsp", hsp3_home)).unwrap(),
-        glob::glob(&format!("{}/common/**/*.as", hsp3_home)).unwrap(),
-        glob::glob(&format!("{}/sample/**/*.hsp", hsp3_home)).unwrap(),
-        glob::glob(&format!("{}/sample/**/*.as", hsp3_home)).unwrap(),
+        glob::glob(&format!("{}/common/**/*.hsp", hsp3_root)).unwrap(),
+        glob::glob(&format!("{}/common/**/*.as", hsp3_root)).unwrap(),
+        glob::glob(&format!("{}/sample/**/*.hsp", hsp3_root)).unwrap(),
+        glob::glob(&format!("{}/sample/**/*.as", hsp3_root)).unwrap(),
     ];
     for path in paths.into_iter().flatten() {
         let path = path.unwrap();
 
         let output_path = {
             let name = path
-                .strip_prefix(&hsp3_home)
+                .strip_prefix(&hsp3_root)
                 .unwrap()
                 .to_str()
                 .unwrap()
@@ -60,6 +62,16 @@ fn parse_standard_files() {
             let tokens = crate::token::tokenize(doc, RcStr::new(text.clone(), 0, text.len()));
             let tokens = PToken::from_tokens(tokens.into());
             let root = parse_root(tokens);
+
+            for t in root
+                .skipped
+                .iter()
+                .filter(|t| t.kind() != TokenKind::Eos && t.kind() != TokenKind::Colon)
+            {
+                eprintln!("path={:?} skipped {:?}{:?}", path, t.kind(), t.body.loc);
+                ok = false;
+            }
+
             format!("{:#?}\n", root)
         };
 
@@ -70,5 +82,8 @@ fn parse_standard_files() {
 
     if last_id == 0 {
         panic!("no files");
+    }
+    if !ok {
+        panic!("something wrong")
     }
 }

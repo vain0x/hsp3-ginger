@@ -1,0 +1,21 @@
+// globalのシンボルをモジュールの内部でundefできる。
+
+#define global a "global"
+
+	mes a // global
+
+#module
+
+#deffunc f
+	mes a // global
+
+#undef a
+
+	mes a // 0
+	return
+
+#global
+
+	mes a // 0
+	f
+	mes a // 0

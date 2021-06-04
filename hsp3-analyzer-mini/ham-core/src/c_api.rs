@@ -1,8 +1,9 @@
 //! C言語や HSP3 などから利用するための関数群
 
+use super::*;
 use crate::lang_service::{LangService, LangServiceOptions};
 use lsp_types::{HoverContents, MarkedString, Position, Url};
-use std::{os::raw::c_char, path::PathBuf, ptr::null_mut, slice, str};
+use std::{os::raw::c_char, ptr::null_mut, slice, str};
 
 const TRUE: i32 = 1;
 const FALSE: i32 = 0;
@@ -67,7 +68,7 @@ fn position_from_raw(line: i32, character: i32) -> Option<Position> {
     }
 
     // FIXME: 列番号をエンコーディングに基づいて変換する？
-    Some(Position::new(line as u64, character as u64))
+    Some(Position::new(line as u32, character as u32))
 }
 
 fn marked_string_to_string(it: MarkedString) -> String {
@@ -86,16 +87,16 @@ pub extern "C" fn ham_init() {
 // FIXME: オプションを設定できるようにする。
 #[no_mangle]
 pub unsafe extern "C" fn ham_create(
-    hsp3_home: *const c_char,
-    hsp3_home_len: i32,
+    hsp3_root: *const c_char,
+    hsp3_root_len: i32,
 ) -> *mut HamInstance {
-    let hsp3_home = match str_from_raw_parts(hsp3_home, hsp3_home_len) {
+    let hsp3_root = match str_from_raw_parts(hsp3_root, hsp3_root_len) {
         Some(x) => PathBuf::from(x),
         None => return null_mut(),
     };
 
     let mut instance = HamInstance {
-        lang_service: LangService::new(hsp3_home, LangServiceOptions::default()),
+        lang_service: LangService::new(hsp3_root, LangServiceOptions::default()),
     };
 
     instance.lang_service.did_initialize();
@@ -140,7 +141,7 @@ pub unsafe extern "C" fn ham_doc_did_open(
         None => return FALSE,
     };
 
-    (*instance).lang_service.open_doc(uri, version as i64, text);
+    (*instance).lang_service.open_doc(uri, version, text);
     TRUE
 }
 
@@ -167,9 +168,7 @@ pub unsafe extern "C" fn ham_doc_did_change(
         None => return FALSE,
     };
 
-    (*instance)
-        .lang_service
-        .change_doc(uri, version as i64, text);
+    (*instance).lang_service.change_doc(uri, version, text);
     TRUE
 }
 

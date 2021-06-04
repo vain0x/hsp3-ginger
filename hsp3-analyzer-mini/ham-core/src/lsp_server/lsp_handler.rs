@@ -26,21 +26,34 @@ impl<W: io::Write> LspHandler<W> {
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
+                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
-                    resolve_provider: None,
+                    resolve_provider: Some(true),
                     trigger_characters: None,
-                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                    ..CompletionOptions::default()
                 }),
-                definition_provider: Some(true),
-                document_highlight_provider: Some(true),
-                hover_provider: Some(true),
-                references_provider: Some(true),
-                rename_provider: Some(RenameProviderCapability::Options(RenameOptions {
+                definition_provider: Some(OneOf::Left(true)),
+                document_formatting_provider: Some(OneOf::Left(true)),
+                document_highlight_provider: Some(OneOf::Left(true)),
+                document_symbol_provider: Some(OneOf::Left(true)),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
+                references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Right(RenameOptions {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 })),
+                signature_help_provider: Some(SignatureHelpOptions {
+                    trigger_characters: Some(vec![
+                        " ".to_string(),
+                        "(".to_string(),
+                        ",".to_string(),
+                    ]),
+                    ..Default::default()
+                }),
+                workspace_symbol_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
+            offset_encoding: None,
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -51,7 +64,6 @@ impl<W: io::Write> LspHandler<W> {
 
     fn did_initialize(&mut self) {
         self.model.did_initialize();
-        self.diagnose();
     }
 
     fn shutdown(&mut self) {
@@ -74,7 +86,7 @@ impl<W: io::Write> LspHandler<W> {
             .unwrap_or("".to_string());
 
         let doc = params.text_document;
-        let version = doc.version.unwrap_or(0);
+        let version = doc.version;
 
         self.model.change_doc(doc.uri, version, text);
     }
@@ -83,11 +95,30 @@ impl<W: io::Write> LspHandler<W> {
         self.model.close_doc(params.text_document.uri);
     }
 
+    fn text_document_code_action(&mut self, params: CodeActionParams) -> Vec<CodeAction> {
+        self.model
+            .code_action(params.text_document.uri, params.range, params.context)
+    }
+
     fn text_document_completion(&mut self, params: CompletionParams) -> CompletionList {
         self.model.completion(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
         )
+    }
+
+    fn text_document_completion_resolve(
+        &mut self,
+        params: CompletionItem,
+    ) -> Option<CompletionItem> {
+        self.model.completion_resolve(params)
+    }
+
+    fn text_document_formatting(
+        &mut self,
+        params: DocumentFormattingParams,
+    ) -> Option<Vec<TextEdit>> {
+        self.model.formatting(params.text_document.uri)
     }
 
     fn text_document_definition(
@@ -111,6 +142,13 @@ impl<W: io::Write> LspHandler<W> {
     ) -> Vec<lsp_types::DocumentHighlight> {
         self.model
             .document_highlight(params.text_document.uri, params.position)
+    }
+
+    fn text_document_symbol(
+        &mut self,
+        params: DocumentSymbolParams,
+    ) -> Option<lsp_types::DocumentSymbolResponse> {
+        self.model.document_symbol(params.text_document.uri)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {
@@ -141,6 +179,22 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
+    fn text_document_signature_help(
+        &mut self,
+        params: SignatureHelpParams,
+    ) -> Option<SignatureHelp> {
+        let (uri, position) = {
+            let p = params.text_document_position_params;
+            (p.text_document.uri, p.position)
+        };
+
+        self.model.signature_help(uri, position)
+    }
+
+    fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
+        self.model.workspace_symbol(params.query)
+    }
+
     fn diagnose(&mut self) {
         let diagnostics = self.model.diagnose();
 
@@ -168,6 +222,7 @@ impl<W: io::Write> LspHandler<W> {
             }
             "initialized" => {
                 self.did_initialize();
+                self.diagnose();
             }
             "shutdown" => {
                 let msg = serde_json::from_str::<LspRequest<()>>(json).unwrap();
@@ -181,21 +236,48 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspNotification<DidOpenTextDocumentParams> =
                     serde_json::from_str(&json).expect("didOpen msg");
                 self.text_document_did_open(msg.params);
+                self.diagnose();
             }
             "textDocument/didChange" => {
                 let msg: LspNotification<DidChangeTextDocumentParams> =
                     serde_json::from_str(&json).expect("didChange msg");
                 self.text_document_did_change(msg.params);
+                self.diagnose();
             }
             "textDocument/didClose" => {
                 let msg = serde_json::from_str::<LspNotification<DidCloseTextDocumentParams>>(json)
                     .unwrap();
                 self.text_document_did_close(msg.params);
+                self.diagnose();
+            }
+            lsp_types::request::CodeActionRequest::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<CodeActionParams>>(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_code_action(msg.params);
+                self.sender.send_response(msg_id, response);
             }
             "textDocument/completion" => {
                 let msg = serde_json::from_str::<LspRequest<CompletionParams>>(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_completion(msg.params);
+                self.sender.send_response(msg_id, response);
+            }
+            lsp_types::request::ResolveCompletionItem::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<CompletionItem>>(json).unwrap();
+                match self.text_document_completion_resolve(msg.params) {
+                    Some(response) => self.sender.send_response(msg.id, response),
+                    None => self.sender.send_error_code(
+                        Some(Value::from(msg.id)),
+                        -32001, // unknown
+                        "Resolve completion failed.".into(),
+                    ),
+                }
+            }
+            lsp_types::request::Formatting::METHOD => {
+                let msg =
+                    serde_json::from_str::<LspRequest<DocumentFormattingParams>>(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_formatting(msg.params);
                 self.sender.send_response(msg_id, response);
             }
             "textDocument/definition" => {
@@ -204,7 +286,6 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_definition(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             "textDocument/documentHighlight" => {
                 let msg =
@@ -213,13 +294,17 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.text_document_highlight(msg.params);
                 self.sender.send_response(msg_id, response);
             }
+            request::DocumentSymbolRequest::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<DocumentSymbolParams>>(json).unwrap();
+                let response = self.text_document_symbol(msg.params);
+                self.sender.send_response(msg.id, response);
+            }
             "textDocument/hover" => {
                 let msg: LspRequest<TextDocumentPositionParams> =
                     serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_hover(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             request::PrepareRenameRequest::METHOD => {
                 let msg: LspRequest<TextDocumentPositionParams> =
@@ -233,16 +318,35 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_references(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
             request::Rename::METHOD => {
                 let msg: LspRequest<RenameParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_rename(msg.params);
                 self.sender.send_response(msg_id, response);
-                self.diagnose();
             }
-            _ => warn!("Msg unresolved."),
+            request::SignatureHelpRequest::METHOD => {
+                let msg: LspRequest<SignatureHelpParams> = serde_json::from_str(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_signature_help(msg.params);
+                self.sender.send_response(msg_id, response);
+            }
+            request::WorkspaceSymbol::METHOD => {
+                let msg: LspRequest<WorkspaceSymbolParams> =
+                    serde_json::from_str(json).expect("workspace/symbol msg");
+                let response = self.workspace_symbol(msg.params);
+                self.sender.send_response(msg.id, response);
+            }
+            "$/cancelRequest" => self.sender.send_error_code(
+                msg.id,
+                error::METHOD_NOT_FOUND,
+                "キャンセルは未実装です。",
+            ),
+            _ => self.sender.send_error_code(
+                msg.id,
+                error::METHOD_NOT_FOUND,
+                "未実装のメソッドを無視します。",
+            ),
         }
     }
 

@@ -39,7 +39,7 @@ fn get_options_from_env() -> LangServiceOptions {
     }
 }
 
-pub fn start_lsp_server(hsp3_home: PathBuf) {
+pub fn start_lsp_server(hsp3_root: PathBuf) {
     init_log();
 
     let stdin = stdin();
@@ -48,7 +48,7 @@ pub fn start_lsp_server(hsp3_home: PathBuf) {
     let stdout = stdout();
     let stdout = stdout.lock();
     let sender = LspSender::new(stdout);
-    let lang_service = LangService::new(hsp3_home, get_options_from_env());
+    let lang_service = LangService::new(hsp3_root, get_options_from_env());
     let handler = LspHandler::new(sender, lang_service);
     handler.main(receiver);
 }

@@ -1,25 +1,20 @@
-use super::{from_document_position, loc_to_range, plain_text_to_marked_string};
-use crate::{
-    analysis::integrate::AWorkspaceAnalysis, assists::markdown_marked_string,
-    lang_service::docs::Docs,
-};
+use super::*;
 use lsp_types::{
-    CompletionItem, Documentation, Hover, HoverContents, MarkedString, MarkupContent, MarkupKind,
-    Position, Url,
+    Documentation, Hover, HoverContents, MarkedString, MarkupContent, MarkupKind, Position, Url,
 };
 
 pub(crate) fn hover(
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut AWorkspaceAnalysis,
-    hsphelp_symbols: &[CompletionItem],
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<Hover> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let project = wa.require_project_for_doc(doc);
 
     let (contents, loc) = (|| -> Option<_> {
-        let (symbol, symbol_loc) = wa.locate_symbol(doc, pos)?;
-        let (name, kind, details) = wa.get_symbol_details(symbol)?;
+        let (symbol, symbol_loc) = project.locate_symbol(doc, pos)?;
+        let (name, kind, details) = project.get_symbol_details(&symbol)?;
 
         let mut contents = vec![];
         contents.push(plain_text_to_marked_string(format!("{} ({})", name, kind)));
@@ -34,10 +29,17 @@ pub(crate) fn hover(
     })()
     .or_else(|| {
         let (name, loc) = wa.get_ident_at(doc, pos)?;
-        let item = hsphelp_symbols
-            .iter()
-            .find(|s| s.label == name.as_str())?
-            .clone();
+        let (_, tokens, _) = wa.get_tokens(doc)?;
+
+        let mut completion_items = vec![];
+        if in_preproc(pos, &tokens) {
+            wa.require_project_for_doc(doc)
+                .collect_preproc_completion_items(&mut completion_items);
+        }
+
+        let item = completion_items
+            .into_iter()
+            .find(|s| s.label.trim_start_matches('#') == name.as_str())?;
 
         let mut contents = vec![];
         contents.push(plain_text_to_marked_string(name.to_string())); // FIXME: %prmの1行目を使ったほうがいい
@@ -51,6 +53,18 @@ pub(crate) fn hover(
         }
 
         Some((contents, loc))
+    })
+    .or_else(|| {
+        if let Some(loc) = wa.on_include_guard(doc, pos) {
+            Some((
+                vec![plain_text_to_marked_string(
+                    "インクルードガード".to_string(),
+                )],
+                loc,
+            ))
+        } else {
+            None
+        }
     })?;
 
     Some(Hover {

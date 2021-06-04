@@ -1,5 +1,4 @@
-use super::ASymbolDetails;
-use crate::{parse::PToken, token::TokenKind, utils::rc_str::RcStr};
+use super::*;
 
 fn char_is_ornament_comment(c: char) -> bool {
     c.is_control() || c.is_whitespace() || c.is_ascii_punctuation()
@@ -64,8 +63,18 @@ pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
 }
 
 pub(crate) fn collect_comments(leader: &PToken) -> Vec<RcStr> {
-    leader
-        .leading
+    let leading = &leader.leading;
+
+    // leadingの末尾にあるトークンのうち、定義位置との間に空行を挟まないものの個数。
+    let n = leading
+        .iter()
+        .rev()
+        .take_while(|t| {
+            t.kind != TokenKind::Newlines || t.text.chars().filter(|&c| c == '\n').count() <= 1
+        })
+        .count();
+
+    leading[leading.len() - n..]
         .iter()
         .filter_map(|t| {
             if t.kind == TokenKind::Comment && !str_is_ornament_comment(&t.text) {

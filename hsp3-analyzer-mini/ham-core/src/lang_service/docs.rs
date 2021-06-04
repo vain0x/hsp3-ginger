@@ -1,24 +1,32 @@
-use crate::{
-    source::DocId,
-    utils::{canonical_uri::CanonicalUri, rc_str::RcStr, read_file::read_file},
-};
-use std::{
-    collections::{HashMap, HashSet},
-    mem::take,
-    path::Path,
-};
+use super::*;
+use crate::source::DocId;
 
 /// テキストドキュメントのバージョン番号
 /// (エディタ上で編集されるたびに変わる番号。
 ///  いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
-type TextDocumentVersion = i64;
+type TextDocumentVersion = i32;
 
 pub(crate) const NO_VERSION: TextDocumentVersion = 1;
 
 pub(crate) enum DocChange {
-    Opened { doc: DocId, text: RcStr },
-    Changed { doc: DocId, text: RcStr },
-    Closed { doc: DocId },
+    Opened {
+        doc: DocId,
+        lang: Lang,
+        origin: DocChangeOrigin,
+    },
+    Changed {
+        doc: DocId,
+        lang: Lang,
+        origin: DocChangeOrigin,
+    },
+    Closed {
+        doc: DocId,
+    },
+}
+
+pub(crate) enum DocChangeOrigin {
+    Editor(RcStr),
+    Path(PathBuf),
 }
 
 /// テキストドキュメントを管理するもの。
@@ -38,7 +46,6 @@ pub(crate) struct Docs {
     doc_to_uri: HashMap<DocId, CanonicalUri>,
     uri_to_doc: HashMap<CanonicalUri, DocId>,
     doc_versions: HashMap<DocId, TextDocumentVersion>,
-    doc_texts: HashMap<DocId, RcStr>,
 
     /// エディタで開かれているドキュメント
     editor_docs: HashSet<DocId>,
@@ -81,32 +88,81 @@ impl Docs {
         self.doc_versions.get(&doc).copied()
     }
 
+    /// 指定したURIが指すディレクトリの子孫であるドキュメントを探す。
+    pub(crate) fn get_docs_in(&self, uri: &CanonicalUri) -> ProjectDocs {
+        // ファイル名 -> 同じ名前を持つドキュメントのIDのリスト
+        let mut doc_env: HashMap<String, Vec<DocId>> = HashMap::new();
+        // ディレクトリへの相対パス -> ディレクトリID
+        let mut dir_env: HashMap<String, usize> = HashMap::new();
+        // ドキュメント -> 親ディレクトリのID
+        let mut doc_dirs: HashMap<DocId, usize> = HashMap::new();
+        // ディレクトリID -> ディレクトリに含まれるドキュメントのIDのリスト
+        let mut dirs: Vec<Vec<DocId>> = vec![];
+
+        let base_dir = match uri.to_file_path() {
+            Some(it) => it,
+            None => return ProjectDocs::default(),
+        };
+        for (&doc, uri) in &self.doc_to_uri {
+            (|| -> Option<()> {
+                let absolute_path = uri.to_file_path()?;
+                let relative_path = absolute_path.strip_prefix(&base_dir).ok()?;
+                let dir = relative_path.parent()?.to_string_lossy().replace("\\", "/");
+                let name = relative_path.file_name()?.to_string_lossy().to_string();
+
+                let dir_id = *dir_env.entry(dir).or_insert_with(|| {
+                    dirs.push(vec![]);
+                    dirs.len() - 1
+                });
+                dirs[dir_id].push(doc);
+                doc_dirs.insert(doc, dir_id);
+                doc_env.entry(name).or_default().push(doc);
+                Some(())
+            })();
+        }
+
+        let dirs = dirs.into_iter().map(Rc::new).collect::<Vec<_>>();
+        ProjectDocs {
+            doc_dirs: doc_dirs
+                .into_iter()
+                .map(|(doc, dir_id)| (doc, dirs[dir_id].clone()))
+                .collect(),
+            doc_env,
+        }
+    }
+
     pub(crate) fn drain_doc_changes(&mut self, changes: &mut Vec<DocChange>) {
         changes.extend(self.doc_changes.drain(..));
     }
 
-    fn do_open_doc(&mut self, doc: DocId, version: i64, text: RcStr) -> DocId {
+    fn do_open_doc(
+        &mut self,
+        doc: DocId,
+        version: i32,
+        lang: Lang,
+        origin: DocChangeOrigin,
+    ) -> DocId {
         self.doc_versions.insert(doc, version);
-        self.doc_texts.insert(doc, text.clone());
-        self.doc_changes.push(DocChange::Opened { doc, text });
+        self.doc_changes
+            .push(DocChange::Opened { doc, lang, origin });
         doc
     }
 
-    fn do_change_doc(&mut self, doc: DocId, version: i64, text: RcStr) {
+    fn do_change_doc(&mut self, doc: DocId, version: i32, lang: Lang, origin: DocChangeOrigin) {
         self.doc_versions.insert(doc, version);
-        self.doc_texts.insert(doc, text.clone());
-        self.doc_changes.push(DocChange::Changed { doc, text });
+        self.doc_changes
+            .push(DocChange::Changed { doc, lang, origin });
     }
 
     fn do_close_doc(&mut self, doc: DocId, uri: &CanonicalUri) {
         self.doc_to_uri.remove(&doc);
         self.uri_to_doc.remove(&uri);
         self.doc_versions.remove(&doc);
-        self.doc_texts.remove(&doc);
         self.doc_changes.push(DocChange::Closed { doc });
     }
 
-    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
+    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i32, text: RcStr) {
+        #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが開かれました ({:?} version={}, len={})",
             uri,
@@ -116,24 +172,16 @@ impl Docs {
 
         let (created, doc) = self.touch_uri(uri);
         if created {
-            self.do_open_doc(doc, version, text.into());
+            self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         } else {
-            // ファイルをエディタで開いたとき、内容は同じである可能性が高い。そのときは更新の報告を省略する。
-            let same = self
-                .doc_texts
-                .get(&doc)
-                .map_or(false, |current| current.as_str() == text);
-            if same {
-                self.doc_versions.insert(doc, version);
-            } else {
-                self.do_change_doc(doc, version, text.into());
-            }
+            self.do_change_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         }
 
         self.editor_docs.insert(doc);
     }
 
-    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i64, text: String) {
+    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i32, text: RcStr) {
+        #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが変更されました ({:?} version={}, len={})",
             uri,
@@ -143,15 +191,16 @@ impl Docs {
 
         let (created, doc) = self.touch_uri(uri);
         if created {
-            self.do_open_doc(doc, version, text.into());
+            self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         } else {
-            self.do_change_doc(doc, version, text.into());
+            self.do_change_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         }
 
         self.editor_docs.insert(doc);
     }
 
     pub(crate) fn close_doc_in_editor(&mut self, uri: CanonicalUri) {
+        #[cfg(trace_docs)]
         trace!("クライアントでファイルが閉じられました ({:?})", uri);
 
         let doc = match self.uri_to_doc.get(&uri) {
@@ -166,32 +215,31 @@ impl Docs {
         }
     }
 
-    pub(crate) fn change_file(&mut self, path: &Path) {
+    pub(crate) fn change_file(&mut self, path: &Path) -> Option<DocId> {
         let uri = match CanonicalUri::from_file_path(path) {
             Some(uri) => uri,
-            None => return,
+            None => return None,
         };
 
         let (created, doc) = self.touch_uri(uri);
 
         let open_in_editor = !created && self.editor_docs.contains(&doc);
         if open_in_editor {
-            debug!("ファイルは開かれているのでロードされません。");
-            return;
+            #[cfg(trace_docs)]
+            trace!("ファイルは開かれているのでロードされません。");
+            return Some(doc);
         }
 
-        // FIXME: drain_doc_changesのタイミングまで読み込みを遅延してもいい。
-        let mut text = String::new();
-        if !read_file(path, &mut text) {
-            warn!("ファイルを開けません {:?}", path);
-        }
-
+        let lang = Lang::from_path(path)?;
+        let origin = DocChangeOrigin::Path(path.to_path_buf());
         let opened = self.file_docs.insert(doc);
         if opened {
-            self.do_open_doc(doc, NO_VERSION, text.into());
+            self.do_open_doc(doc, NO_VERSION, lang, origin);
         } else {
-            self.do_change_doc(doc, NO_VERSION, text.into());
+            self.do_change_doc(doc, NO_VERSION, lang, origin);
         }
+
+        Some(doc)
     }
 
     pub(crate) fn close_file(&mut self, path: &Path) {
@@ -223,5 +271,57 @@ impl Docs {
                 self.do_close_doc(doc, &uri);
             }
         }
+    }
+
+    /// ファイルとDocIdの対応付けを行う。
+    pub(crate) fn ensure_file_opened(&mut self, path: &Path) -> Option<DocId> {
+        self.change_file(path)
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct ProjectDocs {
+    /// ドキュメント -> それが属するディレクトリ
+    /// (ディレクトリはそれに入っているドキュメントのリストで表す。)
+    pub(crate) doc_dirs: HashMap<DocId, Rc<Vec<DocId>>>,
+
+    /// ファイル名 -> その名前のドキュメント
+    pub(crate) doc_env: HashMap<String, Vec<DocId>>,
+}
+
+impl ProjectDocs {
+    /// 2つのドキュメントが同じディレクトリにある？
+    fn peer(&self, d1: DocId, d2: DocId) -> bool {
+        match (self.doc_dirs.get(&d1), self.doc_dirs.get(&d2)) {
+            (Some(dir1), Some(dir2)) => Rc::ptr_eq(dir1, dir2),
+            _ => false,
+        }
+    }
+
+    /// ファイル名からドキュメントを探す。
+    ///
+    /// ディレクトリは無視して名前が一致するものを探す。
+    /// ただし `base_opt = Some(doc)` であり `doc` と同じディレクトリにその名前のファイルがあったら、それを使う。
+    pub(crate) fn find(&self, name: &str, base_opt: Option<DocId>) -> Option<DocId> {
+        debug_assert!(!name.contains('\\'));
+
+        let basename = match name.rfind('/') {
+            Some(i) => &name[i + 1..],
+            None => name,
+        };
+
+        if basename == "" || basename == "." || basename == ".." {
+            return None;
+        }
+
+        let docs = self.doc_env.get(basename)?;
+
+        if let Some(base) = base_opt {
+            if let it @ Some(_) = docs.iter().find(|&&d| self.peer(base, d)).cloned() {
+                return it;
+            }
+        }
+
+        docs.first().cloned()
     }
 }

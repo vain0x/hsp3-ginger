@@ -1,8 +1,4 @@
-use super::{
-    p_token::PToken, parse_context::Px, PArg, PCompound, PDotArg, PExpr, PInfixExpr, PLabel,
-    PNameDot, PNameParen, PParenExpr, PPrefixExpr,
-};
-use crate::token::TokenKind;
+use super::*;
 
 pub(crate) fn parse_label(px: &mut Px) -> Option<PLabel> {
     let star = px.eat(TokenKind::Star)?;

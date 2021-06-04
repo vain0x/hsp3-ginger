@@ -8,11 +8,25 @@ pub(crate) struct Loc {
 }
 
 impl Loc {
+    pub(crate) fn from_doc(doc: DocId) -> Self {
+        Loc {
+            doc,
+            range: Range::empty(Pos::default()),
+        }
+    }
+    pub(crate) fn new(doc: DocId, range: Range) -> Self {
+        Loc { doc, range }
+    }
+
     pub(crate) fn new3(doc: DocId, start: Pos, end: Pos) -> Self {
         Loc {
             doc,
             range: Range::from(start..end),
         }
+    }
+
+    pub(crate) fn with_range(self, range: Range) -> Self {
+        Loc { range, ..self }
     }
 
     pub(crate) fn start(&self) -> Pos {
@@ -23,10 +37,12 @@ impl Loc {
         self.range.end()
     }
 
+    #[cfg(unused)]
     pub(crate) fn start_row(&self) -> usize {
         self.range.start().row as usize
     }
 
+    #[cfg(unused)]
     pub(crate) fn end_row(&self) -> usize {
         self.range.end().row as usize
     }
