@@ -207,14 +207,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 
             let mut symbol_opt = None;
 
-            let kind = match *kind {
-                PDefFuncKind::DefFunc => HspSymbolKind::DefFunc,
-                PDefFuncKind::DefCFunc => HspSymbolKind::DefCFunc,
-                PDefFuncKind::ModInit | PDefFuncKind::ModTerm | PDefFuncKind::ModFunc => {
-                    HspSymbolKind::ModFunc
-                }
-                PDefFuncKind::ModCFunc => HspSymbolKind::ModCFunc,
-            };
+            let kind = to_symbol_kind(*kind);
 
             if let Some(name) = name_opt {
                 if onexit_opt.is_none() {
@@ -372,6 +365,17 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
             }
         }
         PStmt::UnknownPreProc(_) => {}
+    }
+}
+
+fn to_symbol_kind(kind: PDefFuncKind) -> HspSymbolKind {
+    match kind {
+        PDefFuncKind::DefFunc => HspSymbolKind::DefFunc,
+        PDefFuncKind::DefCFunc => HspSymbolKind::DefCFunc,
+        PDefFuncKind::ModInit | PDefFuncKind::ModTerm | PDefFuncKind::ModFunc => {
+            HspSymbolKind::ModFunc
+        }
+        PDefFuncKind::ModCFunc => HspSymbolKind::ModCFunc,
     }
 }
 
