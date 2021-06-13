@@ -27,7 +27,7 @@ impl CanonicalUri {
                 .map(|uri| CanonicalUri { uri })
         };
 
-        // canonicalize に成功するなら、これを正規系と信じて使う。
+        // canonicalize に成功するなら、これを正規形と信じて使う。
         if let Ok(canonical_path) = path.canonicalize() {
             return to_uri(&canonical_path);
         }
@@ -47,7 +47,7 @@ impl CanonicalUri {
         // canonicalize できない絶対パスというのはよく分からないが、
         // 例えばファイルパスを取得した直後にファイルが削除された場合などに発生しうる。
         // (存在しないファイルパスは canonicalize に失敗するはず。)
-        // 正規系ではないかもしれないが、そのまま URI として使う。
+        // 正規形ではないかもしれないが、そのまま URI として使う。
         to_uri(path)
     }
 
