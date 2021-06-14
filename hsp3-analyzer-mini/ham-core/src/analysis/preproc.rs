@@ -36,7 +36,7 @@ pub(crate) fn find_include_guard(root: &PRoot) -> Option<IncludeGuard> {
     })
 }
 
-pub(crate) struct ASignatureData {
+pub(crate) struct SignatureData {
     pub(crate) name: RcStr,
     pub(crate) params: Vec<(Option<PParamTy>, Option<RcStr>, Option<String>)>,
 }
@@ -104,7 +104,7 @@ fn add_symbol(
         ns_opt,
     } = resolve_name_scope_ns_for_def(&name.body.text, def, local, module_map);
 
-    let symbol = SymbolRc::from(ASymbolData {
+    let symbol = SymbolRc::from(SymbolData {
         doc: leader.body.loc.doc,
         kind,
         name: basename,
@@ -379,7 +379,7 @@ fn to_symbol_kind(kind: PDefFuncKind) -> HspSymbolKind {
     }
 }
 
-fn new_signature_data_for_lib_func(stmt: &PLibFuncStmt) -> Option<ASignatureData> {
+fn new_signature_data_for_lib_func(stmt: &PLibFuncStmt) -> Option<SignatureData> {
     let name = stmt.name_opt.as_ref()?.body.text.clone();
 
     let params = stmt
@@ -396,10 +396,10 @@ fn new_signature_data_for_lib_func(stmt: &PLibFuncStmt) -> Option<ASignatureData
         })
         .collect::<Vec<_>>();
 
-    Some(ASignatureData { name, params })
+    Some(SignatureData { name, params })
 }
 
-fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData> {
+fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<SignatureData> {
     let take_modvar = match stmt.kind {
         PDefFuncKind::DefFunc | PDefFuncKind::DefCFunc => false,
         PDefFuncKind::ModFunc | PDefFuncKind::ModCFunc => true,
@@ -425,7 +425,7 @@ fn new_signature_data_for_deffunc(stmt: &PDefFuncStmt) -> Option<ASignatureData>
         params.push((ty_opt, name_opt, None));
     }
 
-    Some(ASignatureData { name, params })
+    Some(SignatureData { name, params })
 }
 
 pub(crate) struct PreprocAnalysisResult {

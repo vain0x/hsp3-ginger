@@ -24,7 +24,7 @@ impl SignatureHelpHost {
 }
 
 pub(crate) struct SignatureHelpContext {
-    pub(crate) signature_data: Rc<ASignatureData>,
+    pub(crate) signature_data: Rc<SignatureData>,
     pub(crate) arg_index: usize,
     pub(crate) ctype: bool,
 }
@@ -40,7 +40,7 @@ impl V {
         self.host.use_site_map.get(&pos).cloned()
     }
 
-    fn find_signature(&self, symbol: &SymbolRc) -> Option<Rc<ASignatureData>> {
+    fn find_signature(&self, symbol: &SymbolRc) -> Option<Rc<SignatureData>> {
         symbol.signature_opt()
     }
 

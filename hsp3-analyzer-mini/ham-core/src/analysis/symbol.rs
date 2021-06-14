@@ -75,10 +75,10 @@ impl Default for HspSymbolKind {
 }
 
 #[derive(Clone)]
-pub(crate) struct SymbolRc(Rc<ASymbolData>);
+pub(crate) struct SymbolRc(Rc<SymbolData>);
 
 impl SymbolRc {
-    pub(crate) fn from(data: ASymbolData) -> Self {
+    pub(crate) fn from(data: SymbolData) -> Self {
         Self(Rc::new(data))
     }
 
@@ -86,18 +86,18 @@ impl SymbolRc {
         self.0.name.clone()
     }
 
-    pub(crate) fn signature_opt(&self) -> Option<Rc<ASignatureData>> {
+    pub(crate) fn signature_opt(&self) -> Option<Rc<SignatureData>> {
         self.0.signature_opt.borrow().clone()
     }
 
-    pub(crate) fn compute_details(&self) -> ASymbolDetails {
+    pub(crate) fn compute_details(&self) -> SymbolDetails {
         if let Some(details) = self.details_opt.as_ref() {
             return details.clone();
         }
 
         let item_opt = self.linked_symbol_opt.borrow();
         if let Some(item) = item_opt.as_ref() {
-            return ASymbolDetails {
+            return SymbolDetails {
                 desc: item.detail.clone().map(RcStr::from),
                 docs: item
                     .documentation
@@ -113,21 +113,21 @@ impl SymbolRc {
 
         match &self.leader_opt {
             Some(leader) => calculate_details(&collect_comments(leader)),
-            None => ASymbolDetails::default(),
+            None => SymbolDetails::default(),
         }
     }
 }
 
-impl AsRef<ASymbolData> for SymbolRc {
-    fn as_ref(&self) -> &ASymbolData {
+impl AsRef<SymbolData> for SymbolRc {
+    fn as_ref(&self) -> &SymbolData {
         self.0.as_ref()
     }
 }
 
 impl Deref for SymbolRc {
-    type Target = ASymbolData;
+    type Target = SymbolData;
 
-    fn deref(&self) -> &ASymbolData {
+    fn deref(&self) -> &SymbolData {
         self.0.deref()
     }
 }
@@ -152,7 +152,7 @@ impl Debug for SymbolRc {
     }
 }
 
-pub(crate) struct ASymbolData {
+pub(crate) struct SymbolData {
     #[allow(unused)]
     pub(crate) doc: DocId,
 
@@ -162,16 +162,16 @@ pub(crate) struct ASymbolData {
     pub(crate) scope_opt: Option<Scope>,
     pub(crate) ns_opt: Option<RcStr>,
 
-    pub(crate) details_opt: Option<ASymbolDetails>,
+    pub(crate) details_opt: Option<SymbolDetails>,
     pub(crate) preproc_def_site_opt: Option<Loc>,
 
     // 追加の情報:
-    pub(crate) signature_opt: RefCell<Option<Rc<ASignatureData>>>,
+    pub(crate) signature_opt: RefCell<Option<Rc<SignatureData>>>,
     pub(crate) linked_symbol_opt: RefCell<Option<lsp_types::CompletionItem>>,
 }
 
 #[derive(Clone, Default)]
-pub(crate) struct ASymbolDetails {
+pub(crate) struct SymbolDetails {
     pub(crate) desc: Option<RcStr>,
     pub(crate) docs: Vec<String>,
 }

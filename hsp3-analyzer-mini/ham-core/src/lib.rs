@@ -51,14 +51,14 @@ mod analysis {
     pub(crate) use self::{
         doc_analysis::DocAnalysis,
         name_system::*,
-        preproc::{ASignatureData, IncludeGuard, PreprocAnalysisResult},
+        preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
         sema::{Diagnostic, Sema},
         symbol::{
             module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,
             ModuleMap, ModuleRc,
         },
-        symbol::{ASymbolData, ASymbolDetails, HspSymbolKind, SymbolRc},
+        symbol::{HspSymbolKind, SymbolData, SymbolDetails, SymbolRc},
         syntax_linter::SyntaxLint,
         workspace_analysis::{WorkspaceAnalysis, WorkspaceHost},
     };
