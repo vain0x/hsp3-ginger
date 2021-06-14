@@ -71,7 +71,7 @@ pub(crate) fn flip_comma(
     let (doc, pos) = from_document_position(uri, range.start, &docs)?;
     let version = docs.get_version(doc);
 
-    let (text, tokens, root) = wa.get_tokens(doc)?;
+    let DocSyntax { text, tokens, root } = wa.get_syntax(doc)?;
 
     // 補完位置に隣接しているカンマをみつける。
     let (comma_index, comma) = {

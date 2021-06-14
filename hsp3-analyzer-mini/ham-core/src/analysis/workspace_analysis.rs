@@ -160,7 +160,7 @@ impl WorkspaceAnalysis {
         )
     }
 
-    pub(crate) fn get_tokens(&mut self, doc: DocId) -> Option<(RcStr, RcSlice<PToken>, &PRoot)> {
+    pub(crate) fn get_syntax(&mut self, doc: DocId) -> Option<DocSyntax> {
         self.compute();
 
         let (_, text) = self
@@ -168,7 +168,11 @@ impl WorkspaceAnalysis {
             .get(&doc)
             .filter(|&&(lang, _)| lang == Lang::Hsp3)?;
         let da = self.doc_analysis_map.get(&doc)?;
-        Some((text.clone(), da.tokens.clone(), da.tree_opt.as_ref()?))
+        Some(DocSyntax {
+            text: text.clone(),
+            tokens: da.tokens.clone(),
+            root: da.tree_opt.as_ref()?,
+        })
     }
 
     pub(crate) fn get_ident_at(&mut self, doc: DocId, pos: Pos16) -> Option<(RcStr, Loc)> {
@@ -295,4 +299,10 @@ impl WorkspaceAnalysis {
 
         diagnostics.extend(p.diagnostics.clone());
     }
+}
+
+pub(crate) struct DocSyntax<'a> {
+    pub(crate) text: RcStr,
+    pub(crate) tokens: RcSlice<PToken>,
+    pub(crate) root: &'a PRoot,
 }
