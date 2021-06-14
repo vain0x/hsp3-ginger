@@ -328,7 +328,7 @@ pub(crate) fn formatting(
     wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<TextEdit>> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
-    let (text, tokens, root) = wa.get_tokens(doc)?;
+    let DocSyntax { text, tokens, root } = wa.get_syntax(doc)?;
 
     let mut ctx = V {
         ground_depth: 1,

@@ -29,7 +29,7 @@ pub(crate) fn hover(
     })()
     .or_else(|| {
         let (name, loc) = wa.get_ident_at(doc, pos)?;
-        let (_, tokens, _) = wa.get_tokens(doc)?;
+        let tokens = wa.get_syntax(doc)?.tokens;
 
         let mut completion_items = vec![];
         if in_preproc(pos, &tokens) {
