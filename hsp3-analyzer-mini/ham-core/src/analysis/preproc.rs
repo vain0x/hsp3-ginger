@@ -104,19 +104,15 @@ fn add_symbol(
         ns_opt,
     } = resolve_name_scope_ns_for_def(&name.body.text, def, local, module_map);
 
-    let symbol = SymbolRc::from(SymbolData {
-        doc: leader.body.loc.doc,
+    let symbol = DefInfo::Preproc {
         kind,
-        name: basename,
-        leader_opt: Some(leader.clone()),
+        basename,
+        leader: leader.clone(),
         scope_opt,
         ns_opt,
-
-        details_opt: None,
-        preproc_def_site_opt: Some(name.body.loc),
-        signature_opt: Default::default(),
-        linked_symbol_opt: Default::default(),
-    });
+        loc: name.body.loc,
+    }
+    .into_symbol();
     symbols.push(symbol.clone());
     symbol
 }

@@ -22,7 +22,7 @@ fn is_builtin(stem: &str) -> bool {
     }
 }
 
-fn convert_symbol(doc: DocId, hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem) {
+fn convert_symbol(hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem) {
     let kind = CompletionItemKind::Function;
     let HsSymbol {
         name,
@@ -46,21 +46,15 @@ fn convert_symbol(doc: DocId, hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem)
         })
     });
 
-    let symbol = SymbolRc::from(SymbolData {
-        doc,
-        kind: HspSymbolKind::Unknown,
+    let symbol = DefInfo::HspHelp {
         name: name_rc.clone(),
-        leader_opt: None,
-        scope_opt: None,
-        ns_opt: None,
-        details_opt: Some(SymbolDetails {
+        details: SymbolDetails {
             desc: description.clone().map(RcStr::from),
             docs: documentation.clone(),
-        }),
-        preproc_def_site_opt: None,
-        signature_opt: RefCell::new(signature_opt),
-        linked_symbol_opt: Default::default(),
-    });
+        },
+        signature_opt,
+    }
+    .into_symbol();
 
     // 補完候補の順番を制御するための文字。(標準命令を上に出す。)
     let sort_prefix = if builtin {
@@ -160,7 +154,7 @@ pub(crate) fn search_hsphelp(
             }
 
             for hs_symbol in hs_symbols.drain(..) {
-                let (symbol, completion_item) = convert_symbol(hs_doc, hs_symbol);
+                let (symbol, completion_item) = convert_symbol(hs_symbol);
                 symbols.push(completion_item);
 
                 if builtin {

@@ -58,7 +58,7 @@ mod analysis {
             module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,
             ModuleMap, ModuleRc,
         },
-        symbol::{HspSymbolKind, SymbolData, SymbolDetails, SymbolRc},
+        symbol::{DefInfo, HspSymbolKind, SymbolDetails, SymbolRc},
         syntax_linter::SyntaxLint,
         workspace_analysis::{WorkspaceAnalysis, WorkspaceHost},
     };

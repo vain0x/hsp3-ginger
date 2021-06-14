@@ -152,17 +152,99 @@ impl Debug for SymbolRc {
     }
 }
 
-pub(crate) struct SymbolData {
-    #[allow(unused)]
-    pub(crate) doc: DocId,
+/// シンボルを定義するもの
+pub(crate) enum DefInfo {
+    HspHelp {
+        name: RcStr,
+        details: SymbolDetails,
+        signature_opt: Option<Rc<SignatureData>>,
+    },
+    Preproc {
+        kind: HspSymbolKind,
+        basename: RcStr,
+        scope_opt: Option<Scope>,
+        ns_opt: Option<RcStr>,
+        leader: PToken,
+        loc: Loc,
+    },
+    Name {
+        name: PToken,
+        kind: HspSymbolKind,
+        basename: RcStr,
+        scope_opt: Option<Scope>,
+        ns_opt: Option<RcStr>,
+    },
+}
 
+impl DefInfo {
+    pub(crate) fn into_symbol(self) -> SymbolRc {
+        let symbol_data = match self {
+            DefInfo::HspHelp {
+                name,
+                details,
+                signature_opt,
+            } => SymbolData {
+                kind: HspSymbolKind::Unknown,
+                name,
+                scope_opt: None,
+                ns_opt: None,
+                leader_opt: None,
+                details_opt: Some(details),
+
+                preproc_def_site_opt: None,
+                signature_opt: RefCell::new(signature_opt),
+                linked_symbol_opt: Default::default(),
+            },
+            DefInfo::Preproc {
+                leader,
+                kind,
+                basename,
+                scope_opt,
+                ns_opt,
+                loc,
+            } => SymbolData {
+                kind,
+                name: basename,
+                scope_opt,
+                ns_opt,
+                leader_opt: Some(leader),
+
+                details_opt: None,
+                preproc_def_site_opt: Some(loc),
+                signature_opt: Default::default(),
+                linked_symbol_opt: Default::default(),
+            },
+            DefInfo::Name {
+                name,
+                kind,
+                basename,
+                scope_opt,
+                ns_opt,
+            } => SymbolData {
+                kind,
+                name: basename,
+                scope_opt,
+                ns_opt,
+                leader_opt: Some(name),
+
+                details_opt: None,
+                preproc_def_site_opt: None,
+                signature_opt: Default::default(),
+                linked_symbol_opt: Default::default(),
+            },
+        };
+        SymbolRc::from(symbol_data)
+    }
+}
+
+pub(crate) struct SymbolData {
     pub(crate) kind: HspSymbolKind,
     pub(crate) name: RcStr,
-    pub(crate) leader_opt: Option<PToken>,
     pub(crate) scope_opt: Option<Scope>,
     pub(crate) ns_opt: Option<RcStr>,
+    leader_opt: Option<PToken>,
 
-    pub(crate) details_opt: Option<SymbolDetails>,
+    details_opt: Option<SymbolDetails>,
     pub(crate) preproc_def_site_opt: Option<Loc>,
 
     // 追加の情報:
