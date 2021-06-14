@@ -312,7 +312,7 @@ impl<'a> ProjectAnalysisRef<'a> {
     pub(crate) fn get_symbol_details(
         self,
         symbol: &SymbolRc,
-    ) -> Option<(RcStr, &'static str, ASymbolDetails)> {
+    ) -> Option<(RcStr, &'static str, SymbolDetails)> {
         Some((
             symbol.name(),
             symbol.kind.as_str(),

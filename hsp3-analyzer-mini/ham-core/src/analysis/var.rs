@@ -41,7 +41,7 @@ fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx)
         ctx.module_map,
     );
 
-    let symbol = SymbolRc::from(ASymbolData {
+    let symbol = SymbolRc::from(SymbolData {
         doc,
         kind,
         name: basename.clone(),

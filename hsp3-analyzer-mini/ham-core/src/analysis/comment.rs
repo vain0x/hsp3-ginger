@@ -18,7 +18,7 @@ fn trim_comment_leader(s: RcStr) -> RcStr {
     s
 }
 
-pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
+pub(crate) fn calculate_details(comments: &[RcStr]) -> SymbolDetails {
     let mut description = None;
     let mut documentation = vec![];
 
@@ -56,7 +56,7 @@ pub(crate) fn calculate_details(comments: &[RcStr]) -> ASymbolDetails {
         }
     }
 
-    ASymbolDetails {
+    SymbolDetails {
         desc: description,
         docs: documentation,
     }

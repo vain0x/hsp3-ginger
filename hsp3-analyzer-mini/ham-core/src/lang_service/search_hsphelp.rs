@@ -40,20 +40,20 @@ fn convert_symbol(doc: DocId, hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem)
             .map(|p| (None, Some(p.name.into()), p.details_opt))
             .collect();
 
-        Rc::new(ASignatureData {
+        Rc::new(SignatureData {
             name: name_rc.clone(),
             params,
         })
     });
 
-    let symbol = SymbolRc::from(ASymbolData {
+    let symbol = SymbolRc::from(SymbolData {
         doc,
         kind: HspSymbolKind::Unknown,
         name: name_rc.clone(),
         leader_opt: None,
         scope_opt: None,
         ns_opt: None,
-        details_opt: Some(ASymbolDetails {
+        details_opt: Some(SymbolDetails {
             desc: description.clone().map(RcStr::from),
             docs: documentation.clone(),
         }),
