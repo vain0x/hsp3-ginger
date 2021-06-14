@@ -15,7 +15,7 @@ struct Ctx<'a> {
     doc: DocId,
 
     /// ドキュメント内のシンボル
-    symbols: &'a mut Vec<SymbolRc>,
+    new_symbols: Vec<SymbolRc>,
 
     /// ドキュメント内の環境
     local_env: HashMap<LocalScope, SymbolEnv>,
@@ -48,7 +48,7 @@ fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx)
         ns_opt: ns_opt.clone(),
     }
     .into_symbol();
-    ctx.symbols.push(symbol.clone());
+    ctx.new_symbols.push(symbol.clone());
 
     if def_site {
         ctx.public_def_sites.push((symbol.clone(), name.body.loc));
@@ -293,15 +293,16 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
 pub(crate) fn analyze_var_def(
     doc: DocId,
     root: &PRoot,
+    preproc_symbols: &[SymbolRc],
     module_map: &ModuleMap,
-    symbols: &mut Vec<SymbolRc>,
     public_env: &mut PublicEnv,
     ns_env: &mut NsEnv,
+    new_symbols: &mut Vec<SymbolRc>,
     def_sites: &mut Vec<(SymbolRc, Loc)>,
     use_sites: &mut Vec<(SymbolRc, Loc)>,
 ) {
     let mut local_env = HashMap::new();
-    extend_local_env_from_symbols(&symbols, &mut local_env);
+    extend_local_env_from_symbols(preproc_symbols, &mut local_env);
 
     let mut ctx = Ctx {
         public_env,
@@ -310,7 +311,7 @@ pub(crate) fn analyze_var_def(
         public_def_sites: def_sites,
         public_use_sites: use_sites,
         doc,
-        symbols,
+        new_symbols: vec![],
         local_env,
         deffunc_len: 0,
         module_len: 0,
@@ -320,4 +321,6 @@ pub(crate) fn analyze_var_def(
     for stmt in &root.stmts {
         on_stmt(stmt, &mut ctx);
     }
+
+    new_symbols.extend(ctx.new_symbols);
 }
