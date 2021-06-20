@@ -68,6 +68,9 @@
             {
                 "type": "hsp3",
                 "label": "hsp3-debug-window-adapter",
+                "languages": [
+                    "hsp3"
+                ],
                 "runtime": "node",
                 "program": "./out/dap_index.js",
                 "configurationAttributes": {
@@ -103,6 +106,24 @@
                             "name": "Run"
                         }
                     }
+                ]
+            }
+        ],
+        "languages": [
+            {
+                "id": "hsp3",
+                "aliases": [
+                    "HSP3",
+                    "HSP",
+                    "hsp3",
+                    "hsp",
+                    "ＨＳＰ３",
+                    "ＨＳＰ",
+                    "Hot Soup Processor 3",
+                    "Hot Soup Processor"
+                ],
+                "extensions": [
+                    ".hsp"
                 ]
             }
         ]
