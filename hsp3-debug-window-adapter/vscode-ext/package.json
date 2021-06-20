@@ -2,7 +2,7 @@
     "name": "hsp3-debug-window-adapter",
     "displayName": "HSP3 デバッグ (標準のデバッグウィンドウを使用)",
     "description": "HSP3 のデバッグ機能を有効化する拡張機能です。VSCode のデバッグツールではなく、HSP3 標準のデバッグウィンドウを使用します。",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "author": {
         "name": "vain0x",
         "email": "vainzerox@gmail.com"
@@ -68,6 +68,9 @@
             {
                 "type": "hsp3",
                 "label": "hsp3-debug-window-adapter",
+                "languages": [
+                    "hsp3"
+                ],
                 "runtime": "node",
                 "program": "./out/dap_index.js",
                 "configurationAttributes": {
@@ -103,6 +106,24 @@
                             "name": "Run"
                         }
                     }
+                ]
+            }
+        ],
+        "languages": [
+            {
+                "id": "hsp3",
+                "aliases": [
+                    "HSP3",
+                    "HSP",
+                    "hsp3",
+                    "hsp",
+                    "ＨＳＰ３",
+                    "ＨＳＰ",
+                    "Hot Soup Processor 3",
+                    "Hot Soup Processor"
+                ],
+                "extensions": [
+                    ".hsp"
                 ]
             }
         ]
