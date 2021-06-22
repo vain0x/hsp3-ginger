@@ -71,39 +71,18 @@ fn from_document_position(uri: &Url, position: Position, docs: &Docs) -> Option<
     Some((doc, pos))
 }
 
-// HACK: SymbolInformation.deprecatedがdeprecated属性がついているので、初期化するとdeprecated警告が出てしまう。それを回避するため、空のインスタンスを動的に生成する。
-fn empty_symbol_information() -> SymbolInformation {
-    thread_local! {
-        static CACHE: RefCell<Option<SymbolInformation>> = RefCell::default();
+fn new_lsp_symbol_information(
+    name: String,
+    kind: lsp_types::SymbolKind,
+    location: Location,
+) -> SymbolInformation {
+    #[allow(deprecated)]
+    SymbolInformation {
+        name,
+        kind,
+        location,
+        tags: None,
+        deprecated: None,
+        container_name: None,
     }
-
-    CACHE.with(|cell: &RefCell<Option<SymbolInformation>>| {
-        let mut opt = cell.borrow_mut();
-        if let Some(it) = &*opt {
-            return it.clone();
-        }
-
-        let it: SymbolInformation = serde_json::from_str(
-            r#"{
-                "name": "",
-                "kind": 1,
-                "location": {
-                    "uri": "http://example.com",
-                    "range": {
-                        "start": {
-                            "line": 0,
-                            "character": 0
-                        },
-                        "end": {
-                            "line": 0,
-                            "character": 0
-                        }
-                    }
-                }
-            }"#,
-        )
-        .unwrap();
-        *opt = Some(it.clone());
-        it
-    })
 }

@@ -38,7 +38,6 @@ pub(crate) fn symbol(
     wa.require_some_project()
         .collect_all_symbols(query, &mut symbols);
 
-    let empty = empty_symbol_information();
     symbols
         .into_iter()
         .filter(|(symbol, _)| symbol.scope_opt.as_ref().map_or(false, |s| s.is_public()))
@@ -47,12 +46,7 @@ pub(crate) fn symbol(
             let kind = to_lsp_symbol_kind(symbol.kind)?;
             let location = loc_to_location(loc, docs)?;
 
-            Some(SymbolInformation {
-                name: name.to_string(),
-                kind,
-                location,
-                ..empty.clone()
-            })
+            Some(new_lsp_symbol_information(name.to_string(), kind, location))
         })
         .collect()
 }
