@@ -11,6 +11,7 @@ import {
   LanguageClientOptions,
   ServerOptions,
 } from "vscode-languageclient"
+import { SemanticTokensFeature } from "vscode-languageclient/lib/semanticTokens.proposed"
 
 let client: LanguageClient
 
@@ -70,6 +71,7 @@ const startLspClient = (context: ExtensionContext) => {
     serverOptions,
     clientOptions
   )
+  client.registerFeature(new SemanticTokensFeature(client))
   client.start()
 }
 
