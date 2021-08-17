@@ -18,17 +18,14 @@
         "Programming Languages"
     ],
     "engines": {
-        "vscode": "^1.40.1"
+        "vscode": "^1.55.0"
     },
     "devDependencies": {
-        "vsce": "^1.69.0",
-        "vscode": "^1.1.36"
+        "vsce": "^1.96.1"
     },
     "scripts": {
-        "postinstall": "vscode-install",
-        "build": "echo 'nothing to build'",
-        "watch": "echo 'nothing to watch'",
-        "vsce:package": "vsce package --out hsp3-vscode-syntax.vsix"
+        "build": "echo 'Nothing to build.'",
+        "vsce-package": "vsce package --out hsp3-vscode-syntax.vsix"
     },
     "main": "out/extension.js",
     "activationEvents": [
