@@ -178,6 +178,19 @@ pub fn rewrite_fn(text: String) -> String {
                     .chars()
                     .take_while(|&c| c == '\t')
                     .count();
+                let rest = &token.text[slash + space.max(tab)..];
+
+                // "// ----..." みたいなやつ(境界線)
+                if slash == 2 && space == 1 && rest.len() >= 10 && rest.chars().all(|c| c == '-') {
+                    output += "; -";
+                    output += rest;
+                    continue;
+                }
+                if slash == 2 && space == 1 && rest.len() >= 10 && rest.chars().all(|c| c == '=') {
+                    output += "; =";
+                    output += rest;
+                    continue;
+                }
 
                 let mut n = slash + space;
 
@@ -205,7 +218,7 @@ pub fn rewrite_fn(text: String) -> String {
                     }
                 }
 
-                output += &token.text[slash + space.max(tab)..];
+                output += rest;
                 continue;
             }
             _ => {}
