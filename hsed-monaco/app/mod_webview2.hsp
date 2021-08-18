@@ -1,0 +1,226 @@
+// https://blog.goo.ne.jp/hiro239415/e/388ac390b0585862cf3e05eab9ca0dec
+
+#ifndef MOD_WEBVIEW2_HSP_
+#define global MOD_WEBVIEW2_HSP_
+
+#include "user32.as"
+#include "kernel32.as"
+#ifndef CreateEventExA
+#func global CreateEventEx "CreateEventExA" int,sptr,int,int
+#endif
+#include "ole32.as"
+// #include "WebView2_08355.hsp"
+#include "mod_webview2_08355.hsp"
+
+#enum global WebView2_NavigationStarting = 0
+#enum global WebView2_DocumentStateChanged
+#enum global WebView2_NavigationCompleted
+#enum global WebView2_FrameNavigationStarting
+#enum global WebView2_MoveFocusRequested
+#enum global WebView2_GotFocus
+#enum global WebView2_LostFocus
+#enum global WebView2_WebResourceRequested
+#enum global WebView2_ScriptDialogOpening
+#enum global WebView2_ZoomFactorChanged
+#enum global WebView2_PermissionRequested
+#enum global WebView2_ProcessFailed
+#enum global WebView2_ScriptToExecuteOnDocumentCreated
+#enum global WebView2_ExecuteScript
+#enum global WebView2_CapturePreview
+#enum global WebView2_WebMessageReceived
+#enum global WebView2_CallDevToolsProtocolMethod
+#enum global WebView2_DevToolsProtocolEventReceived
+#enum global WebView2_NewWindowRequested
+#enum global WebView2_DocumentTitleChanged
+#enum global WebView2_AcceleratorKeyPressed
+#enum global WEBVIEW2_NewVersionAvailable
+#enum global WebView2_MAXHDL
+
+#module mod_WebView2
+
+#deffunc WevView2Init
+	p1 = 0
+	dim p2, 2
+	dTmp = 0.0
+	ldim lbTmp, 1
+	eVt(0)  = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	eVt(10) = 0, 0, 1, 1, 2, 0, 1, 0, 0, 0
+	eVt(20) = 0, 0
+	WebView2InitHdl
+	return
+
+#deffunc WebView2InitHdl
+	if ( codeWeb2Hdl == 0 ){
+		dim codeWeb2Hdl, 136
+		codeWeb2Hdl(0) = $0c24448b, $04244c8b, $c0330889, $00000cc2
+		codeWeb2Hdl(8) = $04c2c033, $00000000
+		codeWeb2Hdl(16) = $04c2c033, $00000000
+		codeWeb2Hdl(24) = $8b575653, $8514247c, $8b0674ff, $50ff5707, $245c8b04, $74db8518, $53038b06, $8b0450ff
+		codeWeb2Hdl(32) = $83102474, $8900147e, $5e89047e, $ff117408, $44c71476, $aaaa1824, $448baaaa, $d0ff1824
+		codeWeb2Hdl(40) = $00187e83, $006a1774, $1c76ff56, $202444c7, $bbbbbbbb, $8b1876ff, $ff242444, $335e5fd0
+		codeWeb2Hdl(48) = $0cc25bc0, $00000000
+		codeWeb2Hdl(56) = $0824448b, $4675c085, $24748b56, $147e8308, $04468900, $1024448b, $74084689, $1476ff11
+		codeWeb2Hdl(64) = $102444c7, $aaaaaaaa, $1024448b, $7e83d0ff, $17740018, $ff56006a, $44c71c76, $bbbb1824
+		codeWeb2Hdl(72) = $76ffbbbb, $24448b18, $33d0ff1c, $0cc25ec0, $00000000
+		codeWeb2Hdl(80) = $24748b56, $7c8b5708, $7e831024, $7e890014, $ff117404, $44c71476, $aaaa1424, $448baaaa
+		codeWeb2Hdl(88) = $d0ff1424, $00187e83, $006a1774, $1c76ff56, $1c2444c7, $bbbbbbbb, $8b1876ff, $ff20244c
+		codeWeb2Hdl(96) = $5fc78bd1, $0008c25e, $00000000
+		codeWeb2Hdl(104) = $0824448b, $5675c085, $7c8b5756, $ff851424, $078b0674, $0450ff57, $0c24748b, $00147e83
+		codeWeb2Hdl(112) = $000446c7, $89000000, $1174087e, $c71476ff, $aa142444, $8baaaaaa, $ff142444, $187e83d0
+		codeWeb2Hdl(120) = $6a177400, $76ff5600, $2444c71c, $bbbbbb1c, $1876ffbb, $2024448b, $335fd0ff, $0cc25ec0
+		codeWeb2Hdl(128) = $00000000
+		p1 = varptr(SetEvent)
+		lpoke codeWeb2Hdl, 150, p1 : lpoke codeWeb2Hdl, 260, p1 : lpoke codeWeb2Hdl, 346, p1 : lpoke codeWeb2Hdl, 467, p1
+		p1 = varptr(SendMessageA)
+		lpoke codeWeb2Hdl, 176, p1 : lpoke codeWeb2Hdl, 286, p1 : lpoke codeWeb2Hdl, 372, p1 : lpoke codeWeb2Hdl, 493, p1
+		VirtualProtect varptr(codeWeb2Hdl), 136 * 4, 0x40, varptr(p1)
+		vtWeb2Hdl_IxI = varptr(codeWeb2Hdl(0)), varptr(codeWeb2Hdl(8)), varptr(codeWeb2Hdl(16)), varptr(codeWeb2Hdl(24))
+		vtWeb2Hdl_HxW = varptr(codeWeb2Hdl(0)), varptr(codeWeb2Hdl(8)), varptr(codeWeb2Hdl(16)), varptr(codeWeb2Hdl(56))
+		vtWeb2Hdl_H   = varptr(codeWeb2Hdl(0)), varptr(codeWeb2Hdl(8)), varptr(codeWeb2Hdl(16)), varptr(codeWeb2Hdl(80))
+		vtWeb2Hdl_HxI = varptr(codeWeb2Hdl(0)), varptr(codeWeb2Hdl(8)), varptr(codeWeb2Hdl(16)), varptr(codeWeb2Hdl(104))
+		dim vtHdl, 4
+		vtHdl = varptr(vtWeb2Hdl_IxI), varptr(vtWeb2Hdl_HxW), varptr(vtWeb2Hdl_H), varptr(vtWeb2Hdl_HxI)
+	}
+	return
+
+#deffunc WebView2Wait int hdlEvent
+	if ( hdlEvent == 0 ){ return 1 }
+	p2 = hdlEvent
+	repeat
+		await 1
+		CoWaitForMultipleHandles 0, 1, 1, varptr(p2), varptr(p1)
+		if ( stat == 0 || stat != 0x80010115 ){ break }
+	loop
+	p1 = stat
+	CloseHandle p2
+	return p1
+
+#deffunc WebView2CWtoS int pWStr, var dst
+	if ( pWStr == 0 ){ return 0 }
+	WideCharToMultiByte 0, 0, pWStr, -1, 0, 0, 0, 0
+	if ( stat == 0 ){ return 0 }
+	sdim dst, stat + 1
+	WideCharToMultiByte 0, 0, pWStr, -1, varptr(dst), stat, 0, 0
+	return 1
+
+#deffunc WebView2WtoS int pWStr, var dst
+	WebView2CWtoS pWStr, dst
+	p1 = stat
+	CoTaskMemFree pWStr
+	return p1
+
+*WM_WEBVIEW2
+	if ( wparam == 0 ){ return }
+	dupptr dpHdl, wparam, 44, 4
+	if ( dpHdl(4) >= WebView2_MAXHDL || dpHdl(10) == 0 ){ return }
+	lpoke lbTmp, 0, dpHdl(10)
+	gosub lbTmp
+	return
+
+#defcfunc WebView2HdlEvent array hdl
+	CreateEventEx 0, 0, 0, 0x1F0003
+	if ( stat == 0 ){ return 0 }
+	dim hdl, 11
+	hdl(0) = vtHdl(3)
+	hdl(5) = stat
+	return 1
+
+#deffunc WebView2EnvInit var env
+	dimtype env, 6, 1
+	if ( WebView2HdlEvent(hdlTmp) == 0 ){ return 0 }
+	CreateWebView2Environment varptr(hdlTmp)
+	if ( stat ){ dialog strf("%#x", stat) : return 0 }
+
+	WebView2Wait hdlTmp(5)
+	if ( hdlTmp(1) != 0 || hdlTmp(2) == 0 ){ return 0 }
+	newcom env, IWebView2Environment3, -1, hdlTmp(2)
+	return 1
+
+#deffunc WebView2New2 var env, var cWeb
+	dimtype cWeb, 6, 1
+	if ( WebView2HdlEvent(hdlTmp) == 0 ){ return 0 }
+	IWebView2Environment_CreateWebView env, hwnd, varptr(hdlTmp)
+	if ( stat == 0 ){
+		WebView2Wait hdlTmp(5)
+		if ( hdlTmp(1) == 0 && hdlTmp(2) != 0 ){
+			newcom cWeb, IWebView2WebView, -1, hdlTmp(2)
+		}
+	}
+	return 1
+
+#deffunc WebView2New var cWeb
+	WebView2EnvInit envTmp
+	if ( stat == 0 ){ return 0 }
+	WebView2New2 envTmp, cWeb
+	envTmp = 0
+	return stat
+
+#deffunc WebView2Setting var cWeb, var cSetting
+	IWebView2WebView_get_Settings cWeb, p1
+	if ( stat ){ return 0 }
+	newcom cSetting, IWebView2Settings2, -1, p1
+	return 1
+
+#deffunc WebView2Size var cWeb, int x, int y, int w, int h
+	if ( varuse(cWeb) == 0 ){ return 0 }
+	IWebView2WebView_put_Bounds cWeb, x, y, x + w, y + h
+	if ( stat ){ return 0 }
+	return 1
+
+#deffunc WebView2Navigate var cWeb, str sUrl
+	if ( varuse(cWeb) == 0 ){ return 0 }
+	IWebView2WebView_Navigate cWeb, sUrl
+	if ( stat ){ return 0 }
+	return 1
+
+#deffunc WebView2Write var cWeb, str sSrc
+	if ( varuse(cWeb) == 0 ){ return 0 }
+	IWebView2WebView_NavigateToString cWeb, sSrc
+	if ( stat ){ return 0 }
+	return 1
+
+#deffunc WebView2Script var cWeb, str sSrc
+	IWebView2WebView_ExecuteScript cWeb, sSrc, 0
+	return
+
+#deffunc WebView2EventInit array hdl, int idWebView2
+	dim hdl, 11, WEBVIEW2_MAXHDL
+	repeat WEBVIEW2_MAXHDL
+		hdl(0, cnt) = vtHdl(eVt(cnt))
+		hdl(4, cnt) = cnt, 0, hwnd, idWebView2
+	loop
+	oncmd gosub *WM_WEBVIEW2, idWebView2
+	return
+
+#deffunc WebView2EventSetBegin array hdl, int idEvent, label lbEvent
+	if ( hdl(8, idEvent) != 0 || hdl(9, idEvent) != 0 || hdl(10, idEvent) != 0 ){
+		return 0
+	}
+	lbTmp = lbEvent : hdl(10, idEvent) = lpeek(lbTmp, 0)
+	return varptr(hdl(0, idEvent))
+
+#deffunc WebView2EventSetEnd array hdl, int idEvent, array aToken
+	hdl(8, idEvent) = aToken(0), aToken(1)
+	return 1
+
+#deffunc WebView2EventDelBegin array hdl, int idEvent, array aToken
+	dim aToken, 2
+	aToken = hdl(8, idEvent), hdl(9, idEvent)
+	return 1
+
+#deffunc WebView2EventDelEnd array hdl, int idEvent
+	if ( stat ){ return 0 }
+	hdl(8, idEvent) = 0, 0, 0
+	return 1
+
+#deffunc WebView2EventGet array eventInfo
+	dupptr dp, wparam, 44, 4
+	// InvokeArg1, InvokeArg2, IWebView2WebView*, ENUM_WEBVIEW2
+	eventInfo = dp(1), dp(2), dp(3), dp(4)
+	return
+
+#global
+
+	WevView2Init
+
+#endif // MOD_WEBVIEW2_HSP_

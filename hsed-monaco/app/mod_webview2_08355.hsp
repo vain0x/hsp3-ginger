@@ -1,0 +1,361 @@
+// https://blog.goo.ne.jp/hiro239415/e/bb807ec822ffb8ba7c073a92b2b693a9
+
+#ifndef WEBVIEW2_HSP_
+#define global WEBVIEW2_HSP_
+
+#uselib "C:\\repo\\local\\hsp3-ginger\\hsed-monaco\\app\\WebView2Loader.dll"
+#func global CreateWebView2EnvironmentWithDetails "CreateWebView2EnvironmentWithDetails" wptr,wptr,wptr,sptr
+#func global CreateWebView2Environment            "CreateWebView2Environment"            sptr
+#func global GetWebView2BrowserVersionInfo        "GetWebView2BrowserVersionInfo"        wptr,var
+#func global CompareBrowserVersions               "CompareBrowserVersions"               wptr,wptr,var
+
+#define global IID_IWebView2WebView "{76711B9E-8D56-4806-8485-35250BB2384F}"
+#usecom global IWebView2WebView IID_IWebView2WebView "{}"
+#comfunc global IWebView2WebView_get_Settings                             3 var
+#comfunc global IWebView2WebView_get_Source                               4 var
+#comfunc global IWebView2WebView_Navigate                                 5 wptr
+#comfunc global IWebView2WebView_MoveFocus                                6 sptr
+#comfunc global IWebView2WebView_NavigateToString                         7 wptr
+#comfunc global IWebView2WebView_add_NavigationStarting                   8 sptr,var
+#comfunc global IWebView2WebView_remove_NavigationStarting                9 int,int
+#comfunc global IWebView2WebView_add_DocumentStateChanged                10 sptr,var
+#comfunc global IWebView2WebView_remove_DocumentStateChanged             11 int,int
+#comfunc global IWebView2WebView_add_NavigationCompleted                 12 sptr,var
+#comfunc global IWebView2WebView_remove_NavigationCompleted              13 int,int
+#comfunc global IWebView2WebView_add_FrameNavigationStarting             14 sptr,var
+#comfunc global IWebView2WebView_remove_FrameNavigationStarting          15 int,int
+#comfunc global IWebView2WebView_add_MoveFocusRequested                  16 sptr,var
+#comfunc global IWebView2WebView_remove_MoveFocusRequested               17 int,int
+#comfunc global IWebView2WebView_add_GotFocus                            18 sptr,var
+#comfunc global IWebView2WebView_remove_GotFocus                         19 int,int
+#comfunc global IWebView2WebView_add_LostFocus                           20 sptr,var
+#comfunc global IWebView2WebView_remove_LostFocus                        21 int,int
+#comfunc global IWebView2WebView_add_WebResourceRequested_deprecated     22 var,var,sptr,sptr,var
+#comfunc global IWebView2WebView_remove_WebResourceRequested             23 int,int
+#comfunc global IWebView2WebView_add_ScriptDialogOpening                 24 sptr,var
+#comfunc global IWebView2WebView_remove_ScriptDialogOpening              25 int,int
+#comfunc global IWebView2WebView_add_ZoomFactorChanged                   26 sptr,var
+#comfunc global IWebView2WebView_remove_ZoomFactorChanged                27 int,int
+#comfunc global IWebView2WebView_add_PermissionRequested                 28 sptr,var
+#comfunc global IWebView2WebView_remove_PermissionRequested              29 int,int
+#comfunc global IWebView2WebView_add_ProcessFailed                       30 sptr,var
+#comfunc global IWebView2WebView_remove_ProcessFailed                    31 int,int
+#comfunc global IWebView2WebView_AddScriptToExecuteOnDocumentCreated     32 wptr,sptr
+#comfunc global IWebView2WebView_RemoveScriptToExecuteOnDocumentCreated  33 wptr
+#comfunc global IWebView2WebView_ExecuteScript                           34 wptr,sptr
+#comfunc global IWebView2WebView_CapturePreview                          35 sptr,sptr,sptr
+#comfunc global IWebView2WebView_Reload                                  36
+#comfunc global IWebView2WebView_get_Bounds                              37 var
+#comfunc global IWebView2WebView_put_Bounds                              38 int,int,int,int
+#comfunc global IWebView2WebView_get_ZoomFactor                          39 var
+#comfunc global IWebView2WebView_put_ZoomFactor                          40 double
+#comfunc global IWebView2WebView_get_IsVisible                           41 var
+#comfunc global IWebView2WebView_put_IsVisible                           42 int
+#comfunc global IWebView2WebView_PostWebMessageAsJson                    43 wptr
+#comfunc global IWebView2WebView_PostWebMessageAsString                  44 wptr
+#comfunc global IWebView2WebView_add_WebMessageReceived                  45 sptr,var
+#comfunc global IWebView2WebView_remove_WebMessageReceived               46 int,int
+#comfunc global IWebView2WebView_Close                                   47
+#comfunc global IWebView2WebView_CallDevToolsProtocolMethod              48 wptr,wptr,sptr
+#comfunc global IWebView2WebView_add_DevToolsProtocolEventReceived       49 wptr,sptr,var
+#comfunc global IWebView2WebView_remove_DevToolsProtocolEventReceived    50 wptr,int,int
+#comfunc global IWebView2WebView_get_BrowserProcessId                    51 var
+#comfunc global IWebView2WebView_get_CanGoBack                           52 var
+#comfunc global IWebView2WebView_get_CanGoForward                        53 var
+#comfunc global IWebView2WebView_GoBack                                  54
+#comfunc global IWebView2WebView_GoForward                               55
+
+#define global IID_IWebView2WebView2 "{BB2DA827-0632-4ED6-8EDA-3F9E561767CA}"
+#usecom global IWebView2WebView2 IID_IWebView2WebView2 "{}"
+#comfunc global IWebView2WebView2_Stop   3
+
+#define global IID_IWebView2WebView3 "{A16A5FF1-C23B-4489-8752-8568A1BED09C}"
+#usecom global IWebView2WebView3 IID_IWebView2WebView3 "{}"
+#comfunc global IWebView2WebView3_Stop                         56
+#comfunc global IWebView2WebView3_add_NewWindowRequested       57 sptr,var
+#comfunc global IWebView2WebView3_remove_NewWindowRequested    58 int,int
+#comfunc global IWebView2WebView3_add_DocumentTitleChanged     59 sptr,var
+#comfunc global IWebView2WebView3_remove_DocumentTitleChanged  60 int,int
+#comfunc global IWebView2WebView3_get_DocumentTitle            61 var
+
+#define global IID_IWebView2WebView4 "{E8B04ED2-FA61-4CBB-B303-786088177555}"
+#usecom global IWebView2WebView4 IID_IWebView2WebView4 "{}"
+#comfunc global IWebView2WebView4_AddRemoteObject               62 wptr,var
+#comfunc global IWebView2WebView4_RemoveRemoteObject            63 wptr
+#comfunc global IWebView2WebView4_OpenDevToolsWindow            64
+#comfunc global IWebView2WebView4_add_AcceleratorKeyPressed     65 sptr,var
+#comfunc global IWebView2WebView4_remove_AcceleratorKeyPressed  66 int,int
+
+#define global IID_IWebView2WebView5 "{E55144F5-A16F-43D8-9580-1E5227152EDF}"
+#usecom global IWebView2WebView5 IID_IWebView2WebView5 "{}"
+#comfunc global IWebView2WebView5_add_ContainsFullScreenElementChanged     67 sptr,var
+#comfunc global IWebView2WebView5_remove_ContainsFullScreenElementChanged  68 int,int
+#comfunc global IWebView2WebView5_get_ContainsFullScreenElement            69 var
+#comfunc global IWebView2WebView5_add_WebResourceRequested                 70 sptr,var
+#comfunc global IWebView2WebView5_AddWebResourceRequestedFilter            71 wptr,sptr
+#comfunc global IWebView2WebView5_RemoveWebResourceRequestedFilter         72 wptr,sptr
+
+#define global IID_IWebView2Deferral "{BD478C19-4706-4B1D-88B6-76DD39ACB7B1}"
+#usecom global IWebView2Deferral IID_IWebView2Deferral "{}"
+#comfunc global IWebView2Deferral_Complete   3
+
+#define global IID_IWebView2Settings "{A28CD108-3234-4B45-B390-7E871B504A96}"
+#usecom global IWebView2Settings IID_IWebView2Settings "{}"
+#comfunc global IWebView2Settings_get_IsScriptEnabled                  3 var
+#comfunc global IWebView2Settings_put_IsScriptEnabled                  4 int
+#comfunc global IWebView2Settings_get_IsWebMessageEnabled              5 var
+#comfunc global IWebView2Settings_put_IsWebMessageEnabled              6 int
+#comfunc global IWebView2Settings_get_AreDefaultScriptDialogsEnabled   7 var
+#comfunc global IWebView2Settings_put_AreDefaultScriptDialogsEnabled   8 int
+#comfunc global IWebView2Settings_get_IsFullscreenAllowed_deprecated   9 var
+#comfunc global IWebView2Settings_put_IsFullscreenAllowed_deprecated  10 int
+#comfunc global IWebView2Settings_get_IsStatusBarEnabled              11 var
+#comfunc global IWebView2Settings_put_IsStatusBarEnabled              12 int
+#comfunc global IWebView2Settings_get_AreDevToolsEnabled              13 var
+#comfunc global IWebView2Settings_put_AreDevToolsEnabled              14 int
+
+#define global IID_IWebView2Settings2 "{9FC76F96-CFD8-4C92-8EC5-9215E92EF3E8}"
+#usecom global IWebView2Settings2 IID_IWebView2Settings2 "{}"
+#comfunc global IWebView2Settings2_get_AreDefaultContextMenusEnabled  15 var
+#comfunc global IWebView2Settings2_put_AreDefaultContextMenusEnabled  16 int
+
+#define global IID_IWebView2ProcessFailedEventArgs "{6DABCFB8-8C7D-4515-893B-9766766900DA}"
+#usecom global IWebView2ProcessFailedEventArgs IID_IWebView2ProcessFailedEventArgs "{}"
+#comfunc global IWebView2ProcessFailedEventArgs_get_ProcessFailedKind   3 var
+
+#define global IID_IWebView2ProcessFailedEHdl "{011EC830-5DAF-4767-A099-C43DE1A925F4}"
+#usecom global IWebView2ProcessFailedEHdl IID_IWebView2ProcessFailedEHdl "{}"
+#comfunc global IWebView2ProcessFailedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2ZoomFactorChangedEHdl "{A5C0B08B-25D7-4BAC-AD06-11783393088E}"
+#usecom global IWebView2ZoomFactorChangedEHdl IID_IWebView2ZoomFactorChangedEHdl "{}"
+#comfunc global IWebView2ZoomFactorChangedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2HttpHeadersCollectionIterator "{66a215e4-ca41-490b-884a-411ffb17cd1c}"
+#usecom global IWebView2HttpHeadersCollectionIterator IID_IWebView2HttpHeadersCollectionIterator "{}"
+#comfunc global IWebView2HttpHeadersCollectionIterator_GetCurrentHeader   3 var,var
+#comfunc global IWebView2HttpHeadersCollectionIterator_MoveNext           4 var
+
+#define global IID_IWebView2HttpRequestHeaders "{982be490-0252-44f3-9f33-376c04885a6d}"
+#usecom global IWebView2HttpRequestHeaders IID_IWebView2HttpRequestHeaders "{}"
+#comfunc global IWebView2HttpRequestHeaders_GetHeader      3 wptr,var
+#comfunc global IWebView2HttpRequestHeaders_Contains       4 wptr,var
+#comfunc global IWebView2HttpRequestHeaders_SetHeader      5 wptr,wptr
+#comfunc global IWebView2HttpRequestHeaders_RemoveHeader   6 wptr
+#comfunc global IWebView2HttpRequestHeaders_GetIterator    7 var
+
+#define global IID_IWebView2HttpResponseHeaders "{6d1a13a6-c677-41aa-852f-827b53f35301}"
+#usecom global IWebView2HttpResponseHeaders IID_IWebView2HttpResponseHeaders "{}"
+#comfunc global IWebView2HttpResponseHeaders_AppendHeader   3 wptr,wptr
+#comfunc global IWebView2HttpResponseHeaders_Contains       4 wptr,var
+#comfunc global IWebView2HttpResponseHeaders_GetHeaders     5 wptr,var
+#comfunc global IWebView2HttpResponseHeaders_GetIterator    6 var
+
+#define global IID_IWebView2WebResourceRequest "{1b3f4122-34a0-4f5d-9089-af63c3afe375}"
+#usecom global IWebView2WebResourceRequest IID_IWebView2WebResourceRequest "{}"
+#comfunc global IWebView2WebResourceRequest_get_Uri       3 var
+#comfunc global IWebView2WebResourceRequest_put_Uri       4 wptr
+#comfunc global IWebView2WebResourceRequest_get_Method    5 var
+#comfunc global IWebView2WebResourceRequest_put_Method    6 wptr
+#comfunc global IWebView2WebResourceRequest_get_Content   7 var
+#comfunc global IWebView2WebResourceRequest_put_Content   8 sptr
+#comfunc global IWebView2WebResourceRequest_get_Headers   9 var
+
+#define global IID_IWebView2WebResourceResponse "{297886a6-5fdf-472d-a97a-e336ecfe1352}"
+#usecom global IWebView2WebResourceResponse IID_IWebView2WebResourceResponse "{}"
+#comfunc global IWebView2WebResourceResponse_get_Content        3 var
+#comfunc global IWebView2WebResourceResponse_put_Content        4 sptr
+#comfunc global IWebView2WebResourceResponse_get_Headers        5 var
+#comfunc global IWebView2WebResourceResponse_get_StatusCode     6 var
+#comfunc global IWebView2WebResourceResponse_put_StatusCode     7 int
+#comfunc global IWebView2WebResourceResponse_get_ReasonPhrase   8 var
+#comfunc global IWebView2WebResourceResponse_put_ReasonPhrase   9 wptr
+
+#define global IID_IWebView2NavigationStartingEventArgs "{9d7a1f73-8211-48c0-9119-686d1fb1ae02}"
+#usecom global IWebView2NavigationStartingEventArgs IID_IWebView2NavigationStartingEventArgs "{}"
+#comfunc global IWebView2NavigationStartingEventArgs_get_Uri               3 var
+#comfunc global IWebView2NavigationStartingEventArgs_get_IsUserInitiated   4 var
+#comfunc global IWebView2NavigationStartingEventArgs_get_IsRedirected      5 var
+#comfunc global IWebView2NavigationStartingEventArgs_get_RequestHeaders    6 var
+#comfunc global IWebView2NavigationStartingEventArgs_get_Cancel            7 var
+#comfunc global IWebView2NavigationStartingEventArgs_put_Cancel            8 int
+
+#define global IID_IWebView2NavigationStartingEHdl "{34896570-DC04-40F9-A2DA-8582551A707D}"
+#usecom global IWebView2NavigationStartingEHdl IID_IWebView2NavigationStartingEHdl "{}"
+#comfunc global IWebView2NavigationStartingEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2DocumentStateChangedEventArgs "{3A38CB7F-EFC1-41B4-87FC-5AFCEE27C8ED}"
+#usecom global IWebView2DocumentStateChangedEventArgs IID_IWebView2DocumentStateChangedEventArgs "{}"
+#comfunc global IWebView2DocumentStateChangedEventArgs_get_IsNewDocument   3 var
+#comfunc global IWebView2DocumentStateChangedEventArgs_get_IsErrorPage     4 var
+
+#define global IID_IWebView2DocumentStateChangedEHdl "{88E66305-3A5A-4E7F-9C76-2EBFC138CAFD}"
+#usecom global IWebView2DocumentStateChangedEHdl IID_IWebView2DocumentStateChangedEHdl "{}"
+#comfunc global IWebView2DocumentStateChangedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2ScriptDialogOpeningEventArgs "{ABB0484E-8D4F-4BEA-9058-B0287221A976}"
+#usecom global IWebView2ScriptDialogOpeningEventArgs IID_IWebView2ScriptDialogOpeningEventArgs "{}"
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_get_Uri           3 var
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_get_Kind          4 var
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_get_Message       5 var
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_Accept            6
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_get_DefaultText   7 var
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_get_ResultText    8 var
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_put_ResultText    9 wptr
+#comfunc global IWebView2ScriptDialogOpeningEventArgs_GetDeferral      10 var
+
+#define global IID_IWebView2ScriptDialogOpeningEHdl "{8EAF9A50-2AF9-45DA-9AC5-F80F4147180E}"
+#usecom global IWebView2ScriptDialogOpeningEHdl IID_IWebView2ScriptDialogOpeningEHdl "{}"
+#comfunc global IWebView2ScriptDialogOpeningEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2NavigationCompletedEventArgs "{48655B1F-3F52-4835-B7AA-7D95F7D7587E}"
+#usecom global IWebView2NavigationCompletedEventArgs IID_IWebView2NavigationCompletedEventArgs "{}"
+#comfunc global IWebView2NavigationCompletedEventArgs_get_IsSuccess        3 var
+#comfunc global IWebView2NavigationCompletedEventArgs_get_WebErrorStatus   4 var
+
+#define global IID_IWebView2NavigationCompletedEHdl "{DCEB3A27-C8C0-4DE7-889D-AF3DE80EDB3C}"
+#usecom global IWebView2NavigationCompletedEHdl IID_IWebView2NavigationCompletedEHdl "{}"
+#comfunc global IWebView2NavigationCompletedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2PermissionRequestedEventArgs "{8D8DA0E4-A071-486F-85AA-31B4B2BADC61}"
+#usecom global IWebView2PermissionRequestedEventArgs IID_IWebView2PermissionRequestedEventArgs "{}"
+#comfunc global IWebView2PermissionRequestedEventArgs_get_Uri               3 var
+#comfunc global IWebView2PermissionRequestedEventArgs_get_PermissionType    4 var
+#comfunc global IWebView2PermissionRequestedEventArgs_get_IsUserInitiated   5 var
+#comfunc global IWebView2PermissionRequestedEventArgs_get_State             6 var
+#comfunc global IWebView2PermissionRequestedEventArgs_put_State             7 sptr
+#comfunc global IWebView2PermissionRequestedEventArgs_GetDeferral           8 var
+
+#define global IID_IWebView2PermissionRequestedEHdl "{C5DA3C20-95AC-4345-B3C9-5FCA3B92C9DB}"
+#usecom global IWebView2PermissionRequestedEHdl IID_IWebView2PermissionRequestedEHdl "{}"
+#comfunc global IWebView2PermissionRequestedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2AddScriptToExecOnDocCreatedCompletedHandler "{EE07AA7F-5DAF-4C00-9C0B-5F736213C92D}"
+#usecom global IWebView2AddScriptToExecOnDocCreatedCompletedHandler IID_IWebView2AddScriptToExecOnDocCreatedCompletedHandler "{}"
+#comfunc global IWebView2AddScriptToExecOnDocCreatedCompletedHandler_Invoke   3 sptr,wptr
+
+#define global IID_IWebView2ExecuteScriptCompletedHandler "{F5AC0E3B-8B92-45E5-ABEF-DB8518EFFF27}"
+#usecom global IWebView2ExecuteScriptCompletedHandler IID_IWebView2ExecuteScriptCompletedHandler "{}"
+#comfunc global IWebView2ExecuteScriptCompletedHandler_Invoke   3 sptr,wptr
+
+#define global IID_IWebView2WebResourceRequestedEventArgs "{D8B1DD71-B9AD-4EEB-ABE3-87E7EFC5D37F}"
+#usecom global IWebView2WebResourceRequestedEventArgs IID_IWebView2WebResourceRequestedEventArgs "{}"
+#comfunc global IWebView2WebResourceRequestedEventArgs_get_Request    3 var
+#comfunc global IWebView2WebResourceRequestedEventArgs_get_Response   4 var
+#comfunc global IWebView2WebResourceRequestedEventArgs_put_Response   5 sptr
+#comfunc global IWebView2WebResourceRequestedEventArgs_GetDeferral    6 var
+
+#define global IID_IWebView2WebResourceRequestedEventArgs2 "{b38f6f16-9568-4f12-9996-dca7a06299f4}"
+#usecom global IWebView2WebResourceRequestedEventArgs2 IID_IWebView2WebResourceRequestedEventArgs2 "{}"
+#comfunc global IWebView2WebResourceRequestedEventArgs2_get_ResourceContext   7 var
+
+#define global IID_IWebView2WebResourceRequestedEHdl "{E2AE08C1-4F67-4348-AE05-C89CB14C2ADD}"
+#usecom global IWebView2WebResourceRequestedEHdl IID_IWebView2WebResourceRequestedEHdl "{}"
+#comfunc global IWebView2WebResourceRequestedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2CapturePreviewCompletedHandler "{5755B27A-3FCD-4E01-B368-06834A5AFCDC}"
+#usecom global IWebView2CapturePreviewCompletedHandler IID_IWebView2CapturePreviewCompletedHandler "{}"
+#comfunc global IWebView2CapturePreviewCompletedHandler_Invoke   3 sptr
+
+#define global IID_IWebView2FocusChangedEHdl "{76BDBECE-02CC-4E56-AD81-5F808E8572A6}"
+#usecom global IWebView2FocusChangedEHdl IID_IWebView2FocusChangedEHdl "{}"
+#comfunc global IWebView2FocusChangedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2MoveFocusRequestedEventArgs "{64AF5AE3-27A1-47E0-8901-95119C1BA95B}"
+#usecom global IWebView2MoveFocusRequestedEventArgs IID_IWebView2MoveFocusRequestedEventArgs "{}"
+#comfunc global IWebView2MoveFocusRequestedEventArgs_get_Reason    3 var
+#comfunc global IWebView2MoveFocusRequestedEventArgs_get_Handled   4 var
+#comfunc global IWebView2MoveFocusRequestedEventArgs_put_Handled   5 int
+
+#define global IID_IWebView2MoveFocusRequestedEHdl "{F3A49DD0-EA49-469C-8B7A-8CC5E8E4EF27}"
+#usecom global IWebView2MoveFocusRequestedEHdl IID_IWebView2MoveFocusRequestedEHdl "{}"
+#comfunc global IWebView2MoveFocusRequestedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2WebMessageReceivedEventArgs "{E32C6167-14F1-42EA-8743-B014EF6AD27F}"
+#usecom global IWebView2WebMessageReceivedEventArgs IID_IWebView2WebMessageReceivedEventArgs "{}"
+#comfunc global IWebView2WebMessageReceivedEventArgs_get_Source               3 var
+#comfunc global IWebView2WebMessageReceivedEventArgs_get_WebMessageAsJson     4 var
+#comfunc global IWebView2WebMessageReceivedEventArgs_get_WebMessageAsString   5 var
+
+#define global IID_IWebView2WebMessageReceivedEHdl "{0E682B9A-B686-4327-9A56-E0305705A3DB}"
+#usecom global IWebView2WebMessageReceivedEHdl IID_IWebView2WebMessageReceivedEHdl "{}"
+#comfunc global IWebView2WebMessageReceivedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2DevToolsProtocolEventReceivedEventArgs "{BF0F875F-8EB0-4211-9B80-2892F7276BB9}"
+#usecom global IWebView2DevToolsProtocolEventReceivedEventArgs IID_IWebView2DevToolsProtocolEventReceivedEventArgs "{}"
+#comfunc global IWebView2DevToolsProtocolEventReceivedEventArgs_get_Object                  3 var
+
+#define global IID_IWebView2DevToolsProtocolEventReceivedEHdl "{37D087EA-12F6-4856-81D8-5596C708CA59}"
+#usecom global IWebView2DevToolsProtocolEventReceivedEHdl IID_IWebView2DevToolsProtocolEventReceivedEHdl "{}"
+#comfunc global IWebView2DevToolsProtocolEventReceivedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2CallDevToolsProtocolMethodCompletedHandler "{6EA28F62-FEC5-48EA-9669-67979B50579E}"
+#usecom global IWebView2CallDevToolsProtocolMethodCompletedHandler IID_IWebView2CallDevToolsProtocolMethodCompletedHandler "{}"
+#comfunc global IWebView2CallDevToolsProtocolMethodCompletedHandler_Invoke   3 sptr,wptr
+
+#define global IID_IWebView2CreateWebViewCompletedHandler "{E0618CDD-4947-4F58-802C-FC1F20BD4274}"
+#usecom global IWebView2CreateWebViewCompletedHandler IID_IWebView2CreateWebViewCompletedHandler "{}"
+#comfunc global IWebView2CreateWebViewCompletedHandler_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2NewWindowRequestedEventArgs "{1f6e4074-bc3d-4381-ba8a-cf65feaa036a}"
+#usecom global IWebView2NewWindowRequestedEventArgs IID_IWebView2NewWindowRequestedEventArgs "{}"
+#comfunc global IWebView2NewWindowRequestedEventArgs_get_Uri               3 var
+#comfunc global IWebView2NewWindowRequestedEventArgs_put_NewWindow         4 sptr
+#comfunc global IWebView2NewWindowRequestedEventArgs_get_NewWindow         5 var
+#comfunc global IWebView2NewWindowRequestedEventArgs_put_Handled           6 int
+#comfunc global IWebView2NewWindowRequestedEventArgs_get_Handled           7 var
+#comfunc global IWebView2NewWindowRequestedEventArgs_get_IsUserInitiated   8 var
+#comfunc global IWebView2NewWindowRequestedEventArgs_GetDeferral           9 var
+
+#define global IID_IWebView2NewWindowRequestedEHdl "{1daa050a-98de-44ad-b5bb-935c8b9c7c0b}"
+#usecom global IWebView2NewWindowRequestedEHdl IID_IWebView2NewWindowRequestedEHdl "{}"
+#comfunc global IWebView2NewWindowRequestedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2DocumentTitleChangedEHdl "{E190F4F4-7C94-4CB3-BA4D-DDCDA7AC7693}"
+#usecom global IWebView2DocumentTitleChangedEHdl IID_IWebView2DocumentTitleChangedEHdl "{}"
+#comfunc global IWebView2DocumentTitleChangedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2AcceleratorKeyPressedEventArgs "{64C29E6D-BA57-4EBA-A14F-71697F4F3D86}"
+#usecom global IWebView2AcceleratorKeyPressedEventArgs IID_IWebView2AcceleratorKeyPressedEventArgs "{}"
+#comfunc global IWebView2AcceleratorKeyPressedEventArgs_get_KeyEventType        3 var
+#comfunc global IWebView2AcceleratorKeyPressedEventArgs_get_VirtualKey          4 var
+#comfunc global IWebView2AcceleratorKeyPressedEventArgs_get_KeyEventLParam      5 var
+#comfunc global IWebView2AcceleratorKeyPressedEventArgs_get_KeyStatus           6 var
+#comfunc global IWebView2AcceleratorKeyPressedEventArgs_Handle                  7 int
+
+#define global IID_IWebView2AcceleratorKeyPressedEHdl "{53E3676B-287C-4967-B7E2-DA0448BEB0F1}"
+#usecom global IWebView2AcceleratorKeyPressedEHdl IID_IWebView2AcceleratorKeyPressedEHdl "{}"
+#comfunc global IWebView2AcceleratorKeyPressedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2NewVersionAvailableEventArgs "{0256DA7B-2BF7-4B12-8ECA-EFFCB28C2CD8}"
+#usecom global IWebView2NewVersionAvailableEventArgs IID_IWebView2NewVersionAvailableEventArgs "{}"
+#comfunc global IWebView2NewVersionAvailableEventArgs_get_NewVersion   3 var
+
+#define global IID_IWebView2NewVersionAvailableEHdl "{9E21312F-6FE7-4118-8CA1-6317C9CD627B}"
+#usecom global IWebView2NewVersionAvailableEHdl IID_IWebView2NewVersionAvailableEHdl "{}"
+#comfunc global IWebView2NewVersionAvailableEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2ContainsFullScrElemChangedEHdl "{37CF6A21-4B0C-41B6-81A6-C85C0D0A7543}"
+#usecom global IWebView2ContainsFullScrElemChangedEHdl IID_IWebView2ContainsFullScrElemChangedEHdl "{}"
+#comfunc global IWebView2ContainsFullScrElemChangedEHdl_Invoke   3 sptr,sptr
+
+#define global IID_IWebView2Environment "{33D17ECE-82FA-47D9-8978-CD17FF3C3CC6}"
+#usecom global IWebView2Environment IID_IWebView2Environment "{}"
+#comfunc global IWebView2Environment_CreateWebView               3 sptr,sptr
+#comfunc global IWebView2Environment_CreateWebResourceResponse   4 sptr,int,wptr,wptr,var
+
+#define global IID_IWebView2Environment2 "{013124F3-02FD-4DFF-8911-06016AF1E3EE}"
+#usecom global IWebView2Environment2 IID_IWebView2Environment2 "{}"
+#comfunc global IWebView2Environment2_get_BrowserVersionInfo   5 var
+
+#define global IID_IWebView2Environment3 "{D82C6A26-370F-4084-8149-C08FF1598C9B}"
+#usecom global IWebView2Environment3 IID_IWebView2Environment3 "{}"
+#comfunc global IWebView2Environment3_add_NewVersionAvailable      6 sptr,var
+#comfunc global IWebView2Environment3_remove_NewVersionAvailable   7 int,int
+
+#define global IID_IWebView2CreateWebView2EnvironmentCompletedHandler "{A8346945-51C2-4CE6-8B4C-6F3C4391828B}"
+#usecom global IWebView2CreateWebView2EnvironmentCompletedHandler IID_IWebView2CreateWebView2EnvironmentCompletedHandler "{}"
+#comfunc global IWebView2CreateWebView2EnvironmentCompletedHandler_Invoke   3 sptr,sptr
+
+
+#endif // WEBVIEW2_HSP_
