@@ -4,5 +4,5 @@ set -eu
 
 ./setup
 
-npm run vsce:package
+npm run vsce-package
 code --install-extension 'hsp3-vscode-syntax.vsix'

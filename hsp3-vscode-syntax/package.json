@@ -2,7 +2,7 @@
     "name": "hsp3-vscode-syntax",
     "displayName": "HSP3 構文定義",
     "description": "HSP3 言語を登録し、構文強調などの機能を提供します。",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "author": {
         "name": "vain0x",
         "email": "vainzerox@gmail.com"
@@ -18,17 +18,15 @@
         "Programming Languages"
     ],
     "engines": {
-        "vscode": "^1.40.1"
+        "vscode": "^1.55.0"
     },
     "devDependencies": {
-        "vsce": "^1.69.0",
-        "vscode": "^1.1.36"
+        "@types/vscode": "^1.55.0",
+        "vsce": "^1.96.1"
     },
     "scripts": {
-        "postinstall": "vscode-install",
-        "build": "echo 'nothing to build'",
-        "watch": "echo 'nothing to watch'",
-        "vsce:package": "vsce package --out hsp3-vscode-syntax.vsix"
+        "build": "echo 'Nothing to build.'",
+        "vsce-package": "vsce package --out hsp3-vscode-syntax.vsix"
     },
     "main": "out/extension.js",
     "activationEvents": [
@@ -57,7 +55,21 @@
                 "scopeName": "source.hsp3",
                 "path": "./syntaxes/hsp3.json"
             }
-        ]
+        ],
+        "configuration": {
+            "type": "object",
+            "properties": {
+                "hsp3-vscode-syntax.line-comment": {
+                    "type": "string",
+                    "enum": [
+                        ";",
+                        "//"
+                    ],
+                    "default": ";",
+                    "description": "行をコメントアウトするときに使う記号を指定します。(既定は ;)"
+                }
+            }
+        }
     },
     "configuration": {
         "type": "object",
