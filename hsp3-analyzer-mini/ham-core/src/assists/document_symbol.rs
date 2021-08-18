@@ -1,6 +1,6 @@
 use super::*;
 use crate::{analysis::*, parse::p_param_ty::PParamCategory};
-use lsp_types::{DocumentSymbolResponse, SymbolInformation};
+use lsp_types::DocumentSymbolResponse;
 
 // completion, workspace/symbol も参照
 fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
@@ -44,7 +44,6 @@ pub(crate) fn symbol(
 
     symbols.sort_by_key(|s| s.1.start());
 
-    let empty = empty_symbol_information();
     let symbol_information_list = symbols
         .into_iter()
         .filter_map(|(symbol, loc)| {
@@ -52,12 +51,7 @@ pub(crate) fn symbol(
             let kind = to_lsp_symbol_kind(symbol.kind)?;
             let location = loc_to_location(loc, docs)?;
 
-            Some(SymbolInformation {
-                name: name.to_string(),
-                kind,
-                location,
-                ..empty.clone()
-            })
+            Some(new_lsp_symbol_information(name.to_string(), kind, location))
         })
         .collect();
 

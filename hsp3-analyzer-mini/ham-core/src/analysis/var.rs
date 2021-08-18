@@ -29,7 +29,6 @@ const DEF_SITE: bool = true;
 const USE_SITE: bool = false;
 
 fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
-    let doc = ctx.doc;
     let NameScopeNsTriple {
         basename,
         scope_opt,
@@ -41,19 +40,14 @@ fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx)
         ctx.module_map,
     );
 
-    let symbol = SymbolRc::from(ASymbolData {
-        doc,
+    let symbol = DefInfo::Name {
         kind,
-        name: basename.clone(),
-        leader_opt: Some(name.clone()),
+        name: name.clone(),
+        basename: basename.clone(),
         scope_opt: scope_opt.clone(),
         ns_opt: ns_opt.clone(),
-
-        details_opt: None,
-        preproc_def_site_opt: None,
-        signature_opt: Default::default(),
-        linked_symbol_opt: Default::default(),
-    });
+    }
+    .into_symbol();
     ctx.symbols.push(symbol.clone());
 
     if def_site {

@@ -14,7 +14,7 @@ HSP3 の静的解析ツールです。
 
 ```json
 {
-    "hsp3-analyzer-mini.hsp3-root": "C:/Program Files/hsp351"
+    "hsp3-analyzer-mini.hsp3-root": "C:/Program Files/hsp36"
 }
 ```
 
@@ -65,12 +65,11 @@ HSP3 の静的解析ツールです。
 
 ## 未対応
 
-- `#include`
-- `#func`, `#cfunc`, `#cmd`, `#comfunc`
+- `#comfunc`
+- `#define`
+- `#if`
 - `#undef`
-- 変数名についた `@`
-- `.as` ファイルの解析
-- common ディレクトリにあるファイルの解析
+- `.as` ファイル
 - カレントディレクトリにあるヘルプソースファイルの解析
 
 ----

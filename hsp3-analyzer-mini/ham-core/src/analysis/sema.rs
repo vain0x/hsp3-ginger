@@ -40,53 +40,13 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Sema) {
             };
 
             if let Some(signature_data) = symbol.signature_opt() {
-                for (arg, (param, _, _)) in stmt.args.iter().zip(&signature_data.params) {
-                    match param {
-                        Some(PParamTy::Var) | Some(PParamTy::Modvar) | Some(PParamTy::Array) => {}
-                        _ => continue,
-                    }
-
-                    let mut rval = false;
-                    let mut expr_opt = arg.expr_opt.as_ref();
-                    while let Some(expr) = expr_opt {
-                        match expr {
-                            PExpr::Compound(compound) => {
-                                let name = &compound.name().body;
-
-                                let symbol = match ctx.symbol(name.loc) {
-                                    Some(it) => it,
-                                    _ => break,
-                                };
-
-                                rval = match symbol.kind {
-                                    HspSymbolKind::Label
-                                    | HspSymbolKind::Const
-                                    | HspSymbolKind::Enum
-                                    | HspSymbolKind::DefFunc
-                                    | HspSymbolKind::DefCFunc
-                                    | HspSymbolKind::ModFunc
-                                    | HspSymbolKind::ModCFunc
-                                    | HspSymbolKind::ComInterface
-                                    | HspSymbolKind::ComFunc => true,
-                                    HspSymbolKind::Param(Some(param)) => match param {
-                                        PParamTy::Var
-                                        | PParamTy::Array
-                                        | PParamTy::Modvar
-                                        | PParamTy::Local => false,
-                                        _ => true,
-                                    },
-                                    _ => false,
-                                };
-                                break;
-                            }
-                            PExpr::Paren(expr) => expr_opt = expr.body_opt.as_deref(),
-                            _ => {
-                                rval = true;
-                                break;
-                            }
-                        }
-                    }
-                    if rval {
+                for (arg, _) in stmt
+                    .args
+                    .iter()
+                    .zip(&signature_data.params)
+                    .filter(|(_, (param, _, _))| param.map_or(false, |p| p.is_by_ref()))
+                {
+                    if arg_is_definitely_rval(arg, &ctx) {
                         let range = match arg.expr_opt.as_ref() {
                             Some(expr) => expr.compute_range(),
                             None => stmt.command.body.loc.range,
@@ -110,4 +70,44 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Sema) {
         // PStmt::If
         _ => {}
     }
+}
+
+fn symbol_kind_is_definitely_rval(kind: HspSymbolKind) -> bool {
+    match kind {
+        HspSymbolKind::Label
+        | HspSymbolKind::Const
+        | HspSymbolKind::Enum
+        | HspSymbolKind::DefFunc
+        | HspSymbolKind::DefCFunc
+        | HspSymbolKind::ModFunc
+        | HspSymbolKind::ModCFunc
+        | HspSymbolKind::ComInterface
+        | HspSymbolKind::ComFunc => true,
+        HspSymbolKind::Param(Some(param)) => match param {
+            PParamTy::Var | PParamTy::Array | PParamTy::Modvar | PParamTy::Local => false,
+            _ => true,
+        },
+        _ => false,
+    }
+}
+
+fn arg_is_definitely_rval(arg: &PArg, ctx: &Sema) -> bool {
+    let mut expr_opt = arg.expr_opt.as_ref();
+    while let Some(expr) = expr_opt {
+        match expr {
+            PExpr::Compound(compound) => {
+                let name = &compound.name().body;
+
+                let symbol = match ctx.symbol(name.loc) {
+                    Some(it) => it,
+                    _ => return false,
+                };
+
+                return symbol_kind_is_definitely_rval(symbol.kind);
+            }
+            PExpr::Paren(expr) => expr_opt = expr.body_opt.as_deref(),
+            _ => return true,
+        }
+    }
+    false
 }

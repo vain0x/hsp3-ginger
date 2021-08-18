@@ -15,7 +15,7 @@ pub(crate) fn generate_include_guard(
     let (doc, pos) = from_document_position(&uri, range.start, &docs)?;
     let version = docs.get_version(doc);
 
-    let (text, tokens, _) = wa.get_tokens(doc)?;
+    let DocSyntax { text, tokens, .. } = wa.get_syntax(doc)?;
 
     // カーソルが行頭にあって、最初のトークン以前にあって、文字列やコメントの外であって、インクルードガードがまだないとき。
     let ok = pos.column == 0
@@ -34,7 +34,7 @@ pub(crate) fn generate_include_guard(
     };
     let eol = if text.contains("\r\n") { "\r\n" } else { "\n" };
     let new_text = format!(
-        "#ifndef {name}{eol}#define {name}{eol}",
+        "#ifndef {name}{eol}#define {name}{eol}{eol}#endif{eol}",
         name = name,
         eol = eol,
     );

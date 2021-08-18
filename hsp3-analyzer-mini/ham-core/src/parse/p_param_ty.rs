@@ -114,9 +114,13 @@ impl PParamTy {
             PParamCategory::Local | PParamCategory::Auto => false,
         }
     }
+
+    pub(crate) fn is_by_ref(self) -> bool {
+        self.category() == PParamCategory::ByRef
+    }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) enum PParamCategory {
     /// 値渡し。エイリアスは書き換え不可。
     ByValue,
