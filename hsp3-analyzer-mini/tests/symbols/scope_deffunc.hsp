@@ -1,42 +1,42 @@
-// deffuncが定義したグローバルなシンボルが参照できること。
+; deffuncが定義したグローバルなシンボルが参照できること。
 
-	// 定義より前からも参照できる。
-	global_func // @use global_func
+	; 定義より前からも参照できる。
+	global_func ; @use global_func
 
 #module
 
-	// moduleの下、deffuncの外でも参照できる。
-	global_func // @use global_func
+	; moduleの下、deffuncの外でも参照できる。
+	global_func ; @use global_func
 
-#deffunc global_func // @def global_func
+#deffunc global_func ; @def global_func
 	if 0 {
-		// 再帰的に参照できる。
-		global_func // @use global_func
+		; 再帰的に参照できる。
+		global_func ; @use global_func
 	}
 	return
 
 #deffunc local other_func
 
-	// 他のdeffuncからも参照できる。
-	global_func // @use global_func
+	; 他のdeffuncからも参照できる。
+	global_func ; @use global_func
 	return
 
 #global
 
 #module
 
-	// 他のmoduleのからも参照できる。
-	global_func // @use global_func
+	; 他のmoduleのからも参照できる。
+	global_func ; @use global_func
 
-#deffunc other_module_func // @def other_module_func
+#deffunc other_module_func ; @def other_module_func
 
-	// 他のmoduleのdeffunc内からも参照できる。
-	global_func // @use global_func
+	; 他のmoduleのdeffunc内からも参照できる。
+	global_func ; @use global_func
 	return
 
 #global
 
-	other_module_func // @use other_module_func
+	other_module_func ; @use other_module_func
 
-	// moduleの外からも参照できる。
-	global_func // @use global_func
+	; moduleの外からも参照できる。
+	global_func ; @use global_func

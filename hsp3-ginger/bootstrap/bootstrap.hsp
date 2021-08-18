@@ -1,6 +1,6 @@
-// Build an executable of the ginger without using the ginger itself.
-// LICENSE: CC0-1.0
-// VERSION: v0.2.0
+; Build an executable of the ginger without using the ginger itself.
+; LICENSE: CC0-1.0
+; VERSION: v0.2.0
 
 #runtime "hsp3cl"
 
@@ -10,41 +10,41 @@
 
 #define k_dir_sep "\\"
 
-// 4: utf-8 input
+; 4: utf-8 input
 #define s_compile_opts 4
 
-// 4: packfile
-// 32: utf-8 output
+; 4: packfile
+; 32: utf-8 output
 #define s_pp_opts (4 | 32)
 
-	// Where is the hsp3 installed?
+	; Where is the hsp3 installed?
 	s_hsp3_home = dir_exe
 
-	// Path to script file to build.
+	; Path to script file to build.
 	s_src_path = dir_cmdline
 
-	// Initialize the compiler.
+	; Initialize the compiler.
 	hsc_ini s_src_path
 	if stat {
 		goto *l_fail
 	}
 
-	// Set object file name.
+	; Set object file name.
 	hsc_objname "start.ax"
 	if stat {
 		goto *l_fail
 	}
 
-	// Set path to common directory.
+	; Set path to common directory.
 	hsc_compath s_hsp3_home + k_dir_sep + "common" + k_dir_sep
 
-	// Compile. `start.ax` will be created.
+	; Compile. `start.ax` will be created.
 	hsc_comp s_compile_opts, s_pp_opts
 	if stat {
 		goto *l_fail
 	}
 
-	// Generate executable.
+	; Generate executable.
 	hsc3_make s_hsp3_home + k_dir_sep + "runtime" + k_dir_sep
 	if stat {
 		goto *l_fail
@@ -54,10 +54,10 @@
 
 *l_fail
 
-	// Get the size of error message.
+	; Get the size of error message.
 	hsc3_messize s_message_size
 
-	// Get the error message.
+	; Get the error message.
 	sdim s_error, s_message_size + 1
 	hsc_getmes s_error
 

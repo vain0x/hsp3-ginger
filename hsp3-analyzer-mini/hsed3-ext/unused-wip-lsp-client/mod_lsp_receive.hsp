@@ -1,4 +1,4 @@
-// LSP メッセージを受信する機能。
+; LSP メッセージを受信する機能。
 
 #ifndef included_mod_lsp_receive_hsp
 #define included_mod_lsp_receive_hsp
@@ -24,7 +24,7 @@
 	s_body_len = -1
 	return
 
-// 受信したデータをバッファーに追加する。
+; 受信したデータをバッファーに追加する。
 #deffunc lsp_receive_add_data var chunk, \
 	local chunk_len
 
@@ -41,7 +41,7 @@
 	poke s_data, s_data_len, 0
 	return
 
-// 不要なデータをバッファーから取り除く。
+; 不要なデータをバッファーから取り除く。
 #deffunc lsp_receive_rotate_data
 
 	if s_data_index >= 3000 {
@@ -51,8 +51,8 @@
 	}
 	return
 
-// 次のメッセージがあれば取得する。
-// メッセージがあれば true を返す。その場合、次に lsp_receive_next するまでの間に lsp_receive_dup_body を使って、データを取得できる。
+; 次のメッセージがあれば取得する。
+; メッセージがあれば true を返す。その場合、次に lsp_receive_next するまでの間に lsp_receive_dup_body を使って、データを取得できる。
 #deffunc lsp_receive_next \
 	local ok, local data_index_old
 
@@ -106,17 +106,17 @@
 	loop
 
 	if s_body_len < 0 {
-		// no content-length
+		; no content-length
 		ok = false
 	}
 
 	if s_data_index + s_body_len > s_data_len {
-		// body is not loaded yet
+		; body is not loaded yet
 		ok = false
 	}
 
 	if ok == false {
-		// not ready
+		; not ready
 		s_data_index = data_index_old
 		return false
 	}
@@ -133,14 +133,14 @@
 	lsp_receive_rotate_data
 	return true
 
-// lsp_receive_next で取得したデータの本体をクローン変数に格納する。
+; lsp_receive_next で取得したデータの本体をクローン変数に格納する。
 #deffunc lsp_receive_dup_body var body, var body_len
 
 	dup body, s_body
 	body_len = s_body_len
 	return
 
-// テスト用。内部バッファーのデータサイズを取得する。
+; テスト用。内部バッファーのデータサイズを取得する。
 #defcfunc lsp_receive_data_len
 
 	return s_data_len

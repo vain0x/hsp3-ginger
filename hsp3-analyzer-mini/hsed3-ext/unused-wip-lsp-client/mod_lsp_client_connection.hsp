@@ -1,5 +1,5 @@
-// LICENSE: CC0-1.0
-// v0
+; LICENSE: CC0-1.0
+; v0
 
 #ifndef included_lsp_client_connection
 #define included_lsp_client_connection
@@ -13,24 +13,24 @@
 
 #const getpath_basename 8
 
-// pipeget を参照
+; pipeget を参照
 #const pipeget_stat_did_exit    0
 #const pipeget_stat_starting    1
 #const pipeget_stat_stdout      2
 #const pipeget_stat_stderr      3
 #const pipeget_stat_will_exit   4
 
-// 未初期化状態
+; 未初期化状態
 #enum k_phase_none = 0
-// サーバーを起動した後、初期化処理の完了前
+; サーバーを起動した後、初期化処理の完了前
 #enum k_phase_spawned
-// 初期化処理中
+; 初期化処理中
 #enum k_phase_initializing
-// 初期化処理の完了後、シャットダウン前
+; 初期化処理の完了後、シャットダウン前
 #enum k_phase_connected
-// シャットダウン中
+; シャットダウン中
 #enum k_phase_shutting_down
-// 正常終了後
+; 正常終了後
 #enum k_phase_exited
 
 #deffunc lspcc_init
@@ -49,7 +49,7 @@
 
 	sdim s_pipe_buffer, 0x100000
 
-	// ワークスペースの URI と名前を計算する。
+	; ワークスペースの URI と名前を計算する。
 	s_root_path = dir_cur
 	strrep s_root_path, "\\", "/"
 	s_root_uri = "file:///" + s_root_path
@@ -62,7 +62,7 @@
 #endif
 	return
 
-// LSP サーバーを起動する。
+; LSP サーバーを起動する。
 #deffunc local lspcc_spawn
 
 	if s_server_is_spawned {
@@ -73,17 +73,17 @@
 	logmes "lspcc: spawn: " + s_server_command + "\""
 	pipeexec s_server_stdout, s_server_command
 
-	// サーバーのプロセスID (pipeexec だととれない？) (必要ないかも？)
+	; サーバーのプロセスID (pipeexec だととれない？) (必要ないかも？)
 	s_server_pid = 0
 
 	s_server_is_spawned = true
 	return
 
-// LSP サーバープロセスの状態を監視する。
+; LSP サーバープロセスの状態を監視する。
 #deffunc local lspcc_poll_server
 
 	if s_server_is_spawned == false || s_server_did_exit {
-		// サーバープロセスがないので何もしない。
+		; サーバープロセスがないので何もしない。
 		return
 	}
 
@@ -131,7 +131,7 @@
 	logmes "lspcc: [trace] pipeget stat unknown"
 	return
 
-// 更新処理を行う。
+; 更新処理を行う。
 #deffunc lspcc_update
 
 	if s_phase == k_phase_none {
@@ -149,7 +149,7 @@
 	lspcc_poll_server
 
 	if s_phase == k_phase_spawned && s_server_is_starting {
-		// サーバーが起動したら、はじめに initialize リクエストを送る。
+		; サーバーが起動したら、はじめに initialize リクエストを送る。
 		s_last_msg_id++
 		lsp_send_initialize s_last_msg_id, s_server_pid, s_root_path, s_root_uri, s_workspace_folder_uri, s_workspace_folder_name
 
@@ -159,14 +159,14 @@
 	}
 
 	if s_pipe_buffer_kind == 1 {
-		// stdout
+		; stdout
 		lsp_receive_add_data s_pipe_buffer
 		s_pipe_buffer = ""
 	}
 
 	if s_pipe_buffer_kind == 2 {
-		// stderr
-		// ログに出力する？
+		; stderr
+		; ログに出力する？
 		s_pipe_buffer = ""
 	}
 
@@ -178,7 +178,7 @@
 
 		logmes "lspcc: [trace] received: " + s_body@m_lsp_receive
 
-		// initialize レスポンスが来たら
+		; initialize レスポンスが来たら
 		if instr(s_body@m_lsp_receive, , "\"id\":1,") >= 0 {
 			lsp_send_initialized
 
@@ -189,7 +189,7 @@
 	loop
 	return
 
-// クライアントからサーバーにシャットダウンを要求する。
+; クライアントからサーバーにシャットダウンを要求する。
 #deffunc lspcc_shutdown
 
 	if s_server_is_spawned == false || s_server_did_exit {
@@ -199,13 +199,13 @@
 		return
 	}
 
-	// FIXME: 初期化中だったらどうする？
+	; FIXME: 初期化中だったらどうする？
 	s_last_msg_id++
 	lsp_send_shutdown s_last_msg_id
 	s_phase = k_phase_shutting_down
 	logmes "lspcc: [trace] phase=shutting_down"
 
-	// FIXME: shutdown のレスポンスを待つ
+	; FIXME: shutdown のレスポンスを待つ
 	lsp_send_exit
 	s_phase = k_phase_exited
 	logmes "lspcc: [trace] phase=exited"
@@ -213,7 +213,7 @@
 	s_server_did_exit = true
 	return
 
-// サーバーの標準入力にデータを送信する。
+; サーバーの標準入力にデータを送信する。
 #deffunc lspcc_send var data, int data_len
 
 	assert data_len >= 0

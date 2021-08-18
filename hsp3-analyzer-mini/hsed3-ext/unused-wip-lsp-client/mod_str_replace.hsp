@@ -1,4 +1,4 @@
-// strrep alternative
+; strrep alternative
 
 #ifndef included_mod_str_replace_hsp
 #define included_mod_str_replace_hsp

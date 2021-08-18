@@ -1,27 +1,27 @@
-// Test.
+; Test.
 
 #include "hsp3utf.as"
 #include "mod_lsp_receive.hsp"
 
-	// ヘッダーのキーが途中で切れていると解釈できない。
+	; ヘッダーのキーが途中で切れていると解釈できない。
 	text = "Content-"
 	lsp_receive_add_data text
 	lsp_receive_next
 	assert stat == false
 
-	// ヘッダーの値が途中で切れていると解釈できない。
+	; ヘッダーの値が途中で切れていると解釈できない。
 	text = "Length: 7"
 	lsp_receive_add_data text
 	lsp_receive_next
 	assert stat == false
 
-	// ボディーの値が途中で切れていると解釈できない。
+	; ボディーの値が途中で切れていると解釈できない。
 	text = "\n\nFir"
 	lsp_receive_add_data text
 	lsp_receive_next
 	assert stat == false
 
-	// ボディーが全部見えていると解釈できる。
+	; ボディーが全部見えていると解釈できる。
 	text = "st\nContent-"
 	lsp_receive_add_data text
 	lsp_receive_next
@@ -31,7 +31,7 @@
 	assert body_len == 7
 	assert body == "First\n"
 
-	// 次のメッセージも解釈できる。
+	; 次のメッセージも解釈できる。
 	text = "Length:  8 \n\nSecond\n"
 	lsp_receive_add_data text
 	lsp_receive_next
@@ -41,7 +41,7 @@
 	assert body_len == 8
 	assert body == "Second\n"
 
-	// 古いデータは削除される。
+	; 古いデータは削除される。
 	assert lsp_receive_data_len() > 0
 
 	body = "0123456789"

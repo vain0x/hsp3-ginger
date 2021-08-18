@@ -1,7 +1,7 @@
-// LICENSE: CC0-1.0
-// v0
+; LICENSE: CC0-1.0
+; v0
 
-// スクリプトエディタの状態の変化を観測して、前回更新以降に起こったイベントを再構築する。
+; スクリプトエディタの状態の変化を観測して、前回更新以降に起こったイベントを再構築する。
 
 #ifndef included_mod_hsed_carets_hsp
 #define included_mod_hsed_carets_hsp
@@ -13,17 +13,17 @@
 
 #deffunc hsed_carets_init
 
-	// 選択中のタブの Footy ID (なければマイナス)
+	; 選択中のタブの Footy ID (なければマイナス)
 	s_active_footy_id = -1
-	// カレットの行番号 (先頭は 0)
+	; カレットの行番号 (先頭は 0)
 	s_caret_line = 0
-	// カレットの列番号 (先頭は 0)
-	// FIXME: マルチバイト文字は何文字と数えられる？
+	; カレットの列番号 (先頭は 0)
+	; FIXME: マルチバイト文字は何文字と数えられる？
 	s_caret_char = 0
-	// hover イベントが発生するまでのフレーム数 (発生済みならマイナス)
+	; hover イベントが発生するまでのフレーム数 (発生済みならマイナス)
 	s_hover_timer = -1
 
-	// hover イベントが発生したか？
+	; hover イベントが発生したか？
 	dim s_hover_is_happened
 	dim s_hover_footy_id
 	dim s_hover_caret_line
@@ -43,15 +43,15 @@
 	s_caret_char = caret_char
 
 	if is_same == false {
-		// 60 FPS と仮定して 15 ミリ秒後に発火する。
-		// FIXME: 時間を設定できるようにする。
+		; 60 FPS と仮定して 15 ミリ秒後に発火する。
+		; FIXME: 時間を設定できるようにする。
 		s_hover_timer = (150 * 60 + 1000 - 1) / 1000
 		return
 	}
 
 	if s_hover_timer >= 0 {
 		if s_hover_timer == 0 {
-			// hover イベントを発生させる。(すでに発生していても上書きして OK。)
+			; hover イベントを発生させる。(すでに発生していても上書きして OK。)
 			s_hover_footy_id = active_footy_id
 			s_hover_caret_line = caret_line
 			s_hover_caret_char = caret_char
@@ -63,8 +63,8 @@
 	}
 	return
 
-// hover イベントを取り出す。
-// stat: hover イベントが発生していたら true
+; hover イベントを取り出す。
+; stat: hover イベントが発生していたら true
 #deffunc hsed_carets_take_hover_event var footy_id, var caret_line, var caret_char
 
 	if s_hover_is_happened == false {

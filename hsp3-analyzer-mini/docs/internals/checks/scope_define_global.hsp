@@ -1,21 +1,21 @@
-// define global はローカルの定義をshadowingしない
+; define global はローカルの定義をshadowingしない
 
 #module
 
 #deffunc f
 
-	mes a // 0
+	mes a ; 0
 
 #define a "local"
 
-	mes a // local
+	mes a ; local
 
 #define global a "global"
 
-	mes a // local
+	mes a ; local
 	return
 
 #global
 
 	f
-	mes a // global
+	mes a ; global

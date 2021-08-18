@@ -1,14 +1,14 @@
-// ドットファイルの機能
-// .editorconfigなど、ドットで始まる名前のファイルを作成する。
+; ドットファイルの機能
+; .editorconfigなど、ドットで始まる名前のファイルを作成する。
 
 #module m_ginger_sub_dot
 
 #define true 1
 #define false 0
 
-// dotfiles コマンドのエントリーポイント
-//
-// 成功したら stat=true
+; dotfiles コマンドのエントリーポイント
+;
+; 成功したら stat=true
 #deffunc ginger_sub_dotfiles_main var _args, int _argc, int show_help, var error, \
 	local output
 
@@ -43,9 +43,9 @@
 	ginger_infra_stdout text
 	return true
 
-// .editorconfigを生成する。
-//
-// 成功したら stat=true。
+; .editorconfigを生成する。
+;
+; 成功したら stat=true。
 #deffunc ginger_sub_dotfiles_run var output, var error, \
 	local new_content, \
 	local lines, \
@@ -80,9 +80,9 @@ trim_trailing_whitespace = true
 	noteload ".editorconfig"
 	noteunsel
 
-	// 行ごとに分割する。
+	; 行ごとに分割する。
 	sdim lf
-	poke lf, 0, 10 // LF
+	poke lf, 0, 10 ; LF
 	poke lf, 1, 0
 
 	use_crlf = instr(content, , "\n") >= 0
@@ -95,7 +95,7 @@ trim_trailing_whitespace = true
 	split content, eol, lines
 	line_count = stat
 
-	// HSPの設定が書かれたセクションがあるか確認する。あったら何もしない。
+	; HSPの設定が書かれたセクションがあるか確認する。あったら何もしない。
 	line_index = -1
 	repeat line_count
 		if lines(cnt) == "[*.hsp]" || lines(cnt) == "[*.{hsp,as}]" {
@@ -108,7 +108,7 @@ trim_trailing_whitespace = true
 		return true
 	}
 
-	// HSPの設定を足す。
+	; HSPの設定を足す。
 	new_content = {"
 
 [*.{hsp,as}]

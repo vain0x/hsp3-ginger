@@ -1,8 +1,8 @@
-// cmdは巻き上げられない
+; cmdは巻き上げられない
 
 #module
 
-	a // syntax error
+	a ; syntax error
 
 #uselib "unknown"
 #cmd a

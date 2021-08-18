@@ -1,15 +1,15 @@
-// LICENSE: CC0-1.0
+; LICENSE: CC0-1.0
 
-// hsed3 のための LSP クライアント
-// hsp36b1 以前のスクリプトエディタでは動作しない。
-// hsp3-analyzer-mini を事前にビルドしておくこと
+; hsed3 のための LSP クライアント
+; hsp36b1 以前のスクリプトエディタでは動作しない。
+; hsp3-analyzer-mini を事前にビルドしておくこと
 
-// 参考: [HSPラベル・関数一覧 - HSPTV!掲示板](http://hsp.tv/play/pforum.php?mode=pastwch&num=88874)
+; 参考: [HSPラベル・関数一覧 - HSPTV!掲示板](http://hsp.tv/play/pforum.php?mode=pastwch&num=88874)
 
 #packopt name "hsed3_lsp_client"
 #packopt hide 1
 
-// UTF-8 ランタイムは必須。
+; UTF-8 ランタイムは必須。
 #include "hsp3utf.as"
 
 #include "hsedsdk.as"
@@ -27,7 +27,7 @@
 
 #const HWND_TOP 0
 
-// frame per second
+; frame per second
 #const k_fps 60
 
 #enum k_hover_window_id = 1
@@ -52,7 +52,7 @@
 	sdim s_doc_change_texts
 
 	dim s_hsed_is_connected
-	// 選択中のタブの footy ID (なければ -1)
+	; 選択中のタブの footy ID (なければ -1)
 	s_active_footy_id = -1
 	dim s_caret_line
 	dim s_caret_character
@@ -82,13 +82,13 @@
 	onexit goto *l_on_exit
 	return
 
-// スクリプトエディタが起動するのを待つ。
+; スクリプトエディタが起動するのを待つ。
 #deffunc app_wait_for_hsed
 
 	s_hsed_is_connected = false
 	logmes "app: waiting for hsed"
 
-	repeat 10 * k_fps  // 10 sec
+	repeat 10 * k_fps  ; 10 sec
 		hsed_exist
 		if stat {
 			s_hsed_is_connected = true
@@ -108,7 +108,7 @@
 #deffunc app_hsed_update \
 	local ok, local tab_id
 
-	// 接続を確認する。
+	; 接続を確認する。
 	assert s_hsed_is_connected
 	hsed_exist
 	s_hsed_is_connected = stat
@@ -117,7 +117,7 @@
 		return
 	}
 
-	// タブ情報を問い合わせる。
+	; タブ情報を問い合わせる。
 	hsed_client_request_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
 	if stat == false {
 		logmes "app: failed to request tabs"
@@ -126,7 +126,7 @@
 
 	hsed_docs_update_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
 
-	// 内容が変更された可能性があるタブがあるなら、内容を共有する。
+	; 内容が変更された可能性があるタブがあるなら、内容を共有する。
 	hsed_docs_emit_dirty_docs s_dirty_doc_ids, s_dirty_doc_tab_ids, s_dirty_doc_count
 
 	ok = true
@@ -148,10 +148,10 @@
 		return
 	}
 
-	// ドキュメントの変更イベントを取り出す。
+	; ドキュメントの変更イベントを取り出す。
 	hsed_docs_emit_doc_changes s_doc_change_kinds, s_doc_change_uris, s_doc_change_versions, s_doc_change_texts, s_doc_change_count
 
-	// キャレット位置を更新する。
+	; キャレット位置を更新する。
 	hsed_getactfootyid s_active_footy_id
 	if s_active_footy_id >= 0 {
 		hsed_get_caret_line s_active_footy_id
@@ -167,7 +167,7 @@
 	}
 	return
 
-// ドキュメントの変更イベントを LSP サーバーに通知する。
+; ドキュメントの変更イベントを LSP サーバーに通知する。
 #deffunc app_lsp_notify_doc_changes \
 	local ok, local kind, local uri, local uri_len, local version, local text_len
 
@@ -217,7 +217,7 @@
 	}
 	return ok
 
-// 何かしら変化があれば true
+; 何かしら変化があれば true
 #deffunc app_lsp_request_hover \
 	local uri, local uri_len
 
@@ -234,7 +234,7 @@
 
 	uri_len = strlen(uri)
 
-	// FIXME: s_caret_character の値はエンコーディングに依存する。(hsed は UTF-16 ベースだからここは問題ないが、ham は UTF-8 ベースで実装されているので正しく動作しない。)
+	; FIXME: s_caret_character の値はエンコーディングに依存する。(hsed は UTF-16 ベースだからここは問題ないが、ham は UTF-8 ベースで実装されているので正しく動作しない。)
 	s_hover_text_len = s_hover_text_capacity - 1
 	ham_hover s_ham, varptr(uri), uri_len, s_caret_line, s_caret_character, s_hover_text, s_hover_text_len
 	if stat == false {
@@ -244,7 +244,7 @@
 		return true
 	}
 
-	// ヌル終端する。(DLL 側ではヌル終端されない。)
+	; ヌル終端する。(DLL 側ではヌル終端されない。)
 	poke s_hover_text, s_hover_text_len
 
 	if s_hover_text_len == 0 {
@@ -277,7 +277,7 @@
 	sx = s_hover_window_sx
 	sy = s_hover_window_sy
 
-	// マウスの右上に出す。
+	; マウスの右上に出す。
 	px = ginfo_mx + 16
 	py = ginfo_my - sy - 16
 
@@ -287,8 +287,8 @@
 		objprm s_hover_mesbox_id, s_hover_text
 	}
 
-	// <https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos>
-	// 0x10: SWP_NOACTIVATE
+	; <https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos>
+	; 0x10: SWP_NOACTIVATE
 	flags = 0x10
 	if s_hover_window_is_visible {
 		flags |= 0x40
@@ -303,7 +303,7 @@
 
 	app_init
 
-	// FIXME: コマンドライン引数で受け取る、環境変数から読む？
+	; FIXME: コマンドライン引数で受け取る、環境変数から読む？
 	s_hsp3_root = dir_exe
 	s_hsp3_root_len = strlen(s_hsp3_root)
 	ham_create s_hsp3_root, s_hsp3_root_len

@@ -1,5 +1,5 @@
-// Build runner.
-// LICENSE: PUBLID DOMAIN
+; Build runner.
+; LICENSE: PUBLID DOMAIN
 
 #include "hspcmp.as"
 
@@ -21,9 +21,9 @@
 
 #define global HSP3_BUILD_VERSION "1.0.0"
 
-// -----------------------------------------------
-// Help
-// -----------------------------------------------
+; ------------------------------------------------
+; Help
+; ------------------------------------------------
 
 	s_help@ = {"EXE_NAME: HSP3 build tool
 
@@ -69,9 +69,9 @@ OPTIONS (optional):
 	strrep s_help@, "EXE_NAME", s_exe_name
 	strrep s_help@, "\t", "    "
 
-// -----------------------------------------------
-// HSP constants
-// -----------------------------------------------
+; ------------------------------------------------
+; HSP constants
+; ------------------------------------------------
 
 #define global dialog_warn          1
 #define global gsel_hide            (-1)
@@ -80,29 +80,29 @@ OPTIONS (optional):
 #define global mesbox_readonly      1
 #define global objmode_font         2
 
-// -----------------------------------------------
-// Windows constants
-// -----------------------------------------------
+; ------------------------------------------------
+; Windows constants
+; ------------------------------------------------
 
 #define global EXIT_SUCCESS 0
 #define global EXIT_FAILURE 1
 
-// -----------------------------------------------
-// App constants
-// -----------------------------------------------
+; ------------------------------------------------
+; App constants
+; ------------------------------------------------
 
 #define global s_default_window_id 0
 
-// -----------------------------------------------
-// Command line parser
-// -----------------------------------------------
+; ------------------------------------------------
+; Command line parser
+; ------------------------------------------------
 
 #module m_cmdline_parser
 
 #define true 1
 #define false 0
 
-// Parse a command line string.
+; Parse a command line string.
 #deffunc cmdline_parser_parse str cmdline, array args, \
 	local argc
 
@@ -123,11 +123,11 @@ OPTIONS (optional):
 	loop
 	return argc
 
-// Parse next argument.
+; Parse next argument.
 #deffunc cmdline_parser_next var value, \
 	local ok, local c, local start, local in_quote
 
-	// Skip spaces.
+	; Skip spaces.
 	repeat
 		if s_index >= s_cmdline_len {
 			break
@@ -167,12 +167,12 @@ OPTIONS (optional):
 			continue
 		}
 
-		// cmd(^)/PowerShell(`)-style escape.
+		; cmd(^)/PowerShell(`)-style escape.
 		if (c == '^' || c == '`') && s_index + 1 < s_cmdline_len {
 			gosub *l_commit
 			s_index++
 
-			// FIXME: `0, `n, etc are not supported
+			; FIXME: `0, `n, etc are not supported
 			c = peek(s_cmdline, s_index)
 			if c == '0' || c == 'n' || c == 'r' || c == 't' || c == 'x' {
 				assert
@@ -194,9 +194,9 @@ OPTIONS (optional):
 
 #global
 
-// -----------------------------------------------
-// Application
-// -----------------------------------------------
+; ------------------------------------------------
+; Application
+; ------------------------------------------------
 
 #module m_app
 
@@ -218,8 +218,8 @@ OPTIONS (optional):
 
 	s_runtime_name = ""
 
-	s_compile_opts = 1 | 4 // 1: debug info, 4: utf-8
-	s_pp_opt = 4 | 16 | 32 // 4: make packfile, 16/32: utf-8
+	s_compile_opts = 1 | 4 ; 1: debug info, 4: utf-8
+	s_pp_opt = 4 | 16 | 32 ; 4: make packfile, 16/32: utf-8
 	s_debug_mode = true
 
 	sdim s_subcommand
@@ -264,7 +264,7 @@ OPTIONS (optional):
 		flag = args(i)
 		i++
 
-		// exe itself (when an obj file passed in to the runtime)
+		; exe itself (when an obj file passed in to the runtime)
 		if i == 1 && instr(flag, , s_exe_name + ".ax") >= 0 {
 			continue
 		}
@@ -435,8 +435,8 @@ OPTIONS (optional):
 	case "run":
 		s_runtime_path = s_hsp_root + "\\" + s_runtime_name
 
-		// FIXME: pass args after --
-		// FIXME: fork
+		; FIXME: pass args after --
+		; FIXME: fork
 		s_run = "\"" + s_runtime_path + "\" \"" + s_obj_name + "\""
 		hsc3_run s_run
 		swbreak
@@ -474,9 +474,9 @@ OPTIONS (optional):
 
 #global
 
-// -----------------------------------------------
-// Runtime
-// -----------------------------------------------
+; ------------------------------------------------
+; Runtime
+; ------------------------------------------------
 
 #module m_runtime
 

@@ -1,4 +1,4 @@
-// メイン処理
+; メイン処理
 
 #include "ginger_constants.hsp"
 #include "ginger_args.hsp"
@@ -33,9 +33,9 @@
 	assert s_error == ""
 	end
 
-// サブコマンドを実行する
-//
-// 成功したら stat=true
+; サブコマンドを実行する
+;
+; 成功したら stat=true
 #deffunc ginger_core_do_subcommand \
 	local subcommand, local show_help, local version
 
