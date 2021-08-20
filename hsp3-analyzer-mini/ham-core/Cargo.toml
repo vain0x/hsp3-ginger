@@ -8,7 +8,6 @@ edition = "2018"
 encoding = "0.2.33"
 glob = "0.3.0"
 lsp-types = { version = "0.89.1", features = ["proposed"] }
-notify = "4.0.17"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 simplelog = "0.7.6"

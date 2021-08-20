@@ -1,12 +1,8 @@
 pub(crate) mod docs;
-pub(crate) mod file_watcher;
 mod search_common;
 pub(crate) mod search_hsphelp;
 
-use self::{
-    docs::{DocChange, Docs},
-    file_watcher::FileWatcher,
-};
+use self::docs::{DocChange, Docs};
 use super::*;
 use crate::{
     analysis::*,
@@ -52,9 +48,6 @@ pub(super) struct LangService {
     options: LangServiceOptions,
     docs: Docs,
     diagnostics_cache: DiagnosticsCache,
-    file_watcher_opt: Option<FileWatcher>,
-
-    watchable: bool,
 }
 
 impl LangService {
@@ -80,8 +73,14 @@ impl LangService {
         ls
     }
 
+    pub(super) fn watcher_enabled(&self) -> bool {
+        self.options.watcher_enabled
+    }
+
     pub(super) fn set_watchable(&mut self, watchable: bool) {
-        self.watchable = watchable;
+        if self.options.watcher_enabled {
+            self.options.watcher_enabled = watchable;
+        }
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
@@ -169,50 +168,11 @@ impl LangService {
                 self.docs.change_file(&path);
             }
         }
-
-        // if self.options.watcher_enabled {
-        //     if let Some(watched_dir) = self
-        //         .root_uri_opt
-        //         .as_ref()
-        //         .and_then(|uri| uri.to_file_path())
-        //     {
-        //         let mut watcher = FileWatcher::new(watched_dir);
-        //         watcher.start_watch();
-        //         self.file_watcher_opt = Some(watcher);
-        //     }
-        // }
     }
 
     /// ドキュメントの変更を集積して、解析器の状態を更新する。
     fn poll(&mut self) {
-        self.poll_watcher();
         self.apply_doc_changes();
-    }
-
-    fn poll_watcher(&mut self) {
-        let watcher = match self.file_watcher_opt.as_mut() {
-            Some(it) => it,
-            None => return,
-        };
-
-        let mut rescan = false;
-        watcher.poll(&mut rescan);
-
-        if rescan {
-            self.docs.close_all_files();
-        }
-
-        let mut changed_files = vec![];
-        let mut closed_files = vec![];
-        watcher.drain_changes(&mut changed_files, &mut closed_files);
-
-        for path in changed_files {
-            self.docs.change_file(&path);
-        }
-
-        for path in closed_files {
-            self.docs.close_file(&path);
-        }
     }
 
     fn apply_doc_changes(&mut self) {
@@ -256,11 +216,7 @@ impl LangService {
         }
     }
 
-    pub(super) fn shutdown(&mut self) {
-        if let Some(mut watcher) = self.file_watcher_opt.take() {
-            watcher.stop_watch();
-        }
-    }
+    pub(super) fn shutdown(&mut self) {}
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i32, text: String) {
         let uri = CanonicalUri::from_url(&uri);

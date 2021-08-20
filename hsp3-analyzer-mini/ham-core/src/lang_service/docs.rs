@@ -215,8 +215,7 @@ impl Docs {
         }
     }
 
-    pub(crate) fn change_file_by_uri(&mut self, uri: CanonicalUri) -> Option<DocId> {
-        let path = uri.to_file_path()?;
+    fn do_change_file(&mut self, uri: CanonicalUri, path: &Path) -> Option<DocId> {
         let (created, doc) = self.touch_uri(uri);
 
         let open_in_editor = !created && self.editor_docs.contains(&doc);
@@ -238,31 +237,14 @@ impl Docs {
         Some(doc)
     }
 
+    pub(crate) fn change_file_by_uri(&mut self, uri: CanonicalUri) -> Option<DocId> {
+        let path = uri.to_file_path()?;
+        self.do_change_file(uri, &path)
+    }
+
     pub(crate) fn change_file(&mut self, path: &Path) -> Option<DocId> {
-        let uri = match CanonicalUri::from_file_path(path) {
-            Some(uri) => uri,
-            None => return None,
-        };
-
-        let (created, doc) = self.touch_uri(uri);
-
-        let open_in_editor = !created && self.editor_docs.contains(&doc);
-        if open_in_editor {
-            #[cfg(trace_docs)]
-            trace!("ファイルは開かれているのでロードされません。");
-            return Some(doc);
-        }
-
-        let lang = Lang::from_path(path)?;
-        let origin = DocChangeOrigin::Path(path.to_path_buf());
-        let opened = self.file_docs.insert(doc);
-        if opened {
-            self.do_open_doc(doc, NO_VERSION, lang, origin);
-        } else {
-            self.do_change_doc(doc, NO_VERSION, lang, origin);
-        }
-
-        Some(doc)
+        let uri = CanonicalUri::from_file_path(path)?;
+        self.do_change_file(uri, &path)
     }
 
     pub(crate) fn close_file_by_uri(&mut self, uri: CanonicalUri) {
@@ -275,37 +257,6 @@ impl Docs {
 
         if !self.editor_docs.contains(&doc) {
             self.do_close_doc(doc, &uri);
-        }
-    }
-
-    pub(crate) fn close_file(&mut self, path: &Path) {
-        let uri = match CanonicalUri::from_file_path(path) {
-            Some(uri) => uri,
-            None => return,
-        };
-
-        let doc = match self.uri_to_doc.get(&uri) {
-            Some(&doc) => doc,
-            None => return,
-        };
-
-        self.file_docs.remove(&doc);
-
-        if !self.editor_docs.contains(&doc) {
-            self.do_close_doc(doc, &uri);
-        }
-    }
-
-    pub(crate) fn close_all_files(&mut self) {
-        for doc in take(&mut self.file_docs) {
-            let uri = match self.doc_to_uri.get(&doc).cloned() {
-                Some(uri) => uri,
-                None => continue,
-            };
-
-            if !self.editor_docs.contains(&doc) {
-                self.do_close_doc(doc, &uri);
-            }
         }
     }
 

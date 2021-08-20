@@ -14,6 +14,35 @@ impl<W: io::Write> LspHandler<W> {
         Self { sender, model }
     }
 
+    fn register_file_system_watcher(&mut self) {
+        if !self.model.watcher_enabled() {
+            return;
+        }
+
+        self.sender.send_request(
+            // 他のリクエストを送らないので id=1 しか使わない。
+            1,
+            "client/registerCapability",
+            RegistrationParams {
+                registrations: vec![Registration {
+                    id: "1".into(),
+                    method: "workspace/didChangeWatchedFiles".into(),
+                    register_options: Some(
+                        serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
+                            watchers: vec![FileSystemWatcher {
+                                kind: Some(
+                                    WatchKind::Create | WatchKind::Change | WatchKind::Delete,
+                                ),
+                                glob_pattern: "**/*.hsp".into(),
+                            }],
+                        })
+                        .unwrap(),
+                    ),
+                }],
+            },
+        );
+    }
+
     fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
         let watchable = params
             .capabilities
@@ -75,29 +104,7 @@ impl<W: io::Write> LspHandler<W> {
 
     fn did_initialize(&mut self) {
         self.model.did_initialize();
-
-        self.sender.send_request(
-            // 他のリクエストを送らないので id=1 しか使わない。
-            1,
-            "client/registerCapability",
-            RegistrationParams {
-                registrations: vec![Registration {
-                    id: "1".into(),
-                    method: "workspace/didChangeWatchedFiles".into(),
-                    register_options: Some(
-                        serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
-                            watchers: vec![FileSystemWatcher {
-                                kind: Some(
-                                    WatchKind::Create | WatchKind::Change | WatchKind::Delete,
-                                ),
-                                glob_pattern: "**/*.hsp".into(),
-                            }],
-                        })
-                        .unwrap(),
-                    ),
-                }],
-            },
-        );
+        self.register_file_system_watcher();
     }
 
     fn shutdown(&mut self) {
