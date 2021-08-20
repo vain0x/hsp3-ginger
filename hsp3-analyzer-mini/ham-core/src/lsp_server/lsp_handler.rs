@@ -15,7 +15,18 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
+        let watchable = params
+            .capabilities
+            .workspace
+            .and_then(|x| x.did_change_watched_files)
+            .and_then(|x| x.dynamic_registration)
+            .unwrap_or(false);
+
         self.model.initialize(params.root_uri);
+
+        if watchable {
+            self.model.set_watchable(true);
+        }
 
         InitializeResult {
             capabilities: ServerCapabilities {
@@ -64,6 +75,29 @@ impl<W: io::Write> LspHandler<W> {
 
     fn did_initialize(&mut self) {
         self.model.did_initialize();
+
+        self.sender.send_request(
+            // 他のリクエストを送らないので id=1 しか使わない。
+            1,
+            "client/registerCapability",
+            RegistrationParams {
+                registrations: vec![Registration {
+                    id: "1".into(),
+                    method: "workspace/didChangeWatchedFiles".into(),
+                    register_options: Some(
+                        serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
+                            watchers: vec![FileSystemWatcher {
+                                kind: Some(
+                                    WatchKind::Create | WatchKind::Change | WatchKind::Delete,
+                                ),
+                                glob_pattern: "**/*.hsp".into(),
+                            }],
+                        })
+                        .unwrap(),
+                    ),
+                }],
+            },
+        );
     }
 
     fn shutdown(&mut self) {
@@ -191,6 +225,16 @@ impl<W: io::Write> LspHandler<W> {
         self.model.signature_help(uri, position)
     }
 
+    fn workspace_did_change_watched_files(&mut self, params: DidChangeWatchedFilesParams) {
+        for param in params.changes {
+            match param.typ {
+                FileChangeType::Created => self.model.on_file_created(param.uri),
+                FileChangeType::Changed => self.model.on_file_changed(param.uri),
+                FileChangeType::Deleted => self.model.on_file_deleted(param.uri),
+            }
+        }
+    }
+
     fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
         self.model.workspace_symbol(params.query)
     }
@@ -213,7 +257,20 @@ impl<W: io::Write> LspHandler<W> {
     fn did_receive(&mut self, json: &str) {
         let msg = serde_json::from_str::<LspMessageOpaque>(json).unwrap();
 
-        match msg.method.as_str() {
+        let method = match msg.method {
+            Some(it) => it,
+
+            // registerCapabilityのレスポンス。
+            None if json.contains("\"result\"") && !json.contains("\"error\"") => return,
+
+            None => {
+                // TODO: エラー処理？
+                warn!("no method: {}", json);
+                return;
+            }
+        };
+
+        match method.as_str() {
             "initialize" => {
                 let msg = serde_json::from_str::<LspRequest<InitializeParams>>(json).unwrap();
                 let (params, msg_id) = (msg.params, msg.id);
@@ -330,6 +387,12 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_signature_help(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            "workspace/didChangeWatchedFiles" => {
+                let msg: LspNotification<DidChangeWatchedFilesParams> =
+                    serde_json::from_str(json).expect("workspace/didChangeWatchedFiles msg");
+                self.workspace_did_change_watched_files(msg.params);
+                self.diagnose();
             }
             request::WorkspaceSymbol::METHOD => {
                 let msg: LspRequest<WorkspaceSymbolParams> =

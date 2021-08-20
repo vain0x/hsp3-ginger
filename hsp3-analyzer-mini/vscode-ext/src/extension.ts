@@ -87,7 +87,8 @@ const newLspClient = (lspBin: string): LanguageClient => {
       { scheme: "file", language: "hsp3" },
     ],
     synchronize: {
-      fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
+      // `workspace/didChangeWatchedFiles` のための監視対象
+      fileEvents: workspace.createFileSystemWatcher("**/*.hsp"),
     },
   }
 

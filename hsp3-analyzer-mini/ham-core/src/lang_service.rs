@@ -53,6 +53,8 @@ pub(super) struct LangService {
     docs: Docs,
     diagnostics_cache: DiagnosticsCache,
     file_watcher_opt: Option<FileWatcher>,
+
+    watchable: bool,
 }
 
 impl LangService {
@@ -76,6 +78,10 @@ impl LangService {
         };
         ls.wa.initialize(WorkspaceHost::default());
         ls
+    }
+
+    pub(super) fn set_watchable(&mut self, watchable: bool) {
+        self.watchable = watchable;
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
@@ -151,17 +157,30 @@ impl LangService {
             entrypoints,
         });
 
-        if self.options.watcher_enabled {
-            if let Some(watched_dir) = self
-                .root_uri_opt
-                .as_ref()
-                .and_then(|uri| uri.to_file_path())
-            {
-                let mut watcher = FileWatcher::new(watched_dir);
-                watcher.start_watch();
-                self.file_watcher_opt = Some(watcher);
+        info!("ルートディレクトリからスクリプトファイルを収集します。");
+        {
+            let root_dir_opt = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path());
+            let script_files = root_dir_opt
+                .into_iter()
+                .filter_map(|dir| glob::glob(&format!("{}/**/*.hsp", dir.to_str()?)).ok())
+                .flatten()
+                .filter_map(|path_opt| path_opt.ok());
+            for path in script_files {
+                self.docs.change_file(&path);
             }
         }
+
+        // if self.options.watcher_enabled {
+        //     if let Some(watched_dir) = self
+        //         .root_uri_opt
+        //         .as_ref()
+        //         .and_then(|uri| uri.to_file_path())
+        //     {
+        //         let mut watcher = FileWatcher::new(watched_dir);
+        //         watcher.start_watch();
+        //         self.file_watcher_opt = Some(watcher);
+        //     }
+        // }
     }
 
     /// ドキュメントの変更を集積して、解析器の状態を更新する。
@@ -259,6 +278,21 @@ impl LangService {
         let uri = CanonicalUri::from_url(&uri);
 
         self.docs.close_doc_in_editor(uri);
+    }
+
+    pub(super) fn on_file_created(&mut self, uri: Url) {
+        let uri = CanonicalUri::from_url(&uri);
+        self.docs.change_file_by_uri(uri);
+    }
+
+    pub(super) fn on_file_changed(&mut self, uri: Url) {
+        let uri = CanonicalUri::from_url(&uri);
+        self.docs.change_file_by_uri(uri);
+    }
+
+    pub(super) fn on_file_deleted(&mut self, uri: Url) {
+        let uri = CanonicalUri::from_url(&uri);
+        self.docs.close_file_by_uri(uri);
     }
 
     pub(super) fn code_action(
