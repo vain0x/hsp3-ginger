@@ -8,7 +8,7 @@
 import * as fs from "fs/promises"
 import { watch, FSWatcher } from "fs"
 import { ExtensionContext, workspace, window } from "vscode"
-import { Disposable, LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient"
+import { Disposable, LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 
 /** 開発モード */
 const DEV = process.env["HSP3_ANALYZER_MINI_DEV"] === "1"
