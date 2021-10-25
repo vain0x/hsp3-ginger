@@ -62,7 +62,7 @@ impl<W: io::Write> LspHandler<W> {
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
-                        change: Some(TextDocumentSyncKind::Full),
+                        change: Some(TextDocumentSyncKind::FULL),
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
@@ -93,7 +93,6 @@ impl<W: io::Write> LspHandler<W> {
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
-            offset_encoding: None,
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -235,9 +234,10 @@ impl<W: io::Write> LspHandler<W> {
     fn workspace_did_change_watched_files(&mut self, params: DidChangeWatchedFilesParams) {
         for param in params.changes {
             match param.typ {
-                FileChangeType::Created => self.model.on_file_created(param.uri),
-                FileChangeType::Changed => self.model.on_file_changed(param.uri),
-                FileChangeType::Deleted => self.model.on_file_deleted(param.uri),
+                FileChangeType::CREATED => self.model.on_file_created(param.uri),
+                FileChangeType::CHANGED => self.model.on_file_changed(param.uri),
+                FileChangeType::DELETED => self.model.on_file_deleted(param.uri),
+                _ => continue,
             }
         }
     }

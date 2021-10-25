@@ -23,7 +23,7 @@ fn is_builtin(stem: &str) -> bool {
 }
 
 fn convert_symbol(hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem) {
-    let kind = CompletionItemKind::Function;
+    let kind = CompletionItemKind::FUNCTION;
     let HsSymbol {
         name,
         description,

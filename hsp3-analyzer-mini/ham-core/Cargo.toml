@@ -7,7 +7,10 @@ edition = "2021"
 [dependencies]
 encoding = "0.2.33"
 glob = "0.3.0"
-lsp-types = { version = "0.89.1", features = ["proposed"] }
+
+# <https://github.com/gluon-lang/lsp-types>
+lsp-types = { version = "0.91.0" }
+
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 simplelog = "0.7.6"

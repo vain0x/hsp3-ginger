@@ -7,26 +7,28 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
     use lsp_types::SymbolKind as K;
     let it = match kind {
         HspSymbolKind::Unresolved => return None,
-        HspSymbolKind::Unknown | HspSymbolKind::Module | HspSymbolKind::Param(None) => K::Unknown,
-        HspSymbolKind::StaticVar => K::Variable,
-        HspSymbolKind::Label
+        HspSymbolKind::Module => K::MODULE,
+        HspSymbolKind::StaticVar => K::VARIABLE,
+        HspSymbolKind::Unknown
+        | HspSymbolKind::Label
         | HspSymbolKind::Const
         | HspSymbolKind::Enum
         | HspSymbolKind::Macro { ctype: false }
-        | HspSymbolKind::PluginCmd => K::Constant,
+        | HspSymbolKind::Param(None)
+        | HspSymbolKind::PluginCmd => K::CONSTANT,
         HspSymbolKind::Macro { ctype: true }
         | HspSymbolKind::DefFunc
         | HspSymbolKind::DefCFunc
-        | HspSymbolKind::LibFunc => K::Function,
-        HspSymbolKind::ModFunc | HspSymbolKind::ModCFunc | HspSymbolKind::ComFunc => K::Method,
+        | HspSymbolKind::LibFunc => K::FUNCTION,
+        HspSymbolKind::ModFunc | HspSymbolKind::ModCFunc | HspSymbolKind::ComFunc => K::METHOD,
         HspSymbolKind::Param(Some(param)) => match param.category() {
-            PParamCategory::ByValue => K::Constant,
-            PParamCategory::ByRef => K::Property,
-            PParamCategory::Local => K::Variable,
+            PParamCategory::ByValue => K::CONSTANT,
+            PParamCategory::ByRef => K::PROPERTY,
+            PParamCategory::Local => K::VARIABLE,
             PParamCategory::Auto => return None,
         },
-        HspSymbolKind::Field => K::Field,
-        HspSymbolKind::ComInterface => K::Interface,
+        HspSymbolKind::Field => K::FIELD,
+        HspSymbolKind::ComInterface => K::INTERFACE,
     };
     Some(it)
 }
