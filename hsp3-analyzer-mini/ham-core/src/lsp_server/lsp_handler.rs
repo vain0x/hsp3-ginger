@@ -82,6 +82,26 @@ impl<W: io::Write> LspHandler<W> {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 })),
+                semantic_tokens_provider: Some(
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(
+                        SemanticTokensOptions {
+                            legend: SemanticTokensLegend {
+                                token_types: vec![
+                                    SemanticTokenType::PARAMETER,
+                                    SemanticTokenType::VARIABLE,
+                                    SemanticTokenType::FUNCTION,
+                                    SemanticTokenType::MACRO,
+                                ],
+                                token_modifiers: vec![
+                                    SemanticTokenModifier::READONLY,
+                                    SemanticTokenModifier::STATIC,
+                                ],
+                            },
+                            full: Some(SemanticTokensFullOptions::Bool(true)),
+                            ..Default::default()
+                        },
+                    ),
+                ),
                 signature_help_provider: Some(SignatureHelpOptions {
                     trigger_characters: Some(vec![
                         " ".to_string(),
@@ -217,6 +237,14 @@ impl<W: io::Write> LspHandler<W> {
             params.text_document_position.position,
             params.new_name,
         )
+    }
+
+    fn text_document_semantic_tokens_full(
+        &mut self,
+        params: SemanticTokensParams,
+    ) -> SemanticTokensResult {
+        let uri = params.text_document.uri;
+        SemanticTokensResult::Tokens(self.model.semantic_tokens(uri))
     }
 
     fn text_document_signature_help(
@@ -388,6 +416,13 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_rename(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            request::SemanticTokensFullRequest::METHOD => {
+                let msg: LspRequest<SemanticTokensParams> =
+                    serde_json::from_str(json).expect("semantic tokens full msg");
+                let response: SemanticTokensResult =
+                    self.text_document_semantic_tokens_full(msg.params);
+                self.sender.send_response(msg.id, response);
             }
             request::SignatureHelpRequest::METHOD => {
                 let msg: LspRequest<SignatureHelpParams> = serde_json::from_str(json).unwrap();

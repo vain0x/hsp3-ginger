@@ -358,6 +358,17 @@ impl LangService {
         assists::rename::rename(uri, position, new_name, &self.docs, &mut self.wa)
     }
 
+    pub(super) fn semantic_tokens(&mut self, uri: Url) -> lsp_types::SemanticTokens {
+        self.poll();
+
+        let tokens =
+            assists::semantic_tokens::full(uri, &self.docs, &mut self.wa).unwrap_or(vec![]);
+        SemanticTokens {
+            data: tokens,
+            result_id: None,
+        }
+    }
+
     pub(super) fn signature_help(&mut self, uri: Url, position: Position) -> Option<SignatureHelp> {
         self.poll();
 

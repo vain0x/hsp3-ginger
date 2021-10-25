@@ -1,5 +1,26 @@
 use super::*;
-use crate::analysis::*;
+use crate::{analysis::*, parse::p_param_ty::PParamCategory};
+
+// SemanticTokensLegend を参照
+fn to_semantic_token_kind(symbol: &SymbolRc) -> Option<(u32, u32)> {
+    let (ty, modifiers) = match symbol.kind {
+        HspSymbolKind::Param(Some(param)) => match param.category() {
+            PParamCategory::ByValue => (1, 0b01), // readonly variable
+            PParamCategory::ByRef => (0, 0),      // parameter,
+            PParamCategory::Local => (1, 0),      // variable
+            PParamCategory::Auto => return None,
+        },
+        HspSymbolKind::StaticVar => (1, 0b10), // static variable
+        HspSymbolKind::Const | HspSymbolKind::Enum => (1, 0b01), // readonly variable
+        HspSymbolKind::DefFunc
+        | HspSymbolKind::DefCFunc
+        | HspSymbolKind::ModFunc
+        | HspSymbolKind::ModCFunc => (2, 0), // function
+        HspSymbolKind::Macro { .. } => (3, 0), // macro
+        _ => return None,
+    };
+    Some((ty, modifiers))
+}
 
 pub(crate) fn full(
     uri: Url,
@@ -7,54 +28,52 @@ pub(crate) fn full(
     wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<lsp_types::SemanticToken>> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
+    let project = wa.require_project_for_doc(doc);
 
     let mut symbols = vec![];
-    wa.require_project_for_doc(doc)
-        .collect_doc_symbols(doc, &mut symbols);
+    project.collect_symbol_occurrences(&mut symbols);
 
-    symbols.sort_by_key(|s| s.1.start());
+    let mut tokens: Vec<lsp_types::SemanticToken> = vec![];
 
-    let mut tokens: Vec<lsp_types::SemanticToken> = symbols
-        .into_iter()
-        .filter_map(|(symbol, loc)| {
-            let token_ty = match symbol.kind {
-                HspSymbolKind::Param(_) => 0,
-                HspSymbolKind::StaticVar => 1,
-                _ => return None,
-            };
-            let location = loc_to_location(loc, docs)?;
+    for (symbol, loc) in symbols {
+        if loc.doc != doc {
+            continue;
+        }
 
-            let Position {
-                line: y1,
-                character: x1,
-            } = location.range.start;
-            let Position {
-                line: y2,
-                character: x2,
-            } = location.range.end;
-            if y1 < y2 {
-                return None;
-            }
+        let (token_type, token_modifiers_bitset) = match to_semantic_token_kind(&symbol) {
+            Some(it) => it,
+            None => continue,
+        };
 
-            Some(lsp_types::SemanticToken {
-                delta_line: y1,
-                delta_start: x1,
-                length: x2 - x1,
-                token_type: 0,
-                token_modifiers_bitset: 0,
-            })
-        })
-        .collect();
+        let location = loc_to_location(loc, docs)?;
+
+        let Position {
+            line: y1,
+            character: x1,
+        } = location.range.start;
+
+        tokens.push(lsp_types::SemanticToken {
+            delta_line: y1,
+            delta_start: x1,
+            length: symbol.name().encode_utf16().count() as u32,
+            token_type,
+            token_modifiers_bitset,
+        });
+    }
+
+    // Compute delta.
+    tokens.sort_by_key(|t| (t.delta_line, t.delta_start + t.length));
 
     for i in (1..tokens.len()).rev() {
         let y1 = tokens[i - 1].delta_line;
-        let x1 = tokens[i - 1].delta_start + tokens[i - 1].length;
+        let x1 = tokens[i - 1].delta_start;
         if tokens[i].delta_line == y1 {
             tokens[i].delta_line = 0;
+            tokens[i].delta_start = tokens[i].delta_start.saturating_sub(x1);
         } else {
             tokens[i].delta_line -= y1;
-            tokens[i].delta_start -= x1;
         }
     }
+
     Some(tokens)
 }

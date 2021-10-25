@@ -336,6 +336,12 @@ impl<'a> ProjectAnalysisRef<'a> {
         }
     }
 
+    pub(crate) fn collect_symbol_occurrences(self, symbols: &mut Vec<(&'a SymbolRc, Loc)>) {
+        for (symbol, loc) in self.project.def_sites.iter().chain(&self.project.use_sites) {
+            symbols.push((symbol, *loc));
+        }
+    }
+
     pub(crate) fn collect_completion_items(
         self,
         doc: DocId,
