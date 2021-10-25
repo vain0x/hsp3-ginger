@@ -2,7 +2,7 @@
 name = "ham-core"
 version = "0.3.0"
 authors = ["vain0x <vainzerox@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 encoding = "0.2.33"
