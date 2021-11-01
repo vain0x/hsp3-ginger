@@ -5,6 +5,9 @@
 
 // Entry point of the VSCode extension.
 
+// 備考: LSPサーバーの自動読み込み機能は以下のリポジトリも参照。
+//      <https://github.com/vain0x/vscode-auto-reload-lsp-server>
+
 import * as fs from "fs/promises"
 import { watch, FSWatcher } from "fs"
 import { ExtensionContext, workspace, window } from "vscode"
