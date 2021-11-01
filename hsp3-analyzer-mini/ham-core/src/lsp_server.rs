@@ -51,7 +51,7 @@ pub(super) struct LspNotification<Params> {
 /// just for deserialization.
 #[derive(Deserialize)]
 pub(super) struct LspMessageOpaque {
-    pub(crate) method: String,
+    pub(crate) method: Option<String>,
     pub(crate) id: Option<Value>,
 }
 

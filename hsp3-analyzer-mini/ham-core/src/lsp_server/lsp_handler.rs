@@ -14,15 +14,55 @@ impl<W: io::Write> LspHandler<W> {
         Self { sender, model }
     }
 
+    fn register_file_system_watcher(&mut self) {
+        if !self.model.watcher_enabled() {
+            return;
+        }
+
+        self.sender.send_request(
+            // 他のリクエストを送らないので id=1 しか使わない。
+            1,
+            "client/registerCapability",
+            RegistrationParams {
+                registrations: vec![Registration {
+                    id: "1".into(),
+                    method: "workspace/didChangeWatchedFiles".into(),
+                    register_options: Some(
+                        serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
+                            watchers: vec![FileSystemWatcher {
+                                kind: Some(
+                                    WatchKind::Create | WatchKind::Change | WatchKind::Delete,
+                                ),
+                                glob_pattern: "**/*.hsp".into(),
+                            }],
+                        })
+                        .unwrap(),
+                    ),
+                }],
+            },
+        );
+    }
+
     fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
+        let watchable = params
+            .capabilities
+            .workspace
+            .and_then(|x| x.did_change_watched_files)
+            .and_then(|x| x.dynamic_registration)
+            .unwrap_or(false);
+
         self.model.initialize(params.root_uri);
+
+        if watchable {
+            self.model.set_watchable(true);
+        }
 
         InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
-                        change: Some(TextDocumentSyncKind::Full),
+                        change: Some(TextDocumentSyncKind::FULL),
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
@@ -42,6 +82,28 @@ impl<W: io::Write> LspHandler<W> {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 })),
+                semantic_tokens_provider: Some(
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(
+                        SemanticTokensOptions {
+                            legend: SemanticTokensLegend {
+                                token_types: vec![
+                                    SemanticTokenType::PARAMETER, // 0
+                                    SemanticTokenType::VARIABLE,  // 1
+                                    SemanticTokenType::FUNCTION,  // 2
+                                    SemanticTokenType::MACRO,     // 3
+                                    SemanticTokenType::NAMESPACE, // 4
+                                    SemanticTokenType::KEYWORD,   // 5
+                                ],
+                                token_modifiers: vec![
+                                    SemanticTokenModifier::READONLY, // 0b01
+                                    SemanticTokenModifier::STATIC,   // 0b10
+                                ],
+                            },
+                            full: Some(SemanticTokensFullOptions::Bool(true)),
+                            ..Default::default()
+                        },
+                    ),
+                ),
                 signature_help_provider: Some(SignatureHelpOptions {
                     trigger_characters: Some(vec![
                         " ".to_string(),
@@ -53,7 +115,6 @@ impl<W: io::Write> LspHandler<W> {
                 workspace_symbol_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
-            offset_encoding: None,
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -64,6 +125,7 @@ impl<W: io::Write> LspHandler<W> {
 
     fn did_initialize(&mut self) {
         self.model.did_initialize();
+        self.register_file_system_watcher();
     }
 
     fn shutdown(&mut self) {
@@ -179,6 +241,14 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
+    fn text_document_semantic_tokens_full(
+        &mut self,
+        params: SemanticTokensParams,
+    ) -> SemanticTokensResult {
+        let uri = params.text_document.uri;
+        SemanticTokensResult::Tokens(self.model.semantic_tokens(uri))
+    }
+
     fn text_document_signature_help(
         &mut self,
         params: SignatureHelpParams,
@@ -189,6 +259,17 @@ impl<W: io::Write> LspHandler<W> {
         };
 
         self.model.signature_help(uri, position)
+    }
+
+    fn workspace_did_change_watched_files(&mut self, params: DidChangeWatchedFilesParams) {
+        for param in params.changes {
+            match param.typ {
+                FileChangeType::CREATED => self.model.on_file_created(param.uri),
+                FileChangeType::CHANGED => self.model.on_file_changed(param.uri),
+                FileChangeType::DELETED => self.model.on_file_deleted(param.uri),
+                _ => continue,
+            }
+        }
     }
 
     fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
@@ -213,7 +294,20 @@ impl<W: io::Write> LspHandler<W> {
     fn did_receive(&mut self, json: &str) {
         let msg = serde_json::from_str::<LspMessageOpaque>(json).unwrap();
 
-        match msg.method.as_str() {
+        let method = match msg.method {
+            Some(it) => it,
+
+            // registerCapabilityのレスポンス。
+            None if json.contains("\"result\"") && !json.contains("\"error\"") => return,
+
+            None => {
+                // TODO: エラー処理？
+                warn!("no method: {}", json);
+                return;
+            }
+        };
+
+        match method.as_str() {
             "initialize" => {
                 let msg = serde_json::from_str::<LspRequest<InitializeParams>>(json).unwrap();
                 let (params, msg_id) = (msg.params, msg.id);
@@ -325,11 +419,24 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.text_document_rename(msg.params);
                 self.sender.send_response(msg_id, response);
             }
+            request::SemanticTokensFullRequest::METHOD => {
+                let msg: LspRequest<SemanticTokensParams> =
+                    serde_json::from_str(json).expect("semantic tokens full msg");
+                let response: SemanticTokensResult =
+                    self.text_document_semantic_tokens_full(msg.params);
+                self.sender.send_response(msg.id, response);
+            }
             request::SignatureHelpRequest::METHOD => {
                 let msg: LspRequest<SignatureHelpParams> = serde_json::from_str(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_signature_help(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            "workspace/didChangeWatchedFiles" => {
+                let msg: LspNotification<DidChangeWatchedFilesParams> =
+                    serde_json::from_str(json).expect("workspace/didChangeWatchedFiles msg");
+                self.workspace_did_change_watched_files(msg.params);
+                self.diagnose();
             }
             request::WorkspaceSymbol::METHOD => {
                 let msg: LspRequest<WorkspaceSymbolParams> =

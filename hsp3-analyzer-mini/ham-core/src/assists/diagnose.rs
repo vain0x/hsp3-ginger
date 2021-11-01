@@ -73,7 +73,7 @@ pub(crate) fn diagnose(
     for (message, loc) in dd {
         let d = Diagnostic {
             message,
-            severity: Some(DiagnosticSeverity::Error),
+            severity: Some(DiagnosticSeverity::ERROR),
             range: to_lsp_range(loc.range),
             source: source(),
             ..Default::default()
@@ -83,7 +83,7 @@ pub(crate) fn diagnose(
     for (lint, loc) in lints {
         let d = Diagnostic {
             message: lint.as_str().to_string(),
-            severity: Some(DiagnosticSeverity::Warning),
+            severity: Some(DiagnosticSeverity::WARNING),
             range: loc_to_range(loc),
             source: source(),
             ..Default::default()

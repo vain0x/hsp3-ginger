@@ -7,6 +7,7 @@ pub(crate) mod formatting;
 pub(crate) mod hover;
 pub(crate) mod references;
 pub(crate) mod rename;
+pub(crate) mod semantic_tokens;
 pub(crate) mod signature_help;
 pub(crate) mod workspace_symbol;
 

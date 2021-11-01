@@ -18,11 +18,11 @@ pub(crate) fn document_highlight(
     project.collect_symbol_defs(&symbol, &mut locs);
     highlights.extend(
         locs.drain(..)
-            .map(|loc| (DocumentHighlightKind::Write, loc)),
+            .map(|loc| (DocumentHighlightKind::WRITE, loc)),
     );
 
     project.collect_symbol_uses(&symbol, &mut locs);
-    highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::Read, loc)));
+    highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::READ, loc)));
 
     highlights.retain(|(_, loc)| loc.doc == doc);
 

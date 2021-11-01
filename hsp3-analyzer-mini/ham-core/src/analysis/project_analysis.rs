@@ -336,6 +336,12 @@ impl<'a> ProjectAnalysisRef<'a> {
         }
     }
 
+    pub(crate) fn collect_symbol_occurrences(self, symbols: &mut Vec<(&'a SymbolRc, Loc)>) {
+        for (symbol, loc) in self.project.def_sites.iter().chain(&self.project.use_sites) {
+            symbols.push((symbol, *loc));
+        }
+    }
+
     pub(crate) fn collect_completion_items(
         self,
         doc: DocId,
@@ -403,7 +409,7 @@ impl<'a> ProjectAnalysisRef<'a> {
             use lsp_types::{CompletionItem as CI, CompletionItemKind as K};
             let sort_prefix = 'a';
             completion_items.push(CI {
-                kind: Some(K::Keyword),
+                kind: Some(K::KEYWORD),
                 label: keyword.to_string(),
                 detail: Some(detail.to_string()),
                 sort_text: Some(format!("{}{}", sort_prefix, keyword)),

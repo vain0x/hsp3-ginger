@@ -5,10 +5,13 @@
 
 // Entry point of the VSCode extension.
 
+// 備考: LSPサーバーの自動読み込み機能は以下のリポジトリも参照。
+//      <https://github.com/vain0x/vscode-auto-reload-lsp-server>
+
 import * as fs from "fs/promises"
 import { watch, FSWatcher } from "fs"
 import { ExtensionContext, workspace, window } from "vscode"
-import { Disposable, LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient"
+import { Disposable, LanguageClient, LanguageClientOptions, ServerOptions } from "vscode-languageclient/node"
 
 /** 開発モード */
 const DEV = process.env["HSP3_ANALYZER_MINI_DEV"] === "1"
@@ -87,7 +90,8 @@ const newLspClient = (lspBin: string): LanguageClient => {
       { scheme: "file", language: "hsp3" },
     ],
     synchronize: {
-      fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
+      // `workspace/didChangeWatchedFiles` のための監視対象
+      fileEvents: workspace.createFileSystemWatcher("**/*.hsp"),
     },
   }
 

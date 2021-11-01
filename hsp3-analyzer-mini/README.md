@@ -21,7 +21,7 @@ HSP3 の静的解析ツールです。Language Server Protocol (LSP) 準拠。
 
 以下のツールをインストールしてください。
 
-- [Node.js](https://nodejs.org)
+- [Node.js](https://nodejs.org) (>= 17)
 - [Rust](https://rustlang.org)
 
 はじめに、パッケージのインストールなどが必要です。次のスクリプトを使ってください。

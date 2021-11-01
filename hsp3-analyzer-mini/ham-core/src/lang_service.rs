@@ -1,12 +1,8 @@
 pub(crate) mod docs;
-pub(crate) mod file_watcher;
 mod search_common;
 pub(crate) mod search_hsphelp;
 
-use self::{
-    docs::{DocChange, Docs},
-    file_watcher::FileWatcher,
-};
+use self::docs::{DocChange, Docs};
 use super::*;
 use crate::{
     analysis::*,
@@ -52,7 +48,6 @@ pub(super) struct LangService {
     options: LangServiceOptions,
     docs: Docs,
     diagnostics_cache: DiagnosticsCache,
-    file_watcher_opt: Option<FileWatcher>,
 }
 
 impl LangService {
@@ -76,6 +71,16 @@ impl LangService {
         };
         ls.wa.initialize(WorkspaceHost::default());
         ls
+    }
+
+    pub(super) fn watcher_enabled(&self) -> bool {
+        self.options.watcher_enabled
+    }
+
+    pub(super) fn set_watchable(&mut self, watchable: bool) {
+        if self.options.watcher_enabled {
+            self.options.watcher_enabled = watchable;
+        }
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
@@ -151,49 +156,23 @@ impl LangService {
             entrypoints,
         });
 
-        if self.options.watcher_enabled {
-            if let Some(watched_dir) = self
-                .root_uri_opt
-                .as_ref()
-                .and_then(|uri| uri.to_file_path())
-            {
-                let mut watcher = FileWatcher::new(watched_dir);
-                watcher.start_watch();
-                self.file_watcher_opt = Some(watcher);
+        info!("ルートディレクトリからスクリプトファイルを収集します。");
+        {
+            let root_dir_opt = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path());
+            let script_files = root_dir_opt
+                .into_iter()
+                .filter_map(|dir| glob::glob(&format!("{}/**/*.hsp", dir.to_str()?)).ok())
+                .flatten()
+                .filter_map(|path_opt| path_opt.ok());
+            for path in script_files {
+                self.docs.change_file(&path);
             }
         }
     }
 
     /// ドキュメントの変更を集積して、解析器の状態を更新する。
     fn poll(&mut self) {
-        self.poll_watcher();
         self.apply_doc_changes();
-    }
-
-    fn poll_watcher(&mut self) {
-        let watcher = match self.file_watcher_opt.as_mut() {
-            Some(it) => it,
-            None => return,
-        };
-
-        let mut rescan = false;
-        watcher.poll(&mut rescan);
-
-        if rescan {
-            self.docs.close_all_files();
-        }
-
-        let mut changed_files = vec![];
-        let mut closed_files = vec![];
-        watcher.drain_changes(&mut changed_files, &mut closed_files);
-
-        for path in changed_files {
-            self.docs.change_file(&path);
-        }
-
-        for path in closed_files {
-            self.docs.close_file(&path);
-        }
     }
 
     fn apply_doc_changes(&mut self) {
@@ -237,11 +216,7 @@ impl LangService {
         }
     }
 
-    pub(super) fn shutdown(&mut self) {
-        if let Some(mut watcher) = self.file_watcher_opt.take() {
-            watcher.stop_watch();
-        }
-    }
+    pub(super) fn shutdown(&mut self) {}
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i32, text: String) {
         let uri = CanonicalUri::from_url(&uri);
@@ -259,6 +234,21 @@ impl LangService {
         let uri = CanonicalUri::from_url(&uri);
 
         self.docs.close_doc_in_editor(uri);
+    }
+
+    pub(super) fn on_file_created(&mut self, uri: Url) {
+        let uri = CanonicalUri::from_url(&uri);
+        self.docs.change_file_by_uri(uri);
+    }
+
+    pub(super) fn on_file_changed(&mut self, uri: Url) {
+        let uri = CanonicalUri::from_url(&uri);
+        self.docs.change_file_by_uri(uri);
+    }
+
+    pub(super) fn on_file_deleted(&mut self, uri: Url) {
+        let uri = CanonicalUri::from_url(&uri);
+        self.docs.close_file_by_uri(uri);
     }
 
     pub(super) fn code_action(
@@ -366,6 +356,17 @@ impl LangService {
         self.poll();
 
         assists::rename::rename(uri, position, new_name, &self.docs, &mut self.wa)
+    }
+
+    pub(super) fn semantic_tokens(&mut self, uri: Url) -> lsp_types::SemanticTokens {
+        self.poll();
+
+        let tokens =
+            assists::semantic_tokens::full(uri, &self.docs, &mut self.wa).unwrap_or(vec![]);
+        SemanticTokens {
+            data: tokens,
+            result_id: None,
+        }
     }
 
     pub(super) fn signature_help(&mut self, uri: Url, position: Position) -> Option<SignatureHelp> {

@@ -13,18 +13,18 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
         | HspSymbolKind::Module
         | HspSymbolKind::Field => return None,
 
-        HspSymbolKind::StaticVar => K::Variable,
+        HspSymbolKind::StaticVar => K::VARIABLE,
         HspSymbolKind::Label
         | HspSymbolKind::Const
         | HspSymbolKind::Enum
         | HspSymbolKind::Macro { ctype: false }
-        | HspSymbolKind::PluginCmd => K::Constant,
+        | HspSymbolKind::PluginCmd => K::CONSTANT,
         HspSymbolKind::Macro { ctype: true }
         | HspSymbolKind::DefFunc
         | HspSymbolKind::DefCFunc
-        | HspSymbolKind::LibFunc => K::Function,
-        HspSymbolKind::ModFunc | HspSymbolKind::ModCFunc | HspSymbolKind::ComFunc => K::Method,
-        HspSymbolKind::ComInterface => K::Interface,
+        | HspSymbolKind::LibFunc => K::FUNCTION,
+        HspSymbolKind::ModFunc | HspSymbolKind::ModCFunc | HspSymbolKind::ComFunc => K::METHOD,
+        HspSymbolKind::ComInterface => K::INTERFACE,
     };
     Some(it)
 }

@@ -1,4 +1,4 @@
-use super::{LspError, LspErrorResponse, LspNotification, LspResponse};
+use super::{LspError, LspErrorResponse, LspNotification, LspRequest, LspResponse};
 use serde_json::Value;
 use std::io::{self, Write as _};
 
@@ -34,6 +34,22 @@ impl<W: io::Write> LspSender<W> {
                 "TOO_LONG"
             }
         );
+    }
+
+    pub(crate) fn send_request<P: serde::Serialize>(&mut self, id: i64, method: &str, params: P) {
+        let mut buf = Vec::new();
+        serde_json::to_writer(
+            &mut buf,
+            &LspRequest::<P> {
+                jsonrpc: "2.0".to_string(),
+                id,
+                method: method.to_string(),
+                params,
+            },
+        )
+        .unwrap();
+
+        self.do_send(&buf);
     }
 
     pub(crate) fn send_notification<P: serde::Serialize>(&mut self, method: &str, params: P) {
