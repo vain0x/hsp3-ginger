@@ -6,7 +6,7 @@ fn to_semantic_token_kind(symbol: &SymbolRc) -> Option<(u32, u32)> {
     let (ty, modifiers) = match symbol.kind {
         HspSymbolKind::Param(Some(param)) => match param.category() {
             PParamCategory::ByValue => (1, 0b01), // readonly variable
-            PParamCategory::ByRef => (0, 0),      // parameter,
+            PParamCategory::ByRef => (0, 0),      // parameter
             PParamCategory::Local => (1, 0),      // variable
             PParamCategory::Auto => return None,
         },
@@ -15,8 +15,15 @@ fn to_semantic_token_kind(symbol: &SymbolRc) -> Option<(u32, u32)> {
         HspSymbolKind::DefFunc
         | HspSymbolKind::DefCFunc
         | HspSymbolKind::ModFunc
-        | HspSymbolKind::ModCFunc => (2, 0), // function
+        | HspSymbolKind::ModCFunc
+        | HspSymbolKind::LibFunc
+        | HspSymbolKind::ComFunc => (2, 0), // function
         HspSymbolKind::Macro { .. } => (3, 0), // macro
+        HspSymbolKind::Module => (4, 0),       // namespace
+        HspSymbolKind::PluginCmd => (5, 0),    // keyword
+
+        // Not supported:
+        // HspSymbolKind::ComInterface => ?,
         _ => return None,
     };
     Some((ty, modifiers))

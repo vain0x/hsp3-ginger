@@ -87,14 +87,16 @@ impl<W: io::Write> LspHandler<W> {
                         SemanticTokensOptions {
                             legend: SemanticTokensLegend {
                                 token_types: vec![
-                                    SemanticTokenType::PARAMETER,
-                                    SemanticTokenType::VARIABLE,
-                                    SemanticTokenType::FUNCTION,
-                                    SemanticTokenType::MACRO,
+                                    SemanticTokenType::PARAMETER, // 0
+                                    SemanticTokenType::VARIABLE,  // 1
+                                    SemanticTokenType::FUNCTION,  // 2
+                                    SemanticTokenType::MACRO,     // 3
+                                    SemanticTokenType::NAMESPACE, // 4
+                                    SemanticTokenType::KEYWORD,   // 5
                                 ],
                                 token_modifiers: vec![
-                                    SemanticTokenModifier::READONLY,
-                                    SemanticTokenModifier::STATIC,
+                                    SemanticTokenModifier::READONLY, // 0b01
+                                    SemanticTokenModifier::STATIC,   // 0b10
                                 ],
                             },
                             full: Some(SemanticTokensFullOptions::Bool(true)),
