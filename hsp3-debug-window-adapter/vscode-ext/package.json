@@ -33,7 +33,6 @@
         "vsce:package": "vsce package --out hsp3-debug-window-adapter.vsix"
     },
     "dependencies": {
-        "await-notify": "^1.0.1",
         "vscode-debugadapter": "^1.47.0"
     },
     "devDependencies": {
