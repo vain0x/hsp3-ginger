@@ -13,14 +13,14 @@ VSCode にて以下の拡張機能をインストールしてください。
 
 ```json
 {
-    "hsp3-debug-window-adapter.hsp3-home": "C:/Program Files (x86)/hsp351"
+    "hsp3-debug-window-adapter.hsp3-root": "C:/Program Files (x86)/hsp351"
 }
 ```
 
 #### 備考
 
 - インストールディレクトリはシステム変数 `dir_exe` で確認できます。
-- パスの区切りは `\\` と書くか `/` に置き換えてください。
+- パスの区切りは `\\` と書くか、`/` を使ってください。
 
 ## 既知の不具合
 

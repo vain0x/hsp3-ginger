@@ -58,13 +58,9 @@
             "type": "object",
             "title": "HSP3 debugger with default debug window",
             "properties": {
-                "hsp3-debug-window-adapter.hsp3-home": {
-                    "type": "string",
-                    "description": "HSP3のインストールディレクトリ。省略時は環境変数 HSP3_HOME が使われます。"
-                },
                 "hsp3-debug-window-adapter.hsp3-root": {
                     "type": "string",
-                    "description": "[廃止予定] hsp3-homeを使ってください。"
+                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます"
                 }
             }
         },

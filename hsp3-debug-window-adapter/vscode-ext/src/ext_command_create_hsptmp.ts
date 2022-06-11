@@ -2,7 +2,7 @@ import * as fs from "fs"
 import * as path from "path"
 import { promisify } from "util"
 import { window, workspace } from "vscode"
-import { selectHsp3Home } from "./ext_command_select_hsp3_home"
+import { selectHsp3Root } from "./ext_command_select_hsp3_root"
 import { DomainError } from "./extension"
 
 /**
@@ -22,7 +22,7 @@ export const createHsptmp = async () => {
             workspace.workspaceFolders
             && workspace.workspaceFolders.length >= 1
             && workspace.workspaceFolders[0].uri.fsPath
-            || await selectHsp3Home()
+            || await selectHsp3Root()
         )
     const hsptmpPath = path.join(dirName, "hsptmp")
 
