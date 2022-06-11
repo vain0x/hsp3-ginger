@@ -55,9 +55,17 @@ OPTIONS (optional):
 \t\t(See also hsc_objname)
 
 \t--ref-name <file-name>
-\tModify an internal name of the script.
-\tDefaults to basename of the script file.
-\t(See also hsc_refname)
+\t\tModify an internal name of the script.
+\t\tDefaults to basename of the script file.
+\t\t(See also hsc_refname)
+
+\t--no-utf8-input
+\t\tDisable UTF-8 input compiler flag.
+\t\tWhen this flag is set, scripts are assumed to be encoded in shift_jis.
+
+\t--no-utf8-output
+\t\tDisable UTF-8 output compiler flag.
+\t\tWhen this flag is set, generated object files contain data encoded in shift_jis.
 
 \t-h, --help
 \t\tPrint this message.
@@ -218,8 +226,8 @@ OPTIONS (optional):
 
 	s_runtime_name = ""
 
-	s_compile_opts = 1 | 4 ; 1: debug info, 4: utf-8 output
-	s_pp_opt = 4 | 32 ; 4: make packfile, 32: utf-8 input
+	s_compile_opts = 1 | 4 ; 1: debug info, 4: generate object files including utf-8 (utf-8 output)
+	s_pp_opt = 4 | 32 ; 4: make packfile, 32: assume scripts are utf-8 (utf-8 input)
 	s_debug_mode = true
 
 	sdim s_subcommand
@@ -320,6 +328,22 @@ OPTIONS (optional):
 				break
 			}
 			s_obj_name = args(i)
+			i++
+			continue
+		}
+
+		if flag == "--no-utf8-input" {
+			if s_pp_opt & 32 {
+				s_pp_opt -= 32
+			}
+			continue
+		}
+
+		if flag == "--no-utf8-output" {
+			if s_compile_opts & 4 {
+				s_compile_opts -= 4
+			}
+			i++
 			i++
 			continue
 		}

@@ -32,8 +32,12 @@ const doResolveDebugConfiguration = async (config: DebugConfiguration, outDir: s
         return null
     }
 
-    config.program = config.program || await createHsptmp()
+    const utf8Support = config.utf8Support || "enabled"
+    const utf8Input = utf8Support === "enabled" || utf8Support === "input"
+
+    config.program = config.program || await createHsptmp(utf8Input)
     config.hsp3Root = config.hsp3Root || await selectHsp3Root()
+    config.utf8Support = utf8Support
     config.outDir = config.outDir || outDir
     return config
 }

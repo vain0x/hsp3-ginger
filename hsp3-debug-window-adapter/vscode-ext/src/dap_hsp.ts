@@ -26,6 +26,9 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
      */
     hsp3Root: string
 
+    /** utf-support */
+    utf8Support: string
+
     /**
      * デバッグアダプターのあるディレクトリ (絶対パス)
      *
@@ -150,7 +153,7 @@ const buildBuilder = async (hsp3Root: string, outDir: string): Promise<string> =
 /**
  * スクリプトをコンパイルして、オブジェクトファイルを生成する。
  */
-const compileHsp = async (program: string, hsp3Root: string, outDir: string) => {
+const compileHsp = async (program: string, hsp3Root: string, utf8Support: string, outDir: string) => {
     const builderExe = await buildBuilder(hsp3Root, outDir)
 
     const builderArgs = [
@@ -159,6 +162,15 @@ const compileHsp = async (program: string, hsp3Root: string, outDir: string) => 
         "compile",
         program,
     ]
+
+    if (utf8Support !== "enabled") {
+        if (utf8Support === "disabled" || utf8Support === "output") {
+            builderArgs.push("--no-utf8-input")
+        }
+        if (utf8Support === "disabled" || utf8Support === "input") {
+            builderArgs.push("--no-utf8-output")
+        }
+    }
 
     const workDir = path.dirname(program)
     const objName = path.join(workDir, "start.ax")
@@ -264,10 +276,11 @@ export class Hsp3DebugSession extends LoggingDebugSession {
         writeTrace("launch", args)
 
         // 正しく引数が渡されたか検査する。
-        const { program, hsp3Root, outDir } = args
+        const { program, hsp3Root, utf8Support, outDir } = args
 
         if (typeof program !== "string"
             || typeof hsp3Root !== "string"
+            || typeof utf8Support !== "string"
             || typeof outDir !== "string") {
             writeTrace("bad arguments")
             return [false, "デバッガーの起動に失敗しました。(launch 引数が不正です。)"]
@@ -282,7 +295,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
 
         // コンパイルする。
         writeTrace("compile")
-        const compileResult = await compileHsp(program, hsp3Root, outDir)
+        const compileResult = await compileHsp(program, hsp3Root, utf8Support, outDir)
         writeTrace("compiled", { compileResult })
 
         if (!compileResult.success) {
