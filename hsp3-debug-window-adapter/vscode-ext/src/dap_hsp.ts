@@ -9,8 +9,8 @@ import {
     InitializedEvent,
     LoggingDebugSession,
     TerminatedEvent,
-} from "vscode-debugadapter";
-import { DebugProtocol } from "vscode-debugprotocol"
+} from "@vscode/debugadapter";
+import { DebugProtocol } from "@vscode/debugprotocol"
 
 /**
  * デバッグの開始時に開発ツール (VSCode) から渡されるデータ。

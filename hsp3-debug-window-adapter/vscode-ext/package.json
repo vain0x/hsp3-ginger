@@ -14,7 +14,7 @@
         "Debugger"
     ],
     "engines": {
-        "vscode": "^1.55.0"
+        "vscode": "^1.68.0"
     },
     "categories": [
         "Debuggers"
@@ -33,13 +33,13 @@
         "vsce:package": "vsce package --out hsp3-debug-window-adapter.vsix"
     },
     "dependencies": {
-        "vscode-debugadapter": "^1.47.0"
+        "@vscode/debugadapter": "^1.51.0"
     },
     "devDependencies": {
-        "@types/node": "^14.14.43",
-        "@types/vscode": "^1.55.0",
-        "typescript": "^4.2.4",
-        "vsce": "^1.88.0"
+        "@types/node": "^17.0.42",
+        "@types/vscode": "^1.68.0",
+        "typescript": "^4.7.3",
+        "vsce": "^2.9.1"
     },
     "main": "./out/extension",
     "activationEvents": [
