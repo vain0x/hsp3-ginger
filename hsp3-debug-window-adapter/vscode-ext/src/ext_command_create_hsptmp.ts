@@ -1,6 +1,5 @@
-import * as fs from "fs"
+import * as fsP from "fs/promises"
 import * as path from "path"
-import { promisify } from "util"
 import { window, workspace } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
 import { DomainError } from "./extension"
@@ -28,7 +27,7 @@ export const createHsptmp = async () => {
 
     // ファイルを作成する。
     const text = activeEditor.document.getText()
-    await promisify(fs.writeFile)(hsptmpPath, text)
+    await fsP.writeFile(hsptmpPath, text)
 
     return hsptmpPath
 }
