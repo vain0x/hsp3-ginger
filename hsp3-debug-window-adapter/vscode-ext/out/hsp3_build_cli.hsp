@@ -218,8 +218,8 @@ OPTIONS (optional):
 
 	s_runtime_name = ""
 
-	s_compile_opts = 1 | 4 ; 1: debug info, 4: utf-8
-	s_pp_opt = 4 | 16 | 32 ; 4: make packfile, 16/32: utf-8
+	s_compile_opts = 1 | 4 ; 1: debug info, 4: utf-8 output
+	s_pp_opt = 4 | 32 ; 4: make packfile, 32: utf-8 input
 	s_debug_mode = true
 
 	sdim s_subcommand
