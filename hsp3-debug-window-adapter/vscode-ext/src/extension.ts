@@ -54,10 +54,3 @@ export const activate = (context: ExtensionContext) => {
             withNotify(createHsptmp),
         ))
 }
-
-/**
- * 拡張機能が停止されるときに呼ばれる。
- */
-export const deactivate = () => {
-    // Pass.
-}
