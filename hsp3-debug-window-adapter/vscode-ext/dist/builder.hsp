@@ -1,15 +1,16 @@
-; Builder.
 ; See builder.md for details.
 ; LICENSE: CC0-1.0 <https://creativecommons.org/publicdomain/zero/1.0/deed.ja>
 
-#include "hspcmp.as"
-
-#runtime "hsp3cl"
 #packopt name "builder"
 #packopt orgpath 1
+#runtime "hsp3cl"
 
-#define global APP_NAME "builder"
-#define global APP_VERSION "1.1.0"
+#include "hspcmp.as"
+
+#define APP_VERSION "1.1.0"
+
+#define true 1
+#define false 0
 
 ; ------------------------------------------------
 ; Command line parser
@@ -17,82 +18,58 @@
 
 #module m_cmdline_parser
 
-#define true 1
-#define false 0
-
 ; Parse a command line string.
+;
+; Parsed arguments are stored in args.
+; Return the number of arguments.
 #deffunc cmdline_parser_parse str cmdline, array args, \
-	local argc
+	local argc, local index, local offset
 
 	s_cmdline = cmdline
 	s_cmdline_len = strlen(s_cmdline)
-	s_index = 0
+	index = 0  ; Current index of s_cmdline
 
-	argc = 0
-
-	repeat
-		args(argc) = ""
-		cmdline_parser_next args(argc)
-		if stat == false {
-			break
-		}
-
-		argc++
-	loop
-	return argc
-
-; Parse next argument.
-#deffunc cmdline_parser_next var value, \
-	local ok, local c, local start, local in_quote
-
-	; Skip spaces.
-	repeat
-		if s_index >= s_cmdline_len {
-			break
-		}
-
-		c = peek(s_cmdline, s_index)
-		if c != ' ' {
-			break
-		}
-
-		s_index++
-	loop
-
-	ok = false
-	value = ""
-	in_quote = false
-	start = s_index
+	argc = 0  ; Number of arguments
 
 	repeat
-		if s_index >= s_cmdline_len {
-			gosub *l_commit
+		; Skip spaces.
+		repeat
+			if index >= s_cmdline_len : break
+
+			c = peek(s_cmdline, index)
+			if c != ' ' : break
+
+			index++
+		loop
+
+		if index >= s_cmdline_len {
+			; End of cmdline.
 			break
 		}
 
-		c = peek(s_cmdline, s_index)
-		if c == ' ' && in_quote == false {
-			gosub *l_commit
-			break
-		}
+		; Quoted?
+		if peek(s_cmdline, index) = '"' {
+			offset = instr(s_cmdline, index + 1, "\"")
+			if offset < 0 {
+				offset = s_cmdline_len - (index + 1)
+			}
 
-		if c == '"' {
-			gosub *l_commit
-			s_index++
-			start = s_index
-			in_quote = in_quote == false
-			ok = true
+			args(argc) = strmid(s_cmdline, index + 1, offset)
+			argc++
+			index += offset + 2  ; 2 for quotations
 			continue
 		}
 
-		s_index++
+		; Next is non-quoted argument.
+		offset = instr(s_cmdline, index, " ")
+		if offset < 0 {
+			offset = s_cmdline_len - index
+		}
+		args(argc) = strmid(s_cmdline, index, offset)
+		argc++
+		index += offset
 	loop
-	return ok || peek(value) != 0
-
-*l_commit
-
-	value += strmid(s_cmdline, start, s_index - start)
-	return
+	return argc
 
 #global
 
@@ -100,290 +77,195 @@
 ; Application
 ; ------------------------------------------------
 
-#module m_app
+	; ============================================
+	; Define variables.
 
-#include "hspcmp.as"
+	hsp3_root = dir_exe
 
-#define true 1
-#define false 0
+	subcommand = ""       ; compile, make, or other
+	script_file = ""
+	show_help = false     ; true if --help
+	show_version = false  ; true if --version
 
-#deffunc app_main
+	; 1: debug info
+	; 4: use utf-8 in generated files (utf-8 output)
+	compile_opts = 1 | 4
 
-	s_exit_code = 1 ; Failure
-	s_show_help = false
-	s_show_version = false
+	; 4: make packfile
+	; 32: assume scripts are utf-8 (utf-8 input)
+	pp_opts = 4 | 32
 
-	s_ref_name = ""
-	s_ref_name_exists = false
+	debug_mode = 1  ; 1: open debug window
+	obj_name = "start.ax"
+	runtime_name = ""
 
-	s_obj_name = "start.ax"
-
-	s_runtime_name = ""
-
-	s_compile_opts = 1 | 4 ; 1: debug info, 4: generate object files including utf-8 (utf-8 output)
-	s_pp_opt = 4 | 32 ; 4: make packfile, 32: assume scripts are utf-8 (utf-8 input)
-	s_debug_mode = true
-
-	sdim s_subcommand
-	s_subcommand_exists = false
-
-	sdim s_src_name
-	s_src_name_exists = false
-
-	s_work_dir = dir_cur
-	s_hsp3_root = dir_exe
-
-	sdim s_error, 0x10000
-
-	onexit goto *l_on_exit
-
-	app_parse_cmdline
-	if stat == false {
-		app_fail
-	}
-
-	app_build
-	if stat == false {
-		app_fail
-	}
-	end s_exit_code
-
-#deffunc app_parse_cmdline \
-	local ok, local reason, \
-	local args, local argc, local i, local flag
+	; ============================================
+	; Next, parse command line.
 
 	cmdline_parser_parse dir_cmdline, args
-	argc = stat
+	argc = stat  ; Length of args
 
 	ok = true
-	i = 0
+	reason = ""  ; Reason of error
+	ai = 0       ; Index of args
 
 	repeat
-		if i >= argc {
+		if ai >= argc : break
+
+		; Shift next argument.
+		arg = args(ai)
+		ai++
+
+		if arg == "-h" || arg == "--help" {
+			show_help = true
 			break
 		}
 
-		flag = args(i)
-		i++
-
-		; exe itself (when an obj file passed in to the runtime)
-		if i == 1 && instr(flag, , APP_NAME + ".ax") >= 0 {
-			continue
-		}
-
-		if flag == "-h" || flag == "--help" || flag == "-?" || flag == "/?" {
-			s_show_help = true
+		if arg == "-V" || arg == "--version" {
+			show_version = true
 			break
 		}
 
-		if flag == "-V" || flag == "--version" {
-			s_show_version = true
-			break
-		}
-
-		if flag == "--hsp" {
-			if i >= argc {
+		if arg == "--hsp" {
+			if ai >= argc {
 				ok = false
 				reason = "Missing value of --hsp"
 				break
 			}
-			s_hsp3_root = args(i)
-			i++
+			hsp3_root = args(ai)
+			ai++
 			continue
 		}
 
-		if flag == "--cwd" {
-			if i >= argc {
-				ok = false
-				reason = "Missing value of --cwd"
-				break
-			}
-			s_work_dir = args(i)
-			i++
-			continue
-		}
-
-		if flag == "--ref-name" {
-			if i >= argc {
-				ok = false
-				reason = "Missing value of --ref-name"
-				break
-			}
-			s_ref_name = args(i)
-			s_ref_name_exists = true
-			i++
-			continue
-		}
-
-		if flag == "--obj-name" {
-			if i >= argc {
-				ok = false
-				reason = "Missing value of --obj-name"
-				break
-			}
-			s_obj_name = args(i)
-			i++
-			continue
-		}
-
-		if flag == "--no-utf8-input" {
-			if s_pp_opt & 32 {
-				s_pp_opt -= 32
+		if arg == "--no-utf8-input" {
+			if pp_opts & 32 {
+				pp_opts -= 32
 			}
 			continue
 		}
 
-		if flag == "--no-utf8-output" {
-			if s_compile_opts & 4 {
-				s_compile_opts -= 4
+		if arg == "--no-utf8-output" {
+			if compile_opts & 4 {
+				compile_opts -= 4
 			}
-			i++
-			i++
 			continue
 		}
 
-		if s_subcommand_exists == false {
-			s_subcommand = flag
-			s_subcommand_exists = true
+		if peek(arg) == '-' {
+			ok = false
+			reason = "Unknown flag '" + arg + "'."
+			break
+		}
+
+		; Recognize flag as positional argument.
+
+		if subcommand == "" {
+			subcommand = arg
 			continue
 		}
 
-		if s_src_name_exists == false {
-			s_src_name = flag
-			s_src_name_exists = true
+		if script_file == "" {
+			script_file = arg
 			continue
 		}
 
 		ok = false
-		reason = "Unknown positional argument " + flag
+		reason = "Unknown positional argument '" + arg + "'."
 		break
 	loop
 
-	if argc == 0 || s_show_help || (s_subcommand_exists && s_subcommand == "help") {
-		s_show_help = true
-		s_subcommand = "help"
-		s_subcommand_exists = true
-	}
-
-	if s_show_version || (s_subcommand_exists && s_subcommand == "version") {
-		s_show_version = true
-		s_subcommand = "version"
-		s_subcommand_exists = true
-	}
-
-	if ok && s_subcommand_exists == false {
-		ok = false
-		reason = "Missing subcommand in cmdline"
-	}
-
-	if ok && s_show_help == false && s_show_version == false && s_src_name_exists == false {
-		ok = false
-		reason = "Missing script file in cmdline"
-	}
-
 	if ok == false {
-		s_error = "ERROR: " + reason + "\ncmdline = '" + dir_cmdline + "'"
-		return false
+		assert reason != ""
+		goto *l_cmdline_error
 	}
 
-	return true
-
-#deffunc app_build
-
-	if s_show_help {
+	if show_help || subcommand == "help" || argc == 0 {
 		mes "See builder.md"
-		return true
+		end
 	}
 
-	if s_show_version {
-		s_error = APP_VERSION
-		mes s_error
-		s_exit_code = 0 ; Successful
-		return true
+	if show_version || subcommand == "version" {
+		mes APP_VERSION
+		end
 	}
 
-	chdir s_work_dir
+	if subcommand == "" {
+		reason = "Missing subcommand"
+		goto *l_cmdline_error
+	}
 
-	hsc_ini s_src_name
+	if script_file == "" {
+		reason = "Missing script file"
+		goto *l_cmdline_error
+	}
+
+	assert ok && reason == ""
+	assert subcommand != "" && script_file != ""
+
+	; ============================================
+	; Next, process subcommand.
+
+	hsc_ini script_file
 	if stat {
-		hsc_getmes s_error
-		return false
+		step = "hsc_ini"
+		goto *l_compile_error
 	}
 
-	hsc_objname s_obj_name
+	hsc_objname obj_name
+	hsc_compath hsp3_root + "\\common\\"
+
+	hsc_comp compile_opts, pp_opts, debug_mode
 	if stat {
-		hsc_getmes s_error
-		return false
+		step = "hsc_comp"
+		goto *l_compile_error
 	}
 
-	if s_ref_name_exists {
-		hsc_refname s_ref_name
-		if stat {
-			hsc_getmes s_error
-			return false
-		}
+	hsc3_getruntime runtime_name, obj_name
+	if runtime_name == "" {
+		runtime_name = "hsp3.exe"
 	}
 
-	hsc_compath s_hsp3_root + "\\common\\"
-	if stat {
-		hsc_getmes s_error
-		return false
-	}
+	switch subcommand
+		case "compile"
+			mes output, 0x10000
+			hsc_getmes output
+			mes output
+			mes "#Use runtime \"" + runtime_name + "\""
+			end
 
-	hsc_comp s_compile_opts, s_pp_opt, s_debug_mode
-	if stat {
-		hsc_getmes s_error
-		return false
-	}
+		case "make"
+			if runtime_name == "hsp3.exe" {
+				runtime_dir = hsp3_root + "\\"
+			} else {
+				runtime_dir = hsp3_root + "\\runtime\\"
+			}
 
-	hsc3_getruntime s_runtime_name, s_obj_name
-	if s_runtime_name == "" {
-		s_runtime_name = "hsp3.exe"
-	}
-
-	switch s_subcommand
-	case "compile":
-		hsc_getmes s_error
-		s_error += "\n#Use runtime \"" + s_runtime_name + "\"\n"
-
-		mes s_error
-		swbreak
-
-	case "make":
-		if s_runtime_name == "hsp3.exe" {
-			s_runtime_dir = s_hsp3_root + "\\"
-		} else {
-			s_runtime_dir = s_hsp3_root + "\\runtime\\"
-		}
-
-		hsc3_make s_runtime_dir
-		if stat {
-			hsc_getmes s_error
-			return false
-		}
-		swbreak
-
-	default:
-		s_error = "ERROR: Unknown subcommand " + s_subcommand
-		return false
+			hsc3_make runtime_dir
+			if stat {
+				step = "hsc3_make"
+				goto *l_compile_error
+			}
+			end
 	swend
 
-	s_exit_code = 0 ; Successful
-	return true
-
-#deffunc app_fail
-
-	mes "ERROR: " + s_error
-	end 1 ; Failure
-
-*l_on_exit
-
-	end s_exit_code
-
-#global
+	reason = "ERROR: Unknown subcommand '" + subcommand + "'."
+	goto *l_cmdline_error
 
 ; ------------------------------------------------
-; Entrypoint
+; Error
 ; ------------------------------------------------
 
-	app_main
+*l_cmdline_error
+
+	mes "ERROR: " + reason
+	mes "  cmdline: '" + dir_cmdline + "'"
+	end 1  ; Failure
+
+*l_compile_error
+
+	mes "ERROR: Compile error (" + step + ")"
+
+	sdim output, 0x10000
+	hsc_getmes output
+	mes output
+	end 1  ; Failure
