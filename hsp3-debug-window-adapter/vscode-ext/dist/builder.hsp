@@ -7,7 +7,7 @@
 
 #include "hspcmp.as"
 
-#define APP_VERSION "1.1.0"
+#define k_version "1.1.0"
 
 #define true 1
 #define false 0
@@ -186,7 +186,7 @@
 	}
 
 	if show_version || subcommand == "version" {
-		mes APP_VERSION
+		mes k_version
 		end
 	}
 
