@@ -30,16 +30,10 @@ export const withNotify = <T>(body: () => Promise<T>) =>
     })
 
 /**
- * distディレクトリへのパス。
- */
-const getDistDir = (extensionPath: string) =>
-    path.join(extensionPath, "dist")
-
-/**
  * 拡張機能がロードされたときに呼ばれる。
  */
 export const activate = (context: ExtensionContext) => {
-    const distDir = getDistDir(context.extensionPath)
+    const distDir = path.join(context.extensionPath, "dist")
 
     const configProvider = new MyConfigurationProvider(distDir)
     context.subscriptions.push(
