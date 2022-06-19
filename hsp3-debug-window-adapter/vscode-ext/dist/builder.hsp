@@ -87,15 +87,18 @@
 	show_help = false     ; true if --help
 	show_version = false  ; true if --version
 
+	; The first argument of hsc_comp.
 	; 1: debug info
-	; 4: use utf-8 in generated files (utf-8 output)
-	compile_opts = 1 | 4
+	compile_opts = 1
 
+	; The second argument of hsc_comp.
 	; 4: make packfile
-	; 32: assume scripts are utf-8 (utf-8 input)
-	pp_opts = 4 | 32
+	pp_opts = 4
 
-	debug_mode = 1  ; 1: open debug window
+	; The third argument of hsc_comp.
+	; 1: open debug window
+	debug_mode = 1
+
 	obj_name = "start.ax"
 	runtime_name = ""
 
@@ -137,17 +140,15 @@
 			continue
 		}
 
-		if arg == "--no-utf8-input" {
-			if pp_opts & 32 {
-				pp_opts -= 32
-			}
+		if arg == "--utf8-input" {
+			; 32: assume scripts are utf-8 (utf-8 input)
+			pp_opts |= 32
 			continue
 		}
 
-		if arg == "--no-utf8-output" {
-			if compile_opts & 4 {
-				compile_opts -= 4
-			}
+		if arg == "--utf8-output" {
+			; 4: use utf-8 in generated files (utf-8 output)
+			compile_opts |= 4
 			continue
 		}
 
