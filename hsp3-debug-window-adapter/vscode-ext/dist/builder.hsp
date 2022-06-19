@@ -228,7 +228,7 @@
 
 	switch subcommand
 		case "compile"
-			mes output, 0x10000
+			sdim output, 0x10000
 			hsc_getmes output
 			mes output
 			mes "#Use runtime \"" + runtime_name + "\""
