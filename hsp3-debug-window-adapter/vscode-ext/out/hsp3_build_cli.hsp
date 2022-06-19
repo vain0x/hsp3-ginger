@@ -351,13 +351,13 @@ OPTIONS (optional):
 
 	if s_show_help {
 		s_error = s_help@
-		runtime_stdout s_error
+		mes s_error
 		return true
 	}
 
 	if s_show_version {
 		s_error = HSP3_BUILD_VERSION
-		runtime_stdout s_error
+		mes s_error
 		s_exit_code = EXIT_SUCCESS
 		return true
 	}
@@ -406,7 +406,7 @@ OPTIONS (optional):
 		hsc_getmes s_error
 		s_error += "\n#Use runtime \"" + s_runtime_name + "\"\n"
 
-		runtime_stdout s_error
+		mes s_error
 		swbreak
 
 	case "make":
@@ -433,7 +433,7 @@ OPTIONS (optional):
 
 #deffunc app_fail
 
-	runtime_error s_error
+	mes "ERROR: " + s_error
 	end EXIT_FAILURE
 
 *l_on_exit
@@ -443,26 +443,7 @@ OPTIONS (optional):
 #global
 
 ; ------------------------------------------------
-; Runtime
+; Entrypoint
 ; ------------------------------------------------
-
-#module m_runtime
-
-#deffunc runtime_stdout var text
-
-	mes text
-	return
-
-#deffunc runtime_warn str text
-
-	mes "WARN: " + text
-	return
-
-#deffunc runtime_error str text
-
-	mes "ERROR: " + text
-	return
-
-#global
 
 	app_main
