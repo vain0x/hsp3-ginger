@@ -10,11 +10,14 @@ const path = require('path');
 const config = {
   target: 'node', // vscode extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
 
-  entry: './src/extension.ts', // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+  entry: {
+    extension: './src/extension.ts', // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+    dap: './src/dap_index.ts'
+  },
   output: {
     // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
     path: path.resolve(__dirname, 'dist'),
-    filename: 'extension.js',
+    filename: '[name].js',
     libraryTarget: 'commonjs2',
     devtoolModuleFilenameTemplate: '../[resource-path]',
     // <https://github.com/webpack/webpack/issues/14532>
