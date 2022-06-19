@@ -24,10 +24,9 @@ export class DomainError extends Error {
 export const activate = (context: ExtensionContext) => {
     const distDir = path.join(context.extensionPath, "dist")
 
-    const configProvider = new MyConfigurationProvider(distDir)
     context.subscriptions.push(
         debug.registerDebugConfigurationProvider(
             HSP3_LANG_ID,
-            configProvider
+            new MyConfigurationProvider(distDir)
         ))
 }
