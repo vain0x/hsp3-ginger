@@ -144,22 +144,6 @@ OPTIONS (optional):
 			continue
 		}
 
-		; cmd(^)/PowerShell(`)-style escape.
-		if (c == '^' || c == '`') && s_index + 1 < s_cmdline_len {
-			gosub *l_commit
-			s_index++
-
-			; FIXME: `0, `n, etc are not supported
-			c = peek(s_cmdline, s_index)
-			if c == '0' || c == 'n' || c == 'r' || c == 't' || c == 'x' {
-				assert
-			}
-
-			start = s_index
-			s_index++
-			continue
-		}
-
 		s_index++
 	loop
 	return ok || peek(value) != 0
