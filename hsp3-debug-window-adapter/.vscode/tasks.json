@@ -11,7 +11,19 @@
       },
       "options": {
         "cwd": "vscode-ext"
-      }
+      },
+      "problemMatcher": "$tsc-watch"
+    },
+    {
+      "type": "npm",
+      "label": "npm:watch",
+      "script": "watch",
+      "group": "build",
+      "isBackground": true,
+      "options": {
+        "cwd": "vscode-ext"
+      },
+      "problemMatcher": "$tsc-watch"
     }
   ]
 }
