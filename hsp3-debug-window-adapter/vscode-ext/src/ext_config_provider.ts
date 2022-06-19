@@ -1,11 +1,4 @@
-import {
-    CancellationToken,
-    DebugConfiguration,
-    DebugConfigurationProvider,
-    ProviderResult,
-    WorkspaceFolder,
-    window,
-} from "vscode"
+import { CancellationToken, DebugConfiguration, DebugConfigurationProvider, ProviderResult, WorkspaceFolder, window } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
 import { createHsptmp } from "./ext_command_create_hsptmp"
 import { withNotify } from "./extension"

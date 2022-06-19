@@ -5,11 +5,7 @@ import * as fs from "fs/promises"
 import { appendFileSync } from "fs"
 import * as path from "path"
 import { promisify } from "util"
-import {
-    InitializedEvent,
-    LoggingDebugSession,
-    TerminatedEvent,
-} from "@vscode/debugadapter";
+import { InitializedEvent, LoggingDebugSession, TerminatedEvent } from "@vscode/debugadapter";
 import { DebugProtocol } from "@vscode/debugprotocol"
 
 /**

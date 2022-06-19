@@ -1,9 +1,4 @@
-import {
-    ConfigurationTarget,
-    Uri,
-    window,
-    workspace,
-} from "vscode"
+import { ConfigurationTarget, Uri, window, workspace } from "vscode"
 import { HSP3_CONFIG_SECTION, MY_CONFIG_SECTION } from "./ext_constants"
 import { DomainError } from "./extension"
 
