@@ -3,21 +3,10 @@
 
 #include "hspcmp.as"
 
-#ifdef HSP3_BUILD_GUI
-
-#packopt name "hsp3_build_gui"
-#packopt hide 1
-#packopt orgpath 1
-#define global s_exe_name "hsp3_build_gui"
-
-#else
-
 #runtime "hsp3cl"
 #packopt name "hsp3_build_cli"
 #packopt orgpath 1
 #define global s_exe_name "hsp3_build_cli"
-
-#endif
 
 #define global HSP3_BUILD_VERSION "1.0.0"
 
@@ -34,9 +23,6 @@ EXAMPLE:
 \tEXE_NAME make --hsp "C:/Program Files (x86)/hsp351" hello.hsp
 
 SUBCOMMANDS:
-\trun <src-name>
-\t\tExecute a script.
-
 \t\tmake <src-name>
 \t\tBuild an executable file (.exe)
 
@@ -78,28 +64,11 @@ OPTIONS (optional):
 	strrep s_help@, "\t", "    "
 
 ; ------------------------------------------------
-; HSP constants
-; ------------------------------------------------
-
-#define global dialog_warn          1
-#define global gsel_hide            (-1)
-#define global gsel_show            1
-#define global getpath_basename     8
-#define global mesbox_readonly      1
-#define global objmode_font         2
-
-; ------------------------------------------------
 ; Windows constants
 ; ------------------------------------------------
 
 #define global EXIT_SUCCESS 0
 #define global EXIT_FAILURE 1
-
-; ------------------------------------------------
-; App constants
-; ------------------------------------------------
-
-#define global s_default_window_id 0
 
 ; ------------------------------------------------
 ; Command line parser
@@ -456,15 +425,6 @@ OPTIONS (optional):
 		runtime_stdout s_error
 		swbreak
 
-	case "run":
-		s_runtime_path = s_hsp3_root + "\\" + s_runtime_name
-
-		; FIXME: pass args after --
-		; FIXME: fork
-		s_run = "\"" + s_runtime_path + "\" \"" + s_obj_name + "\""
-		hsc3_run s_run
-		swbreak
-
 	case "make":
 		if s_runtime_name == "hsp3.exe" {
 			s_runtime_dir = s_hsp3_root + "\\"
@@ -504,29 +464,6 @@ OPTIONS (optional):
 
 #module m_runtime
 
-#ifdef HSP3_BUILD_GUI
-
-#deffunc runtime_stdout var text
-
-	runtime_error text
-	return
-
-#deffunc runtime_warn str text
-
-	dialog text, dialog_warn
-	return
-
-#deffunc runtime_error var text
-
-	title s_exe_name
-	font "MS Gothic", 12
-	objmode objmode_font
-	mesbox text, ginfo_winx, ginfo_winy, mesbox_readonly
-	gsel s_default_window_id, gsel_show
-	stop
-
-#else
-
 #deffunc runtime_stdout var text
 
 	mes text
@@ -541,8 +478,6 @@ OPTIONS (optional):
 
 	mes "ERROR: " + text
 	return
-
-#endif
 
 #global
 
