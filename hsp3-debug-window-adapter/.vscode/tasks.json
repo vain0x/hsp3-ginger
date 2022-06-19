@@ -12,6 +12,9 @@
       "options": {
         "cwd": "vscode-ext"
       },
+      "presentation": {
+        "reveal": "silent"
+      },
       "problemMatcher": "$tsc-watch"
     },
     {
@@ -22,6 +25,9 @@
       "isBackground": true,
       "options": {
         "cwd": "vscode-ext"
+      },
+      "presentation": {
+        "reveal": "silent"
       },
       "problemMatcher": "$tsc-watch"
     }

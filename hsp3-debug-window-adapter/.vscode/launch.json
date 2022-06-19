@@ -5,7 +5,6 @@
       "type": "extensionHost",
       "request": "launch",
       "name": "Extension",
-      "preLaunchTask": "npm:watch",
       "runtimeExecutable": "${execPath}",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}"
