@@ -91,7 +91,11 @@ npm ci --ignore-scripts
 
 ## ビルダー
 
-スクリプトのコンパイル・実行にはビルダーというツールを使います。
+スクリプトのコンパイル・実行のためにビルダーというツールを使っています。
 
 - [dist/builder.hsp](dist/builder.hsp) (スクリプト)
 - [dist/builder.md](dist/builder.md) (説明)
+
+## 開発者用のドキュメント
+
+→ [development.md](development.md)
