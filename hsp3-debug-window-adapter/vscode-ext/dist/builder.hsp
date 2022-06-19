@@ -1,67 +1,15 @@
-; Build runner.
-; LICENSE: PUBLID DOMAIN
+; Builder.
+; See builder.md for details.
+; LICENSE: CC0-1.0 <https://creativecommons.org/publicdomain/zero/1.0/deed.ja>
 
 #include "hspcmp.as"
 
 #runtime "hsp3cl"
-#packopt name "hsp3_build_cli"
+#packopt name "builder"
 #packopt orgpath 1
-#define global s_exe_name "hsp3_build_cli"
 
-#define global HSP3_BUILD_VERSION "1.0.0"
-
-; ------------------------------------------------
-; Help
-; ------------------------------------------------
-
-	s_help@ = {"EXE_NAME: HSP3 build tool
-
-USAGE:
-\tEXE_NAME [SUBCOMMAND] [OPTIONS...]
-
-EXAMPLE:
-\tEXE_NAME make --hsp "C:/Program Files (x86)/hsp351" hello.hsp
-
-SUBCOMMANDS:
-\t\tmake <src-name>
-\t\tBuild an executable file (.exe)
-
-\tcompile <src-name>
-\t\tJust compile a soruce code as object file.
-
-OPTIONS (required):
-\t--hsp <hsp-dir>
-\t\tSpecify an absolute path to HSP3 directory.
-
-OPTIONS (optional):
-\t--obj-name <file-name>
-\t\tSpecify an output object flien name,
-\t\twhich should end with ".ax".
-\t\tDefaults to "start.ax".
-\t\t(See also hsc_objname)
-
-\t--ref-name <file-name>
-\t\tModify an internal name of the script.
-\t\tDefaults to basename of the script file.
-\t\t(See also hsc_refname)
-
-\t--no-utf8-input
-\t\tDisable UTF-8 input compiler flag.
-\t\tWhen this flag is set, scripts are assumed to be encoded in shift_jis.
-
-\t--no-utf8-output
-\t\tDisable UTF-8 output compiler flag.
-\t\tWhen this flag is set, generated object files contain data encoded in shift_jis.
-
-\t-h, --help
-\t\tPrint this message.
-
-\t-V, --version
-\t\tPrint the version of EXE_NAME.
-"}
-
-	strrep s_help@, "EXE_NAME", s_exe_name
-	strrep s_help@, "\t", "    "
+#define global APP_NAME "builder"
+#define global APP_VERSION "1.1.0"
 
 ; ------------------------------------------------
 ; Windows constants
@@ -226,7 +174,7 @@ OPTIONS (optional):
 		i++
 
 		; exe itself (when an obj file passed in to the runtime)
-		if i == 1 && instr(flag, , s_exe_name + ".ax") >= 0 {
+		if i == 1 && instr(flag, , APP_NAME + ".ax") >= 0 {
 			continue
 		}
 
@@ -350,13 +298,12 @@ OPTIONS (optional):
 #deffunc app_build
 
 	if s_show_help {
-		s_error = s_help@
-		mes s_error
+		mes "See builder.md"
 		return true
 	}
 
 	if s_show_version {
-		s_error = HSP3_BUILD_VERSION
+		s_error = APP_VERSION
 		mes s_error
 		s_exit_code = EXIT_SUCCESS
 		return true

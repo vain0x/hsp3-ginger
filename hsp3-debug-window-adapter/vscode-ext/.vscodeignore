@@ -12,6 +12,7 @@ packfile
 dist/*.ax
 dist/*.dll
 dist/*.exe
+dist/*.md
 hsp3-debug-window-adapter.log
 hsp3-debug-window-adapter.vsix
 

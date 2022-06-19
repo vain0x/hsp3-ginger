@@ -51,3 +51,10 @@ npm install
 # アンインストール
 ./install.ps1
 ```
+
+## ビルダー
+
+スクリプトのコンパイル・実行にはビルダーというツールを使います。
+
+- [dist/builder.hsp](dist/builder.hsp) (スクリプト)
+- [dist/builder.md](dist/builder.md) (説明)
