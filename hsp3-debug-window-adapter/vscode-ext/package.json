@@ -1,7 +1,7 @@
 {
     "name": "hsp3-debug-window-adapter",
     "displayName": "HSP3 デバッグ (標準のデバッグウィンドウを使用)",
-    "description": "HSP3 のデバッグ機能を有効化する拡張機能です。VSCode のデバッグツールではなく、HSP3 標準のデバッグウィンドウを使用します。",
+    "description": "HSP3のスクリプトをデバッグ実行できるようにする拡張機能です。VSCodeのデバッグツールではなく、HSP3標準のデバッグウィンドウを使用します。",
     "version": "0.4.0",
     "author": {
         "name": "vain0x",

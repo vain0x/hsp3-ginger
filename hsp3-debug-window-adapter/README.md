@@ -1,23 +1,6 @@
 # HSP3 Debug Window Adapter
 
-HSP3 のスクリプトをデバッグモードで起動・終了させるだけの Debug Adapter Protocol (DAP) 実装です。HSP3 標準のデバッグウィンドウを使用してデバッグするのに使えます。
-
-## 設定
-
-shift_jisのスクリプトをデバッグするには、UTF-8機能を無効にする必要があります。
-「実行とデバッグ」タブから `launch.json` を作成し、以下のように `utf8Support` を `disabled` にしてください。
-
-```json
-{
-    /* 略 */
-    "configurations": [
-        {
-            /* 略 */,
-            "utf8Support": "disabled"
-        }
-    ]
-}
-```
+→ [vscode-ext](./vscode-ext)
 
 ----
 ----
