@@ -12,13 +12,6 @@
 #define global APP_VERSION "1.1.0"
 
 ; ------------------------------------------------
-; Windows constants
-; ------------------------------------------------
-
-#define global EXIT_SUCCESS 0
-#define global EXIT_FAILURE 1
-
-; ------------------------------------------------
 ; Command line parser
 ; ------------------------------------------------
 
@@ -116,7 +109,7 @@
 
 #deffunc app_main
 
-	s_exit_code = EXIT_FAILURE
+	s_exit_code = 1 ; Failure
 	s_show_help = false
 	s_show_version = false
 
@@ -305,7 +298,7 @@
 	if s_show_version {
 		s_error = APP_VERSION
 		mes s_error
-		s_exit_code = EXIT_SUCCESS
+		s_exit_code = 0 ; Successful
 		return true
 	}
 
@@ -375,13 +368,13 @@
 		return false
 	swend
 
-	s_exit_code = EXIT_SUCCESS
+	s_exit_code = 0 ; Successful
 	return true
 
 #deffunc app_fail
 
 	mes "ERROR: " + s_error
-	end EXIT_FAILURE
+	end 1 ; Failure
 
 *l_on_exit
 
