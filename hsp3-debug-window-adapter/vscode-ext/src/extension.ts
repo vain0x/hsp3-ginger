@@ -30,18 +30,18 @@ export const withNotify = <T>(body: () => Promise<T>) =>
     })
 
 /**
- * outディレクトリへのパス。
+ * distディレクトリへのパス。
  */
-const getOutDir = (extensionPath: string) =>
-    path.join(extensionPath, "out")
+const getDistDir = (extensionPath: string) =>
+    path.join(extensionPath, "dist")
 
 /**
  * 拡張機能がロードされたときに呼ばれる。
  */
 export const activate = (context: ExtensionContext) => {
-    const outDir = getOutDir(context.extensionPath)
+    const distDir = getDistDir(context.extensionPath)
 
-    const configProvider = new MyConfigurationProvider(outDir)
+    const configProvider = new MyConfigurationProvider(distDir)
     context.subscriptions.push(
         debug.registerDebugConfigurationProvider(
             HSP3_LANG_ID,

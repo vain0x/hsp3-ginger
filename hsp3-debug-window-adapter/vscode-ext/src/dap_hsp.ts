@@ -32,9 +32,9 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     /**
      * デバッグアダプターのあるディレクトリ (絶対パス)
      *
-     * このファイルからみて ../out のこと。
+     * このファイルからみて ../dist のこと。
      */
-    outDir: string
+    distDir: string
 
     trace?: boolean
 }
@@ -91,14 +91,14 @@ const fileExists = async (fileName: string): Promise<boolean> =>
  *
  * @returns 生成された実行ファイルのパス
  */
-const buildBuilder = async (hsp3Root: string, outDir: string): Promise<string> => {
+const buildBuilder = async (hsp3Root: string, distDir: string): Promise<string> => {
     const hspcmpExe = path.join(hsp3Root, "hspcmp.exe")
     const hspcmpDllSrc = path.join(hsp3Root, "hspcmp.dll")
-    const hspcmpDllDest = path.join(outDir, "hspcmp.dll")
+    const hspcmpDllDest = path.join(distDir, "hspcmp.dll")
     const hsp3clExe = path.join(hsp3Root, "hsp3cl.exe")
-    const hsp3BuildHsp = path.join(outDir, "hsp3_build_cli.hsp")
-    const hsp3BuildAx = path.join(outDir, "hsp3_build_cli.ax")
-    const hsp3BuildExe = path.join(outDir, "hsp3_build_cli.exe")
+    const hsp3BuildHsp = path.join(distDir, "hsp3_build_cli.hsp")
+    const hsp3BuildAx = path.join(distDir, "hsp3_build_cli.ax")
+    const hsp3BuildExe = path.join(distDir, "hsp3_build_cli.exe")
     const compathArg = `--compath=${hsp3Root}/common/`
 
     // ビルド済みならスキップ。
@@ -106,7 +106,7 @@ const buildBuilder = async (hsp3Root: string, outDir: string): Promise<string> =
         return hsp3BuildExe
     }
 
-    writeTrace("build hsp3_build", { hsp3Root, outDir })
+    writeTrace("build hsp3_build", { hsp3Root, distDir })
 
     // ビルダーが使う hspcmp.dll をコピーする。
     writeTrace("copy compiler", { hspcmpDllSrc, hspcmpDllDest })
@@ -117,7 +117,7 @@ const buildBuilder = async (hsp3Root: string, outDir: string): Promise<string> =
     writeTrace("stage1 cmd", cmd1)
 
     const result1 = await promisify(exec)(cmd1, {
-        cwd: outDir,
+        cwd: distDir,
         timeout: TIMEOUT_MILLIS,
     })
 
@@ -141,7 +141,7 @@ const buildBuilder = async (hsp3Root: string, outDir: string): Promise<string> =
     writeTrace("stage2 cmd", cmd2)
 
     const result2 = await promisify(exec)(cmd2, {
-        cwd: outDir,
+        cwd: distDir,
         timeout: TIMEOUT_MILLIS,
     })
 
@@ -153,8 +153,8 @@ const buildBuilder = async (hsp3Root: string, outDir: string): Promise<string> =
 /**
  * スクリプトをコンパイルして、オブジェクトファイルを生成する。
  */
-const compileHsp = async (program: string, hsp3Root: string, utf8Support: string, outDir: string) => {
-    const builderExe = await buildBuilder(hsp3Root, outDir)
+const compileHsp = async (program: string, hsp3Root: string, utf8Support: string, distDir: string) => {
+    const builderExe = await buildBuilder(hsp3Root, distDir)
 
     const builderArgs = [
         "--hsp",
@@ -270,18 +270,18 @@ export class Hsp3DebugSession extends LoggingDebugSession {
     private async _doLaunch(args: LaunchRequestArguments): Promise<[boolean, string]> {
         if (args && args.trace) {
             traceLogEnabled = true
-            traceLogFile = path.join(args.outDir, TRACE_LOG_FILE_NAME)
+            traceLogFile = path.join(args.distDir, TRACE_LOG_FILE_NAME)
         }
 
         writeTrace("launch", args)
 
         // 正しく引数が渡されたか検査する。
-        const { program, hsp3Root, utf8Support, outDir } = args
+        const { program, hsp3Root, utf8Support, distDir } = args
 
         if (typeof program !== "string"
             || typeof hsp3Root !== "string"
             || typeof utf8Support !== "string"
-            || typeof outDir !== "string") {
+            || typeof distDir !== "string") {
             writeTrace("bad arguments")
             return [false, "デバッガーの起動に失敗しました。(launch 引数が不正です。)"]
         }
@@ -295,7 +295,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
 
         // コンパイルする。
         writeTrace("compile")
-        const compileResult = await compileHsp(program, hsp3Root, utf8Support, outDir)
+        const compileResult = await compileHsp(program, hsp3Root, utf8Support, distDir)
         writeTrace("compiled", { compileResult })
 
         if (!compileResult.success) {

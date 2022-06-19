@@ -9,8 +9,13 @@ packfile
 
 
 
-out/*.ax
-out/*.dll
-out/*.exe
+dist/*.ax
+dist/*.dll
+dist/*.exe
 hsp3-debug-window-adapter.log
 hsp3-debug-window-adapter.vsix
+
+
+
+# 以前は使っていたがいまは使っていない
+out/
