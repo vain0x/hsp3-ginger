@@ -41,10 +41,4 @@ export const activate = (context: ExtensionContext) => {
             HSP3_LANG_ID,
             configProvider
         ))
-
-    context.subscriptions.push(
-        commands.registerCommand(
-            "hsp3-debug-window-adapter.createHsptmp",
-            withNotify(createHsptmp),
-        ))
 }

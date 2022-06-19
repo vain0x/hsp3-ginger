@@ -51,12 +51,6 @@
         "onDebug"
     ],
     "contributes": {
-        "commands": [
-            {
-                "command": "hsp3-debug-window-adapter.createHsptmp",
-                "title": "Create hsptmp file"
-            }
-        ],
         "configuration": {
             "type": "object",
             "title": "HSP3 debugger with default debug window",
