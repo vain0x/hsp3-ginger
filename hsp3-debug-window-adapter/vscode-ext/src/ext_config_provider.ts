@@ -1,7 +1,6 @@
-import { CancellationToken, DebugConfiguration, DebugConfigurationProvider, ProviderResult, WorkspaceFolder, window } from "vscode"
+import { CancellationToken, DebugConfiguration, DebugConfigurationProvider, WorkspaceFolder, window, ProviderResult } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
 import { createHsptmp } from "./ext_command_create_hsptmp"
-import { withNotify } from "./extension"
 import { HSP3_LANG_ID } from "./ext_constants"
 
 /**
@@ -46,6 +45,10 @@ export class MyConfigurationProvider implements DebugConfigurationProvider {
         config: DebugConfiguration,
         _token?: CancellationToken
     ): ProviderResult<DebugConfiguration> {
-        return withNotify(async () => doResolveDebugConfiguration(config, this.distDir))()
+        return doResolveDebugConfiguration(config, this.distDir).catch(err => {
+            const message = err instanceof Error ? err.message : String(err)
+            window.showErrorMessage(message)
+            return null
+        })
     }
 }
