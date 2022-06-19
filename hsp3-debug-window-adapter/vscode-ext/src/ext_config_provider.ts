@@ -1,7 +1,9 @@
+import * as fsP from "fs/promises"
 import { CancellationToken, DebugConfiguration, DebugConfigurationProvider, WorkspaceFolder, window, ProviderResult } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
 import { createHsptmp } from "./ext_command_create_hsptmp"
 import { HSP3_LANG_ID } from "./ext_constants"
+import { decode } from "iconv-lite"
 
 /**
  * デバッガーの設定を構成する。
@@ -24,7 +26,28 @@ const doResolveDebugConfiguration = async (config: DebugConfiguration, distDir: 
         return null
     }
 
-    const utf8Support = config.utf8Support || "enabled"
+    let utf8Support = config.utf8Support || "auto"
+    if (utf8Support === "auto") {
+        let text: string | undefined
+        if (config.program) {
+            const contents = (await fsP.readFile(config.program))
+
+            try {
+                text = decode(contents, "utf-8")
+            } catch (err) {
+                // Pass.
+            }
+        } else {
+            text = window.activeTextEditor?.document?.getText()
+        }
+
+        const utf8 = text != null && (
+            text.includes("#include \"hsp3utf.as\"")
+            || text.includes("#include \"hsp3_64.as\"")
+        )
+        utf8Support = utf8 ? "enabled" : "disabled"
+    }
+
     const utf8Input = utf8Support === "enabled" || utf8Support === "input"
 
     config.program = config.program || await createHsptmp(utf8Input)

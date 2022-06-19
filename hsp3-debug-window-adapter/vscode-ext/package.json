@@ -80,13 +80,14 @@
                             "utf8Support": {
                                 "type": "string",
                                 "enum": [
+                                    "auto",
                                     "enabled",
                                     "input",
                                     "output",
                                     "disabled"
                                 ],
-                                "default": "enabled",
-                                "description": "HSP3のUTF-8サポート機能を使うかどうか。既定値である「enabled」を指定した場合、入力されるスクリプトはUTF-8エンコーディングとみなされ、生成される文字列などのデータはUTF-8エンコーディングになります。shift_jisを使う場合は、「disabled」を指定してください。また、「input」の場合、入力されるスクリプトはUTF-8で、生成されるデータはshift_jisになります。「output」の場合、入力されるスクリプトはshift_jisで、生成されるデータはUTF-8になります"
+                                "default": "auto",
+                                "description": "HSP3のUTF-8サポート機能を使うかどうか。既定値である「auto」を指定した場合、実行するスクリプトが \"hsp3_utf.as\" か \"hsp3_64.as\" をインクルードしているときは有効、そうでなければ無効となります。\n\n「enabled」を指定した場合、入力されるスクリプトはUTF-8エンコーディングとみなされ、生成される文字列などのデータはUTF-8エンコーディングになります。shift_jisを使う場合は、「disabled」を指定してください。\n\nまた、「input」の場合、入力されるスクリプトはUTF-8で、生成されるデータはshift_jisになります。「output」の場合、入力されるスクリプトはshift_jisで、生成されるデータはUTF-8になります"
                             },
                             "trace": {
                                 "type": "boolean",
