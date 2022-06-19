@@ -99,3 +99,7 @@ npm ci --ignore-scripts
 ## 開発者用のドキュメント
 
 → [development.md](development.md)
+
+## ライセンス
+
+CC0-1.0 ([LICENSE](LICENSE)): 自由に使ってください。用途の制限や権利表記の義務などはありません
