@@ -1,8 +1,7 @@
 // 拡張機能のエントリーポイント
 
 import * as path from "path"
-import { ExtensionContext, debug, commands, window } from "vscode"
-import { createHsptmp } from "./ext_command_create_hsptmp"
+import { ExtensionContext, debug } from "vscode"
 import { MyConfigurationProvider } from "./ext_config_provider"
 import { HSP3_LANG_ID } from "./ext_constants"
 
@@ -20,46 +19,14 @@ export class DomainError extends Error {
 }
 
 /**
- * 非同期処理の例外をキャッチしてエラーメッセージを表示する。
- */
-export const withNotify = <T>(body: () => Promise<T>) =>
-    () => body().catch(err => {
-        const message = err instanceof Error ? err.toString() : String(err)
-        window.showErrorMessage(message)
-        return null
-    })
-
-/**
- * デバッガーのディレクトリへのパス。
- *
- * FIXME: 名前が適切でない。
- */
-const getExtensionRoot = (extensionPath: string) =>
-    path.join(extensionPath, "out")
-
-/**
  * 拡張機能がロードされたときに呼ばれる。
  */
 export const activate = (context: ExtensionContext) => {
-    const extensionRoot = getExtensionRoot(context.extensionPath)
+    const distDir = path.join(context.extensionPath, "dist")
 
-    const configProvider = new MyConfigurationProvider(extensionRoot)
     context.subscriptions.push(
         debug.registerDebugConfigurationProvider(
             HSP3_LANG_ID,
-            configProvider
+            new MyConfigurationProvider(distDir)
         ))
-
-    context.subscriptions.push(
-        commands.registerCommand(
-            "hsp3-debug-window-adapter.createHsptmp",
-            withNotify(createHsptmp),
-        ))
-}
-
-/**
- * 拡張機能が停止されるときに呼ばれる。
- */
-export const deactivate = () => {
-    // Pass.
 }

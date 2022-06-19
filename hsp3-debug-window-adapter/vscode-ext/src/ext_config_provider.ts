@@ -1,22 +1,16 @@
-import {
-    CancellationToken,
-    DebugConfiguration,
-    DebugConfigurationProvider,
-    ProviderResult,
-    WorkspaceFolder,
-    window,
-} from "vscode"
+import * as fsP from "fs/promises"
+import { CancellationToken, DebugConfiguration, DebugConfigurationProvider, WorkspaceFolder, window, ProviderResult } from "vscode"
 import { selectHsp3Root } from "./ext_command_select_hsp3_root"
 import { createHsptmp } from "./ext_command_create_hsptmp"
-import { withNotify } from "./extension"
 import { HSP3_LANG_ID } from "./ext_constants"
+import { decode } from "iconv-lite"
 
 /**
  * デバッガーの設定を構成する。
  *
  * ここでの設定が "launch" リスエストに渡される。
  */
-const doResolveDebugConfiguration = async (config: DebugConfiguration, extensionRoot: string) => {
+const doResolveDebugConfiguration = async (config: DebugConfiguration, distDir: string) => {
     // launch.json ファイルがないか、デバッグ構成がないとき
     if (!config.type && !config.request && !config.name) {
         const editor = window.activeTextEditor
@@ -32,15 +26,40 @@ const doResolveDebugConfiguration = async (config: DebugConfiguration, extension
         return null
     }
 
-    config.program = config.program || await createHsptmp()
+    let utf8Support = config.utf8Support || "auto"
+    if (utf8Support === "auto") {
+        let text: string | undefined
+        if (config.program) {
+            const contents = (await fsP.readFile(config.program))
+
+            try {
+                text = decode(contents, "utf-8")
+            } catch (err) {
+                // Pass.
+            }
+        } else {
+            text = window.activeTextEditor?.document?.getText()
+        }
+
+        const utf8 = text != null && (
+            text.includes("#include \"hsp3utf.as\"")
+            || text.includes("#include \"hsp3_64.as\"")
+        )
+        utf8Support = utf8 ? "enabled" : "disabled"
+    }
+
+    const utf8Input = utf8Support === "enabled" || utf8Support === "input"
+
+    config.program = config.program || await createHsptmp(utf8Input)
     config.hsp3Root = config.hsp3Root || await selectHsp3Root()
-    config.extensionRoot = config.extensionRoot || extensionRoot
+    config.utf8Support = utf8Support
+    config.distDir = config.distDir || distDir
     return config
 }
 
 export class MyConfigurationProvider implements DebugConfigurationProvider {
     public constructor(
-        private readonly _extensionRoot: string,
+        private readonly distDir: string,
     ) {
     }
 
@@ -49,6 +68,10 @@ export class MyConfigurationProvider implements DebugConfigurationProvider {
         config: DebugConfiguration,
         _token?: CancellationToken
     ): ProviderResult<DebugConfiguration> {
-        return withNotify(async () => doResolveDebugConfiguration(config, this._extensionRoot))()
+        return doResolveDebugConfiguration(config, this.distDir).catch(err => {
+            const message = err instanceof Error ? err.message : String(err)
+            window.showErrorMessage(message)
+            return null
+        })
     }
 }

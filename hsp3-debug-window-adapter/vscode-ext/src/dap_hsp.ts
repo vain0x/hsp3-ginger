@@ -1,16 +1,14 @@
-import { ChildProcess, exec, spawn } from "child_process"
-import * as fs from "fs"
+// 簡易的な Debug Adapter Protocol (DAP) アダプタの実装。
+
+import { ChildProcess, execFile, spawn } from "child_process"
+import * as fs from "fs/promises"
+import { appendFileSync } from "fs"
 import * as path from "path"
-import { promisify } from "util"
-import {
-    InitializedEvent,
-    LoggingDebugSession,
-    TerminatedEvent,
-} from "vscode-debugadapter";
-import { DebugProtocol } from "vscode-debugprotocol"
+import { InitializedEvent, LoggingDebugSession, TerminatedEvent } from "@vscode/debugadapter";
+import { DebugProtocol } from "@vscode/debugprotocol"
 
 /**
- * デバッグの開始時にクライアントから渡されるデータ。
+ * デバッグの開始時に開発ツール (VSCode) から渡されるデータ。
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     /**
@@ -23,13 +21,15 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
      */
     hsp3Root: string
 
+    /** 設定項目 'utf8Support' の値 */
+    utf8Support: string
+
     /**
      * デバッグアダプターのあるディレクトリ (絶対パス)
      *
-     * このファイルからみて ../out のこと。
-     * FIXME: 名前が適切でない。
+     * このファイルからみて ../dist のこと。
      */
-    extensionRoot: string
+    distDir: string
 
     trace?: boolean
 }
@@ -37,24 +37,24 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 /**
  * [開発用] ファイルにログ出力する。
  */
-let trace_log_is_enabled = process.env.HSP3_DEBUG_WINDOW_ADAPTER_DEBUG === "1"
+let traceLogEnabled = process.env.HSP3_DEBUG_WINDOW_ADAPTER_DEBUG === "1"
 
 const TRACE_LOG_FILE_NAME = "hsp3-debug-window-adapter.log"
 
-let trace_log_file = trace_log_is_enabled
+let traceLogFile = traceLogEnabled
     ? path.join(__dirname, TRACE_LOG_FILE_NAME)
     : TRACE_LOG_FILE_NAME
 
 /**
- * コンパイルの各ステージのタイムアウト
+ * コンパイルの各ステージのタイムアウト時間
  */
-const TIMEOUT_MILLIS = 15 * 10000
+const TIMEOUT_MILLIS = 15 * 1000
 
 /**
  * デバッグ用にログを出力する。
  */
 const writeTrace = (msg: string, data?: unknown) => {
-    if (!trace_log_is_enabled) {
+    if (!traceLogEnabled) {
         return
     }
 
@@ -69,137 +69,114 @@ const writeTrace = (msg: string, data?: unknown) => {
     }
     msg += "\n\n"
 
-    fs.appendFileSync(trace_log_file, msg)
+    appendFileSync(traceLogFile, msg)
 }
 
-const fileExists = (fileName: string) =>
-    new Promise<boolean>(resolve =>
-        fs.stat(fileName, err => resolve(!err)))
+/**
+ * ファイルが存在するか？
+ */
+const fileExists = async (fileName: string): Promise<boolean> =>
+    // ファイルへのアクセス権があれば真、エラーだったら偽
+    await fs.access(fileName).then(() => true, () => false)
 
 /**
- * hsp3_build をビルドする。
+ * ビルダーをコンパイルする
  *
- * @returns 生成された実行ファイルのパス
+ * - dist/builder.md を参照
+ * - 生成されたファイルは拡張機能のディレクトリに保存される
+ *
+ * @returns 生成されたオブジェクトファイルのパス
  */
-const buildBuilder = async (hsp3Root: string, extensionRoot: string) => {
+const compileBuilder = async (hsp3Root: string, distDir: string): Promise<string> => {
     const hspcmpExe = path.join(hsp3Root, "hspcmp.exe")
-    const hspcmpDllSrc = path.join(hsp3Root, "hspcmp.dll")
-    const hspcmpDllDest = path.join(extensionRoot, "hspcmp.dll")
-    const hsp3clExe = path.join(hsp3Root, "hsp3cl.exe")
-    const hsp3BuildHsp = path.join(extensionRoot, "hsp3_build_cli.hsp")
-    const hsp3BuildAx = path.join(extensionRoot, "hsp3_build_cli.ax")
-    const hsp3BuildExe = path.join(extensionRoot, "hsp3_build_cli.exe")
-    const compathArg = `--compath=${hsp3Root}/common/`
+    const builderAx = path.join(distDir, "builder.ax")
+    const builderHsp = path.join(distDir, "builder.hsp")
 
-    // ビルド済みならスキップ。
-    if (!trace_log_is_enabled && await fileExists(hsp3BuildExe)) {
-        return hsp3BuildExe
+    // コンパイル済みならスキップ。
+    if (!traceLogEnabled && await fileExists(builderAx)) {
+        return builderAx
     }
 
-    writeTrace("build hsp3_build", { hsp3Root, extensionRoot })
+    writeTrace("compile builder", { hsp3Root, distDir, builderHsp })
 
-    // ビルダーが使う hspcmp.dll をコピーする。
-    writeTrace("copy compiler",  { hspcmpDllSrc, hspcmpDllDest })
-    await promisify(fs.copyFile)(hspcmpDllSrc, hspcmpDllDest)
-
-    // ステージ1: hspcmp.exe でコンパイルし、オブジェクトファイルを作る。
-    const cmd1 = `"${hspcmpExe}" "${compathArg}" "${hsp3BuildHsp}"`
-    writeTrace("stage1 cmd", cmd1)
-
-    const result1 = await promisify(exec)(cmd1, {
-        cwd: extensionRoot,
-        timeout: TIMEOUT_MILLIS,
+    const result = await new Promise((resolve, reject) => {
+        execFile(
+            hspcmpExe,
+            [
+                `--compath=${hsp3Root}\\common\\`,
+                builderHsp,
+            ],
+            {
+                cwd: distDir,
+                timeout: TIMEOUT_MILLIS,
+            },
+            (err, stdout, stderr) => {
+                if (err) { reject(err); return }
+                resolve({ stdout, stderr })
+            })
     })
 
-    writeTrace("stage1 result", result1)
+    writeTrace("compile builder result", result)
 
-    writeTrace("wait for the object file to be written")
-    for (let i = 0; i < 30; i++) {
-        if (await fileExists(hsp3BuildAx)) {
-            writeTrace("object written")
-            break
-        }
-        await new Promise(resolve => setTimeout(resolve, 100))
+    if (!await fileExists(builderAx)) {
+        traceLogEnabled = true
+        writeTrace("step1 no object file")
+        throw new Error("ビルダーのコンパイルに失敗しました (ログを確認してください " + traceLogFile + ")")
     }
-
-    if (!await fileExists(hsp3BuildAx)) {
-        writeTrace("object file missing")
-    }
-
-    // ステージ2: ランタイムにオブジェクトファイルを渡して実行し、実行ファイルを作る。
-    let cmd2 = `"${hsp3clExe}" "${hsp3BuildAx}" make --hsp "${hsp3Root}" "${hsp3BuildHsp}"`
-    writeTrace("stage2 cmd", cmd2)
-
-    const result2 = await promisify(exec)(cmd2, {
-        cwd: extensionRoot,
-        timeout: TIMEOUT_MILLIS,
-    })
-
-    writeTrace("stage2 result", result2)
-
-    return hsp3BuildExe
+    return builderAx
 }
 
 /**
  * スクリプトをコンパイルして、オブジェクトファイルを生成する。
  */
-const compileHsp = async (program: string, hsp3Root: string, extensionRoot: string) => {
-    const builderExe = await buildBuilder(hsp3Root, extensionRoot)
+const compileHsp = async (program: string, hsp3Root: string, utf8Support: string, distDir: string) => {
+    const hsp3clExe = path.join(hsp3Root, "hsp3cl.exe")
+    const builderAx = await compileBuilder(hsp3Root, distDir)
 
     const builderArgs = [
+        builderAx,
         "--hsp",
         hsp3Root,
         "compile",
         program,
     ]
 
+    if (utf8Support === "enabled" || utf8Support === "input") {
+        builderArgs.push("--utf8-input")
+    }
+    if (utf8Support === "enabled" || utf8Support === "output") {
+        builderArgs.push("--utf8-output")
+    }
+
     const workDir = path.dirname(program)
     const objName = path.join(workDir, "start.ax")
 
-    writeTrace("spawn builder", { builderExe, builderArgs, workDir })
+    writeTrace("spawn builder", { hsp3clExe, builderArgs, workDir })
 
-    // ビルドツールを起動・監視する。これによりオブジェクトファイルが生成されるはず。
-    const [stdout, stderr, exitCode] = await new Promise<[string, string, number | null]>((resolve, reject) => {
-        const builderProcess = spawn(
-            builderExe,
+    // ビルダーを起動する。これによりオブジェクトファイルが生成される。
+    const { success, stdout, stderr } = await new Promise<{ success: boolean, stdout: string, stderr: string }>(resolve => {
+        execFile(
+            hsp3clExe,
             builderArgs,
             {
                 cwd: workDir,
-                stdio: "pipe",
                 timeout: TIMEOUT_MILLIS,
+            },
+            (err, stdout, stderr) => {
+                resolve({ success: !err, stdout, stderr })
             })
-
-        const stdout: Buffer[] = []
-        const stderr: Buffer[] = []
-
-        builderProcess.stdout.on("data", data => {
-            stdout.push(data)
-        })
-
-        builderProcess.stderr.on("data", data => {
-            stderr.push(data)
-        })
-
-        builderProcess.on("close", code => {
-            resolve([
-                stdout.map(b => b.toString()).join(""),
-                stderr.map(b => b.toString()).join(""),
-                code
-            ])
-        })
-
-        builderProcess.on("error", err => {
-            writeTrace("builder emit error", err)
-            reject(err)
-        })
     })
 
-    let output = stdout
-    if (stderr !== "") {
-        output += "\r\nERROR: " + stderr
+    writeTrace("builder result", { success, stdout, stderr })
+
+    let output: string
+    if (stderr == "") {
+        output = stdout
+    } else {
+        output = "[STDOUT]\r\n" + stdout + "\r\n[STDERR]\r\n" + stderr
     }
 
-    // ビルドツールの出力から、使うランタイムを特定する。
+    // ビルダーの出力から、使うランタイムを特定する。
     const RUNTIME_REGEXP = /#Use runtime "([a-zA-Z_0-9.]+)"/
     let runtimeName = "hsp3.exe"
     {
@@ -211,7 +188,7 @@ const compileHsp = async (program: string, hsp3Root: string, extensionRoot: stri
     }
 
     return {
-        success: exitCode === 0,
+        success,
         runtimePath: path.join(hsp3Root, runtimeName),
         objName,
         output,
@@ -225,7 +202,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
     private _debuggeeProcess: ChildProcess | null = null
 
     constructor() {
-        super(trace_log_file)
+        super(traceLogFile)
 
         writeTrace("new session", {
             cwd: process.cwd(),
@@ -250,18 +227,19 @@ export class Hsp3DebugSession extends LoggingDebugSession {
 
     private async _doLaunch(args: LaunchRequestArguments): Promise<[boolean, string]> {
         if (args && args.trace) {
-            trace_log_is_enabled = true
-            trace_log_file = path.join(args.extensionRoot, TRACE_LOG_FILE_NAME)
+            traceLogEnabled = true
+            traceLogFile = path.join(args.distDir, TRACE_LOG_FILE_NAME)
         }
 
         writeTrace("launch", args)
 
         // 正しく引数が渡されたか検査する。
-        const { program, hsp3Root, extensionRoot } = args
+        const { program, hsp3Root, utf8Support, distDir } = args
 
         if (typeof program !== "string"
             || typeof hsp3Root !== "string"
-            || typeof extensionRoot !== "string") {
+            || typeof utf8Support !== "string"
+            || typeof distDir !== "string") {
             writeTrace("bad arguments")
             return [false, "デバッガーの起動に失敗しました。(launch 引数が不正です。)"]
         }
@@ -275,7 +253,7 @@ export class Hsp3DebugSession extends LoggingDebugSession {
 
         // コンパイルする。
         writeTrace("compile")
-        const compileResult = await compileHsp(program, hsp3Root, extensionRoot)
+        const compileResult = await compileHsp(program, hsp3Root, utf8Support, distDir)
         writeTrace("compiled", { compileResult })
 
         if (!compileResult.success) {
@@ -318,7 +296,9 @@ export class Hsp3DebugSession extends LoggingDebugSession {
         const [success, message] = await this._doLaunch(args).catch(err => [false, err.toString()])
 
         response.success = success
-        response.message = message
+        if (!success) {
+            response.message = message
+        }
         this.sendResponse(response)
     }
 
