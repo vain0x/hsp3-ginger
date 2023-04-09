@@ -32,11 +32,11 @@ VSCodeで次の拡張機能を探し、インストールしてください。
 実行するスクリプトに以下のどちらかの記述が含まれている場合、スクリプトをUTF-8と認識します。
 
 ```hsp
-    #include "hsp3utf.as"
+#include "hsp3utf.as"
 ```
 
 ```hsp
-    #include "hsp3_64.as"
+#include "hsp3_64.as"
 ```
 
 判定がうまくいかない場合は、設定によりUTF-8サポートの機能を有効・無効にできます。
@@ -44,10 +44,10 @@ VSCodeで次の拡張機能を探し、インストールしてください。
 
 ```json
 {
-    /* 略 */
+    略,
     "configurations": [
         {
-            /* 略 */,
+            略,
             "utf8Support": "disabled"
         }
     ]
