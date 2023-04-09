@@ -86,7 +86,7 @@ npm ci --ignore-scripts
 
 ```pwsh
 # アンインストール
-./install.ps1
+./uninstall.ps1
 ```
 
 ## ビルダー
