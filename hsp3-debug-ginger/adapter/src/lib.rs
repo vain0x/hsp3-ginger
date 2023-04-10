@@ -1,8 +1,8 @@
 //! デバッガーのエントリーポイント。
 
-extern crate libc;
-extern crate serde;
-extern crate serde_json;
+
+
+
 
 #[cfg(windows)]
 extern crate winapi;
@@ -207,7 +207,7 @@ impl Globals {
             var_names = helpers::string_from_hsp_str(p as *const u8);
             unsafe { dbg_close(p) };
         }
-        let var_names = var_names.trim_right().split("\n").map(|s| s.trim_right());
+        let var_names = var_names.trim_end().split("\n").map(|s| s.trim_end());
 
         let mut variables = vec![];
         for (i, name) in var_names.enumerate() {
