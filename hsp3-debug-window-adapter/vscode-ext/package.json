@@ -33,17 +33,17 @@
         "vsce:package": "vsce package --out hsp3-debug-window-adapter.vsix"
     },
     "dependencies": {
-        "@vscode/debugadapter": "^1.51.0",
+        "@vscode/debugadapter": "^1.59.0",
         "iconv-lite": "^0.6.3"
     },
     "devDependencies": {
-        "@types/node": "^17.0.42",
+        "@types/node": "^18.15.11",
         "@types/vscode": "1.62",
-        "ts-loader": "^9.3.0",
-        "typescript": "^4.7.3",
-        "vsce": "^2.9.1",
-        "webpack": "^5.73.0",
-        "webpack-cli": "^4.10.0"
+        "@vscode/vsce": "^2.18.0",
+        "ts-loader": "^9.4.2",
+        "typescript": "^5.0.4",
+        "webpack": "^5.78.0",
+        "webpack-cli": "^5.0.1"
     },
     "main": "./dist/extension",
     "activationEvents": [
