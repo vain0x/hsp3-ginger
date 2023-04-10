@@ -223,6 +223,8 @@ const dev = (context: ExtensionContext): void => {
 // ライフサイクル
 // -----------------------------------------------
 
+let sClient: LanguageClient | null = null
+
 /**
  * 拡張機能が起動されたときに自動的に呼ばれる。
  */
@@ -235,5 +237,15 @@ export const activate = async (context: ExtensionContext): Promise<void> => {
 
   const lspBin = getLspBin(context)
   const client = newLspClient(lspBin)
-  context.subscriptions.push(client.start())
+  sClient = client
+  await client.start()
+}
+
+/**
+ * 拡張機能が停止するときに自動的に呼ばれる
+ */
+export const deactivate = async (): Promise<void> => {
+  const client = sClient
+  sClient = null
+  await client?.stop()
 }
