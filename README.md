@@ -11,13 +11,6 @@ HSP3 の開発ツールを作るプロジェクト。
 - コマンドラインで HSP3 スクリプトのコンパイルや実行を行うためのユーティリティーです。
 - 言語: HSP3
 
-### hsp3-vscode-syntax
-
-[hsp3-vscode-syntax](hsp3-vscode-syntax)
-
-- HSP3 言語・文法を提供する VSCode 拡張機能
-- 状況: HSP 3.51 に対応
-
 ### hsp3-debug-window-adapter
 
 [hsp3-debug-window-adapter](hsp3-debug-window-adapter)
@@ -35,12 +28,12 @@ HSP3 の開発ツールを作るプロジェクト。
 - 言語: Rust
 - 状況: 最低限の実用可能なレベル
 
-----
-----
+---
+---
 
 以下のプロジェクトは実用段階にはありません。
 
-## 開発ツール [開発中]
+## 開発ツール \[開発中\]
 
 ### hsp3-debug-ginger
 
@@ -59,7 +52,7 @@ HSP3 の開発ツールを作るプロジェクト。
 - 言語: Rust
 - 状況: まだ構文解析の一部しか動きません。
 
-## 開発ツール [サンプル]
+## 開発ツール \[サンプル\]
 
 ### hsp3-debug-empty
 
@@ -86,7 +79,7 @@ HSP3 の開発ツールを作るプロジェクト。
 - 言語: Rust (サーバー),　JavaScript (クライアント), C# (ブラウザ)
 - 状況: 概念実証 (proof-of-concept) 済み。実用レベルではありません。
 
-### 拡張プラグイン [開発中]
+## 拡張プラグイン \[開発中\]
 
 ### hsp3-vartype-int64
 
@@ -94,9 +87,15 @@ HSP3 の開発ツールを作るプロジェクト。
 
 - int64 型を追加するプラグイン
 
-## その他
+---
+---
 
-vendor ディレクトリは他のリポジトリのコードの再配布です。
+以下のプロジェクトは開発終了しました
 
-- [language-hsp3](https://github.com/honobonosun/language-hsp3)
-    - hsp3-vscode-syntax から参照されます。
+### \[開発終了\]
+
+### ~~hsp3-vscode-syntax~~
+
+[hsp3-vscode-syntax](hsp3-vscode-syntax)
+
+- language-hsp3 など、他の拡張機能を利用してください
