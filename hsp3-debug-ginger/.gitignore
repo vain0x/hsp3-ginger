@@ -1,3 +1,4 @@
+/target/
 adapter/target
 adapter/Cargo.lock
 hsp3debug/hsp3-debug-ginger/hsp3-debug-ginger.vcxproj.user
