@@ -10,6 +10,3 @@
 
 # <https://github.com/github/linguist#vendored-code>
 hspsdk/             linguist-vendored
-
-# vendor/ に移動済み
-language-hsp3/      linguist-vendored
