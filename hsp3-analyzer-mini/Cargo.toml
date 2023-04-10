@@ -2,7 +2,8 @@
 members = [
     "ham-core",
     "ham-lsp-server-dll",
-    "ham-lsp-server-exe"
+    "ham-lsp-server-exe",
+    "ham-rewrite",
 ]
 
 [profile.release]
