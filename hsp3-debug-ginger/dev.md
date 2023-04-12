@@ -10,6 +10,9 @@
 - Rust をインストールする。
     - [Rust](https://www.rust-lang.org)
     - デバッガーの本体の開発に使う。
+- LLVM をインストールする。
+    - [llvm-releases] から32ビット版のインストーラ (`LLVM-*-win32.exe`) をダウンロードして実行することでインストールできる。
+    - ([bindgen] が間接的に libclang.dll を使う)
 - Node.js をインストールする。
     - [Node.js](https://nodejs.org)
     - インストールすると node と npm 入る。
@@ -61,3 +64,8 @@ new-item -itemType symbolicLink -path hsp3debug.dll -value "C:/repo/hsp3-debug-g
 この操作 (`new-item` コマンド) により、シンボリックリンク `C:/Program Files/hsp35/hsp3debug.dll` が生成される。これは `略/hsp3-debug-ginger.dll` にあるファイルと同一のものとみなされる。
 
 - シンボリックリンクは普通のファイルと同様に削除できる。
+
+
+
+[llvm-releases]: https://github.com/llvm/llvm-project/releases
+[bindgen]: https://github.com/rust-lang/rust-bindgen
