@@ -11,7 +11,7 @@
   "license": "CC0-1.0",
   "keywords": [],
   "engines": {
-    "vscode": "^1.770.0",
+    "vscode": "^1.77.0",
     "node": "^18.15.0"
   },
   "categories": [
@@ -42,7 +42,7 @@
   "devDependencies": {
     "@types/mocha": "10.0.1",
     "@types/node": "18.15.11",
-    "@types/vscode": "^1.62.0",
+    "@types/vscode": "^1.77.0",
     "@types/websocket": "1.0.5",
     "@vscode/vsce": "^2.18.0",
     "mocha": "10.2.0",
@@ -58,11 +58,11 @@
       {
         "id": "hsp3",
         "aliases": [
-          "HSP3"
+          "HSP3",
+          "HSP"
         ],
         "extensions": [
-          ".hsp",
-          ".as"
+          ".hsp"
         ],
         "configuration": "./hsp3-lang-config.json"
       }
@@ -86,7 +86,10 @@
       {
         "type": "hsp3",
         "label": "HSP3 Debug Ginger",
-        "adapterExecutableCommand": "hsp3-debug-ginger.adapterExecutableCommand",
+        "program": "./out/middle-adapter.exe",
+        "languages": [
+          "hsp3"
+        ],
         "configurationAttributes": {
           "launch": {
             "required": [

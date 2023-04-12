@@ -15,8 +15,8 @@ import {
   ContinuedEvent,
   Scope,
   Variable,
-} from 'vscode-debugadapter';
-import { DebugProtocol } from 'vscode-debugprotocol';
+} from '@vscode/debugadapter';
+import { DebugProtocol } from '@vscode/debugprotocol';
 import { basename } from 'path';
 import { GingerConnectionServer } from './ginger-connection';
 const { Subject } = require('await-notify');
