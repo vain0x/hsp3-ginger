@@ -27,7 +27,7 @@
   },
   "scripts": {
     "build": "tsc -p ./src",
-    "watch": "tsc -w -p ./src",
+    "watch": "tsc -w -p ./src --preserveWatchOutput",
     "tslint": "tslint ./src/**/*.ts",
     "package": "vsce package",
     "publish": "vsce publish"
