@@ -1,5 +1,4 @@
-use std::io;
-use std::io::{BufRead as _, Read as _};
+use std::io::{self, BufRead as _, Read as _};
 
 pub(super) struct LspReceiver<R> {
     content: Vec<u8>,
@@ -44,7 +43,14 @@ impl<R: io::Read> LspReceiver<R> {
 
         let json = String::from_utf8_lossy(&self.content);
 
-        debug!("Received {}\n", json);
+        trace!(
+            "Received {}\n",
+            if content_length < 0x1000 {
+                &json
+            } else {
+                "<TOO LONG>"
+            }
+        );
 
         f(&json);
     }

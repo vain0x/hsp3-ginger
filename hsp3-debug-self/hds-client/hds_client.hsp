@@ -1,4 +1,4 @@
-// hsp3-debug-self (HDS) main script
+; hsp3-debug-self (HDS) main script
 
 #include "hsp3utf.as"
 #include "kernel32.as"
@@ -23,12 +23,12 @@
 #enum s_window_id_default = 0
 #enum s_window_id_main
 
-//#ifdef _DEBUG
+;#ifdef _DEBUG
 #define global debug_trace(%1) logmes "TRACE: " + (%1) : s_log@ += "TRACE: " + (%1) + "\n"
 #define global debug_warn(%1) s_log@ += "WARN: " + (%1) + "\n"
-//#else
-//#define global debug_trace(%1) :
-//#endif
+;#else
+;#define global debug_trace(%1) :
+;#endif
 
 #module m_hds_pipe
 
@@ -42,7 +42,7 @@
 #define FILE_ATTRIBUTE_NORMAL 0x00000080
 #define INVALID_HANDLE_VALUE (-1)
 
-// Connect the server.
+; Connect the server.
 #deffunc hds_pipe_connect str pipe_name, \
 	local retry_count
 
@@ -65,7 +65,7 @@
 	loop
 	return retry_count > 0
 
-// Send a message to the server.
+; Send a message to the server.
 #deffunc hds_pipe_send str body, \
 	local body_len, local header, local written_size
 
@@ -253,8 +253,8 @@
 		return
 	}
 
-	// down_buffer = text
-	// wparam = text length
+	; down_buffer = text
+	; wparam = text length
 	hds_down_buffer_read s_down_buffer, wparam
 
 	s_log += s_down_buffer

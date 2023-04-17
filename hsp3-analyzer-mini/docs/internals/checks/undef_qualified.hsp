@@ -1,0 +1,19 @@
+; 修飾名をundefしたときの挙動
+; undefできる。
+
+    mes a@m1 ; 0
+
+#module
+
+#define global a@m1 "a@m1"
+
+#deffunc f
+    mes a@m1 ; a
+#undef a@m1
+    mes a@m1 ; 0
+    return
+
+#global
+
+    f
+    mes a@m1 ; 0

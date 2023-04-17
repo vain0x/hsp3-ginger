@@ -1,0 +1,33 @@
+; `#deffunc` でグローバルスコープにシンボルを定義するときの、スコープと名前空間のテスト。
+
+#module m1
+
+; deffuncによる命令の定義。
+
+; `@` なし、localなし。グローバルに定義される。
+#deffunc f1
+	;    ^def f1_global
+	return
+
+	; モジュール内でもグローバルから見つけられる。
+	f1
+;   ^use f1_global
+
+	; `@` がついていてもグローバルから見つけられる。
+	f1@
+;   ^use f1_global
+
+	; f1はglobalに定義されるのでm1の名前空間には属さない。
+	f1@m1 = 0
+;   ^def f1_m1
+
+#global
+
+	f1
+;   ^use f1_global
+
+	f1@
+;   ^use f1_global
+
+	f1@m1 = 0
+;   ^def f1_m1

@@ -1,14 +1,7 @@
-use super::{LspMessageOpaque, LspNotification, LspReceiver, LspRequest, LspSender};
+use super::*;
 use crate::lang_service::LangService;
-use lsp_types::{
-    request::{self, Request},
-    CompletionItem, CompletionList, CompletionOptions, CompletionParams,
-    DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams, Hover,
-    InitializeParams, InitializeResult, Location, PrepareRenameResponse, PublishDiagnosticsParams,
-    ReferenceParams, RenameOptions, RenameParams, RenameProviderCapability, ServerCapabilities,
-    ServerInfo, TextDocumentPositionParams, TextDocumentSyncCapability, TextDocumentSyncKind,
-    TextDocumentSyncOptions, Url, WorkDoneProgressOptions, WorkspaceEdit,
-};
+use lsp_types::request::Request;
+use lsp_types::*;
 use std::io;
 
 pub(super) struct LspHandler<W: io::Write> {
@@ -21,29 +14,105 @@ impl<W: io::Write> LspHandler<W> {
         Self { sender, model }
     }
 
-    fn initialize<'a>(&'a mut self, _params: InitializeParams) -> InitializeResult {
+    fn register_file_system_watcher(&mut self) {
+        if !self.model.watcher_enabled() {
+            return;
+        }
+
+        self.sender.send_request(
+            // 他のリクエストを送らないので id=1 しか使わない。
+            1,
+            "client/registerCapability",
+            RegistrationParams {
+                registrations: vec![Registration {
+                    id: "1".into(),
+                    method: "workspace/didChangeWatchedFiles".into(),
+                    register_options: Some(
+                        serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
+                            watchers: vec![FileSystemWatcher {
+                                kind: Some(
+                                    WatchKind::Create | WatchKind::Change | WatchKind::Delete,
+                                ),
+                                glob_pattern: "**/*.hsp".into(),
+                            }],
+                        })
+                        .unwrap(),
+                    ),
+                }],
+            },
+        );
+    }
+
+    fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
+        let watchable = params
+            .capabilities
+            .workspace
+            .and_then(|x| x.did_change_watched_files)
+            .and_then(|x| x.dynamic_registration)
+            .unwrap_or(false);
+
+        self.model.initialize(params.root_uri);
+
+        if watchable {
+            self.model.set_watchable(true);
+        }
+
         InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Options(
                     TextDocumentSyncOptions {
                         open_close: Some(true),
-                        change: Some(TextDocumentSyncKind::Full),
+                        change: Some(TextDocumentSyncKind::FULL),
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
+                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
                 completion_provider: Some(CompletionOptions {
                     resolve_provider: Some(true),
                     trigger_characters: None,
-                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                    ..CompletionOptions::default()
                 }),
-                definition_provider: Some(true),
-                document_highlight_provider: Some(true),
-                hover_provider: Some(true),
-                references_provider: Some(true),
-                rename_provider: Some(RenameProviderCapability::Options(RenameOptions {
+                definition_provider: Some(OneOf::Left(true)),
+                document_formatting_provider: Some(OneOf::Left(true)),
+                document_highlight_provider: Some(OneOf::Left(true)),
+                document_symbol_provider: Some(OneOf::Left(true)),
+                hover_provider: Some(HoverProviderCapability::Simple(true)),
+                references_provider: Some(OneOf::Left(true)),
+                rename_provider: Some(OneOf::Right(RenameOptions {
                     prepare_provider: Some(true),
                     work_done_progress_options: WorkDoneProgressOptions::default(),
                 })),
+                semantic_tokens_provider: Some(
+                    SemanticTokensServerCapabilities::SemanticTokensOptions(
+                        SemanticTokensOptions {
+                            legend: SemanticTokensLegend {
+                                token_types: vec![
+                                    SemanticTokenType::PARAMETER, // 0
+                                    SemanticTokenType::VARIABLE,  // 1
+                                    SemanticTokenType::FUNCTION,  // 2
+                                    SemanticTokenType::MACRO,     // 3
+                                    SemanticTokenType::NAMESPACE, // 4
+                                    SemanticTokenType::KEYWORD,   // 5
+                                ],
+                                token_modifiers: vec![
+                                    SemanticTokenModifier::READONLY, // 0b01
+                                    SemanticTokenModifier::STATIC,   // 0b10
+                                ],
+                            },
+                            full: Some(SemanticTokensFullOptions::Bool(true)),
+                            ..Default::default()
+                        },
+                    ),
+                ),
+                signature_help_provider: Some(SignatureHelpOptions {
+                    trigger_characters: Some(vec![
+                        " ".to_string(),
+                        "(".to_string(),
+                        ",".to_string(),
+                    ]),
+                    ..Default::default()
+                }),
+                workspace_symbol_provider: Some(OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
@@ -56,6 +125,7 @@ impl<W: io::Write> LspHandler<W> {
 
     fn did_initialize(&mut self) {
         self.model.did_initialize();
+        self.register_file_system_watcher();
     }
 
     fn shutdown(&mut self) {
@@ -66,25 +136,9 @@ impl<W: io::Write> LspHandler<W> {
         std::process::exit(0)
     }
 
-    fn send_publish_diagnostics(&mut self, uri: Url) {
-        let (version, diagnostics) = self.model.validate(&uri);
-
-        self.sender.send_notification(
-            "textDocument/publishDiagnostics",
-            PublishDiagnosticsParams {
-                uri,
-                version,
-                diagnostics,
-            },
-        );
-    }
-
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
-        let uri = doc.uri.to_owned();
         self.model.open_doc(doc.uri, doc.version, doc.text);
-
-        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
@@ -94,16 +148,18 @@ impl<W: io::Write> LspHandler<W> {
             .unwrap_or("".to_string());
 
         let doc = params.text_document;
-        let uri = doc.uri.to_owned();
-        let version = doc.version.unwrap_or(0);
+        let version = doc.version;
 
         self.model.change_doc(doc.uri, version, text);
-
-        self.send_publish_diagnostics(uri);
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
         self.model.close_doc(params.text_document.uri);
+    }
+
+    fn text_document_code_action(&mut self, params: CodeActionParams) -> Vec<CodeAction> {
+        self.model
+            .code_action(params.text_document.uri, params.range, params.context)
     }
 
     fn text_document_completion(&mut self, params: CompletionParams) -> CompletionList {
@@ -113,16 +169,18 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
-    fn completion_item_resolve(&mut self, completion_item: CompletionItem) -> CompletionItem {
-        // FIXME:
-        // completion_item.data.take().and_then(|data| -> Option<()> {
-        //     // let data = features::completion::parse_data(data)?;
-        //     let data = serde_json::from_value::<String>(data).ok()?;
-        //     self.model.completion_resolve(&mut completion_item, data);
-        //     Some(())
-        // });
+    fn text_document_completion_resolve(
+        &mut self,
+        params: CompletionItem,
+    ) -> Option<CompletionItem> {
+        self.model.completion_resolve(params)
+    }
 
-        completion_item
+    fn text_document_formatting(
+        &mut self,
+        params: DocumentFormattingParams,
+    ) -> Option<Vec<TextEdit>> {
+        self.model.formatting(params.text_document.uri)
     }
 
     fn text_document_definition(
@@ -146,6 +204,13 @@ impl<W: io::Write> LspHandler<W> {
     ) -> Vec<lsp_types::DocumentHighlight> {
         self.model
             .document_highlight(params.text_document.uri, params.position)
+    }
+
+    fn text_document_symbol(
+        &mut self,
+        params: DocumentSymbolParams,
+    ) -> Option<lsp_types::DocumentSymbolResponse> {
+        self.model.document_symbol(params.text_document.uri)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {
@@ -176,10 +241,73 @@ impl<W: io::Write> LspHandler<W> {
         )
     }
 
+    fn text_document_semantic_tokens_full(
+        &mut self,
+        params: SemanticTokensParams,
+    ) -> SemanticTokensResult {
+        let uri = params.text_document.uri;
+        SemanticTokensResult::Tokens(self.model.semantic_tokens(uri))
+    }
+
+    fn text_document_signature_help(
+        &mut self,
+        params: SignatureHelpParams,
+    ) -> Option<SignatureHelp> {
+        let (uri, position) = {
+            let p = params.text_document_position_params;
+            (p.text_document.uri, p.position)
+        };
+
+        self.model.signature_help(uri, position)
+    }
+
+    fn workspace_did_change_watched_files(&mut self, params: DidChangeWatchedFilesParams) {
+        for param in params.changes {
+            match param.typ {
+                FileChangeType::CREATED => self.model.on_file_created(param.uri),
+                FileChangeType::CHANGED => self.model.on_file_changed(param.uri),
+                FileChangeType::DELETED => self.model.on_file_deleted(param.uri),
+                _ => continue,
+            }
+        }
+    }
+
+    fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
+        self.model.workspace_symbol(params.query)
+    }
+
+    fn diagnose(&mut self) {
+        let diagnostics = self.model.diagnose();
+
+        for (uri, version, diagnostics) in diagnostics {
+            self.sender.send_notification(
+                "textDocument/publishDiagnostics",
+                PublishDiagnosticsParams {
+                    uri,
+                    version,
+                    diagnostics,
+                },
+            );
+        }
+    }
+
     fn did_receive(&mut self, json: &str) {
         let msg = serde_json::from_str::<LspMessageOpaque>(json).unwrap();
 
-        match msg.method.as_str() {
+        let method = match msg.method {
+            Some(it) => it,
+
+            // registerCapabilityのレスポンス。
+            None if json.contains("\"result\"") && !json.contains("\"error\"") => return,
+
+            None => {
+                // TODO: エラー処理？
+                warn!("no method: {}", json);
+                return;
+            }
+        };
+
+        match method.as_str() {
             "initialize" => {
                 let msg = serde_json::from_str::<LspRequest<InitializeParams>>(json).unwrap();
                 let (params, msg_id) = (msg.params, msg.id);
@@ -188,6 +316,7 @@ impl<W: io::Write> LspHandler<W> {
             }
             "initialized" => {
                 self.did_initialize();
+                self.diagnose();
             }
             "shutdown" => {
                 let msg = serde_json::from_str::<LspRequest<()>>(json).unwrap();
@@ -201,16 +330,25 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspNotification<DidOpenTextDocumentParams> =
                     serde_json::from_str(&json).expect("didOpen msg");
                 self.text_document_did_open(msg.params);
+                self.diagnose();
             }
             "textDocument/didChange" => {
                 let msg: LspNotification<DidChangeTextDocumentParams> =
                     serde_json::from_str(&json).expect("didChange msg");
                 self.text_document_did_change(msg.params);
+                self.diagnose();
             }
             "textDocument/didClose" => {
                 let msg = serde_json::from_str::<LspNotification<DidCloseTextDocumentParams>>(json)
                     .unwrap();
                 self.text_document_did_close(msg.params);
+                self.diagnose();
+            }
+            lsp_types::request::CodeActionRequest::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<CodeActionParams>>(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_code_action(msg.params);
+                self.sender.send_response(msg_id, response);
             }
             "textDocument/completion" => {
                 let msg = serde_json::from_str::<LspRequest<CompletionParams>>(json).unwrap();
@@ -218,10 +356,22 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.text_document_completion(msg.params);
                 self.sender.send_response(msg_id, response);
             }
-            "completionItem/resolve" => {
+            lsp_types::request::ResolveCompletionItem::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CompletionItem>>(json).unwrap();
+                match self.text_document_completion_resolve(msg.params) {
+                    Some(response) => self.sender.send_response(msg.id, response),
+                    None => self.sender.send_error_code(
+                        Some(Value::from(msg.id)),
+                        -32001, // unknown
+                        "Resolve completion failed.".into(),
+                    ),
+                }
+            }
+            lsp_types::request::Formatting::METHOD => {
+                let msg =
+                    serde_json::from_str::<LspRequest<DocumentFormattingParams>>(json).unwrap();
                 let msg_id = msg.id;
-                let response = self.completion_item_resolve(msg.params);
+                let response = self.text_document_formatting(msg.params);
                 self.sender.send_response(msg_id, response);
             }
             "textDocument/definition" => {
@@ -237,6 +387,11 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_highlight(msg.params);
                 self.sender.send_response(msg_id, response);
+            }
+            request::DocumentSymbolRequest::METHOD => {
+                let msg = serde_json::from_str::<LspRequest<DocumentSymbolParams>>(json).unwrap();
+                let response = self.text_document_symbol(msg.params);
+                self.sender.send_response(msg.id, response);
             }
             "textDocument/hover" => {
                 let msg: LspRequest<TextDocumentPositionParams> =
@@ -264,7 +419,41 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.text_document_rename(msg.params);
                 self.sender.send_response(msg_id, response);
             }
-            _ => warn!("Msg unresolved."),
+            request::SemanticTokensFullRequest::METHOD => {
+                let msg: LspRequest<SemanticTokensParams> =
+                    serde_json::from_str(json).expect("semantic tokens full msg");
+                let response: SemanticTokensResult =
+                    self.text_document_semantic_tokens_full(msg.params);
+                self.sender.send_response(msg.id, response);
+            }
+            request::SignatureHelpRequest::METHOD => {
+                let msg: LspRequest<SignatureHelpParams> = serde_json::from_str(json).unwrap();
+                let msg_id = msg.id;
+                let response = self.text_document_signature_help(msg.params);
+                self.sender.send_response(msg_id, response);
+            }
+            "workspace/didChangeWatchedFiles" => {
+                let msg: LspNotification<DidChangeWatchedFilesParams> =
+                    serde_json::from_str(json).expect("workspace/didChangeWatchedFiles msg");
+                self.workspace_did_change_watched_files(msg.params);
+                self.diagnose();
+            }
+            request::WorkspaceSymbol::METHOD => {
+                let msg: LspRequest<WorkspaceSymbolParams> =
+                    serde_json::from_str(json).expect("workspace/symbol msg");
+                let response = self.workspace_symbol(msg.params);
+                self.sender.send_response(msg.id, response);
+            }
+            "$/cancelRequest" => self.sender.send_error_code(
+                msg.id,
+                error::METHOD_NOT_FOUND,
+                "キャンセルは未実装です。",
+            ),
+            _ => self.sender.send_error_code(
+                msg.id,
+                error::METHOD_NOT_FOUND,
+                "未実装のメソッドを無視します。",
+            ),
         }
     }
 

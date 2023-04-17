@@ -1,0 +1,16 @@
+@startuml
+actor "ユーザー" as user
+participant "VSCode" as code
+
+user -> code: 起動
+code -> ext: 起動
+
+user -> code: デバッグ開始
+code <-- ext: 設定
+code -> dap: 起動
+dap -> HSP: コンパイル
+dap -> HSP: 実行
+
+dap <-- HSP: 終了
+code <-- dap: 終了要求
+@enduml

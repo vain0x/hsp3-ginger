@@ -1,9 +1,9 @@
-// LICENSE: CC0-1.0
-// v0
+; LICENSE: CC0-1.0
+; v0
 
-// 実行して assert で止まらなければ OK。
+; 実行して assert で止まらなければ OK。
 
-// ginger run mod_hsed_docs_test.hsp
+; ginger run mod_hsed_docs_test.hsp
 
 #include "hsp3utf.as"
 #include "mod_hsed_docs.hsp"
@@ -37,7 +37,7 @@
 	hsed_docs_init
 	hsed_docs_test_init
 
-	// 初期状態
+	; 初期状態
 	s_tab_count = 2
 	s_footy_ids = 1, 2
 	s_file_paths = "C:/1.hsp", "C:/2.hsp"
@@ -46,19 +46,19 @@
 
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
-	// 2つのファイルはどちらも dirty のはず。
+	; 2つのファイルはどちらも dirty のはず。
 	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
 	assert s_doc_count == 2
 	assert s_doc_ids(0) != s_doc_ids(1)
 	assert s_doc_tab_ids(0) == 0
 	assert s_doc_tab_ids(1) == 1
 
-	// テキストを設定する。
+	; テキストを設定する。
 	repeat s_doc_count
 		hsed_docs_set_doc_text s_doc_ids(cnt), s_texts(s_doc_tab_ids(cnt))
 	loop
 
-	// opened イベントが観測されるはず。
+	; opened イベントが観測されるはず。
 	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 2
 	assert s_event_kinds(0) == hsed_docs_k_doc_opened
@@ -71,7 +71,7 @@
 
 	hsed_docs_test_diffing_setup
 
-	// 状態が変化しなければイベントが発生しないことを確認する。
+	; 状態が変化しなければイベントが発生しないことを確認する。
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
 	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
@@ -85,7 +85,7 @@
 
 	hsed_docs_test_diffing_setup
 
-	// 新しいタブを開く。
+	; 新しいタブを開く。
 	s_footy_ids(s_tab_count) = 3
 	s_file_paths(s_tab_count) = "C:/3.hsp"
 	s_texts(s_tab_count) = "mes 333"
@@ -94,7 +94,7 @@
 
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
-	// opened イベントが観測されるはず。
+	; opened イベントが観測されるはず。
 	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 1
 	assert s_event_kinds(0) == hsed_docs_k_doc_opened
@@ -105,21 +105,21 @@
 
 	hsed_docs_test_diffing_setup
 
-	// テキストの長さを変更する。
+	; テキストの長さを変更する。
 	s_texts(1) = "print 22"
 	s_text_lens(1) = strlen(s_texts(1))
 
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
-	// dirty になるはず。
+	; dirty になるはず。
 	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
 	assert s_doc_count == 1
 	assert s_doc_tab_ids(0) == 1
 
-	// テキストを設定する。
+	; テキストを設定する。
 	hsed_docs_set_doc_text s_doc_ids(0), s_texts(s_doc_tab_ids(0))
 
-	// changed イベントが観測されるはず。
+	; changed イベントが観測されるはず。
 	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 1
 	assert s_event_kinds(0) == hsed_docs_k_doc_changed
@@ -130,12 +130,12 @@
 
 	hsed_docs_test_diffing_setup
 
-	// タブを閉じる。
+	; タブを閉じる。
 	s_tab_count--
 
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
-	// closed イベントが観測されるはず。
+	; closed イベントが観測されるはず。
 	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 1
 	assert s_event_kinds(0) == hsed_docs_k_doc_closed
@@ -146,7 +146,7 @@
 
 	hsed_docs_test_diffing_setup
 
-	// 1 を変更し、2 を閉じ、3, 4 を開く。
+	; 1 を変更し、2 を閉じ、3, 4 を開く。
 	s_tab_count = 3
 	s_file_paths = "C:/3.hsp", "C:/1.hsp", "C:/4.hsp"
 	s_texts = "mes 333", "print 1", "mes 4444"
@@ -158,19 +158,19 @@
 
 	hsed_docs_update_tabs s_tab_count, s_footy_ids, s_file_paths, s_text_lens
 
-	// 1, 3, 4 が dirty になるはず。
+	; 1, 3, 4 が dirty になるはず。
 	hsed_docs_emit_dirty_docs s_doc_ids, s_doc_tab_ids, s_doc_count
 	assert s_doc_count == 3
 	assert s_doc_tab_ids(0) == 1
 	assert s_doc_tab_ids(1) == 0
 	assert s_doc_tab_ids(2) == 2
 
-	// テキストを設定する。
+	; テキストを設定する。
 	repeat s_tab_count
 		hsed_docs_set_doc_text s_doc_ids(cnt), s_texts(s_doc_tab_ids(cnt))
 	loop
 
-	// 複数のイベントが観測されるはず。
+	; 複数のイベントが観測されるはず。
 	hsed_docs_emit_doc_changes s_event_kinds, s_event_uris, s_event_versions, s_event_texts, s_event_count
 	assert s_event_count == 4
 	assert s_event_kinds(0) == hsed_docs_k_doc_closed
@@ -218,7 +218,7 @@
 	hsed_docs_test_three_doc_events
 	hsed_docs_test_nonfile_tabs
 
-	// FIXME: hover イベントのテスト
+	; FIXME: hover イベントのテスト
 	return
 
 #global

@@ -1,4 +1,4 @@
-// コンパイル機能
+; コンパイル機能
 
 #module m_ginger_compile
 
@@ -7,9 +7,9 @@
 #define true 1
 #define false 0
 
-// HSP3 のインストールディレクトリを取得する
-//
-// 取得できたら stat=true
+; HSP3 のインストールディレクトリを取得する
+;
+; 取得できたら stat=true
 #deffunc ginger_compile_get_hsp_dir var hsp_dir
 
 	ginger_args_get_hsp_dir hsp_dir
@@ -23,12 +23,12 @@
 		return true
 	}
 
-	// FIXME: 環境変数 HSP3_ROOT やパスの通ったディレクトリなども探す。
+	; FIXME: 環境変数 HSP3_HOME やパスの通ったディレクトリなども探す。
 	return false
 
-// common ディレクトリのパスを取得する
-//
-// 取得できたら stat=true
+; common ディレクトリのパスを取得する
+;
+; 取得できたら stat=true
 #deffunc ginger_compile_get_common_dir var common_dir
 
 	ginger_compile_get_hsp_dir common_dir
@@ -39,7 +39,7 @@
 	common_dir += "\\common\\"
 	return true
 
-// コンパイル時に出力するオブジェクトファイル名を取得する
+; コンパイル時に出力するオブジェクトファイル名を取得する
 #deffunc ginger_compile_get_obj_name var obj_name
 
 	ginger_args_get_obj_name obj_name
@@ -48,62 +48,62 @@
 	}
 	return
 
-// プリプロセスのみ行うかを設定する
+; プリプロセスのみ行うかを設定する
 #deffunc ginger_compile_set_pp_only int pp_only
 
 	s_pp_only = pp_only
 	return
 
-// 実行ファイルの作成を行うかを設定する
+; 実行ファイルの作成を行うかを設定する
 #deffunc ginger_compile_does_make int value
 
 	s_does_make = value
 	return
 
-// コンパイルオプションを取得する
+; コンパイルオプションを取得する
 #deffunc ginger_compile_get_compile_ops \
 	local compile_opts
 
 	ginger_compile_is_debug_mode
 	if stat {
-		// デバッグ情報の埋め込み
+		; デバッグ情報の埋め込み
 		compile_opts = 1
 	}
 
 	if s_pp_only {
-		// プリプロセスのみ
+		; プリプロセスのみ
 		compile_opts |= 2
 	}
 
-	// UTF-8 入力
+	; UTF-8 入力
 	compile_opts |= 4
 
 	return compile_opts
 
-// プリプロセッサオプションを取得する
+; プリプロセッサオプションを取得する
 #deffunc ginger_compile_get_pp_opts \
 	local pp_opts
 
-	// 32: UTF-8 出力モード
+	; 32: UTF-8 出力モード
 	pp_opts = 32
 
 	if s_does_make {
-		// 4: packfile 生成 (実行ファイルの生成に必要)
+		; 4: packfile 生成 (実行ファイルの生成に必要)
 		pp_opts |= 4
 	}
 
 	return pp_opts
 
-// デバッグモードか？
+; デバッグモードか？
 #deffunc ginger_compile_is_debug_mode
 
 	ginger_args_is_release_mode
 	return stat == false
 
-// ランタイム名を取得する
-//
-// %inst
-// ginger_compile_compile より後に使用すること。
+; ランタイム名を取得する
+;
+; %inst
+; ginger_compile_compile より後に使用すること。
 #deffunc ginger_compile_get_runtime_name var runtime_name, \
 	local obj_name
 
@@ -116,26 +116,26 @@
 	}
 	return
 
-// HSP3 コンパイラが出力したメッセージを取得する
-//
-// %prm
-// message
-//
-// var message: メッセージの内容が格納される文字列型変数
-//
-// %inst
-// コンパイラからメッセージを取得する。
-//
-// コンパイラのメッセージは shift_jis エンコーディングになっているが、
-// ソースコードから抜粋された部分だけ UTF-8 になる。
-//
-// ここでは、ソースコードからの抜粋と思われる部分以外を UTF-8 に変換して、
-// 全体を UTF-8 にする。
+; HSP3 コンパイラが出力したメッセージを取得する
+;
+; %prm
+; message
+;
+; var message: メッセージの内容が格納される文字列型変数
+;
+; %inst
+; コンパイラからメッセージを取得する。
+;
+; コンパイラのメッセージは shift_jis エンコーディングになっているが、
+; ソースコードから抜粋された部分だけ UTF-8 になる。
+;
+; ここでは、ソースコードからの抜粋と思われる部分以外を UTF-8 に変換して、
+; 全体を UTF-8 にする。
 #deffunc ginger_compile_get_message var message, \
 	local message_size, local lines, local line_count, local utf8_line, \
 	local os_line, local os_line_len, local utf8_line_len
 
-	// メッセージを取得する。
+	; メッセージを取得する。
 	hsc3_messize message_size
 
 	message = ""
@@ -143,16 +143,16 @@
 
 	hsc_getmes message
 
-	// メッセージを行ごとに分割する。
+	; メッセージを行ごとに分割する。
 	split message, "\n", lines
 	line_count = stat
 
-	// 各行を UTF-8 に変換する。
+	; 各行を UTF-8 に変換する。
 	message = ""
 
 	repeat line_count
 		if instr(lines(cnt), , "-->") >= 0 {
-			// この行はソースコードの抜粋なので変換しない。
+			; この行はソースコードの抜粋なので変換しない。
 			utf8_line = lines(cnt)
 		} else {
 			utf8_line = ""
@@ -160,15 +160,15 @@
 			unicode_cnv_to_utf8 os_line, os_line_len, utf8_line, utf8_line_len
 		}
 
-		// OK: コンパイルメッセージは短いので += の遅さは問題ない
+		; OK: コンパイルメッセージは短いので += の遅さは問題ない
 		message += utf8_line + "\n"
 	loop
 
 	return
 
-// スクリプトファイルをコンパイルする
-//
-// 成功したら stat=true
+; スクリプトファイルをコンパイルする
+;
+; 成功したら stat=true
 #deffunc ginger_compile_compile var src_path, \
 	local hsp_dir, local common_dir, local ref_name, local obj_name, \
 	local compile_opts, local pp_opts, local is_debug_mode
@@ -178,7 +178,7 @@
 		return false
 	}
 
-	gigner_args_get_ref_name ref_name
+	ginger_args_get_ref_name ref_name
 	if stat {
 		hsc_refname ref_name
 		if stat {
@@ -210,14 +210,14 @@
 	hsc_comp compile_opts, pp_opts, is_debug_mode
 	return stat == 0
 
-// 実行ファイルを作成する
-//
-// %prm
-//
-// stat: 成功したら true
-//
-// %inst
-// ginger_compile_compile より後に使用すること。
+; 実行ファイルを作成する
+;
+; %prm
+;
+; stat: 成功したら true
+;
+; %inst
+; ginger_compile_compile より後に使用すること。
 #deffunc ginger_compile_build_exe var hsp_dir, var runtime_name, \
 	local runtime_dir
 
@@ -232,14 +232,14 @@
 	hsc3_make runtime_dir
 	return stat == 0
 
-// オブジェクトファイルを実行する
-//
-// %prm
-//
-// stat: 成功したら true
-//
-// %inst
-// ginger_compile_compile より後に使用すること。
+; オブジェクトファイルを実行する
+;
+; %prm
+;
+; stat: 成功したら true
+;
+; %inst
+; ginger_compile_compile より後に使用すること。
 #deffunc ginger_compile_run var hsp_dir, \
 	local obj_name, local runtime_name, local cmdline
 
@@ -249,8 +249,8 @@
 
 	ginger_compile_get_obj_name obj_name
 
-	// FIXME: 引数を渡す
-	// FIXME: 標準入出力を継承する
+	; FIXME: 引数を渡す
+	; FIXME: 標準入出力を継承する
 	cmdline = "\"" + runtime_path + "\" \"" + obj_name + "\""
 
 	hsc3_run cmdline

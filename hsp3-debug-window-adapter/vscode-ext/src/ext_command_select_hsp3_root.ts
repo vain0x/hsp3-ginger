@@ -1,9 +1,4 @@
-import {
-    ConfigurationTarget,
-    Uri,
-    window,
-    workspace,
-} from "vscode"
+import { ConfigurationTarget, Uri, window, workspace } from "vscode"
 import { HSP3_CONFIG_SECTION, MY_CONFIG_SECTION } from "./ext_constants"
 import { DomainError } from "./extension"
 
@@ -19,7 +14,7 @@ const doSelectHsp3Root = async () => {
         }
     }
 
-    // HSP3 の設定に定義されているものを使う。
+    // 言語の設定に定義されているものを使う。
     {
         const myConfig = workspace.getConfiguration(HSP3_CONFIG_SECTION)
         const hsp3Root = myConfig.get(HSP3_ROOT_KEY)

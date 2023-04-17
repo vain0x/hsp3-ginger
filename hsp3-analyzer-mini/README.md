@@ -1,6 +1,6 @@
 # HSP3 アナライザー・ミニ
 
-HSP3 の実用最小限な静的解析ツールです。Language Server Protocol (LSP) 準拠。
+HSP3 の静的解析ツールです。Language Server Protocol (LSP) 準拠。
 
 機能などは [vscode-ext/README.md](./vscode-ext/README.md) を参照。
 
@@ -8,6 +8,10 @@ HSP3 の実用最小限な静的解析ツールです。Language Server Protocol
     - [ham-lsp-server-dll](./ham-lsp-server-dll): DLL 版をビルドするためのプロジェクト
     - [ham-lsp-server-exe](./ham-lsp-server-exe): exe 版をビルドするためのプロジェクト
 - [vscode-ext](./vscode-ext): VSCode 拡張機能
+
+その他:
+
+- [hsed3-ext](./hsed3-ext): hsed3 (標準のスクリプトエディタ) と連携するプロジェクト \[未完成\]
 
 ----
 
@@ -17,7 +21,7 @@ HSP3 の実用最小限な静的解析ツールです。Language Server Protocol
 
 以下のツールをインストールしてください。
 
-- [Node.js](https://nodejs.org)
+- [Node.js](https://nodejs.org) (>= 17)
 - [Rust](https://rustlang.org)
 
 はじめに、パッケージのインストールなどが必要です。次のスクリプトを使ってください。
@@ -31,6 +35,13 @@ HSP3 の実用最小限な静的解析ツールです。Language Server Protocol
 - `./build`: ビルド
 - `./install`: VSCode に拡張機能をインストールする
 - `./uninstall`: VSCode から拡張機能をアンインストールする
+
+### テスト
+
+テストは `cargo test` で実行します。
+
+一部のテストは hsp3 のインストールディレクトリに含まれているモジュールやサンプルコードを参照します。
+そのため `vendor/hsp3` に hsp3 (zip版) をインストールしておく必要があります。
 
 ## 関連リンク
 

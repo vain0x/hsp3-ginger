@@ -1,26 +1,21 @@
-use super::{loc_to_location, loc_to_range, to_loc};
-use crate::{
-    lang_service::docs::{self, Docs},
-    sem::ProjectSem,
-};
+use super::*;
 use lsp_types::{
-    DocumentChanges, Position, PrepareRenameResponse, TextDocumentEdit, TextEdit, Url,
-    VersionedTextDocumentIdentifier, WorkspaceEdit,
+    DocumentChanges, OneOf, OptionalVersionedTextDocumentIdentifier, Position,
+    PrepareRenameResponse, TextDocumentEdit, TextEdit, Url, WorkspaceEdit,
 };
 
 pub(crate) fn prepare_rename(
     uri: Url,
     position: Position,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<PrepareRenameResponse> {
-    let loc = to_loc(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let project = wa.require_project_for_doc(doc);
 
-    // カーソル直下にシンボルがなければ変更しない。
-    if sem.locate_symbol(loc.doc, loc.start).is_none() {
-        return None;
-    }
+    // FIXME: カーソル直下に識別子があって、それの定義がワークスペース内のファイル (commonやhsphelpでない) にあったときだけSomeを返す。
 
+    let (_, loc) = project.locate_symbol(doc, pos)?;
     let range = loc_to_range(loc);
     Some(PrepareRenameResponse::Range(range))
 }
@@ -30,22 +25,23 @@ pub(crate) fn rename(
     position: Position,
     new_name: String,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<WorkspaceEdit> {
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
-        let loc = to_loc(&uri, position, docs)?;
-        let (symbol, _) = sem.locate_symbol(loc.doc, loc.start)?;
-        let symbol_id = symbol.symbol_id;
+        let (doc, pos) = from_document_position(&uri, position, docs)?;
+        let project = wa.require_project_for_doc(doc);
+
+        let (symbol, _) = project.locate_symbol(doc, pos)?;
 
         let mut locs = vec![];
-        sem.get_symbol_defs(symbol_id, &mut locs);
-        sem.get_symbol_uses(symbol_id, &mut locs);
+        project.collect_symbol_defs(&symbol, &mut locs);
+        project.collect_symbol_uses(&symbol, &mut locs);
         if locs.is_empty() {
             return None;
         }
 
-        // 1つの出現箇所が定義と使用の両方にカウントされてしまうケースがあるようなので、重複を削除する。
+        // 1つの出現が定義と使用の両方にカウントされることもあるので、重複を削除する。
         // (重複した変更をレスポンスに含めると名前の変更に失敗する。)
         locs.sort();
         locs.dedup();
@@ -69,9 +65,9 @@ pub(crate) fn rename(
                 return None;
             }
 
-            let version = docs.get_version(loc.doc).unwrap_or(docs::NO_VERSION);
+            let version = docs.get_version(loc.doc).unwrap_or(NO_VERSION);
 
-            let text_document = VersionedTextDocumentIdentifier {
+            let text_document = OptionalVersionedTextDocumentIdentifier {
                 uri,
                 version: Some(version),
             };
@@ -82,7 +78,7 @@ pub(crate) fn rename(
 
             edits.push(TextDocumentEdit {
                 text_document,
-                edits: vec![text_edit],
+                edits: vec![OneOf::Left(text_edit)],
             });
         }
 

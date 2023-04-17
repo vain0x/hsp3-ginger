@@ -1,13 +1,13 @@
-// スクリプト実行機能
+; スクリプト実行機能
 
 #module m_ginger_sub_run
 
 #define true 1
 #define false 0
 
-// run コマンドのエントリーポイント
-//
-// 成功したら stat=true
+; run コマンドのエントリーポイント
+;
+; 成功したら stat=true
 #deffunc ginger_sub_run_main var args, int argc, int show_help, var error
 
 	sdim s_src_path
@@ -26,9 +26,9 @@
 	ginger_sub_run_run error
 	return stat
 
-// 引数を解析する
-//
-// 成功したら stat=true
+; 引数を解析する
+;
+; 成功したら stat=true
 #deffunc ginger_sub_run_parse_args array args, int argc, var error, \
 	local i, local ok
 
@@ -66,10 +66,10 @@
 
 	return true
 
-// スクリプトを実行する
-//
-// 成功したら stat=true。
-// いまのところ実行は待機しない。
+; スクリプトを実行する
+;
+; 成功したら stat=true。
+; いまのところ実行は待機しない。
 #deffunc ginger_sub_run_run var error, \
 	local hsp_dir
 

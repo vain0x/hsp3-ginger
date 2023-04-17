@@ -1,8 +1,8 @@
-// LICENSE: CC0-1.0
-// v0
+; LICENSE: CC0-1.0
+; v0
 
-// require mod_hsed_carets.hsp
-// require mod_hsed_docs.hsp
+; require mod_hsed_carets.hsp
+; require mod_hsed_docs.hsp
 
 #ifndef included_mod_hsed_client_hsp
 #define included_mod_hsed_client_hsp
@@ -12,18 +12,18 @@
 #const true 1
 #const false 0
 
-// タブの個数とファイル名の情報をスクリプトエディタに問い合わせる。
+; タブの個数とファイル名の情報をスクリプトエディタに問い合わせる。
 #deffunc hsed_client_request_tabs var tab_count, array tab_footy_ids, array tab_file_paths, array tab_text_lens, \
 	local ok, local footy_id, local file_path, local text_len
 
-	// タブの個数を取得する。
+	; タブの個数を取得する。
 	hsed_gettabcount tab_count
 	if stat {
 		logmes "hsed_client: hsed_gettabcount error"
 		return false
 	}
 
-	// 各タブの情報を取得する。
+	; 各タブの情報を取得する。
 	ok = true
 	repeat tab_count
 		hsed_getpath file_path, cnt

@@ -1,0 +1,351 @@
+; See builder.md for details.
+; LICENSE: CC0-1.0 <https://creativecommons.org/publicdomain/zero/1.0/deed.ja>
+
+#packopt name "builder"
+#packopt orgpath 1
+#runtime "hsp3cl"
+
+#include "hspcmp.as"
+
+#define k_version "1.1.0"
+
+#define true 1
+#define false 0
+
+; ------------------------------------------------
+; Command line parser
+; ------------------------------------------------
+
+#module m_cmdline_parser
+
+; Parse a command line string.
+;
+; Parsed arguments are stored in args.
+; Return the number of arguments.
+#deffunc cmdline_parser_parse str cmdline, array args, \
+	local argc, local index, local offset
+
+	s_cmdline = cmdline
+	s_cmdline_len = strlen(s_cmdline)
+	index = 0  ; Current index of s_cmdline
+
+	argc = 0  ; Number of arguments
+
+	repeat
+		; Skip spaces.
+		repeat
+			if index >= s_cmdline_len : break
+
+			c = peek(s_cmdline, index)
+			if c != ' ' : break
+
+			index++
+		loop
+
+		if index >= s_cmdline_len {
+			; End of cmdline.
+			break
+		}
+
+		; Quoted?
+		if peek(s_cmdline, index) = '"' {
+			offset = instr(s_cmdline, index + 1, "\"")
+			if offset < 0 {
+				offset = s_cmdline_len - (index + 1)
+			}
+
+			args(argc) = strmid(s_cmdline, index + 1, offset)
+			argc++
+			index += offset + 2  ; 2 for quotations
+			continue
+		}
+
+		; Next is non-quoted argument.
+		offset = instr(s_cmdline, index, " ")
+		if offset < 0 {
+			offset = s_cmdline_len - index
+		}
+		args(argc) = strmid(s_cmdline, index, offset)
+		argc++
+		index += offset
+	loop
+	return argc
+
+#global
+
+; ------------------------------------------------
+; Encoding Converter
+; ------------------------------------------------
+
+#module m_unicode_cnv
+
+#uselib "kernel32.dll"
+#func MultiByteToWideChar "MultiByteToWideChar" sptr, sptr, sptr, sptr, sptr, sptr
+#func WideCharToMultiByte "WideCharToMultiByte" sptr, sptr, sptr, sptr, sptr, sptr, sptr, sptr
+
+#define NULL 0
+#define CP_SJIS 932
+#define CP_UTF8 65001
+
+#deffunc sjis_to_utf8 var sjis_str, int sjis_len, var utf8_str, var utf8_len, \
+	local utf16_str, local utf16_len
+
+	if sjis_len == 0 {
+		utf8_str = ""
+		utf8_len = 0
+		return
+	}
+
+	; First, sjis_str -> utf16_str.
+	MultiByteToWideChar CP_SJIS, 0, varptr(sjis_str), sjis_len, NULL, 0
+	utf16_len = stat
+	assert utf16_len >= 1
+
+	sdim utf16_str, (utf16_len + 1) * 2
+
+	MultiByteToWideChar CP_SJIS, 0, varptr(sjis_str), sjis_len, varptr(utf16_str), utf16_len
+	assert stat == utf16_len
+	wpoke utf16_str, utf16_len * 2, 0  ; NUL-terminate
+
+	; Second, utf16_str to utf8_str.
+	WideCharToMultiByte CP_UTF8, 0, varptr(utf16_str), utf16_len, NULL, 0, NULL, NULL
+	utf8_len = stat
+	assert utf8_len >= 1
+
+	utf8_str = ""
+	memexpand utf8_str, utf8_len + 1
+
+	WideCharToMultiByte CP_UTF8, 0, varptr(utf16_str), utf16_len, varptr(utf8_str), utf8_len, NULL, NULL
+	assert stat == utf8_len
+	poke utf8_str, utf8_len, 0  ; NUL-terminate
+	return
+
+#global
+
+; ------------------------------------------------
+; Application
+; ------------------------------------------------
+
+	; ============================================
+	; Define variables.
+
+	hsp3_root = dir_exe
+
+	subcommand = ""       ; compile, make, or other
+	script_file = ""
+	show_help = false     ; true if --help
+	show_version = false  ; true if --version
+
+	; The first argument of hsc_comp.
+	; 1: debug info
+	compile_opts = 1
+
+	; The second argument of hsc_comp.
+	; 4: make packfile
+	pp_opts = 4
+
+	; The third argument of hsc_comp.
+	; 1: open debug window
+	debug_mode = 1
+
+	obj_name = "start.ax"
+	runtime_name = ""
+
+	; ============================================
+	; Next, parse command line.
+
+	cmdline_parser_parse dir_cmdline, args
+	argc = stat  ; Length of args
+
+	ok = true
+	reason = ""  ; Reason of error
+	ai = 0       ; Index of args
+
+	repeat
+		if ai >= argc : break
+
+		; Shift next argument.
+		arg = args(ai)
+		ai++
+
+		if arg == "-h" || arg == "--help" {
+			show_help = true
+			break
+		}
+
+		if arg == "-V" || arg == "--version" {
+			show_version = true
+			break
+		}
+
+		if arg == "--hsp" {
+			if ai >= argc {
+				ok = false
+				reason = "Missing value of --hsp"
+				break
+			}
+			hsp3_root = args(ai)
+			ai++
+			continue
+		}
+
+		if arg == "--utf8-input" {
+			; 32: assume scripts are utf-8 (utf-8 input)
+			pp_opts |= 32
+			continue
+		}
+
+		if arg == "--utf8-output" {
+			; 4: use utf-8 in generated files (utf-8 output)
+			compile_opts |= 4
+			continue
+		}
+
+		if peek(arg) == '-' {
+			ok = false
+			reason = "Unknown flag '" + arg + "'."
+			break
+		}
+
+		; Recognize flag as positional argument.
+
+		if subcommand == "" {
+			subcommand = arg
+			continue
+		}
+
+		if script_file == "" {
+			script_file = arg
+			continue
+		}
+
+		ok = false
+		reason = "Unknown positional argument '" + arg + "'."
+		break
+	loop
+
+	if ok == false {
+		assert reason != ""
+		goto *l_cmdline_error
+	}
+
+	if show_help || subcommand == "help" || argc == 0 {
+		mes "See builder.md"
+		end
+	}
+
+	if show_version || subcommand == "version" {
+		mes k_version
+		end
+	}
+
+	if subcommand == "" {
+		reason = "Missing subcommand"
+		goto *l_cmdline_error
+	}
+
+	if script_file == "" {
+		reason = "Missing script file"
+		goto *l_cmdline_error
+	}
+
+	assert ok && reason == ""
+	assert subcommand != "" && script_file != ""
+
+	; ============================================
+	; Next, process subcommand.
+
+	hsc_ini script_file
+	if stat {
+		step = "hsc_ini"
+		goto *l_compile_error
+	}
+
+	hsc_objname obj_name
+	hsc_compath hsp3_root + "\\common\\"
+
+	hsc_comp compile_opts, pp_opts, debug_mode
+	if stat {
+		step = "hsc_comp"
+		goto *l_compile_error
+	}
+
+	hsc3_getruntime runtime_name, obj_name
+	if runtime_name == "" {
+		runtime_name = "hsp3.exe"
+	}
+
+	switch subcommand
+		case "compile"
+			gosub *l_get_mes
+			mes message
+			mes "#Use runtime \"" + runtime_name + "\""
+			end
+
+		case "make"
+			if runtime_name == "hsp3.exe" {
+				runtime_dir = hsp3_root + "\\"
+			} else {
+				runtime_dir = hsp3_root + "\\runtime\\"
+			}
+
+			hsc3_make runtime_dir
+			if stat {
+				step = "hsc3_make"
+				goto *l_compile_error
+			}
+			end
+	swend
+
+	reason = "ERROR: Unknown subcommand '" + subcommand + "'."
+	goto *l_cmdline_error
+
+; ------------------------------------------------
+; Error
+; ------------------------------------------------
+
+*l_cmdline_error
+
+	mes "ERROR: " + reason
+	mes "  cmdline: '" + dir_cmdline + "'"
+	end 1  ; Failure
+
+*l_get_mes
+
+	hsc3_messize message_size
+	sdim message, message_size + 1
+
+	hsc_getmes message
+
+	; Change encoding.
+	utf8_input = (pp_opts & 32) != 0
+
+	split message, "\n", lines
+	line_count = stat
+
+	sdim lf
+	poke lf, 0, 10  ; U+000A (LF)
+
+	message = ""
+	sdim utf8_line, message_size + 0x1000
+	utf8_line_len = 0
+
+	repeat line_count
+		if utf8_input && instr(lines(cnt), , "-->") >= 0 {
+			; This line is a quote of script. UTF-8 if --utf8-input is specified.
+			utf8_line = lines(cnt)
+		} else {
+			; This line is generated by compiler; shift_jis.
+			sjis_to_utf8 lines(cnt), strlen(lines(cnt)), utf8_line, utf8_line_len
+		}
+
+		message += utf8_line + lf
+	loop
+	return
+
+*l_compile_error
+
+	mes "ERROR: Compile error (" + step + ")"
+	gosub *l_get_mes
+	mes message
+	end 1  ; Failure

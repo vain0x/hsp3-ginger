@@ -1,49 +1,89 @@
-use crate::{lang_service::docs::Docs, syntax, utils::canonical_uri::CanonicalUri};
-use lsp_types::{LanguageString, Location, MarkedString, Position, Range, Url};
-
 pub(crate) mod completion;
 pub(crate) mod definitions;
+pub(crate) mod diagnose;
 pub(crate) mod document_highlight;
+pub(crate) mod document_symbol;
+pub(crate) mod formatting;
 pub(crate) mod hover;
 pub(crate) mod references;
 pub(crate) mod rename;
+pub(crate) mod semantic_tokens;
+pub(crate) mod signature_help;
+pub(crate) mod workspace_symbol;
 
-fn plain_text_to_marked_string(text: String) -> MarkedString {
-    const PLAIN_LANG_ID: &str = "plaintext";
+pub(crate) mod rewrites {
+    use super::*;
 
+    pub(crate) mod flip_comma;
+    pub(crate) mod generate_include_guard;
+}
+
+use super::*;
+use crate::{
+    analysis::*,
+    lang_service::docs::{Docs, NO_VERSION},
+    source::*,
+    token::TokenKind,
+};
+use lsp_types::{LanguageString, Location, MarkedString, Position, SymbolInformation, Url};
+
+fn plain_text_to_marked_string(value: String) -> MarkedString {
     MarkedString::LanguageString(LanguageString {
-        language: PLAIN_LANG_ID.to_string(),
-        value: text,
+        language: "plaintext".to_string(),
+        value,
     })
 }
 
-fn loc_to_range(loc: syntax::Loc) -> Range {
-    // FIXME: UTF-8 から UTF-16 基準のインデックスへの変換
-    Range::new(
-        Position::new(loc.start.row as u64, loc.start.col as u64),
-        Position::new(loc.end.row as u64, loc.end.col as u64),
-    )
+fn markdown_marked_string(value: String) -> MarkedString {
+    MarkedString::LanguageString(LanguageString {
+        language: "markdown".to_string(),
+        value,
+    })
 }
 
-fn loc_to_location(loc: syntax::Loc, docs: &Docs) -> Option<Location> {
+fn to_position(pos: Pos) -> Position {
+    Position::new(pos.row as u32, pos.column16 as u32)
+}
+
+fn to_lsp_range(range: crate::source::Range) -> lsp_types::Range {
+    lsp_types::Range::new(to_position(range.start()), to_position(range.end()))
+}
+
+fn loc_to_range(loc: Loc) -> lsp_types::Range {
+    to_lsp_range(loc.range)
+}
+
+fn loc_to_location(loc: Loc, docs: &Docs) -> Option<Location> {
     let uri = docs.get_uri(loc.doc)?.clone().into_url();
     let range = loc_to_range(loc);
     Some(Location { uri, range })
 }
 
-fn to_loc(uri: &Url, position: Position, docs: &Docs) -> Option<syntax::Loc> {
+fn from_document_position(uri: &Url, position: Position, docs: &Docs) -> Option<(DocId, Pos16)> {
     let uri = CanonicalUri::from_url(uri);
     let doc = docs.find_by_uri(&uri)?;
 
-    // FIXME: position は UTF-16 ベース、pos は UTF-8 ベースなので、マルチバイト文字が含まれている場合は変換が必要
-    let pos = syntax::Pos {
-        row: position.line as usize,
-        col: position.character as usize,
+    let pos = {
+        let row = position.line as u32;
+        let column = position.character as u32;
+        Pos16::new(row, column)
     };
 
-    Some(syntax::Loc {
-        doc,
-        start: pos,
-        end: pos,
-    })
+    Some((doc, pos))
+}
+
+fn new_lsp_symbol_information(
+    name: String,
+    kind: lsp_types::SymbolKind,
+    location: Location,
+) -> SymbolInformation {
+    #[allow(deprecated)]
+    SymbolInformation {
+        name,
+        kind,
+        location,
+        tags: None,
+        deprecated: None,
+        container_name: None,
+    }
 }

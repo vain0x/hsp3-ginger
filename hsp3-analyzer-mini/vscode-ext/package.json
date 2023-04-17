@@ -1,8 +1,8 @@
 {
   "name": "hsp3-analyzer-mini",
   "displayName": "HSP3 アナライザー・ミニ (LSP)",
-  "version": "0.3.0",
-  "description": "HSP3 の実用最小限なインテリセンス",
+  "version": "0.4.0",
+  "description": "HSP3 のインテリセンス",
   "repository": "https://github.com/vain0x/hsp3-ginger",
   "author": "vain0x",
   "publisher": "vain0x",
@@ -13,20 +13,20 @@
     "onLanguage:hsp3"
   ],
   "engines": {
-    "vscode": "^1.45.1"
+    "vscode": "^1.55.0"
   },
   "devDependencies": {
-    "@types/node": "^14",
-    "@types/vscode": "^1.45.1",
-    "ts-loader": "^7.0.5",
-    "typescript": "^3",
-    "vsce": "^1",
-    "vscode-languageserver-protocol": "^3",
-    "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11"
+    "@types/node": "^18.15.11",
+    "@types/vscode": "^1.55.0",
+    "@vscode/vsce": "^2.18.0",
+    "ts-loader": "^9.4.2",
+    "typescript": "^5.0.4",
+    "vscode-languageserver-protocol": "^3.17.3",
+    "webpack": "^5.78.0",
+    "webpack-cli": "^5.0.1"
   },
   "dependencies": {
-    "vscode-languageclient": "7.0.0-next.1"
+    "vscode-languageclient": "^8.1.0"
   },
   "scripts": {
     "tsc-build": "tsc -b",
@@ -43,7 +43,12 @@
       "properties": {
         "hsp3-analyzer-mini.hsp3-root": {
           "type": "string",
-          "description": "HSP のディレクトリへの絶対パス。未指定時は、環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。"
+          "description": "HSP3のインストールディレクトリへの絶対パス。未設定のときは環境変数 HSP3_ROOT を参照します。"
+        },
+        "hsp3-analyzer-mini.lint-enabled": {
+          "type": "boolean",
+          "description": "trueならリント(静的検証)を行い、スクリプトの誤りと思われる箇所に警告を出します。falseを設定すると無効化できます。(default: true)",
+          "default": true
         },
         "hsp3-analyzer-mini.lsp-bin": {
           "type": "string",

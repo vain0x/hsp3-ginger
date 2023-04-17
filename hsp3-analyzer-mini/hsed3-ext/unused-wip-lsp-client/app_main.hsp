@@ -1,10 +1,10 @@
-// LICENSE: CC0-1.0
+; LICENSE: CC0-1.0
 
-// WIP
+; WIP
 
-// hsed3 のための LSP クライアント
-// hsp36b1 以前のスクリプトエディタでは動作しない。
-// hsp3-analyzer-mini を事前にビルドしておくこと
+; hsed3 のための LSP クライアント
+; hsp36b1 以前のスクリプトエディタでは動作しない。
+; hsp3-analyzer-mini を事前にビルドしておくこと
 
 #packopt name "hsed3_lsp_client"
 #packopt hide 1
@@ -24,7 +24,7 @@
 #const true 1
 #const false 0
 
-// frame per second
+; frame per second
 #const k_fps 60
 
 #deffunc app_main
@@ -45,11 +45,11 @@
 
 	onexit goto *l_on_exit
 
-	// hsed が起動するのを待つ。
+	; hsed が起動するのを待つ。
 	logmes "app: waiting for hsed to get ready"
 
 	s_hsed_exists = false
-	repeat 60 * 60 // 1 min
+	repeat 60 * 60 ; 1 min
 		await 1000 / k_fps
 
 		hsed_exist
@@ -69,7 +69,7 @@
 	repeat
 		await 1000 / k_fps
 
-		// 接続を確認する。
+		; 接続を確認する。
 		hsed_exist
 		if stat == false {
 			s_hsed_exists = false
@@ -77,12 +77,12 @@
 			break
 		}
 
-		// hsed のタブ情報を受信する。
+		; hsed のタブ情報を受信する。
 		hsed_client_request_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
 		if stat {
 			hsed_docs_update_tabs s_tab_count, s_tab_footy_ids, s_tab_file_paths, s_tab_text_lens
 
-			// 内容が変更された可能性があるタブがあるなら、内容を共有する。
+			; 内容が変更された可能性があるタブがあるなら、内容を共有する。
 			hsed_docs_emit_dirty_documents s_dirty_doc_ids, s_dirty_doc_tab_ids, s_dirty_doc_count
 
 			repeat s_dirty_doc_count
@@ -98,21 +98,21 @@
 			loop
 			s_dirty_doc_count = 0
 
-			// ドキュメントの変更イベントを LSP サーバーに送る。
+			; ドキュメントの変更イベントを LSP サーバーに送る。
 			hsed_docs_emit_document_changes s_doc_change_kinds, s_doc_change_uris, s_doc_change_count
 
 			repeat s_doc_change_count
-				// FIXME: 実装
+				; FIXME: 実装
 			loop
 			s_doc_change_count = 0
 		} else {
 			logmes "app: failed to request tabs"
 		}
 
-		// lsp の状態を更新する。
+		; lsp の状態を更新する。
 		lspcc_update
 
-		// FIXME: LSP から来たレスポンスを受け取る。
+		; FIXME: LSP から来たレスポンスを受け取る。
 	loop
 	return
 

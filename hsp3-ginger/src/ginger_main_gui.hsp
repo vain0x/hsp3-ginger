@@ -1,4 +1,4 @@
-// GUI 版のエントリーポイント
+; GUI 版のエントリーポイント
 
 #include "hsp3utf.as"
 

@@ -1,8 +1,8 @@
 {
     "name": "hsp3-debug-window-adapter",
     "displayName": "HSP3 デバッグ (標準のデバッグウィンドウを使用)",
-    "description": "HSP3 のデバッグ機能を有効化する拡張機能です。VSCode のデバッグツールではなく、HSP3 標準のデバッグウィンドウを使用します。",
-    "version": "0.2.0",
+    "description": "HSP3のスクリプトをデバッグ実行できるようにする拡張機能です。VSCodeのデバッグツールではなく、HSP3標準のデバッグウィンドウを使用します。",
+    "version": "0.5.0",
     "author": {
         "name": "vain0x",
         "email": "vainzerox@gmail.com"
@@ -14,7 +14,7 @@
         "Debugger"
     ],
     "engines": {
-        "vscode": "^1.40.1"
+        "vscode": "^1.62.0"
     },
     "categories": [
         "Debuggers"
@@ -28,41 +28,35 @@
         "url": "https://github.com/vain0x/hsp3-ginger/issues"
     },
     "scripts": {
-        "prepublish": "tsc -b",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "build": "tsc -b",
-        "watch": "tsc -w",
+        "build": "webpack --mode production",
+        "watch": "webpack --mode development --watch",
         "vsce:package": "vsce package --out hsp3-debug-window-adapter.vsix"
     },
     "dependencies": {
-        "await-notify": "^1.0.1",
-        "vscode-debugadapter": "^1.37.1"
+        "@vscode/debugadapter": "^1.59.0",
+        "iconv-lite": "^0.6.3"
     },
     "devDependencies": {
-        "@types/node": "^12.12.12",
-        "typescript": "^3.7.2",
-        "vsce": "^1.69.0",
-        "vscode": "^1.1.36"
+        "@types/node": "^18.15.11",
+        "@types/vscode": "1.62",
+        "@vscode/vsce": "^2.18.0",
+        "ts-loader": "^9.4.2",
+        "typescript": "^5.0.4",
+        "webpack": "^5.78.0",
+        "webpack-cli": "^5.0.1"
     },
-    "main": "./out/extension",
+    "main": "./dist/extension",
     "activationEvents": [
-        "onLanguage:hsp3",
-        "onDebug"
+        "onLanguage:hsp3"
     ],
     "contributes": {
-        "commands": [
-            {
-                "command": "hsp3-debug-window-adapter.createHsptmp",
-                "title": "Create hsptmp file"
-            }
-        ],
         "configuration": {
             "type": "object",
             "title": "HSP3 debugger with default debug window",
             "properties": {
                 "hsp3-debug-window-adapter.hsp3-root": {
                     "type": "string",
-                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます。"
+                    "description": "HSP3 のインストールディレクトリ (dir_exe) を指定してください。省略時は環境変数 HSP3_ROOT か、既定のインストールディレクトリが使用されます"
                 }
             }
         },
@@ -70,14 +64,30 @@
             {
                 "type": "hsp3",
                 "label": "hsp3-debug-window-adapter",
-                "adapterExecutableCommand": "hsp3-debug-window-adapter.adapterExecutableCommand",
+                "languages": [
+                    "hsp3"
+                ],
+                "runtime": "node",
+                "program": "./dist/dap.js",
                 "configurationAttributes": {
                     "launch": {
                         "properties": {
                             "program": {
                                 "type": "string",
                                 "description": "デバッグ実行時に実行されるファイルを指定します。省略時は、開いているドキュメントを一時ファイル(hsptmp)に保存して実行します。",
-                                "default": "${command:hsp3-debug-window-adapter.createHsptmp}"
+                                "default": ""
+                            },
+                            "utf8Support": {
+                                "type": "string",
+                                "enum": [
+                                    "auto",
+                                    "enabled",
+                                    "input",
+                                    "output",
+                                    "disabled"
+                                ],
+                                "default": "auto",
+                                "description": "HSP3のUTF-8サポート機能を使うかどうか。既定値である「auto」を指定した場合、実行するスクリプトが \"hsp3_utf.as\" か \"hsp3_64.as\" をインクルードしているときは有効、そうでなければ無効となります。\n\n「enabled」を指定した場合、入力されるスクリプトはUTF-8エンコーディングとみなされ、生成される文字列などのデータはUTF-8エンコーディングになります。shift_jisを使う場合は、「disabled」を指定してください。\n\nまた、「input」の場合、入力されるスクリプトはUTF-8で、生成されるデータはshift_jisになります。「output」の場合、入力されるスクリプトはshift_jisで、生成されるデータはUTF-8になります"
                             },
                             "trace": {
                                 "type": "boolean",
@@ -104,6 +114,24 @@
                             "name": "Run"
                         }
                     }
+                ]
+            }
+        ],
+        "languages": [
+            {
+                "id": "hsp3",
+                "aliases": [
+                    "HSP3",
+                    "HSP",
+                    "hsp3",
+                    "hsp",
+                    "ＨＳＰ３",
+                    "ＨＳＰ",
+                    "Hot Soup Processor 3",
+                    "Hot Soup Processor"
+                ],
+                "extensions": [
+                    ".hsp"
                 ]
             }
         ]
