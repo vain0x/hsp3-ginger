@@ -24,19 +24,17 @@ struct CommandResult {
 
 static auto process_command(int cmd) -> int {
 	switch (cmd) {
+	// flatmap_init array, (capactiy)?
 	case CMD_FLATMAP: {
-		// dim と同様
-
-		auto pval = (PVal*)nullptr;
+		PVal* pval;
 		code_getva(&pval);
 
-		int len[4];
-		for (auto i = 0; i < 4; i++) {
-			len[i] = code_getdi(0);
+		int len = code_getdi(0);
+		if (len <= 0) {
+			len = 1;
 		}
 
-		exinfo->HspFunc_dim(pval, vartype_flatmap_flag(), 0, len[0], len[1],
-		                    len[2], len[3]);
+		exinfo->HspFunc_dim(pval, vartype_flatmap_flag(), 0, len, 0, 0, 0);
 		break;
 	}
 	default:

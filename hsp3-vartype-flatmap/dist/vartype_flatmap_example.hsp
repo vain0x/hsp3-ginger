@@ -1,36 +1,60 @@
-// 使用例
+; 使用例
 
 #include "hsp3utf.as"
 #include "vartype_flatmap.hsp"
 
 	assert
-	// flatmap 命令 (dim と同様)
+	; flatmap 命令 (dim と同様)
 	flatmap m
 
-	// 値の追加
-	m("hello") = "こんにちは"
+	; 値の追加
+	m("answer") = 42
 
-	// 値の取得
-	message = m("hello")
-	mes message
-	assert message == "こんにちは"
+	; 値の取得
+	value = m("answer")
+	mes value
+	assert value == 42
 
-	// 値の更新
-	m("hello") = "guten morgen"
+	; 値の更新
+	m("answer") = 64
 
-	message = m("hello")
-	mes message
-	assert message == "guten morgen"
+	value = m("answer")
+	mes value
+	assert value == 64
 
-	// int 型の値
-	m("count") = 0
+	; 存在しないキー
+	assert m("unknown") == -1
 
-	count = m("count")
-	// assert vartype(count) == vartype("int")
-	// assert count == 0
+	; インクリメント
+	m("counter") = 11
+	m("counter")++
+	assert m("counter") = 12
 
-	// 複合代入演算
-	// m("count")++
-	// assert m("count") == 1
+	; int 型の値
+	; m("count") = 0
+
+	; count = m("count")
+	; assert vartype(count) == vartype("int")
+	; assert count == 0
+
+	; 複合代入演算
+	; m("count")++
+	; assert m("count") == 1
+
+
+
+	; wish list
+	; s_answer = symbol("answer")
+	; unset m("count")
+	; m("count") = unset
+
+	; flatmap_clear m
+	; flatmap_delete m("key")
+	; assert flatmap_size(m) == 4
+	; flatmap_enc m, m_str
+	; assert m == "[[1, a], [2, b]]"
+	; flatmap_dec m, m_str
+
+
 
 	logmes "OK"
