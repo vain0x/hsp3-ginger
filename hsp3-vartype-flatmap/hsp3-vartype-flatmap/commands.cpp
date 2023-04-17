@@ -48,8 +48,9 @@ static auto process_command(int cmd) -> int {
 }
 
 static auto var_to_string(short flag, void const* ptr) -> std::string {
-	auto s = (char const*)exinfo->HspFunc_getproc(flag)->CnvCustom(ptr, HSPVAR_FLAG_STR);
-	return std::string{ s };
+	auto s = (char const*)exinfo->HspFunc_getproc(flag)->CnvCustom(
+	    ptr, HSPVAR_FLAG_STR);
+	return std::string{s};
 }
 
 static auto process_command_as_func(int cmd) -> CommandResult {
