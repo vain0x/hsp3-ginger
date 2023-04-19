@@ -2,15 +2,56 @@
 
 #pragma once
 
-#include <Windows.h>
-#include <cassert>
-#include <cstdlib>
-#include <map>
-#include <optional>
-#include <string>
-#include <vector>
+// trie の要素やキーに使える型
+//
+// JSON と同様。
+enum TrieType {
+	TRIE_NULL,
+	TRIE_TRUE,
+	TRIE_FALSE,
 
-// FIXME: フラットな実装にする
+	// 64 ビット浮動小数点数
+	TRIE_NUMBER,
+
+	// 文字列
+	TRIE_STRING,
+
+	// 配列
+	//
+	// キーは 0 以上 2^31 未満の整数に限られる。
+	TRIE_ARRAY,
+
+	// オブジェクト
+	//
+	// 連想配列のようなもの。キーは文字列に限られる。
+	TRIE_OBJECT,
+
+	// 内部専用: メタデータ
+	TRIE_META,
+};
+
+typedef enum TrieType TrieType;
+
+// trie の1個の値
+union TrieValue {
+	int int_;
+	double double_;
+	void* ptr_;
+};
+
+typedef union TrieValue TrieValue;
+
+// trie の値を表現する型
+//
+// 参考: [NaN Boxingというテクニックを知った](http://tanakahx.hatenablog.com/entry/2015/07/29/003757)
+struct TrieArena {
+	TrieValue const* mem_;
+};
+
+typedef struct TrieArena TrieArena;
+
+
+
 class Trie {
   private:
 	std::map<std::string, std::string> map_;
