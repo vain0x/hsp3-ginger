@@ -9,7 +9,7 @@
 //! 3. LaunchRequest の引数として渡される情報を adapter に引き渡す。
 //! 4. TCP での通信を標準入出力に転送して、adapter と VSCode が通信できるようにする。
 
-extern crate log;
+use log;
 
 #[macro_use]
 extern crate serde_derive;

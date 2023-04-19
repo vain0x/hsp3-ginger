@@ -15,11 +15,11 @@ impl MyLogger {
 }
 
 impl log::Log for MyLogger {
-    fn enabled(&self, metadata: &log::Metadata) -> bool {
+    fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
         metadata.level() <= log::Level::Debug
     }
 
-    fn log(&self, record: &log::Record) {
+    fn log(&self, record: &log::Record<'_>) {
         if self.enabled(record.metadata()) {
             with_logger(|logger| {
                 writeln!(logger.file, "{} {}", record.level(), record.args()).unwrap();
