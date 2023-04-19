@@ -1,16 +1,30 @@
+# 一般的な除外設定
+node_modules/
 ~*
+*.log
+*.md
+*.vsix
 
 
 
+# HSP3の一時ファイル
+*.ax
 hsptmp
 obj
-start.ax
 packfile
 
 
 
-out/*.ax
-out/*.dll
-out/*.exe
-hsp3-debug-window-adapter.log
-hsp3-debug-window-adapter.vsix
+# プロジェクト固有の除外項目
+src/
+target/
+dist/*.js.map
+dist/*.md
+*.ps1
+tsconfig.json
+webpack.config.js
+
+
+
+# 以前は使っていたがいまは使っていない
+out/

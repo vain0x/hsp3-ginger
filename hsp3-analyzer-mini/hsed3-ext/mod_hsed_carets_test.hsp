@@ -1,7 +1,7 @@
-// LICENSE: CC0-1.0
-// v0
+; LICENSE: CC0-1.0
+; v0
 
-// 実行して assert で止まらなければ OK。
+; 実行して assert で止まらなければ OK。
 
 #include "hsp3utf.as"
 #include "mod_hsed_carets.hsp"
@@ -21,7 +21,7 @@
 	dim s_hover_caret_char
 	return
 
-// 一定時間、経過するのを待つ。
+; 一定時間、経過するのを待つ。
 #deffunc local hsed_carets_test_sleep int ellapse_frames
 
 	repeat ellapse_frames
@@ -38,12 +38,12 @@
 	s_caret_line = 2
 	s_caret_char = 3
 
-	// すぐには hover イベントは起きない。
+	; すぐには hover イベントは起きない。
 	hsed_carets_test_sleep 1
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat == false
 
-	// しばらくすると hover イベントが起こる。
+	; しばらくすると hover イベントが起こる。
 	hsed_carets_test_sleep k_hover_ticks + 10
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat
@@ -51,12 +51,12 @@
 	assert s_hover_caret_line == s_caret_line
 	assert s_hover_caret_char == s_caret_char
 
-	// 一度 hover イベントが起こると、同じ場所にいても hover イベントは起きない。
+	; 一度 hover イベントが起こると、同じ場所にいても hover イベントは起きない。
 	hsed_carets_test_sleep k_hover_ticks + 10
 	hsed_carets_take_hover_event s_hover_footy_id, s_hover_caret_line, s_hover_caret_char
 	assert stat == false
 
-	// カレット位置を変えてしばらく経つと、また hover イベントが起こる。
+	; カレット位置を変えてしばらく経つと、また hover イベントが起こる。
 	s_caret_line++
 
 	hsed_carets_test_sleep k_hover_ticks + 10
@@ -65,8 +65,8 @@
 	assert s_hover_caret_line == s_caret_line
 	assert s_hover_caret_char == s_caret_char
 
-	// カレット位置を変えてから、hover イベントが起こる前に、
-	// またカレット位置を変えると、hover イベントが起こるまでの経過時間がリセットされる。
+	; カレット位置を変えてから、hover イベントが起こる前に、
+	; またカレット位置を変えると、hover イベントが起こるまでの経過時間がリセットされる。
 	s_caret_line++
 
 	hsed_carets_test_sleep (k_hover_ticks + 10) / 2

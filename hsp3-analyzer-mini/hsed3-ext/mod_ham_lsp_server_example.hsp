@@ -1,7 +1,7 @@
-// LICENSE: CC0-1.0
-// v0
+; LICENSE: CC0-1.0
+; v0
 
-// UTF-8 ランタイムでしか動作しない。
+; UTF-8 ランタイムでしか動作しない。
 #include "hsp3utf.as"
 
 #include "hsedsdk.as"
@@ -30,7 +30,7 @@
     s_uri_len = strlen(s_uri)
     s_version = 1
 
-    // 言語サーバーを生成する。
+    ; 言語サーバーを生成する。
     ham_create s_hsp3_root, s_hsp3_root_len
     s_ham = stat
     if s_ham == 0 {
@@ -38,7 +38,7 @@
         goto *l_fail
     }
 
-    // ファイルを開く。
+    ; ファイルを開く。
     ham_doc_did_open s_ham, varptr(s_uri), s_uri_len, s_version, varptr(s_text), s_text_len
     if stat == 0 {
         mes "ham_doc_did_open に失敗しました。"
@@ -89,7 +89,7 @@
     s_hover_success = stat
 
     if s_hover_success {
-		// ヌル終端する。(DLL 側ではヌル終端されない。)
+		; ヌル終端する。(DLL 側ではヌル終端されない。)
         poke s_hover_text, s_hover_text_len
     }
     return
@@ -142,7 +142,7 @@
 *l_drop
 
     if s_ham {
-        // 言語サーバーを破棄する。(必須)
+        ; 言語サーバーを破棄する。(必須)
         ham_destroy s_ham
         s_ham = 0
     }

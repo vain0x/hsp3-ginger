@@ -1,20 +1,20 @@
-// 実行ファイル作成機能
+; 実行ファイル作成機能
 
 #module m_ginger_sub_build
 
 #define true 1
 #define false 0
 
-// 実行ファイルを生成する
+; 実行ファイルを生成する
 #enum build_format_exe = 1
-// オブジェクトファイルを生成する
+; オブジェクトファイルを生成する
 #enum build_format_ax
-// プリプロセス中間ファイルを生成する
+; プリプロセス中間ファイルを生成する
 #enum build_format_pp
 
-// build コマンドのエントリーポイント
-//
-// 成功したら stat=true
+; build コマンドのエントリーポイント
+;
+; 成功したら stat=true
 #deffunc ginger_sub_build_main var args, int argc, int show_help, var error
 
 	sdim s_src_path
@@ -35,9 +35,9 @@
 	ginger_sub_build_run error
 	return stat
 
-// 引数を解析する
-//
-// 成功したら stat=true
+; 引数を解析する
+;
+; 成功したら stat=true
 #deffunc ginger_sub_build_parse_args array args, int argc, var error, \
 	local i, local ok
 
@@ -87,9 +87,9 @@
 
 	return true
 
-// プリプロセスを行う
-//
-// 成功したら stat=true
+; プリプロセスを行う
+;
+; 成功したら stat=true
 #deffunc ginger_sub_build_preprocess var error, \
 	local hsp_dir, local src_dir, local hsptmp_text, local hsptmp_path, \
 	local ref_name, local message
@@ -100,18 +100,18 @@
 	hsptmp_path = "hsptmp"
 	hsptmp_text = "#cmpopt ppout 1\n#include \"" + s_src_path + "\""
 
-	// ppout を設定するための hsptmp を生成する。
+	; ppout を設定するための hsptmp を生成する。
 	notesel hsptmp_text
 	notesave hsptmp_path
 	noteunsel
 
-	// ref_name を再設定する。
-	gigner_args_get_ref_name ref_name
+	; ref_name を再設定する。
+	ginger_args_get_ref_name ref_name
 	if stat == false {
 		ref_name = getpath(getpath(s_src_path, getpath_no_ext), getpath_basename)
 	}
 
-	// プリプロセスを行う。
+	; プリプロセスを行う。
 	ginger_compile_set_pp_only true
 
 	ginger_compile_get_hsp_dir hsp_dir
@@ -131,9 +131,9 @@
 	ginger_infra_stdout message
 	return true
 
-// ビルドを行う
-//
-// 成功したら stat=true
+; ビルドを行う
+;
+; 成功したら stat=true
 #deffunc ginger_sub_build_run var error, \
 	local hsp_dir, local runtime_name, local runtime_dir, local message
 

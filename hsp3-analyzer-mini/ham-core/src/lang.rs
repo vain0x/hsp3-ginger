@@ -1,8 +1,6 @@
-#![allow(unused)]
-
 use std::{ffi::OsStr, path::Path};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Lang {
     /// `.hsp` or `.as`
     Hsp3,

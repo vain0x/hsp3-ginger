@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import {
   WorkspaceFolder,
   DebugConfiguration,
-  ProviderResult,
   CancellationToken,
 } from "vscode";
 import { Hsp3DebugType } from "./constants";
@@ -14,7 +13,6 @@ export function activate(context: vscode.ExtensionContext) {
   const provider = new GingerConfigProvider()
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(Hsp3DebugType, provider))
   context.subscriptions.push(vscode.commands.registerCommand("hsp3-debug-ginger.selectRoot", selectRoot))
-  context.subscriptions.push(vscode.commands.registerCommand("hsp3-debug-ginger.adapterExecutableCommand", adapterExecutableCommand))
   context.subscriptions.push(provider)
 }
 
@@ -27,7 +25,7 @@ class GingerConfigProvider implements vscode.DebugConfigurationProvider {
     _folder: WorkspaceFolder | undefined,
     config: DebugConfiguration,
     _token?: CancellationToken
-  ): ProviderResult<DebugConfiguration> {
+  ): Promise<DebugConfiguration> {
     return (async () => {
       config.cwd = calcCwd()
       config.root = await selectRoot()
@@ -44,17 +42,6 @@ class GingerConfigProvider implements vscode.DebugConfigurationProvider {
 
   dispose() {
     // pass
-  }
-}
-
-const adapterExecutableCommand = async () => {
-  const cwd = calcCwd()
-  const rootPath = await selectRoot()
-  const command = path.resolve(__dirname, "../out/middle-adapter.exe")
-
-  return {
-    command,
-    args: [cwd, rootPath],
   }
 }
 

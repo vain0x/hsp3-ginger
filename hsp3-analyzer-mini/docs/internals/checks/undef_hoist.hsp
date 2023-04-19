@@ -1,0 +1,18 @@
+; 巻き上げられるシンボルをundefしたときの挙動。
+; 前方参照は解決されなくなる。後方参照はundefの後で解決される。
+
+    ; f // NG
+
+#module
+
+#deffunc opt
+    opt
+
+#deffunc f
+    ; if 0 : f // OK
+#undef f
+    return
+
+#global
+
+    f ; OK

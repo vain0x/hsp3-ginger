@@ -1,6 +1,6 @@
 # GINGER the HSP3 Debugger
 
-*WIP: 開発中*
+*WIP: 開発中。動作しません*
 
 ## 概要
 

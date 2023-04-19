@@ -2,5 +2,12 @@
 members = [
     "ham-core",
     "ham-lsp-server-dll",
-    "ham-lsp-server-exe"
+    "ham-lsp-server-exe",
+    "ham-rewrite",
 ]
+
+[profile.release]
+# 以下の設定で実行ファイルが小さくなる。(リリースビルドのみ)
+# 参考: <https://github.com/johnthagen/min-sized-rust>
+lto = true
+panic = "abort"

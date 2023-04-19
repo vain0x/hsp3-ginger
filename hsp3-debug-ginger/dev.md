@@ -3,19 +3,20 @@
 ## 開発環境
 
 - OS: Windows 10
-- Visual Studio 2017 Community をインストールする。
+- [Visual Studio 2022 Community] をインストールする。
     - 「C++ のデスクトップ開発」の項目にチェックがついていることを確認。
     - hsp3debug の開発に使う。デバッガーのデバッグにも使える。
-    - これをインストールするときについてくる Visual Sutiod 2017 Build Tools が Rust でも必要になる。
-- Rust をインストールする。
-    - [Rust](https://www.rust-lang.org)
+    - これをインストールするときについてくる Visual Sutiod 2022 Build Tools が Rust でも必要になる。
+- [Rust] をインストールする。
     - デバッガーの本体の開発に使う。
-- Node.js をインストールする。
-    - [Node.js](https://nodejs.org)
-    - インストールすると node と npm 入る。
+- LLVM をインストールする。
+    - 現時点でのインストール方法: [llvm-project/Releases] の Assets から32ビット版のインストーラー (`LLVM-*-win32.exe`) をダウンロードして、実行する。
+    - [bindgen] が間接的に `libclang.dll` を使うため。
+- [Node.js] をインストールする。
+    - バージョンはLTS版が推奨される。
+    - インストールすると node と npm が入る。
     - VSCode 向けの拡張機能の開発に使う。
-- HSP コマンドラインコンパイラをインストールする。
-    - [cHspComp](http://lldev.jp/others/freeware.html#chspcomp)
+- [cHspComp] (HSP コマンドラインコンパイラ) をインストールする
     - exe を HSP のインストールディレクトリにコピーする。
     - HSP スクリプトのデバッグ実行を開始するのに使う。
 
@@ -26,11 +27,13 @@
 
 ## Appendix A. ターミナル (PowerShell)
 
-開発環境の構築時やコンパイル時などに PowerShell をよく使う。
+開発環境の構築時やコンパイル時などに PowerShell (pwsh) をよく使う。
+
+(現時点でのインストール方法: [PowerShell/Releases] の Assets から `*-win-x64.msi` という名前のインストーラーをダウンロードして、実行する。)
 
 ### ターミナル: PowerShell の開きかた
 
-ディレクトリを Shift キーを押しながら右クリックして、「ここで PowerShell を開く」を使う。
+ディレクトリを Shift キーを押しながら右クリックして、「PowerShell ウィンドウをここで開く」を使う。
 
 または、VSCode の統合ターミナルを使う。
 
@@ -61,3 +64,13 @@ new-item -itemType symbolicLink -path hsp3debug.dll -value "C:/repo/hsp3-debug-g
 この操作 (`new-item` コマンド) により、シンボリックリンク `C:/Program Files/hsp35/hsp3debug.dll` が生成される。これは `略/hsp3-debug-ginger.dll` にあるファイルと同一のものとみなされる。
 
 - シンボリックリンクは普通のファイルと同様に削除できる。
+
+
+
+[Visual Studio 2022 Community]: https://visualstudio.microsoft.com/ja/downloads/
+[Rust](https://www.rust-lang.org)
+[llvm-project/Releases]: https://github.com/llvm/llvm-project/releases
+[bindgen]: https://github.com/rust-lang/rust-bindgen
+[Node.js]: https://nodejs.org
+[cHspComp]: http://lldev.jp/others/freeware.html#chspcomp
+[PowerShell/Releases]: https://github.com/PowerShell/PowerShell/releases/latest

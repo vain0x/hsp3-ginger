@@ -1,15 +1,15 @@
-// LICENSE: CC0-1.0
-// v0
+; LICENSE: CC0-1.0
+; v0
 
-// WIP
+; WIP
 
-// LSP メッセージを送信する機能。
+; LSP メッセージを送信する機能。
 
-// メッセージのテンプレートとなる JSON ファイルを使用する。(messages ディレクトリ)
-// 参考: [LSP 仕様書](https://microsoft.github.io/language-server-protocol/specifications/specification-3-14/)
+; メッセージのテンプレートとなる JSON ファイルを使用する。(messages ディレクトリ)
+; 参考: [LSP 仕様書](https://microsoft.github.io/language-server-protocol/specifications/specification-3-14/)
 
-// 外部 API
-// app_do_send_msg data, data_len : LSP メッセージデータを送信する。
+; 外部 API
+; app_do_send_msg data, data_len : LSP メッセージデータを送信する。
 
 #ifndef included_mod_lsp_send_hsp
 #define included_mod_lsp_send_hsp
@@ -36,7 +36,7 @@
 	strrep "\\", "\\\\"
 	return
 
-// メッセージのテンプレートをファイルから読み込む。
+; メッセージのテンプレートをファイルから読み込む。
 #deffunc local lsp_send_load_file str file_name, \
 	local file_size
 
@@ -54,7 +54,7 @@
 	poke s_body, file_size, 0
 	return file_size
 
-// 現在のメッセージを送信する。
+; 現在のメッセージを送信する。
 #deffunc lsp_send_do_send \
 	local body_len
 
@@ -74,7 +74,7 @@
 	s_body = ""
 	return
 
-// initialize リクエストを送信し、サーバーに起動の準備をさせる。
+; initialize リクエストを送信し、サーバーに起動の準備をさせる。
 #deffunc lsp_send_initialize \
 	int msg_id, \
 	int process_id, \
@@ -95,15 +95,15 @@
 	lsp_send_do_send
 	return
 
-// initialized 通知を送信する。
+; initialized 通知を送信する。
 #deffunc lsp_send_initialized
 
 	lsp_send_load_file "messages/initialized_notification.json"
 	lsp_send_do_send
 	return
 
-// shutdown リクエストを送信し、サーバーに終了の準備をさせる。
-// この段階ではサーバーはまだ終了しない。これのレスポンスを受け取った後に exit 通知を送信することで正常に終了する。
+; shutdown リクエストを送信し、サーバーに終了の準備をさせる。
+; この段階ではサーバーはまだ終了しない。これのレスポンスを受け取った後に exit 通知を送信することで正常に終了する。
 #deffunc lsp_send_shutdown int msg_id
 
 	lsp_send_load_file "messages/shutdown_request.json"
@@ -113,8 +113,8 @@
 	lsp_send_do_send
 	return
 
-// exit 通知を送信し、サーバーを終了させる。
-// これを送る前に shutdown リクエストを送信し、レスポンスを受け取らなければいけない。
+; exit 通知を送信し、サーバーを終了させる。
+; これを送る前に shutdown リクエストを送信し、レスポンスを受け取らなければいけない。
 #deffunc lsp_send_exit
 
 	lsp_send_load_file "messages/exit_notification.json"

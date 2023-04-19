@@ -1,12 +1,7 @@
-adapter/target
-adapter/Cargo.lock
+/target/
 hsp3debug/hsp3-debug-ginger/hsp3-debug-ginger.vcxproj.user
-middle-adapter/target
-middle-adapter/Cargo.lock
-mock/package-lock.json
 vscode-ext/build.vsix
 vscode-ext/out/*.js
 vscode-ext/out/*.js.map
 vscode-ext/out/**/*.exe
 vscode-ext/out/**/*.dll
-vscode-ext/package-lock.json

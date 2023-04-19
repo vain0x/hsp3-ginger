@@ -1,0 +1,29 @@
+@startuml
+participant VSCode as code
+participant dap
+participant HSP as hsp
+
+code -> dap: initializeリクエスト
+code <-- dap: initializeレスポンス
+
+code <- dap: initializedイベント
+code -> dap: launchリクエスト
+dap --> hsp: 実行
+code <-- dap: launchレスポンス
+
+hsp-->hsp: 実行中
+
+group 中止時
+code -> dap: terminateリクエスト
+dap -> hsp: キル
+dap <-- hsp: 終了 (exited)
+destroy hsp
+code <-- dap: terminateレスポンス
+
+code <- dap: terminatedイベント
+code <- dap: exitedイベント
+destroy dap
+
+code --> code: デバッグ終了
+end
+@enduml

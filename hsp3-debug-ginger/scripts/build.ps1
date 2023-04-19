@@ -1,5 +1,5 @@
 cargo --version
-if (!$?) { exit 1}
+if (!$?) { exit 1 }
 
 npm --version
 if (!$?) { exit 1 }
@@ -18,12 +18,12 @@ cp ./hsp3debug/Release/hsp3-debug-ginger.dll ./vscode-ext/out/x86-sjis/hsp3debug
 cd middle-adapter
 cargo build --release
 cd ..
-cp ./middle-adapter/target/release/middle-adapter.exe ./vscode-ext/out/middle-adapter.exe
+cp ./target/middle-adapter/release/middle-adapter.exe ./vscode-ext/out/middle-adapter.exe
 
 cd adapter
 cargo build --release --target i686-pc-windows-msvc
 cd ..
-cp ./adapter/target/i686-pc-windows-msvc/release/hsp3_debug_adapter.dll ./vscode-ext/out/x86-sjis/hsp3debug-ginger-adapter.dll
+cp ./target/adapter/i686-pc-windows-msvc/release/hsp3_debug_adapter.dll ./vscode-ext/out/x86-sjis/hsp3debug-ginger-adapter.dll
 
 cd vscode-ext
 npm run compile

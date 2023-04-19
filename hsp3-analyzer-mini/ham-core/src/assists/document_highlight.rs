@@ -1,29 +1,28 @@
-use super::{loc_to_range, to_loc};
-use crate::{lang_service::docs::Docs, sem::ProjectSem};
+use super::*;
+use crate::{assists::from_document_position, lang_service::docs::Docs};
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Url};
 
 pub(crate) fn document_highlight(
     uri: Url,
     position: Position,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<DocumentHighlight>> {
-    let loc = to_loc(&uri, position, docs)?;
-    let doc = loc.doc;
-    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start)?;
-    let symbol_id = symbol.symbol_id;
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let project = wa.require_project_for_doc(doc);
+    let (symbol, _) = project.locate_symbol(doc, pos)?;
 
     let mut locs = vec![];
     let mut highlights = vec![];
 
-    sem.get_symbol_defs(symbol_id, &mut locs);
+    project.collect_symbol_defs(&symbol, &mut locs);
     highlights.extend(
         locs.drain(..)
-            .map(|loc| (DocumentHighlightKind::Write, loc)),
+            .map(|loc| (DocumentHighlightKind::WRITE, loc)),
     );
 
-    sem.get_symbol_uses(symbol_id, &mut locs);
-    highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::Read, loc)));
+    project.collect_symbol_uses(&symbol, &mut locs);
+    highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::READ, loc)));
 
     highlights.retain(|(_, loc)| loc.doc == doc);
 

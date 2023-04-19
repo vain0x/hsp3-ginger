@@ -5,13 +5,12 @@
       "type": "extensionHost",
       "request": "launch",
       "name": "Extension",
-      "preLaunchTask": "npm:build",
       "runtimeExecutable": "${execPath}",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}"
       ],
       "outFiles": [
-        "${workspaceFolder}/vscode-ext/out/**/*.js"
+        "${workspaceFolder}/vscode-ext/dist/**/*.js"
       ],
       "env": {
         "HSP3_DEBUG_WINDOW_ADAPTER_DEBUG": "1",

@@ -1,11 +1,11 @@
-// ヘルプ機能
+; ヘルプ機能
 
 #module m_ginger_sub_help
 
 #define true 1
 #define false 0
 
-// help コマンドのエントリーポイント
+; help コマンドのエントリーポイント
 #deffunc ginger_sub_help_main array args, int argc, int show_help, var s_error, \
 	local content, local text
 
@@ -27,6 +27,8 @@
 
 \tbuild <スクリプトファイル> --pp
 \t\tスクリプトのプリプロセスを行い、中間ファイルを生成します。(#cmpopt ppout 参照)
+
+\tdotfiles [種類...] (詳細は `ginger dotfiles --help` で表示。)
 "}
 
 	ginger_sub_help_layout content, text
@@ -34,7 +36,7 @@
 	ginger_infra_stdout text
 	return false
 
-// ヘルプテキスト全体を構築する
+; ヘルプテキスト全体を構築する
 #deffunc ginger_sub_help_layout str content, var text, \
 	local exe_name
 

@@ -15,8 +15,8 @@ import {
   ContinuedEvent,
   Scope,
   Variable,
-} from 'vscode-debugadapter';
-import { DebugProtocol } from 'vscode-debugprotocol';
+} from '@vscode/debugadapter';
+import { DebugProtocol } from '@vscode/debugprotocol';
 import { basename } from 'path';
 import { GingerConnectionServer } from './ginger-connection';
 const { Subject } = require('await-notify');
@@ -287,7 +287,16 @@ export class GingerDebugSession extends LoggingDebugSession {
   private startProgram(args: LaunchRequestArguments) {
     const entryPath = path.resolve(args.cwd, args.program)
     const runtimePath = path.resolve(args.cwd, args.root, "chspcomp.exe")
-    spawn(runtimePath, ["/diw", entryPath], { cwd: args.cwd })
+    const p = spawn(runtimePath, ["/diw", entryPath], { cwd: args.cwd })
+    p.on("close", () => {
+      console.log("chspcomp:  close")
+    })
+    p.on("exit", code => {
+      console.log("chspcomp: exited", code)
+    })
+    p.on("error", () => {
+      console.error("chspcomp: error", { runtimePath, entryPath, cwd: args.cwd })
+    })
   }
 
   private currentStack(startFrame: number) {

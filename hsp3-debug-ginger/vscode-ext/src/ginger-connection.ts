@@ -1,7 +1,7 @@
 import { server as WebSocketServer } from "websocket";
 import * as Http from "http";
 import * as WebSocket from "websocket";
-import { logger } from "vscode-debugadapter";
+import { logger } from "@vscode/debugadapter";
 import {
   Hsp3DebugAdapterProtocol,
   Hsp3DebugAdapterPort,

@@ -1,20 +1,46 @@
-use super::{loc_to_location, to_loc};
-use crate::{lang_service::docs::Docs, sem::ProjectSem};
+use super::*;
+use crate::{assists::from_document_position, lang_service::docs::Docs};
 use lsp_types::{Location, Position, Url};
+
+fn goto_symbol_definition(
+    doc: DocId,
+    pos: Pos16,
+    wa: &mut WorkspaceAnalysis,
+    locs: &mut Vec<Loc>,
+) -> Option<()> {
+    let project = wa.require_project_for_doc(doc);
+    let (symbol, _) = project.locate_symbol(doc, pos)?;
+    project.collect_symbol_defs(&symbol, locs);
+    Some(())
+}
+
+fn goto_include_target(
+    doc: DocId,
+    pos: Pos16,
+    wa: &mut WorkspaceAnalysis,
+    locs: &mut Vec<Loc>,
+) -> Option<()> {
+    let project = wa.require_project_for_doc(doc);
+    let dest_doc = project.find_include_target(doc, pos)?;
+    locs.push(Loc::from_doc(dest_doc));
+    Some(())
+}
 
 pub(crate) fn definitions(
     uri: Url,
     position: Position,
     docs: &Docs,
-    sem: &mut ProjectSem,
+    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<Location>> {
-    let loc = to_loc(&uri, position, docs)?;
-    let (symbol, _) = sem.locate_symbol(loc.doc, loc.start)?;
-    let symbol_id = symbol.symbol_id;
-
+    let (doc, pos) = from_document_position(&uri, position, docs)?;
     let mut locs = vec![];
 
-    sem.get_symbol_defs(symbol_id, &mut locs);
+    let ok = goto_symbol_definition(doc, pos, wa, &mut locs).is_some()
+        || goto_include_target(doc, pos, wa, &mut locs).is_some();
+    if !ok {
+        debug_assert_eq!(locs.len(), 0);
+        return None;
+    }
 
     Some(
         locs.into_iter()
