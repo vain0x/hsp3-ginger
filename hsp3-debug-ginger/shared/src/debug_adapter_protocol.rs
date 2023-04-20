@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct LaunchRequestArgs {
+pub struct LaunchRequestArgs {
     /** カレントディレクトリ (現在はワークスペースのルートディレクトリが入る) */
     pub cwd: String,
     /** HSP のインストールディレクトリ */
@@ -12,13 +14,13 @@ pub(crate) struct LaunchRequestArgs {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct Thread {
+pub struct Thread {
     pub id: i64,
     pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct StackFrame {
+pub struct StackFrame {
     pub id: i64,
     pub name: String,
     pub line: usize,
@@ -26,14 +28,14 @@ pub(crate) struct StackFrame {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct Source {
+pub struct Source {
     pub name: String,
     pub path: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Scope {
+pub struct Scope {
     pub name: String,
     pub variables_reference: i64,
     pub expensive: bool,
@@ -41,7 +43,7 @@ pub(crate) struct Scope {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Variable {
+pub struct Variable {
     pub name: String,
     pub value: String,
     #[serde(rename = "type")]
@@ -52,7 +54,7 @@ pub(crate) struct Variable {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "command", content = "arguments", rename_all = "camelCase")]
-pub(crate) enum Request {
+pub enum Request {
     SetExceptionBreakpoints {
         filters: Vec<String>,
     },
@@ -103,7 +105,7 @@ pub(crate) enum Request {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "command", content = "body", rename_all = "camelCase")]
-pub(crate) enum Response {
+pub enum Response {
     Initialize,
     SetExceptionBreakpoints,
     ConfigurationDone,
@@ -141,7 +143,7 @@ pub(crate) enum Response {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "type", rename_all = "camelCase")]
-pub(crate) enum Msg {
+pub enum Msg {
     Request {
         seq: i64,
         #[serde(flatten)]
@@ -161,7 +163,7 @@ pub(crate) enum Msg {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "event", content = "body", rename_all = "camelCase")]
-pub(crate) enum Event {
+pub enum Event {
     Initialized,
     #[serde(rename_all = "camelCase")]
     Stopped {

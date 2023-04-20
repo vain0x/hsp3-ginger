@@ -9,13 +9,31 @@ build = "src/build.rs"
 bindgen = "0"
 
 [dependencies]
-encoding = "0"
-log = "0"
+shared = { path = "../shared" }
+
+# shift_jis との変換のため
+# https://github.com/lifthrasiir/rust-encoding
+encoding = "0.2"
+
+# For logging with stdio
+# https://github.com/rust-cli/env_logger/
+env_logger = { version = "0.10.0", default-features = false }
+
+# For logging macros (info!() etc.)
+# <https://github.com/rust-lang/log>
+log = "0.4.17"
+
+# (用途不明)
 libc = "0"
+
+# For JSON conversion
+# <https://github.com/serde-rs/serde>
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Win32 API
+# (stringapiset: for MultibyteToWideChar etc.)
 winapi = { version = "0", features = ["stringapiset", "winuser"] }
-serde = "1"
-serde_derive = "1"
-serde_json = "1"
 
 [lib]
 crate-type = ["cdylib"]

@@ -12,6 +12,7 @@ pub(crate) fn to_u16s(s: &str) -> Vec<u16> {
 
 /// ANSI 文字列 (日本語版 Windows では cp932) を utf-16 に変換する。
 #[cfg(windows)]
+#[allow(unused)]
 fn ansi_to_wide_string(s: &[u8]) -> Vec<u16> {
     let size = unsafe {
         winapi::um::stringapiset::MultiByteToWideChar(

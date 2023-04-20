@@ -1,31 +1,16 @@
 //! デバッガーのエントリーポイント。
 
-
-
-
-
-#[cfg(windows)]
-extern crate winapi;
-
-#[macro_use]
-extern crate serde_derive;
-
-#[allow(unused_imports)]
-#[macro_use]
-extern crate log;
-
 mod app;
 mod connection;
-mod debug_adapter_connection;
-mod debug_adapter_protocol;
 mod helpers;
 mod hsp_ext;
 mod hsprt;
 mod hspsdk;
 mod logger;
 
-use crate::debug_adapter_protocol as dap;
 use crate::hsprt::*;
+use log::{debug, info, warn};
+use shared::debug_adapter_protocol as dap;
 use std::ops::*;
 use std::sync::mpsc;
 use std::{cell, ptr, thread, time};

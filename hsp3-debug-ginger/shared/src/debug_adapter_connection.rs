@@ -1,7 +1,7 @@
 use log::{debug, error};
 use std::io::{BufRead, Write};
 
-pub(crate) struct DebugAdapterReader<R> {
+pub struct DebugAdapterReader<R> {
     r: R,
     line: String,
 }
@@ -50,7 +50,7 @@ impl<R: BufRead> DebugAdapterReader<R> {
     }
 }
 
-pub(crate) struct DebugAdapterWriter<W> {
+pub struct DebugAdapterWriter<W> {
     w: W,
     buffer: Vec<u8>,
 }

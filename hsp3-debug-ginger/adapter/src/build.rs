@@ -1,7 +1,8 @@
-extern crate bindgen;
+// ビルド時に実行されるスクリプト
+// ref: https://doc.rust-lang.org/cargo/reference/build-scripts.html
 
-use std::env;
-use std::path::PathBuf;
+use bindgen;
+use std::{env, path::PathBuf};
 
 fn main() {
     // hspsdk.h を Rust に変換する。

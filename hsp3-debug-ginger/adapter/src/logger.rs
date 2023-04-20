@@ -1,4 +1,4 @@
-use crate::log;
+use log::info;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};

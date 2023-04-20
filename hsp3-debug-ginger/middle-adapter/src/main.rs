@@ -9,26 +9,12 @@
 //! 3. LaunchRequest の引数として渡される情報を adapter に引き渡す。
 //! 4. TCP での通信を標準入出力に転送して、adapter と VSCode が通信できるようにする。
 
-use log;
-
-#[macro_use]
-extern crate serde_derive;
-
-use crate::debug_adapter_connection as dac;
-use crate::debug_adapter_protocol as dap;
-use crate::log::{debug, error, info, warn};
-use std::io::{Read, Write};
-use std::{io, net, path, process, thread};
-
-#[allow(unused)]
-mod debug_adapter_protocol {
-    include!("../../adapter/src/debug_adapter_protocol.rs");
-}
-
-#[allow(unused)]
-mod debug_adapter_connection {
-    include!("../../adapter/src/debug_adapter_connection.rs");
-}
+use log::{debug, error, info, warn};
+use shared::{debug_adapter_connection as dac, debug_adapter_protocol as dap};
+use std::{
+    io::{self, Read, Write},
+    net, path, process, thread,
+};
 
 struct BeforeLaunchHandler {
     r: dac::DebugAdapterReader<io::BufReader<io::Stdin>>,
@@ -73,10 +59,7 @@ impl BeforeLaunchHandler {
                 });
             }
             _ => {
-                warn!(
-                    "コマンドを認識できませんでした {:?}",
-                    command
-                );
+                warn!("コマンドを認識できませんでした {:?}", command);
                 return None;
             }
         }
@@ -199,20 +182,20 @@ impl Program {
         let listener =
             net::TcpListener::bind(net::SocketAddr::from(([127, 0, 0, 1], port))).unwrap();
 
-        // thread::spawn(move || {
-        //     let mut stream = net::TcpStream::connect(("127.0.0.1", port)).unwrap();
-        //     let mut buf = vec![0; 1000];
-        //     loop {
-        //         match stream.read(&mut buf) {
-        //             Ok(0) => break,
-        //             Ok(n) => {
-        //                 stream.write_all(&buf[0..n]).unwrap();
-        //                 continue;
-        //             }
-        //             Err(_) => panic!(),
-        //         }
-        //     }
-        // });
+        thread::spawn(move || {
+            let mut stream = net::TcpStream::connect(("127.0.0.1", port)).unwrap();
+            let mut buf = vec![0; 1000];
+            loop {
+                match stream.read(&mut buf) {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        stream.write_all(&buf[0..n]).unwrap();
+                        continue;
+                    }
+                    Err(_) => panic!(),
+                }
+            }
+        });
 
         info!("デバッグ実行を開始します");
 

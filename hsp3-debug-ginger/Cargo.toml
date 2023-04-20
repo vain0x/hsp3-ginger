@@ -1,2 +1,2 @@
 [workspace]
-members = ["adapter", "middle-adapter"]
+members = ["adapter", "middle-adapter", "shared"]

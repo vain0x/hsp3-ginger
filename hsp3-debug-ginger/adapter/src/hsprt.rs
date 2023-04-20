@@ -1,5 +1,6 @@
 use crate::app;
 use crate::hspsdk;
+use log::error;
 use std::sync::mpsc;
 
 /// HSP ランタイムへの命令や問い合わせを表す。

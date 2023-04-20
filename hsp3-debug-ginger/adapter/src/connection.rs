@@ -1,16 +1,11 @@
 //! VSCode 側のデバッガーアダプターと通信する。
 
-#![allow(unused_imports)]
-
 use crate::app;
-use crate::debug_adapter_connection as dac;
-use crate::debug_adapter_protocol as dap;
-use crate::hsprt;
-use crate::hspsdk;
-use crate::logger;
+use log::{error, info, warn};
+use shared::{debug_adapter_connection as dac, debug_adapter_protocol as dap};
 use std;
 use std::sync::mpsc;
-use std::{fmt, io, mem, net, sync, thread, time};
+use std::{io, net, thread};
 
 /// コネクションワーカーが扱える操作。
 #[derive(Clone, Debug)]

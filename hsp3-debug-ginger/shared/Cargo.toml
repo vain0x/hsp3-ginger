@@ -1,0 +1,16 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# For logging macros (info!() etc.)
+# <https://github.com/rust-lang/log>
+log = "0.4.17"
+
+# For JSON conversion
+# <https://github.com/serde-rs/serde>
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

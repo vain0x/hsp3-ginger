@@ -5,8 +5,20 @@ authors = ["vain0x <vainzerox@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-env_logger = { version = "0", default-features = false }
-log = "0"
-serde = "1"
-serde_derive = "1"
-serde_json = "1"
+shared = { path = "../shared" }
+
+# For logging with stdio
+# https://github.com/rust-cli/env_logger/
+env_logger = { version = "0.10.0", default-features = false }
+
+# For logging macros (info!() etc.)
+# <https://github.com/rust-lang/log>
+log = "0.4.17"
+
+# For JSON conversion
+# <https://github.com/serde-rs/serde>
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# For CreateNamedPipeA
+winapi = { version = "0", features = ["winbase", "winuser"] }
