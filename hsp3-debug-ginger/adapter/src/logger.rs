@@ -34,6 +34,7 @@ impl log::Log for MyLogger {
     }
 }
 
+// FIXME: replace with shared::file_logger::FileLogger
 struct FileLogger {
     file: io::BufWriter<fs::File>,
 }
