@@ -120,7 +120,9 @@ BOOL APIENTRY DllMain(
     {
         case DLL_PROCESS_ATTACH: {
 #ifndef NDEBUG
-            MessageBox(nullptr, L"attach!", L"hsp3debug", MB_OK);
+            if (GetKeyState(VK_SHIFT) & 0x8000) {
+                MessageBox(nullptr, TEXT("デバッガーの起動中に停止しています。(Ctrl+Alt+P でプロセス hsp3.exe にアタッチし、デバッグを開始できます)"), TEXT("hsp3debug"), MB_OK);
+            }
 #endif
             auto dir_name = current_module_directory_name(h_module);
             auto lib = attach_debugger(dir_name);
@@ -143,7 +145,7 @@ BOOL APIENTRY DllMain(
 EXPORT BOOL APIENTRY debugini(HSP3DEBUG* p1, int p2, int p3, int p4)
 {
     if (!s_lib || !s_lib.debug_notice) {
-        fail_with(L"Couldn't not load debugini from the library.");
+        fail_with(L"Couldn't load debugini from the library.");
     }
 
     (s_lib.debugini)(p1, p2, p3, p4);
@@ -154,7 +156,7 @@ EXPORT BOOL APIENTRY debugini(HSP3DEBUG* p1, int p2, int p3, int p4)
 EXPORT BOOL WINAPI debug_notice(HSP3DEBUG* p1, int p2, int p3, int p4)
 {
     if (!s_lib || !s_lib.debug_notice) {
-        fail_with(L"Couldn't not load debug_notice from the library.");
+        fail_with(L"Couldn't load debug_notice from the library.");
     }
 
     (s_lib.debug_notice)(p1, p2, p3, p4);
