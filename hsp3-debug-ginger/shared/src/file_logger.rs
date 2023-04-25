@@ -39,7 +39,8 @@ impl Log for FileLogger {
             record.level(),
             record.args()
         )
-        .unwrap();
+        .expect("write");
+        f.flush().expect("flush");
     }
 
     fn flush(&self) {

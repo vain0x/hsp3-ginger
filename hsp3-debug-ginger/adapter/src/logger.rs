@@ -16,7 +16,8 @@ impl MyLogger {
 
 impl log::Log for MyLogger {
     fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
-        metadata.level() <= log::Level::Debug
+        // metadata.level() <= log::Level::Debug
+        true
     }
 
     fn log(&self, record: &log::Record<'_>) {
@@ -36,18 +37,19 @@ impl log::Log for MyLogger {
 
 // FIXME: replace with shared::file_logger::FileLogger
 struct FileLogger {
-    file: io::BufWriter<fs::File>,
+    // file: io::BufWriter<fs::File>,
+    file: fs::File,
 }
 
 impl FileLogger {
     fn create(file_path: &Path) -> io::Result<FileLogger> {
         let file = fs::File::create(file_path)?;
-        let file = io::BufWriter::new(file);
+        // let file = io::BufWriter::new(file);
         Ok(FileLogger { file })
     }
 
     fn flush(&mut self) {
-        self.file.flush().ok();
+        self.file.flush().expect("flush");
     }
 }
 
@@ -108,7 +110,10 @@ where
         match *logger_lock {
             LazyInit::Uninit => unreachable!(),
             LazyInit::Deinit => {}
-            LazyInit::Value(ref mut l) => f(l),
+            LazyInit::Value(ref mut l) => {
+                f(l);
+                // l.flush();
+            }
         }
 
         Some(())

@@ -15,6 +15,10 @@ env_logger = { version = "0.10.0", default-features = false }
 # <https://github.com/rust-lang/log>
 log = "0.4.17"
 
+# アダプタープロセスと接続する名前付きパイプのため
+# <https://github.com/blackbeam/named_pipe>
+named_pipe = "0.4.1"
+
 # For JSON conversion
 # <https://github.com/serde-rs/serde>
 serde = { version = "1.0", features = ["derive"] }

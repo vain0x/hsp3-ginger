@@ -32,7 +32,7 @@ impl Sender {
     pub fn send(&self, action: Action, pausing: bool) {
         self.sender
             .send(action)
-            .map_err(|err| error!("{:?}", err))
+            .map_err(|err| error!("[hsprt] {:?}", err))
             .ok();
 
         if pausing {

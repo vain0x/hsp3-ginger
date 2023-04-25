@@ -83,7 +83,10 @@ pub(crate) struct Sender {
 
 impl Sender {
     pub(crate) fn send(&self, action: Action) {
-        self.sender.send(action).map_err(|e| error!("{:?}", e)).ok();
+        self.sender
+            .send(action)
+            .map_err(|e| error!("[app] {:?}", e))
+            .ok();
     }
 }
 
