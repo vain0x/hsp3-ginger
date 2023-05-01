@@ -50,11 +50,11 @@
 - `adapter` (hsp3-debug-adapter)
     - Rust。Windows 用の DLL を生成する。
     - `hsp3debug` からアタッチされる。
-    - TCP クライアントを実行して、 `middle-adapter` 経由で VSCode と通信する。
+    - 名前付きパイプに接続して、 `middle-adapter` 経由で VSCode と通信する。
     - HSP ランタイムの内部状態を解析して、デバッガーアダプタープロトコルにのっとったメッセージを生成する。
 - `middle-adapter` (hsp3-debug-ginger-middle)
     - Rust。コンソールアプリ。
-    - TCP サーバーを起動して、 VSCode と `adapter` の通信を中継する。
+    - 名前付きパイプを生成して、 VSCode と `adapter` の通信を中継する。
 - `vscode-ext` (vscode-hsp3-debug-ginger)
     - TypeScript
     - VSCode のデバッガー拡張機能から呼び出される。

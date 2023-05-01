@@ -2,15 +2,13 @@
 
 use crate::app;
 use log::{debug, error, info, warn};
-use named_pipe::PipeClient;
 use shared::{debug_adapter_connection as dac, debug_adapter_protocol as dap};
 use std::{
     fs::{self, File},
     io,
-    sync::{mpsc, Arc, Mutex},
+    sync::mpsc,
     thread,
 };
-use winapi::um::winbase::WaitNamedPipeA;
 
 /// コネクションワーカーが扱える操作。
 #[derive(Clone, Debug)]
@@ -39,9 +37,7 @@ impl Sender {
 pub(crate) struct Worker {
     app_sender: app::Sender,
     receiver: mpsc::Receiver<Action>,
-    // connection: Option<(net::TcpStream, thread::JoinHandle<()>)>,
-    // connection: Option<(File, thread::JoinHandle<()>)>,
-    connection: Option<(PipeClient, thread::JoinHandle<()>)>,
+    connection: Option<(File, thread::JoinHandle<()>)>,
 }
 
 impl Worker {
@@ -68,52 +64,25 @@ impl Worker {
                         continue;
                     }
 
-                    // let port = 57676;
-                    // let stream = match net::TcpStream::connect(("127.0.0.1", port)) {
-                    //     Ok(stream) => stream,
-                    //     Err(err) => {
-                    //         error!("{:?}", err);
-                    //         continue;
-                    //     }
-                    // };
-                    debug!("Connecting");
-                    let pipe = PipeClient::connect(r"\\.\pipe\hdg-pipe").expect("connect");
-                    debug!("connected");
-                    let pipe = Arc::new(Mutex::new(pipe));
-                    // let in_stream = PipeClient::connect(r"\\.\pipe\hdg-pipe").expect("connect(in)");
-                    // debug!("connect(in)");
-                    // let out_stream =
-                    //     PipeClient::connect(r"\\.\pipe\hdg-pipe").expect("connect(out)");
-                    // debug!("connect(out)");
-                    // let in_stream = fs::OpenOptions::new()
-                    //     .read(true)
-                    //     .open(r"\\.\pipe\hdg-pipe")
-                    //     .expect("open read pipe");
-                    // let out_stream = fs::OpenOptions::new()
-                    //     .write(true)
-                    //     .append(true)
-                    //     .open(r"\\.\pipe\hdg-pipe")
-                    //     .expect("open write pipe");
+                    // middle-adpterが生成した名前付きパイプを開く
+                    // (クライアント側は普通にファイルとして開くことができる)
+                    // また、パイプを読み込み用と書き込み用に複製する
+                    // (同一のパイプを指すオブジェクトを2つ作るということ。
+                    //  Rustの所有権ルールのため、2つのスレッドからパイプにアクセスするためにはパイプへの参照が2つ必要となる)
 
-                    // WaitNamedPipe
-                    // debug!("Waiting pipes");
-                    // {
-                    //     let pipe_name = concat!(r"\\.\pipe\hdg-pipe", "\0");
-                    //     let ok =
-                    //         unsafe { WaitNamedPipeA(pipe_name.as_ptr() as *const i8, 1000u32) }
-                    //             != 0;
-                    //     debug!("wait={}", ok);
-                    // }
+                    debug!("[connection] クライアント側のパイプを開く");
+                    let mut in_stream = fs::OpenOptions::new()
+                        .read(true)
+                        .write(true)
+                        .open(r"\\.\pipe\hdg-pipe")
+                        .expect("open read pipe");
+                    let out_stream = in_stream.try_clone().expect("duplicate pipe");
 
                     // 受信したメッセージを処理するためのワーカースレッドを建てる。
                     let app_sender = self.app_sender.clone();
-                    let s1 = pipe.clone();
                     let join_handle = thread::spawn(move || {
-                        let in_stream = s1.lock().unwrap();
-                        in_stream.read_async_owned(buf); // ?
-
                         let mut r =
-                            dac::DebugAdapterReader::new(io::BufReader::new(&mut *in_stream));
+                            dac::DebugAdapterReader::new(io::BufReader::new(&mut in_stream));
                         let mut buf = Vec::new();
                         loop {
                             debug!("[dap-reader] recv");

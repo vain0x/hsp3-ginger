@@ -4,16 +4,15 @@
 //! ### 責務
 //! 1. デバッグアダプタープロトコルのうち、InitializeRequest から
 //!     LaunchRequest へのレスポンスまで処理する。
-//! 2. LaunchRequest のレスポンスを返した後、TCP サーバーを起動して、
+//! 2. LaunchRequest のレスポンスを返した後、名前付きパイプを生成して、
 //!     HSP ランタイムと接続しているはずの adapter と接続する。
 //! 3. LaunchRequest の引数として渡される情報を adapter に引き渡す。
-//! 4. TCP での通信を標準入出力に転送して、adapter と VSCode が通信できるようにする。
+//! 4. 名前付きパイプの通信を標準入出力に転送して、adapter と VSCode が通信できるようにする。
 
 mod pipe;
 
-// use crate::pipe::Pipe;
+use crate::pipe::Pipe;
 use log::{debug, error, info, warn};
-use named_pipe::{ConnectingServer, PipeClient, PipeOptions, PipeServer};
 use shared::{
     debug_adapter_connection as dac,
     debug_adapter_protocol::{self as dap, LaunchRequestArgs},
@@ -22,11 +21,8 @@ use shared::{
 use std::{
     io::{self, Read, Write},
     path::PathBuf,
-    process,
-    sync::{Arc, Mutex},
-    thread,
+    process, thread,
 };
-// use winapi::um::winbase::WaitNamedPipeA;
 
 struct BeforeLaunchHandler {
     r: dac::DebugAdapterReader<io::BufReader<io::Stdin>>,
@@ -105,22 +101,18 @@ impl BeforeLaunchHandler {
 struct AfterLaunchHandler {
     launch_seq: i64,
     args: dap::LaunchRequestArgs,
-    // stream: Option<net::TcpStream>,
-    // stream: Option<Pipe>,
-    stream: Option<PipeServer>,
+    stream: Option<Pipe>,
 }
 
 impl AfterLaunchHandler {
     fn run(&mut self) {
-        let stream = self.stream.take().unwrap();
-        // let mut out_stream = in_stream.try_clone().unwrap();
-        let stream = Arc::new(Mutex::new(stream));
+        let mut in_stream = self.stream.take().unwrap();
+        let mut out_stream = in_stream.try_clone().expect("duplicate pipe");
 
         info!("オプションを送信します");
 
         {
-            let mut out_stream = stream.lock().unwrap();
-            let mut w = dac::DebugAdapterWriter::new(&mut *out_stream);
+            let mut w = dac::DebugAdapterWriter::new(&mut out_stream);
             w.write(&dap::Msg::Request {
                 seq: self.launch_seq,
                 e: dap::Request::Launch {
@@ -131,7 +123,6 @@ impl AfterLaunchHandler {
 
         info!("通信の中継を開始します");
 
-        let s1 = stream.clone();
         let j1 = thread::spawn(move || {
             let mut stdin = io::stdin();
             let mut buf = vec![0; 4096];
@@ -142,7 +133,6 @@ impl AfterLaunchHandler {
                 }
 
                 {
-                    let mut out_stream = s1.lock().unwrap();
                     out_stream.write_all(&buf[0..n])?;
                     out_stream.flush()?;
                 }
@@ -150,14 +140,10 @@ impl AfterLaunchHandler {
             go().map_err(|e: io::Error| error!("[j1] {:?}", e)).ok();
         });
 
-        let s2 = stream.clone();
         let j2 = thread::spawn(move || {
-            let in_stream = s2.clone();
-
             let mut buf = vec![0; 4096];
             let mut stdout = io::stdout();
             let mut go = || loop {
-                let mut in_stream = in_stream.lock().unwrap();
                 let n = in_stream.read(&mut buf)?;
                 if n == 0 {
                     return Ok(());
@@ -168,7 +154,7 @@ impl AfterLaunchHandler {
             go().map_err(|e: io::Error| error!("[j2] {:?}", e)).ok();
         });
 
-        info!("TCPの中継の終了を待機します");
+        info!("パイプの中継の終了を待機します");
 
         j1.join().ok();
         j2.join().ok();
@@ -190,8 +176,6 @@ impl Program {
     fn run(&self) {
         debug!("init");
 
-        let ax_file = "examples/inc_loop.ax";
-
         let result = BeforeLaunchHandler {
             r: dac::DebugAdapterReader::new(io::BufReader::new(io::stdin())),
             w: dac::DebugAdapterWriter::new(io::stdout()),
@@ -209,36 +193,14 @@ impl Program {
 
         debug!("引数: {:?}", args);
 
-        // info!("TCP接続を開始します");
-
-        // let port = 57676;
-        // let listener =
-        //     net::TcpListener::bind(net::SocketAddr::from(([127, 0, 0, 1], port))).unwrap();
-
-        // thread::spawn(move || {
-        //     let mut stream = net::TcpStream::connect(("127.0.0.1", port)).unwrap();
-        //     let mut buf = vec![0; 1000];
-        //     loop {
-        //         match stream.read(&mut buf) {
-        //             Ok(0) => break,
-        //             Ok(n) => {
-        //                 stream.write_all(&buf[0..n]).unwrap();
-        //                 continue;
-        //             }
-        //             Err(_) => panic!(),
-        //         }
-        //     }
-        // });
-
         info!("パイプを作成します");
-        // let stream = Pipe::new(r"\\.\pipe\hdg-pipe");
-        let stream = PipeOptions::new(r"\\.\pipe\hdg-pipe").single().unwrap();
-        // .multiple(2)
-        // .expect("multiple");
+        let stream = Pipe::new(r"\\.\pipe\hdg-pipe");
 
         info!("デバッグ実行を開始します");
 
+        // FIXME: args.program に指定されたスクリプトをコンパイル・実行する
         let rt_file = PathBuf::from(format!("{}/hsp3.exe", &args.root));
+        let ax_file = "examples/inc_loop.ax";
 
         // let comp_path = path::PathBuf::from(args.root.clone()).join("cHspComp.exe");
         // let mut child = match process::Command::new(comp_path)
@@ -271,26 +233,8 @@ impl Program {
             Ok(child) => child,
         };
 
-        // WaitNamedPipe
-        // debug!("Waiting pipes");
-        // {
-        //     let pipe_name = concat!(r"\\.\pipe\hdg-pipe", "\0");
-        //     let ok = unsafe { WaitNamedPipeA(pipe_name.as_ptr() as *const i8, 1000u32) } != 0;
-        //     debug!("wait={}", ok);
-        // }
-
-        // info!("TCPへの接続を待機します");
-
-        // let stream = match listener.accept() {
-        //     Ok((stream, _)) => stream,
-        //     Err(e) => {
-        //         error!("TCP接続が来ませんでした {:?}", e);
-        //         return;
-        //     }
-        // };
-
-        debug!("ランタイム側のパイプを待機しています");
-        let stream = stream.wait().unwrap();
+        debug!("クライアント側のパイプを待機しています");
+        stream.accept();
 
         AfterLaunchHandler {
             launch_seq,
@@ -308,6 +252,10 @@ impl Program {
     }
 }
 
+/// ロガーを設定する
+///
+/// `debug!()`, `info!()`, `error!()` などのマクロによって出力されるログメッセージがファイルに書き込まれるように設定する。
+/// 出力先はこのプロセスのカレントディレクトリの `middle-adapter.log`
 fn init_logger() {
     let log_level = if cfg!(debug_assertions) {
         log::LevelFilter::Debug
@@ -318,8 +266,7 @@ fn init_logger() {
     let logger = FileLogger::new(&PathBuf::from("middle-adapter.log")).expect("logger");
     log::set_max_level(log_level);
     log::set_boxed_logger(Box::new(logger)).expect("set_logger");
-    info!("Log is set with level={:?}", log_level);
-    // env_logger::Builder::new().filter(None, log_level).init();
+    debug!("ロガーが設定されました (レベル: {:?})", log_level);
 }
 
 fn main() {

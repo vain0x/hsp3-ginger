@@ -150,7 +150,6 @@ dependencies = [
  "env_logger",
  "libc",
  "log",
- "named_pipe",
  "serde",
  "serde_json",
  "shared",
@@ -212,7 +211,6 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "log",
- "named_pipe",
  "serde",
  "serde_json",
  "shared",
@@ -224,15 +222,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "named_pipe"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad9c443cce91fc3e12f017290db75dde490d685cdaaf508d7159d7cf41f0eb2b"
-dependencies = [
- "winapi",
-]
 
 [[package]]
 name = "nom"

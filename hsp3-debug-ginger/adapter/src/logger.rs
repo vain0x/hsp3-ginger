@@ -15,7 +15,7 @@ impl MyLogger {
 }
 
 impl log::Log for MyLogger {
-    fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
+    fn enabled(&self, _: &log::Metadata<'_>) -> bool {
         // metadata.level() <= log::Level::Debug
         true
     }
