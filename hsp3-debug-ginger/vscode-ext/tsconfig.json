@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "./out",
+    "target": "ES2022",
+    "esModuleInterop": true,
+    "inlineSourceMap": false,
+    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "preserveConstEnums": true,
+    "removeComments": false,
+    "sourceMap": true,
+    "strictNullChecks": true
+  },
+  "files": [
+    "src/extension.ts"
+  ]
+}

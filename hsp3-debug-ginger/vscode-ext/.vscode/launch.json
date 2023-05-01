@@ -12,7 +12,10 @@
       ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js"
-      ]
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      }
     }
   ]
 }

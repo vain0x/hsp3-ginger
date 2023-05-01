@@ -1,78 +1,121 @@
-import * as vscode from "vscode";
-import {
-  WorkspaceFolder,
-  DebugConfiguration,
-  CancellationToken,
-} from "vscode";
-import { Hsp3DebugType } from "./constants";
-import * as path from "path";
+import path from "path"
+import vscode, { CancellationToken, ConfigurationTarget, DebugConfiguration, DebugConfigurationProvider, Uri, WorkspaceFolder } from "vscode"
+
+/** 開発環境のとき true */
+const DEV = process.env["NODE_ENV"] === "development"
+
+// `contributes.debuggers[].type` の値
+const HSP3_DEBUG_TYPE = "hsp3"
 
 const configs = vscode.workspace.getConfiguration("hsp3-debug-ginger")
 
-export function activate(context: vscode.ExtensionContext) {
-  const provider = new GingerConfigProvider()
-  context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(Hsp3DebugType, provider))
-  context.subscriptions.push(vscode.commands.registerCommand("hsp3-debug-ginger.selectRoot", selectRoot))
-  context.subscriptions.push(provider)
+/**
+ * 拡張機能がロードされるときに呼ばれる関数
+ */
+export const activate = (context: vscode.ExtensionContext) => {
+  if (DEV) { console.log("[hsp3-debug-ginger] 拡張機能がロードされました") }
+
+  // デバッガーを登録する
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider(
+      HSP3_DEBUG_TYPE,
+      new GingerConfigProvider(),
+    ))
+
+  // `selectRoot` コマンドを登録する
+  context.subscriptions.push(
+    vscode.commands.registerCommand("hsp3-debug-ginger.selectRoot", selectHsp3Root),
+  )
 }
 
-export function deactivate() {
-  // pass
-}
+/** デバッグ設定プロバイダー */
+class GingerConfigProvider implements DebugConfigurationProvider {
+  async resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): Promise<DebugConfiguration> {
+    config.hsp3Root = await selectHsp3Root()
 
-class GingerConfigProvider implements vscode.DebugConfigurationProvider {
-  resolveDebugConfiguration(
-    _folder: WorkspaceFolder | undefined,
-    config: DebugConfiguration,
-    _token?: CancellationToken
-  ): Promise<DebugConfiguration> {
-    return (async () => {
-      config.cwd = calcCwd()
-      config.root = await selectRoot()
-
-      if (config.trace === undefined) {
-        config.trace = false
+    if (config.cwd === undefined) {
+      if (config.program) {
+        config.cwd = path.dirname(config.program)
+      } else {
+        config.cwd = folder
       }
-      if (config.program === undefined) {
-        config.program = path.join(config.cwd, "main.hsp")
-      }
-      return config
-    })()
+    }
+
+    if (config.program === undefined) {
+      config.program = path.join(config.cwd, "main.hsp")
+    }
+
+    if (config.trace === undefined) {
+      config.trace = DEV
+    }
+
+    // 後方互換性のため
+    config.root = config.hsp3Root
+
+    if (DEV) { console.log(`[hsp3-debug-ginger]: デバッグ設定の解決`, { ...config }) }
+    return config
   }
 
-  dispose() {
-    // pass
-  }
+  dispose() { }
 }
 
-const calcCwd = () => {
-  const { workspaceFolders } = vscode.workspace;
-  if (workspaceFolders && workspaceFolders.length > 0) {
-    return workspaceFolders[0].uri.fsPath
+/** ワークスペースが開かれているディレクトリを取得する */
+// const currentWorkspaceDirectory = () => {
+//   const workspaceFolders = vscode.workspace.workspaceFolders
+//   if (workspaceFolders && workspaceFolders.length > 0) {
+//     return workspaceFolders[0].uri.fsPath
+//   }
+//   throw new Error("no workspace folders")
+// }
+
+/**
+ * HSP3のインストールディレクトリを選択する
+ *
+ * - 次の順番で最初に見つかる値を選択する
+ *    - `hsp3-debug-ginger.hsp3-root` (VSCodeの設定)
+ *    - `hsp3-debug-ginger.root` (VSCodeの設定, 後方互換用)
+ *    - `HSP3_ROOT` (環境変数)
+ *    - どれでもなければダイアログで選んでもらう
+ *        - 選ばれたディレクトリは設定に書き込まれる
+ *        - 選ばれなかったときは
+ */
+const selectHsp3Root = async (): Promise<string | null> => {
+  {
+    const root = configs.get<string>("hsp3-root")
+    if (root) {
+      if (DEV) { console.log(`[hsp3-debug-ginger] 設定 hsp3-root='${root}'`) }
+      return root
+    }
   }
-  throw new Error("could not calculate cwd")
-}
 
-const selectRoot = async () => {
-  const ROOT_KEY = "root"
+  {
+    const root = configs.get<string>("root")
+    if (root) {
+      if (DEV) { console.log(`[hsp3-debug-ginger] 設定 root='${root}'`) }
+      return root
+    }
+  }
 
-  const root = configs.get(ROOT_KEY)
-  if (typeof root === "string" && root !== "") {
-    return root
+  {
+    const root = process.env["HSP3_ROOT"]
+    if (root) {
+      if (DEV) { console.log(`[hsp3-debug-ginger] 環境変数 HSP3_ROOT='${root}'`) }
+      return root
+    }
   }
 
   const paths = await vscode.window.showOpenDialog({
     canSelectFolders: true,
-    defaultUri: vscode.Uri.parse("file://C:/Program Files"),
+    defaultUri: Uri.parse("file://C:/Program Files"),
     openLabel: "HSPのインストールディレクトリ",
   })
 
   const selectedPath = paths && paths[0] && paths[0].fsPath
   if (!selectedPath) {
-    vscode.window.showErrorMessage("HSPのインストールディレクトリが指定されていません。")
-    throw new Error("Configuration failed.")
+    if (DEV) { console.log("[hsp3-debug-ginger] インストールディレクトリが選択されなかったため、処理はキャンセルされます") }
+    return null
   }
+  await configs.update("hsp3-root", selectedPath, ConfigurationTarget.Global)
 
-  await configs.update(ROOT_KEY, selectedPath, vscode.ConfigurationTarget.Global)
   return selectedPath
 }

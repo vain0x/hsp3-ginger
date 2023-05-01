@@ -1,7 +1,7 @@
 {
   "name": "vscode-hsp3-debug-ginger",
   "displayName": "HSP3 Debug Ginger",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "HSP3 debugger",
   "author": {
     "name": "vain0x",
@@ -26,10 +26,10 @@
     "url": "https://github.com/vain0x/hsp3-debug-ginger/issues"
   },
   "scripts": {
-    "build": "tsc -p ./src",
-    "watch": "tsc -w -p ./src --preserveWatchOutput",
-    "package": "vsce package",
-    "publish": "vsce publish"
+    "tsc-build": "tsc -b",
+    "tsc-watch": "tsc -w --preserveWatchOutput",
+    "vsce-package": "vsce package",
+    "vsce-publish": "vsce publish"
   },
   "devDependencies": {
     "@types/node": "18.15.11",
@@ -37,7 +37,7 @@
     "@vscode/vsce": "^2.18.0",
     "typescript": "5.0.4"
   },
-  "main": "./out/extension",
+  "main": "./out/extension.js",
   "activationEvents": [
     "onDebug"
   ],
@@ -64,7 +64,7 @@
       "type": "object",
       "title": "HSP3 Debug Ginger Config",
       "properties": {
-        "hsp3-debug-ginger.root": {
+        "hsp3-debug-ginger.hsp3-root": {
           "type": "string",
           "description": "HSPのインストールディレクトリへの絶対パス"
         }
