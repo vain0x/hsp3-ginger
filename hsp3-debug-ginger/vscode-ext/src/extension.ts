@@ -37,7 +37,11 @@ class GingerConfigProvider implements DebugConfigurationProvider {
       if (config.program) {
         config.cwd = path.dirname(config.program)
       } else {
-        config.cwd = folder
+        config.cwd = folder?.uri?.fsPath
+      }
+      if (!config.cwd) {
+        console.warn("[hsp3-debug-ginger] No cwd")
+        config.cwd = process.cwd()
       }
     }
 
