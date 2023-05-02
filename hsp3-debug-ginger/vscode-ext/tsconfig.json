@@ -11,13 +11,13 @@
     "esModuleInterop": true,
     "inlineSourceMap": false,
     "noImplicitAny": false,
+    "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": false,
+    "noUncheckedIndexedAccess": true,
     "preserveConstEnums": true,
     "removeComments": false,
     "sourceMap": true,
-    "strictNullChecks": true
+    "strict": true
   },
   "files": [
     "src/extension.ts"
