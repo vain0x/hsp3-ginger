@@ -1,5 +1,5 @@
 import path from "path"
-import vscode, { CancellationToken, ConfigurationTarget, DebugConfiguration, DebugConfigurationProvider, Uri, WorkspaceFolder } from "vscode"
+import vscode, { CancellationToken, ConfigurationTarget, DebugAdapterDescriptor, DebugAdapterDescriptorFactory, DebugAdapterExecutable, DebugConfiguration, DebugConfigurationProvider, DebugSession, ExtensionContext, ProviderResult, Uri, WorkspaceFolder } from "vscode"
 
 /** 開発環境のとき true */
 const DEV = process.env["NODE_ENV"] === "development"
@@ -17,16 +17,42 @@ export const activate = (context: vscode.ExtensionContext) => {
 
   // デバッガーを登録する
   context.subscriptions.push(
+    // vscode.debug.registerDebugAdapterDescriptorFactory(
+    //   HSP3_DEBUG_TYPE,
+    //   new GingerDebugAdapterDescriptorFactory(context),
+    // ),
     vscode.debug.registerDebugConfigurationProvider(
       HSP3_DEBUG_TYPE,
       new GingerConfigProvider(),
-    ))
+    ),
+  )
 
   // `selectRoot` コマンドを登録する
   context.subscriptions.push(
     vscode.commands.registerCommand("hsp3-debug-ginger.selectRoot", selectHsp3Root),
   )
 }
+
+// /**
+//  * デバッグアダプターの設定を提供するもの
+//  */
+// class GingerDebugAdapterDescriptorFactory implements DebugAdapterDescriptorFactory {
+//   #context: ExtensionContext
+
+//   constructor(context: ExtensionContext) {
+//     this.#context = context
+//   }
+
+//   async createDebugAdapterDescriptor(session: DebugSession, executable: DebugAdapterExecutable | undefined): Promise<DebugAdapterDescriptor | null | undefined> {
+//     if (DEV) { console.log("[hsp3-debug-ginger] createDebugAdapterDescriptor", { ...session }, { ...executable }) }
+
+//     const cwd = session.configuration.cwd
+//     const command = path.join(this.#context.extensionPath, "out/middle-adapter.exe")
+
+//     if (DEV) { console.log(`[hsp3-debug-ginger] アダプター\n  command='${command}'\n  cwd='${cwd}'`) }
+//     return new DebugAdapterExecutable(command, [], { cwd })
+//   }
+// }
 
 /** デバッグ設定プロバイダー */
 class GingerConfigProvider implements DebugConfigurationProvider {
