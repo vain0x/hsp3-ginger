@@ -7,7 +7,6 @@ use shared::debug_adapter_protocol as dap;
 use std;
 use std::path::PathBuf;
 use std::sync::mpsc;
-use std::thread;
 
 const MAIN_THREAD_ID: i64 = 1;
 const MAIN_THREAD_NAME: &'static str = "main";
@@ -60,7 +59,7 @@ pub(crate) struct RuntimeState {
 /// `Worker` が扱える操作。
 #[derive(Clone, Debug)]
 pub(crate) enum Action {
-    /// VSCode との接続が確立したとき。
+    /// アダプターとの接続が確立したとき。
     AfterConnected,
     /// VSCode からリクエストが来たとき。
     AfterRequestReceived(dap::Msg),
@@ -78,49 +77,45 @@ pub(crate) enum Action {
 /// `Worker` に処理を依頼するもの。
 #[derive(Clone, Debug)]
 pub(crate) struct Sender {
-    sender: mpsc::Sender<Action>,
+    sender: mpsc::SyncSender<Action>,
 }
 
 impl Sender {
     pub(crate) fn send(&self, action: Action) {
         self.sender
             .send(action)
-            .map_err(|e| error!("[app] {:?}", e))
-            .ok();
+            .unwrap_or_else(|err| error!("[app::Sender] {:?}", err));
     }
 }
 
 /// HSP ランタイムと VSCode の仲介を行う。
 pub(crate) struct Worker {
-    request_receiver: mpsc::Receiver<Action>,
+    rx: mpsc::Receiver<Action>,
     connection_sender: Option<connection::Sender>,
     hsprt_sender: Option<hsprt::Sender>,
     is_connected: bool,
-    args: Option<dap::LaunchRequestArgs>,
+    launch_args: Option<dap::LaunchRequestArgs>,
     state: RuntimeState,
     debug_info: Option<hsp_ext::debug_info::DebugInfo<hsp_ext::debug_info::HspConstantMap>>,
     source_map: Option<hsp_ext::source_map::SourceMap>,
-    #[allow(unused)]
-    join_handle: Option<thread::JoinHandle<()>>,
+    finish_tx: mpsc::SyncSender<()>,
+    // #[allow(unused)]
+    // join_handle: Option<thread::JoinHandle<()>>,
 }
 
 impl Worker {
-    pub fn new(hsprt_sender: hsprt::Sender) -> (Self, Sender) {
-        let (sender, request_receiver) = mpsc::channel::<Action>();
-        let app_sender = Sender { sender };
+    pub fn new(hsprt_sender: hsprt::Sender) -> (Self, Sender, mpsc::Receiver<()>) {
+        let (tx, rx) = mpsc::sync_channel::<Action>(8);
+        let (finish_tx, finish_rx) = mpsc::sync_channel(1);
 
-        let (connection_worker, connection_sender) = connection::Worker::new(app_sender.clone());
-        let join_handle = thread::Builder::new()
-            .name("connection_worker".into())
-            .spawn(move || connection_worker.run())
-            .unwrap();
+        let sender = Sender { sender: tx };
 
         let worker = Worker {
-            request_receiver,
-            connection_sender: Some(connection_sender),
+            rx,
+            connection_sender: None,
             hsprt_sender: Some(hsprt_sender),
             is_connected: false,
-            args: None,
+            launch_args: None,
             state: RuntimeState {
                 file_path: None,
                 file_name: None,
@@ -129,24 +124,24 @@ impl Worker {
             },
             debug_info: None,
             source_map: None,
-            join_handle: Some(join_handle),
+            finish_tx,
+            // join_handle: Some(join_handle),
         };
 
-        (worker, app_sender)
+        (worker, sender, finish_rx)
+    }
+
+    pub fn set_connection_sender(&mut self, connection_sender: connection::Sender) {
+        self.connection_sender = Some(connection_sender);
     }
 
     fn is_launch_response_sent(&self) -> bool {
-        self.args.is_some()
+        self.launch_args.is_some()
     }
 
     pub fn run(mut self) {
-        self.connection_sender
-            .as_ref()
-            .unwrap()
-            .send(connection::Action::Connect);
-
         loop {
-            match self.request_receiver.recv() {
+            match self.rx.recv() {
                 Ok(action @ Action::BeforeTerminating) => {
                     self.handle(action);
                     break;
@@ -163,6 +158,9 @@ impl Worker {
         }
 
         info!("[app] 終了");
+        self.finish_tx.send(()).unwrap_or_else(|_| {
+            error!("[app] finish_tx.send");
+        });
     }
 
     /// HSP ランタイムが次に中断しているときにアクションが実行されるように予約する。
@@ -217,7 +215,7 @@ impl Worker {
     fn on_request(&mut self, seq: i64, request: dap::Request) {
         match request {
             dap::Request::Launch { args } => {
-                self.args = Some(args);
+                self.launch_args = Some(args);
                 self.load_source_map();
                 self.send_response(seq, dap::Response::Launch);
                 self.send_initialized_event();
@@ -334,7 +332,7 @@ impl Worker {
             Some(ref debug_info) => debug_info,
         };
 
-        let args = match self.args {
+        let args = match self.launch_args {
             None => return,
             Some(ref args) => args,
         };
@@ -398,10 +396,10 @@ impl Worker {
                 self.hsprt_sender.take();
                 self.connection_sender.take();
 
-                if let Some(_) = self.join_handle.take() {
-                    // NOTE: なぜか終了しないので join しない。
-                    // join_handle.join().unwrap();
-                }
+                // if let Some(_) = self.join_handle.take() {
+                //     // NOTE: なぜか終了しないので join しない。
+                //     // join_handle.join().unwrap();
+                // }
             }
             Action::AfterDebugInfoLoaded(debug_info) => {
                 self.debug_info = Some(debug_info);

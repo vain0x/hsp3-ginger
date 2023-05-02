@@ -17,12 +17,12 @@ pub(crate) enum Action {
 /// HSP ランタイム に処理を依頼するもの。
 #[derive(Clone)]
 pub(crate) struct Sender {
-    sender: mpsc::Sender<Action>,
-    notice_sender: mpsc::Sender<()>,
+    sender: mpsc::SyncSender<Action>,
+    notice_sender: mpsc::SyncSender<()>,
 }
 
 impl Sender {
-    pub fn new(sender: mpsc::Sender<Action>, notice_sender: mpsc::Sender<()>) -> Self {
+    pub fn new(sender: mpsc::SyncSender<Action>, notice_sender: mpsc::SyncSender<()>) -> Self {
         Sender {
             sender,
             notice_sender,
@@ -32,8 +32,7 @@ impl Sender {
     pub fn send(&self, action: Action, pausing: bool) {
         self.sender
             .send(action)
-            .map_err(|err| error!("[hsprt] {:?}", err))
-            .ok();
+            .unwrap_or_else(|err| error!("[hsprt::Sender] {:?}", err));
 
         if pausing {
             self.notice_sender.send(()).ok();

@@ -137,7 +137,7 @@ impl AfterLaunchHandler {
                     out_stream.flush()?;
                 }
             };
-            go().map_err(|e: io::Error| error!("[j1] {:?}", e)).ok();
+            go().unwrap_or_else(|err: io::Error| error!("[j1] {:?}", err));
         });
 
         let j2 = thread::spawn(move || {
@@ -151,10 +151,8 @@ impl AfterLaunchHandler {
                 stdout.write_all(&buf[0..n])?;
                 stdout.flush()?;
             };
-            go().map_err(|e: io::Error| error!("[j2] {:?}", e)).ok();
+            go().unwrap_or_else(|err: io::Error| error!("[j2] {:?}", err));
         });
-
-        info!("パイプの中継の終了を待機します");
 
         j1.join().ok();
         j2.join().ok();

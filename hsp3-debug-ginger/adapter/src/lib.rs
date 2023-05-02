@@ -12,7 +12,7 @@ mod util {
 }
 
 use crate::{hsprt::*, util::single_thread::SingleThread};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use once_cell::sync::OnceCell;
 use shared::{debug_adapter_protocol as dap, file_logger::FileLogger};
 use std::{
@@ -26,71 +26,135 @@ use std::{
 #[cfg(windows)]
 use winapi::shared::minwindef::*;
 
-static GLOBALS: OnceCell<Mutex<Option<SingleThread<Globals>>>> = OnceCell::new();
+type HspMsgFunc = unsafe extern "C" fn(*mut hspsdk::HSPCTX);
 
-type HspMsgFunc = Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)>;
+static GLOBALS: OnceCell<Mutex<Option<SingleThread<Globals>>>> = OnceCell::new();
+static mut DEFAULT_MSGFUNC: Option<HspMsgFunc> = None;
 
 /// グローバル変数をまとめたもの。
 /// `debug_notice` などの関数に状態をもたせるために使う。
 pub(crate) struct Globals {
     app_sender: app::Sender,
-    hsprt_receiver: mpsc::Receiver<Action>,
+    hsprt_rx: mpsc::Receiver<Action>,
     hsp_debug: *mut hspsdk::HSP3DEBUG,
+    #[allow(unused)]
+    hspctx: *mut hspsdk::HSPCTX,
+    #[allow(unused)]
     default_msgfunc: HspMsgFunc,
     #[allow(unused)]
-    join_handles: Vec<thread::JoinHandle<()>>,
+    worker_finish_receivers: Vec<(&'static str, mpsc::Receiver<()>)>,
 }
 
 impl Globals {
     /// 初期化処理を行い、各グローバル変数の初期値を設定して `Globals` を構築する。
     fn new(hsp_debug: *mut hspsdk::HSP3DEBUG) -> Self {
-        // msgfunc に操作を送信するチャネルを生成する。
-        let (sender, hsprt_receiver) = mpsc::channel();
-        let (notice_sender, _notice_receiver) = mpsc::channel();
+        let hspctx: *mut hspsdk::HSPCTX = unsafe { (*hsp_debug).hspctx };
 
-        let hsprt_sender = Sender::new(sender, notice_sender);
-
-        let j1 = thread::spawn(move || {
-            // HSP ランタイムが停止している状態で処理依頼が来るたびに notice_receiver が通知を受け取り、
-            // そのたびにループが進行する。msgfunc に代わって処理を行う。
-            // FIXME: ~ワーカースレッドで globals に触るのはとても危険なので同期化機構を使うべき。~
-            // FIXME: メインスレッドにメッセージを送ってreceiveactionsを実行させる
-            // for _ in notice_receiver {
-            //     with_globals(|g| {
-            //         g.receive_actions();
-            //     });
-            // }
-            debug!("[notice] 終了");
-        });
-
-        // ワーカースレッドを起動する。
-        let (app_worker, app_sender) = app::Worker::new(hsprt_sender);
-        let j2 = thread::spawn(move || app_worker.run());
-
-        let mut globals = Globals {
-            app_sender,
-            hsprt_receiver,
-            hsp_debug,
-            default_msgfunc: None,
-            join_handles: vec![j1, j2],
+        // HSP のメッセージ関数をフックする
+        // (wait/stop などの間にHSPのウィンドウにメッセージが送られるたび、
+        //  `my_msgfunc` が呼ばれるようにする)
+        let default_msgfunc = {
+            let msgfunc = unsafe { (*hspctx).msgfunc }.unwrap();
+            unsafe { (*hspctx).msgfunc = Some(my_msgfunc) };
+            msgfunc
         };
 
-        unsafe { globals.hook_msgfunc() };
+        unsafe { DEFAULT_MSGFUNC = Some(default_msgfunc) };
 
-        globals.load_debug_info();
+        // ワーカースレッド間で通信するためのチャネルを生成する
+        let (hsprt_tx, hsprt_rx) = mpsc::sync_channel(8);
+        let (notice_tx, notice_rx) = mpsc::sync_channel(8);
+
+        // ワーカーを生成する
+        let hsprt_sender = hsprt::Sender::new(hsprt_tx, notice_tx);
+
+        let (mut app_worker, app_sender, app_finish_rx) = app::Worker::new(hsprt_sender);
+
+        let (
+            connection_worker,
+            connection_finish_rx,
+            connection_sender,
+            connection_reader,
+            connection_reader_finish_rx,
+        ) = connection::Worker::new(app_sender.clone());
+
+        app_worker.set_connection_sender(connection_sender);
+
+        // let connection_worker_handle = thread::Builder::new()
+        //     .name("connection_worker".into())
+        //     .spawn(move || connection_worker.run())
+        //     .unwrap();
+
+        // let j1 = thread::spawn(move || {
+        //     // HSP ランタイムが停止している状態で処理依頼が来るたびに notice_receiver が通知を受け取り、
+        //     // そのたびにループが進行する。msgfunc に代わって処理を行う。
+        //     // FIXME: ~ワーカースレッドで globals に触るのはとても危険なので同期化機構を使うべき。~
+        //     // FIXME: メインスレッドにメッセージを送ってreceiveactionsを実行させる
+        //     // for _ in notice_receiver {
+        //     //     with_globals(|g| {
+        //     //         g.receive_actions();
+        //     //     });
+        //     // }
+        //     debug!("[notice] 終了");
+        // });
+
+        // ワーカースレッドを起動する。
+        // let j2 = thread::spawn(move || app_worker.run());
+
+        let (worker_finish_tx, worker_finish_rx) = mpsc::sync_channel(1);
+        thread::Builder::new()
+            .name("hdg_worker".into())
+            .spawn(move || {
+                thread::scope(|scope| {
+                    scope.spawn(move || connection_worker.run());
+                    scope.spawn(move || connection_reader.run());
+                    scope.spawn(move || app_worker.run());
+
+                    scope.spawn(move || {
+                        let mut tick = 0;
+                        let mut next = 1;
+
+                        for _ in notice_rx {
+                            tick += 1;
+                            if tick >= next {
+                                debug!("[notice] tapping ({tick} times)");
+                                next *= 2;
+                            }
+                            tap_all_windows();
+                        }
+                    });
+                });
+
+                worker_finish_tx.send(()).unwrap_or_else(|_| {
+                    error!("worker_finish_tx.send");
+                });
+            })
+            .unwrap();
+
+        let worker_finish_receivers = vec![
+            ("cw", connection_finish_rx),
+            ("cr", connection_reader_finish_rx),
+            ("a", app_finish_rx),
+            ("w", worker_finish_rx),
+        ];
+
+        let globals = Globals {
+            app_sender,
+            hsprt_rx,
+            hspctx,
+            hsp_debug,
+            default_msgfunc,
+            // join_handles: vec![],
+            worker_finish_receivers,
+        };
+
+        // メタデータを解析する
+        let debug_info = hsp_ext::debug_info::DebugInfo::parse_hspctx(globals.hspctx());
+        globals
+            .app_sender
+            .send(app::Action::AfterDebugInfoLoaded(debug_info));
 
         globals
-    }
-
-    /// HSP のメッセージ関数をフックする。
-    /// つまり、 wait/await などの際に `my_msgfunc` が呼ばれるようにする。
-    /// 結果として返されるもとのメッセージ関数は `my_msgfunc` の中で呼び出す必要がある。
-    unsafe fn hook_msgfunc(&mut self) {
-        let default_msgfunc = self.hspctx().msgfunc;
-
-        self.hspctx().msgfunc = Some(my_msgfunc);
-
-        self.default_msgfunc = default_msgfunc;
     }
 
     fn hsp_debug<'a>(&'a self) -> &'a mut hspsdk::HSP3DEBUG {
@@ -103,23 +167,28 @@ impl Globals {
     }
 
     fn on_msgfunc_called(&mut self) {
-        self.receive_actions();
-
-        if let Some(default_msgfunc) = self.default_msgfunc {
-            let hspctx = self.hspctx() as *mut hspsdk::HSPCTX;
-            unsafe { default_msgfunc(hspctx) };
+        static mut TICK: usize = 0;
+        static mut NEXT: usize = 1;
+        unsafe {
+            TICK += 1;
+            if TICK >= NEXT {
+                debug!("[dll] msgfunc called ({TICK} times)");
+                NEXT *= 2;
+            }
         }
-    }
 
-    /// メインスレッド上で実行すべき操作があれば、すべて実行する。なければ何もしない。
-    fn receive_actions(&mut self) {
-        while let Ok(action) = self.hsprt_receiver.try_recv() {
+        // 要求されているメインスレッド上でのみ実行可能な操作をすべて実行する
+        while let Ok(action) = self.hsprt_rx.try_recv() {
             self.do_action(action);
         }
+
+        // if !consumed {
+        //     unsafe { PostThreadMessageW(GetCurrentThreadId(), WM_APP + 1, 0, 0) };
+        // }
     }
 
     /// `Action` で指定された操作を実行する。
-    fn do_action(&mut self, action: Action) {
+    fn do_action(&mut self, action: hsprt::Action) {
         match action {
             Action::SetMode(mode) => {
                 self.do_set_mode(mode);
@@ -135,9 +204,10 @@ impl Globals {
 
     // NOTE: 中断モードへの変更は HSP 側が wait/await で中断しているときに行わなければ無視されるので注意。
     fn do_set_mode(&self, mode: hspsdk::DebugMode) {
+        debug!("[lib] set_mode({mode:?})");
         let set = self.hsp_debug().dbg_set.unwrap();
         unsafe { set(mode) };
-        unsafe { tap_all_windows() };
+        tap_all_windows();
     }
 
     fn do_get_var(&mut self, seq: i64, var_path: app::VarPath) {
@@ -237,7 +307,11 @@ impl Globals {
             .send(app::Action::AfterGetVar { seq, variables });
     }
 
+    /// デバッグの中止要求を受けたときに呼ばれる。HSPのプログラムを終了させる
+    /// (put_error によって例外を発生させることで)
     fn do_disconnect(&mut self) {
+        debug!("[lib] Disconnect");
+
         let hspctx = self.hspctx();
         let put_error = hspctx.exinfo.HspFunc_puterror.unwrap();
         unsafe { put_error(hspsdk::HSPERROR_HSPERR_NONE) };
@@ -250,6 +324,7 @@ impl Globals {
 
     /// assert などで停止したときに呼ばれる。
     fn on_stopped(&mut self) {
+        debug!("On stopped");
         let d = self.hsp_debug();
 
         let (file_name, line) = {
@@ -280,12 +355,6 @@ impl Globals {
     //     // }
     //     thread::sleep(time::Duration::from_secs(3));
     // }
-
-    fn load_debug_info(&self) {
-        let debug_info = hsp_ext::debug_info::DebugInfo::parse_hspctx(self.hspctx());
-        self.app_sender
-            .send(app::Action::AfterDebugInfoLoaded(debug_info));
-    }
 }
 
 impl Drop for Globals {
@@ -293,12 +362,21 @@ impl Drop for Globals {
         debug!("Globals::drop");
         self.app_sender.send(app::Action::BeforeTerminating);
 
+        for (name, rx) in self.worker_finish_receivers.drain(..) {
+            debug!("Globals::drop waiting {name}");
+            if let Err(mpsc::RecvTimeoutError::Timeout) =
+                rx.recv_timeout(Duration::from_millis(500))
+            {
+                warn!("Globals::drop {name} timeout");
+            }
+        }
+
         // NOTE: なぜかスレッドが停止しない。
         // for j in join_handles {
         //     j.join().unwrap();
         // }
-        thread::sleep(Duration::from_secs(3));
-        debug!("Globals::drop sleep end");
+        // thread::sleep(Duration::from_secs(3));
+        // debug!("Globals::drop sleep end");
     }
 }
 
@@ -310,7 +388,13 @@ where
     F: FnOnce(&mut Globals),
 {
     if let Some(mutex) = GLOBALS.get() {
-        let mut guard = mutex.lock().unwrap();
+        let mut guard = match mutex.try_lock() {
+            Ok(it) => it,
+            Err(err) => {
+                error!("with_globals: cannot lock {err:?}");
+                panic!("cannot lock error");
+            }
+        };
         match guard.as_mut() {
             Some(wrapper) => {
                 // メインスレッド上でなければエラーになる
@@ -367,9 +451,9 @@ fn drop_globals() {
 
 /// すべてのウィンドウにメッセージを送る。
 /// NOTE: GUI 版の HSP ランタイムは、何らかのウィンドウメッセージを受け取るまでデバッグモードを「実行」に戻しても実行を再開しない。
-unsafe fn tap_all_windows() {
+fn tap_all_windows() {
     #[cfg(windows)]
-    {
+    unsafe {
         winapi::um::winuser::PostMessageW(
             winapi::um::winuser::HWND_BROADCAST,
             winapi::um::winuser::WM_NULL,
@@ -380,8 +464,16 @@ unsafe fn tap_all_windows() {
 }
 
 /// wait/await などで停止するたびに呼ばれる。
-unsafe extern "C" fn my_msgfunc(_hspctx: *mut hspsdk::HSPCTX) {
-    with_globals(|g| g.on_msgfunc_called())
+unsafe extern "C" fn my_msgfunc(hspctx: *mut hspsdk::HSPCTX) {
+    with_globals(|g| g.on_msgfunc_called());
+
+    let default_msgfunc = unsafe { DEFAULT_MSGFUNC }.unwrap();
+
+    // HSPランタイムの本来のメッセージハンドラを実行する
+    // (これを globals のロックを持った状態で実行することはできない。
+    //  次のメッセージが来たときに debugnotice が呼ばれ、それがglobalsのロックをとる。
+    //  これがロックを持っているとデッドロックになる)
+    unsafe { (default_msgfunc)(hspctx) };
 }
 
 // -----------------------------------------------
@@ -395,12 +487,12 @@ pub extern "system" fn DllMain(_dll_module: HINSTANCE, reason: DWORD, _: LPVOID)
     match reason {
         // DLLがロードされたとき (= プログラムの開始時)
         winapi::um::winnt::DLL_PROCESS_ATTACH => {
-            debug!("DllMain: Attach");
             init_logger();
+            debug!("[dll] DllMain(attach)");
         }
         // DLLがアンロードされたとき (= プログラムの終了時)
         winapi::um::winnt::DLL_PROCESS_DETACH => {
-            debug!("DllMain: Detach");
+            debug!("[dll] DllMain(detach)");
             drop_globals();
         }
         _ => {}
@@ -433,8 +525,9 @@ pub extern "system" fn debugini(
     _p3: i32,
     _p4: i32,
 ) -> i32 {
-    debug!("debugini");
+    debug!("[dll] debugini");
     init_globals(Globals::new(hsp_debug));
+    debug!("[dll] debugini end");
     return 0;
 }
 
@@ -447,19 +540,21 @@ pub extern "system" fn debug_notice(
     _p3: i32,
     _p4: i32,
 ) -> i32 {
-    debug!("debug_notice({reason})");
+    debug!("[dll] debug_notice({reason})");
 
     match reason as isize {
         hspsdk::DEBUG_NOTICE_LOGMES => {
             with_globals(|g| g.on_logmes_called());
+            debug!("[dll] debugnotice end");
             return 0;
         }
         hspsdk::DEBUG_NOTICE_STOP => {
             with_globals(|g| g.on_stopped());
+            debug!("[dll] debugnotice end");
             return 0;
         }
         _ => {
-            warn!("debug_notice: Unknown reason");
+            warn!("[dll] debug_notice: Unknown reason");
             return 0;
         }
     }
