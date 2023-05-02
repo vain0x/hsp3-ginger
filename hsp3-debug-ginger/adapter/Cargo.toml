@@ -26,6 +26,11 @@ log = "0.4.17"
 # (用途不明)
 libc = "0"
 
+# 静的変数にデータを持たせるため (OnceCell<T>)
+# https://github.com/matklad/once_cell
+# (Rust v1.70 から標準ライブラリに入る: https://github.com/rust-lang/rfcs/pull/2788#issuecomment-1491194036)
+once_cell = "1.17.1"
+
 # For JSON conversion
 # <https://github.com/serde-rs/serde>
 serde = { version = "1.0", features = ["derive"] }

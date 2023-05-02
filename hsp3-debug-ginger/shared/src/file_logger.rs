@@ -40,7 +40,8 @@ impl Log for FileLogger {
             record.args()
         )
         .expect("write");
-        f.flush().expect("flush");
+
+        // f.flush().expect("flush");
     }
 
     fn flush(&self) {

@@ -6,19 +6,27 @@ mod helpers;
 mod hsp_ext;
 mod hsprt;
 mod hspsdk;
-mod logger;
 
-use crate::hsprt::*;
+mod util {
+    pub(crate) mod single_thread;
+}
+
+use crate::{hsprt::*, util::single_thread::SingleThread};
 use log::{debug, info, warn};
-use shared::debug_adapter_protocol as dap;
-use std::ops::*;
-use std::sync::mpsc;
-use std::{cell, ptr, thread, time};
+use once_cell::sync::OnceCell;
+use shared::{debug_adapter_protocol as dap, file_logger::FileLogger};
+use std::{
+    path::PathBuf,
+    ptr,
+    sync::{mpsc, Mutex},
+    thread,
+    time::Duration,
+};
 
 #[cfg(windows)]
 use winapi::shared::minwindef::*;
 
-static mut GLOBALS: Option<cell::UnsafeCell<Globals>> = None;
+static GLOBALS: OnceCell<Mutex<Option<SingleThread<Globals>>>> = OnceCell::new();
 
 type HspMsgFunc = Option<unsafe extern "C" fn(*mut hspsdk::HSPCTX)>;
 
@@ -35,24 +43,23 @@ pub(crate) struct Globals {
 
 impl Globals {
     /// 初期化処理を行い、各グローバル変数の初期値を設定して `Globals` を構築する。
-    fn create(hsp_debug: *mut hspsdk::HSP3DEBUG) -> Self {
-        debug!("debugini");
-
+    fn new(hsp_debug: *mut hspsdk::HSP3DEBUG) -> Self {
         // msgfunc に操作を送信するチャネルを生成する。
         let (sender, hsprt_receiver) = mpsc::channel();
-        let (notice_sender, notice_receiver) = mpsc::channel();
+        let (notice_sender, _notice_receiver) = mpsc::channel();
 
         let hsprt_sender = Sender::new(sender, notice_sender);
 
         let j1 = thread::spawn(move || {
             // HSP ランタイムが停止している状態で処理依頼が来るたびに notice_receiver が通知を受け取り、
             // そのたびにループが進行する。msgfunc に代わって処理を行う。
-            // FIXME: ワーカースレッドで globals に触るのはとても危険なので同期化機構を使うべき。
-            for _ in notice_receiver {
-                with_globals(|g| {
-                    g.receive_actions();
-                });
-            }
+            // FIXME: ~ワーカースレッドで globals に触るのはとても危険なので同期化機構を使うべき。~
+            // FIXME: メインスレッドにメッセージを送ってreceiveactionsを実行させる
+            // for _ in notice_receiver {
+            //     with_globals(|g| {
+            //         g.receive_actions();
+            //     });
+            // }
             debug!("[notice] 終了");
         });
 
@@ -260,19 +267,19 @@ impl Globals {
             .send(app::Action::AfterStopped(file_name, line));
     }
 
-    fn terminate(self) {
-        let _join_handles = {
-            let (app_sender, join_handles) = (self.app_sender, self.join_handles);
-            app_sender.send(app::Action::BeforeTerminating);
-            join_handles
-        };
+    // fn terminate(self) {
+    //     let _join_handles = {
+    //         let (app_sender, join_handles) = (self.app_sender, self.join_handles);
+    //         app_sender.send(app::Action::BeforeTerminating);
+    //         join_handles
+    //     };
 
-        // NOTE: なぜかスレッドが停止しない。
-        // for j in join_handles {
-        //     j.join().unwrap();
-        // }
-        thread::sleep(time::Duration::from_secs(3));
-    }
+    //     // NOTE: なぜかスレッドが停止しない。
+    //     // for j in join_handles {
+    //     //     j.join().unwrap();
+    //     // }
+    //     thread::sleep(time::Duration::from_secs(3));
+    // }
 
     fn load_debug_info(&self) {
         let debug_info = hsp_ext::debug_info::DebugInfo::parse_hspctx(self.hspctx());
@@ -281,30 +288,81 @@ impl Globals {
     }
 }
 
-/// グローバル変数を使って処理を行う。
+impl Drop for Globals {
+    fn drop(&mut self) {
+        debug!("Globals::drop");
+        self.app_sender.send(app::Action::BeforeTerminating);
+
+        // NOTE: なぜかスレッドが停止しない。
+        // for j in join_handles {
+        //     j.join().unwrap();
+        // }
+        thread::sleep(Duration::from_secs(3));
+        debug!("Globals::drop sleep end");
+    }
+}
+
+/// グローバル変数を使って処理を行う
+///
+/// この関数はメインスレッド上でのみ実行できる
 fn with_globals<F>(f: F)
 where
     F: FnOnce(&mut Globals),
 {
-    if let Some(cell) = unsafe { GLOBALS.as_ref() } {
-        let globals = unsafe { &mut *cell.get() };
-        f(globals)
+    if let Some(mutex) = GLOBALS.get() {
+        let mut guard = mutex.lock().unwrap();
+        match guard.as_mut() {
+            Some(wrapper) => {
+                // メインスレッド上でなければエラーになる
+                let globals_mut = wrapper.get_mut();
+
+                f(globals_mut)
+            }
+            None => {
+                warn!("with_globals: Destroyed");
+            }
+        }
+    } else {
+        warn!("with_globals: Not initialized");
     }
 }
 
-/// クレートの static 変数の初期化などを行なう。
-/// ここでエラーが起こるとめんどうなので、Mutex などのオブジェクトの生成にとどめる。
-fn initialize_crate() {
-    logger::initialize_mod();
+/// ロガーを設定する
+///
+/// 書き込み先のファイルはカレントディレクトリの `hsp3debug.log`
+fn init_logger() {
+    let log_level = if cfg!(debug_assertions) {
+        log::LevelFilter::Debug
+    } else {
+        log::LevelFilter::Info
+    };
+
+    let logger = FileLogger::new(&PathBuf::from("hsp3debug.log")).expect("logger");
+    log::set_max_level(log_level);
+    log::set_boxed_logger(Box::new(logger)).expect("set_logger");
+    debug!("ロガーが設定されました (レベル: {:?})", log_level);
 }
 
-fn deinitialize_crate() {
-    // 処理を停止させて、グローバル変数をすべてドロップする。
-    if let Some(globals_cell) = unsafe { GLOBALS.take() } {
-        globals_cell.into_inner().terminate();
-    }
+fn init_globals(globals: Globals) {
+    debug!("init_globals (thread={:?})", thread::current().id());
+    debug_assert!(GLOBALS.get().is_none());
 
-    logger::deinitialize_mod();
+    GLOBALS
+        .set(Mutex::new(Some(SingleThread::new(globals))))
+        .unwrap_or_else(|_| unreachable!());
+}
+
+fn drop_globals() {
+    debug!("drop_globals (thread={:?})", thread::current().id());
+    match GLOBALS.get() {
+        Some(mutex) => {
+            let mut guard = mutex.lock().unwrap();
+            guard.take();
+        }
+        None => {
+            debug!("drop_globals: Not initializd");
+        }
+    }
 }
 
 /// すべてのウィンドウにメッセージを送る。
@@ -326,20 +384,24 @@ unsafe extern "C" fn my_msgfunc(_hspctx: *mut hspsdk::HSPCTX) {
     with_globals(|g| g.on_msgfunc_called())
 }
 
+// -----------------------------------------------
+// エクスポートされる関数
+// -----------------------------------------------
+
 #[cfg(windows)]
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
-pub extern "system" fn DllMain(
-    _dll_module: HINSTANCE,
-    call_reason: DWORD,
-    _reserved: LPVOID,
-) -> BOOL {
-    match call_reason {
+pub extern "system" fn DllMain(_dll_module: HINSTANCE, reason: DWORD, _: LPVOID) -> BOOL {
+    match reason {
+        // DLLがロードされたとき (= プログラムの開始時)
         winapi::um::winnt::DLL_PROCESS_ATTACH => {
-            initialize_crate();
+            debug!("DllMain: Attach");
+            init_logger();
         }
+        // DLLがアンロードされたとき (= プログラムの終了時)
         winapi::um::winnt::DLL_PROCESS_DETACH => {
-            deinitialize_crate();
+            debug!("DllMain: Detach");
+            drop_globals();
         }
         _ => {}
     }
@@ -347,10 +409,20 @@ pub extern "system" fn DllMain(
 }
 
 #[cfg(not(windows))]
-pub extern "system" fn dummy_main() {
-    initialize_crate();
-    deinitialize_crate();
+#[no_mangle]
+pub extern "C" fn hdg_init() {
+    init_logger();
 }
+
+#[cfg(not(windows))]
+#[no_mangle]
+pub extern "C" fn hdg_terminate() {
+    drop_globals;
+}
+
+// -----------------------------------------------
+// HSPから呼ばれる関数
+// -----------------------------------------------
 
 /// 初期化。HSP ランタイムから最初に呼ばれる。
 #[no_mangle]
@@ -361,8 +433,8 @@ pub extern "system" fn debugini(
     _p3: i32,
     _p4: i32,
 ) -> i32 {
-    let globals = Globals::create(hsp_debug);
-    unsafe { GLOBALS = Some(cell::UnsafeCell::new(globals)) };
+    debug!("debugini");
+    init_globals(Globals::new(hsp_debug));
     return 0;
 }
 
@@ -371,11 +443,13 @@ pub extern "system" fn debugini(
 #[allow(non_snake_case, unused_variables)]
 pub extern "system" fn debug_notice(
     hsp_debug: *mut hspsdk::HSP3DEBUG,
-    cause: i32,
+    reason: i32,
     _p3: i32,
     _p4: i32,
 ) -> i32 {
-    match cause as isize {
+    debug!("debug_notice({reason})");
+
+    match reason as isize {
         hspsdk::DEBUG_NOTICE_LOGMES => {
             with_globals(|g| g.on_logmes_called());
             return 0;
@@ -385,7 +459,7 @@ pub extern "system" fn debug_notice(
             return 0;
         }
         _ => {
-            warn!("debug_notice with unknown cause");
+            warn!("debug_notice: Unknown reason");
             return 0;
         }
     }

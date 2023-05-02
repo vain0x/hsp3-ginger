@@ -160,6 +160,7 @@ dependencies = [
  "env_logger",
  "libc",
  "log",
+ "once_cell",
  "serde",
  "serde_json",
  "shared",
