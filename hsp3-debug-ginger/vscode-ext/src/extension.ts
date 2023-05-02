@@ -30,34 +30,49 @@ export const activate = (context: vscode.ExtensionContext) => {
 
 /** デバッグ設定プロバイダー */
 class GingerConfigProvider implements DebugConfigurationProvider {
-  async resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): Promise<DebugConfiguration> {
-    config.hsp3Root = await selectHsp3Root()
-
-    if (config.cwd === undefined) {
-      if (config.program) {
-        config.cwd = path.dirname(config.program)
-      } else {
-        config.cwd = folder?.uri?.fsPath
+  async resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, _token?: CancellationToken): Promise<DebugConfiguration | undefined> {
+    try {
+      // launch.json ファイルがないか、デバッグ構成がないとき
+      if (!config.type && !config.request && !config.name) {
+        const editor = vscode.window.activeTextEditor
+        if (editor && editor.document.languageId === "hsp3") {
+          config.type = HSP3_DEBUG_TYPE
+          config.name = "Run"
+          config.request = "launch"
+        }
       }
-      if (!config.cwd) {
-        console.warn("[hsp3-debug-ginger] No cwd")
-        config.cwd = process.cwd()
+
+      config.hsp3Root = await selectHsp3Root()
+
+      if (config.cwd === undefined) {
+        if (config.program) {
+          config.cwd = path.dirname(config.program)
+        } else {
+          config.cwd = folder?.uri?.fsPath
+        }
+        if (!config.cwd) {
+          console.warn("[hsp3-debug-ginger] No cwd")
+          config.cwd = process.cwd()
+        }
       }
+
+      if (config.program === undefined) {
+        config.program = path.join(config.cwd, "main.hsp")
+      }
+
+      if (config.trace === undefined) {
+        config.trace = DEV
+      }
+
+      // 後方互換性のため
+      config.root = config.hsp3Root
+
+      if (DEV) { console.log(`[hsp3-debug-ginger]: デバッグ設定の解決`, { ...config }) }
+      return config
+    } catch (err) {
+      console.error("[hsp3-debug-ginger] error during config resolution", err)
+      throw err
     }
-
-    if (config.program === undefined) {
-      config.program = path.join(config.cwd, "main.hsp")
-    }
-
-    if (config.trace === undefined) {
-      config.trace = DEV
-    }
-
-    // 後方互換性のため
-    config.root = config.hsp3Root
-
-    if (DEV) { console.log(`[hsp3-debug-ginger]: デバッグ設定の解決`, { ...config }) }
-    return config
   }
 
   dispose() { }
