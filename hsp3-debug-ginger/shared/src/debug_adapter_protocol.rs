@@ -59,9 +59,7 @@ pub enum Request {
         filters: Vec<String>,
     },
     ConfigurationDone,
-    Launch {
-        args: LaunchRequestArgs,
-    },
+    Launch(LaunchRequestArgs),
     Threads,
     Source {
         source: Option<Source>,

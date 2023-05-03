@@ -229,7 +229,7 @@ impl Worker {
 
     fn on_request(&mut self, seq: i64, request: dap::Request) {
         match request {
-            dap::Request::Launch { args } => {
+            dap::Request::Launch(args) => {
                 self.launch_args = Some(args);
                 self.load_source_map();
                 self.send_response(seq, dap::Response::Launch);
