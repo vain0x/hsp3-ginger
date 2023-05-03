@@ -5,7 +5,7 @@ use log::{debug, error, info};
 use shared::{debug_adapter_connection as dac, debug_adapter_protocol as dap};
 use std::{
     fs::{self, File},
-    io::BufReader,
+    io::{BufReader, BufWriter},
     sync::mpsc,
 };
 
@@ -77,14 +77,16 @@ impl Worker {
         //  Rustの所有権ルールのため、2つのスレッドからパイプにアクセスするためにはパイプへの参照が2つ必要となる)
 
         info!("[connection] 接続中");
+        let out_stream = fs::OpenOptions::new()
+            .write(true)
+            .open(r"\\.\pipe\hdg-pipe-up")
+            .expect("Open pipe-up");
         let in_stream = fs::OpenOptions::new()
             .read(true)
-            .write(true)
-            .open(r"\\.\pipe\hdg-pipe")
-            .expect("Open pipe");
+            .open(r"\\.\pipe\hdg-pipe-down")
+            .expect("Open pipe-down");
 
-        let mut out_stream = in_stream.try_clone().expect("Duplicate pipe");
-        let mut dap_writer = dac::DebugAdapterWriter::new(&mut out_stream);
+        let mut dap_writer = dac::DebugAdapterWriter::new(BufWriter::new(out_stream));
 
         debug!("[connection] Send stream");
         self.stream_tx.send(in_stream).unwrap();
@@ -126,10 +128,10 @@ pub(crate) struct Reader {
 impl Reader {
     pub fn run(self) {
         debug!("[reader] 接続待ち");
-        let mut in_stream = self.stream_rx.recv().unwrap();
+        let in_stream = self.stream_rx.recv().unwrap();
         debug!("[reader] received in_stream");
 
-        let mut r = dac::DebugAdapterReader::new(BufReader::new(&mut in_stream));
+        let mut r = dac::DebugAdapterReader::new(BufReader::new(in_stream));
         let mut buf = Vec::with_capacity(4096);
         loop {
             debug!("[reader] 受信待ち");

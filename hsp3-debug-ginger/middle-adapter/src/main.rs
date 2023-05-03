@@ -21,7 +21,7 @@ use shared::{
     file_logger::FileLogger,
 };
 use std::{
-    io::{self, BufReader, Read, Write},
+    io::{self, Read, Write},
     mem,
     path::PathBuf,
     process,
@@ -51,12 +51,12 @@ fn run() {
     let tx = Arc::new(tx);
 
     debug!("パイプを作成します");
-    let mut in_stream = Pipe::new(r"\\.\pipe\hdg-pipe");
+    let mut in_stream = Pipe::new(r"\\.\pipe\hdg-pipe-up");
+    let mut out_stream = Pipe::new(r"\\.\pipe\hdg-pipe-down");
 
     let (stdout_tx, stdout_rx) = mpsc::sync_channel(1);
     let stdout_tx = &stdout_tx;
     let (child_tx, child_rx) = mpsc::sync_channel(0);
-    let (accept_tx, accept_rx) = mpsc::sync_channel::<Pipe>(1);
 
     let mut child_opt = None;
 
@@ -66,7 +66,8 @@ fn run() {
         scope.spawn(move || {
             debug!("[dap-reader] 開始");
             let tx = tx_for_dap_reader;
-            let mut dap_reader = dac::DebugAdapterReader::new(BufReader::new(io::stdin()));
+            let stdin = io::stdin().lock();
+            let mut dap_reader = dac::DebugAdapterReader::new(stdin);
             let mut buf = vec![0; 4096];
             let mut launching = false;
 
@@ -103,12 +104,8 @@ fn run() {
             }
 
             assert!(launching);
-            debug!("[dap-reader] クライアント側のパイプが開かれるのを待っています");
-            let mut out_stream = accept_rx.recv().unwrap_or_else(|err| {
-                error!("accept_rx.recv {err:?}");
-                tx.send(AMsg::DapReaderExited).unwrap();
-                panic!();
-            });
+            debug!("[dap-reader] クライアント側の下りパイプが開かれるのを待っています");
+            out_stream.accept();
 
             debug!("[dap-reader] Launchリクエストを転送します");
             write!(out_stream, "Content-Length: {}\r\n\r\n", buf.len()).unwrap();
@@ -117,7 +114,7 @@ fn run() {
 
             debug!("[dap-reader] Launchリクエストの後");
             let mut stdin = dap_reader.into_inner();
-            buf.clear();
+            buf.resize(4096, 0);
 
             let result = loop {
                 let n = match stdin.read(&mut buf) {
@@ -136,7 +133,9 @@ fn run() {
                 }
             };
 
-            tx.send(AMsg::DapReaderExited).unwrap();
+            tx.send(AMsg::DapReaderExited).unwrap_or_else(|_| {
+                debug!("[dap-reader] tx.send");
+            });
             if let Err(err) = result {
                 debug!("[dap-reader] {err:?}");
             }
@@ -151,14 +150,12 @@ fn run() {
             let mut buf = vec![0; 4096];
 
             in_stream.accept();
-            let out_stream = in_stream.try_clone().expect("duplicate pipe");
-            accept_tx.send(out_stream).unwrap();
-            debug!("[pipe-copy] クライアント側のパイプが開かれました");
+            debug!("[pipe-copy] クライアント側の上りパイプが開かれました");
 
             loop {
                 let n = match in_stream.read(&mut buf) {
                     Ok(0) => {
-                        debug!("[pipe-copy] パイプが閉じました");
+                        debug!("[pipe-copy] 上りパイプが閉じました");
                         break;
                     }
                     Ok(it) => it,
@@ -171,7 +168,9 @@ fn run() {
                     .send(WMsg::WriteBytes(buf[..n].to_owned()))
                     .unwrap();
             }
-            tx.send(AMsg::PipeExited).unwrap();
+            tx.send(AMsg::PipeExited).unwrap_or_else(|_| {
+                debug!("[pipe-copy] tx.send");
+            });
             debug!("[pipe-copy] 終了");
         });
 
@@ -180,12 +179,13 @@ fn run() {
         scope.spawn(move || {
             debug!("[stdout] 開始");
             let tx = tx_for_stdout;
-            let mut stdout_opt = Some(io::stdout());
+            let stdout = io::stdout().lock();
+            let mut stdout_opt = Some(stdout);
             let mut buf = Vec::with_capacity(4096);
             for msg in stdout_rx {
                 match msg {
                     WMsg::WriteMsg(msg) => {
-                        debug!("[stdout] On WriteMsg");
+                        debug!("[stdout] On WriteMsg {:?}", msg);
                         let stdout = stdout_opt.take().unwrap();
                         let local_buf = mem::take(&mut buf);
 
@@ -199,7 +199,11 @@ fn run() {
                         buf.clear();
                     }
                     WMsg::WriteBytes(data) => {
-                        debug!("[stdout] On WriteBytes({}B)", data.len());
+                        debug!(
+                            "[stdout] On WriteBytes({}B) {:?}",
+                            data.len(),
+                            String::from_utf8_lossy(&data)
+                        );
                         let stdout = stdout_opt.as_mut().unwrap();
                         stdout.write_all(&data).unwrap();
                         stdout.flush().unwrap();
