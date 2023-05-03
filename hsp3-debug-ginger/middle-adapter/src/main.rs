@@ -138,6 +138,7 @@ impl AfterLaunchHandler {
                 }
             };
             go().unwrap_or_else(|err: io::Error| error!("[j1] {:?}", err));
+            debug!("[j1] exited");
         });
 
         let j2 = thread::spawn(move || {
@@ -152,6 +153,7 @@ impl AfterLaunchHandler {
                 stdout.flush()?;
             };
             go().unwrap_or_else(|err: io::Error| error!("[j2] {:?}", err));
+            debug!("[j2] exited");
         });
 
         j1.join().ok();

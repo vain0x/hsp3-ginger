@@ -1,12 +1,7 @@
-use crate::connection;
-use crate::hsp_ext;
-use crate::hsprt;
-use crate::hspsdk;
+use crate::{connection, hsp_ext, hsprt, hspsdk};
 use log::{debug, error, info, warn};
 use shared::debug_adapter_protocol as dap;
-use std;
-use std::path::PathBuf;
-use std::sync::mpsc;
+use std::{self, mem, path::PathBuf, sync::mpsc};
 
 const MAIN_THREAD_ID: i64 = 1;
 const MAIN_THREAD_NAME: &'static str = "main";
@@ -91,6 +86,7 @@ impl Sender {
 /// HSP ランタイムと VSCode の仲介を行う。
 pub(crate) struct Worker {
     rx: mpsc::Receiver<Action>,
+    finish_tx: mpsc::SyncSender<()>,
     connection_sender: Option<connection::Sender>,
     hsprt_sender: Option<hsprt::Sender>,
     is_connected: bool,
@@ -98,7 +94,7 @@ pub(crate) struct Worker {
     state: RuntimeState,
     debug_info: Option<hsp_ext::debug_info::DebugInfo<hsp_ext::debug_info::HspConstantMap>>,
     source_map: Option<hsp_ext::source_map::SourceMap>,
-    finish_tx: mpsc::SyncSender<()>,
+    did_send_initialized_event: bool,
     // #[allow(unused)]
     // join_handle: Option<thread::JoinHandle<()>>,
 }
@@ -112,6 +108,7 @@ impl Worker {
 
         let worker = Worker {
             rx,
+            finish_tx,
             connection_sender: None,
             hsprt_sender: Some(hsprt_sender),
             is_connected: false,
@@ -124,7 +121,7 @@ impl Worker {
             },
             debug_info: None,
             source_map: None,
-            finish_tx,
+            did_send_initialized_event: false,
             // join_handle: Some(join_handle),
         };
 
@@ -140,6 +137,8 @@ impl Worker {
     }
 
     pub fn run(mut self) {
+        debug!("[app] 開始");
+
         loop {
             match self.rx.recv() {
                 Ok(action @ Action::BeforeTerminating) => {
@@ -166,41 +165,55 @@ impl Worker {
     /// HSP ランタイムが次に中断しているときにアクションが実行されるように予約する。
     /// すでに停止しているときは即座に実行されるように、メッセージを送る。
     fn send_to_hsprt(&self, action: hsprt::Action) {
-        if let Some(sender) = self.hsprt_sender.as_ref() {
-            sender.send(action, self.state.stopped);
-        }
+        let sender = match &self.hsprt_sender {
+            Some(it) => it,
+            None => {
+                debug!("[app] send_to_hsprt: sender is none");
+                return;
+            }
+        };
+        sender.send(action, self.state.stopped);
     }
 
     fn send_response(&mut self, request_seq: i64, response: dap::Response) {
-        if let Some(sender) = self.connection_sender.as_ref() {
-            sender.send(connection::Action::Send(dap::Msg::Response {
-                request_seq,
-                success: true,
-                e: response,
-            }));
-        }
+        let sender = match &self.connection_sender {
+            Some(it) => it,
+            None => {
+                debug!("[app] send_response: sender is none");
+                return;
+            }
+        };
+        sender.send(connection::Action::Send(dap::Msg::Response {
+            request_seq,
+            success: true,
+            e: response,
+        }));
     }
 
     fn send_response_failure(&mut self, request_seq: i64, response: dap::Response) {
-        if let Some(sender) = self.connection_sender.as_ref() {
-            sender.send(connection::Action::Send(dap::Msg::Response {
-                request_seq,
-                success: false,
-                e: response,
-            }));
-        }
+        let sender = match &self.connection_sender {
+            Some(it) => it,
+            None => {
+                debug!("[app] send_response_failure: sender is none");
+                return;
+            }
+        };
+        sender.send(connection::Action::Send(dap::Msg::Response {
+            request_seq,
+            success: false,
+            e: response,
+        }));
     }
 
     fn send_event(&self, event: dap::Event) {
-        if let Some(sender) = self.connection_sender.as_ref() {
-            sender.send(connection::Action::Send(dap::Msg::Event { e: event }));
-        }
-    }
-
-    fn send_initialized_event(&self) {
-        if self.is_connected && self.is_launch_response_sent() {
-            self.send_event(dap::Event::Initialized);
-        }
+        let sender = match &self.connection_sender {
+            Some(it) => it,
+            None => {
+                debug!("[app] send_event: sender is none");
+                return;
+            }
+        };
+        sender.send(connection::Action::Send(dap::Msg::Event { e: event }));
     }
 
     fn send_pause_event(&self) {
@@ -209,6 +222,8 @@ impl Worker {
                 reason: "pause".to_owned(),
                 thread_id: MAIN_THREAD_ID,
             });
+        } else {
+            debug!("[app] send_pause_event skipped");
         }
     }
 
@@ -218,7 +233,10 @@ impl Worker {
                 self.launch_args = Some(args);
                 self.load_source_map();
                 self.send_response(seq, dap::Response::Launch);
-                self.send_initialized_event();
+
+                if !mem::replace(&mut self.did_send_initialized_event, true) {
+                    self.send_event(dap::Event::Initialized);
+                }
             }
             dap::Request::SetExceptionBreakpoints { .. } => {
                 self.send_response(seq, dap::Response::SetExceptionBreakpoints);
@@ -327,21 +345,22 @@ impl Worker {
             return;
         }
 
-        let debug_info = match self.debug_info {
+        let debug_info = match &self.debug_info {
+            Some(it) => it,
             None => return,
-            Some(ref debug_info) => debug_info,
         };
 
-        let args = match self.launch_args {
+        let launch_args = match &self.launch_args {
+            Some(it) => it,
             None => return,
-            Some(ref args) => args,
         };
-        let root = PathBuf::from(&args.root);
 
-        let mut source_map = hsp_ext::source_map::SourceMap::new(&root);
+        let hsp3_root = PathBuf::from(&launch_args.root);
+
+        let mut source_map = hsp_ext::source_map::SourceMap::new(&hsp3_root);
         let file_names = debug_info.file_names();
 
-        source_map.add_search_path(PathBuf::from(&args.program).parent());
+        source_map.add_search_path(PathBuf::from(&launch_args.program).parent());
         source_map.add_file_names(
             &file_names
                 .iter()
@@ -387,14 +406,13 @@ impl Worker {
             }
             Action::AfterConnected => {
                 self.is_connected = true;
-                self.send_initialized_event();
             }
             Action::BeforeTerminating => {
                 self.send_event(dap::Event::Terminated { restart: false });
 
                 // サブワーカーを捨てる。
-                self.hsprt_sender.take();
-                self.connection_sender.take();
+                // self.hsprt_sender.take();
+                // self.connection_sender.take();
 
                 // if let Some(_) = self.join_handle.take() {
                 //     // NOTE: なぜか終了しないので join しない。

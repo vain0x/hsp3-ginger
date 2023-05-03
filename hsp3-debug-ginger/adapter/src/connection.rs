@@ -90,6 +90,7 @@ impl Worker {
 
         info!("[connection] 開始");
         self.app_sender.send(app::Action::AfterConnected);
+        drop(self.app_sender);
 
         loop {
             let msg = match self.rx.recv() {
