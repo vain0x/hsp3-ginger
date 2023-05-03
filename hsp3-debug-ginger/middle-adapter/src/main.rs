@@ -11,245 +11,388 @@
 
 mod pipe;
 
-use crate::pipe::Pipe;
+#[allow(unused_imports)]
 use log::{debug, error, info, warn};
+
+use crate::pipe::Pipe;
 use shared::{
     debug_adapter_connection as dac,
     debug_adapter_protocol::{self as dap, LaunchRequestArgs},
     file_logger::FileLogger,
 };
 use std::{
-    io::{self, Read, Write},
+    io::{self, BufReader, Read, Write},
+    mem,
     path::PathBuf,
-    process, thread,
+    process,
+    sync::{mpsc, Arc, Mutex},
+    thread,
+    time::Duration,
 };
 
-struct BeforeLaunchHandler {
-    r: dac::DebugAdapterReader<io::BufReader<io::Stdin>>,
-    w: dac::DebugAdapterWriter<io::Stdout>,
-    body: Vec<u8>,
+enum AMsg {
+    DapReaderRecv(serde_json::Value),
+    DapReaderExited,
+    PipeExited,
+    StdOutExited,
+    ChildExited,
+    Launch { args: LaunchRequestArgs },
+    DisconnectSelf,
 }
 
-enum Status {
-    Launch {
-        seq: i64,
-        args: dap::LaunchRequestArgs,
-    },
-    Disconnect,
+enum WMsg {
+    WriteMsg(dap::Msg),
+    WriteBytes(Vec<u8>),
+    Exit,
 }
 
-impl BeforeLaunchHandler {
-    fn send<T: serde::Serialize>(&mut self, obj: &T) {
-        self.w.write(obj);
-    }
+fn run() {
+    let (tx, rx) = mpsc::sync_channel(8);
+    let tx = Arc::new(tx);
 
-    fn handle(&mut self, request: &serde_json::Value) -> Option<Status> {
-        debug!("BLH: handle");
-        let request = request.as_object()?;
-        let request_seq = request.get("seq")?.as_i64()?;
-        let command = request.get("command")?.as_str()?;
-        debug!("  command={}", command);
+    debug!("パイプを作成します");
+    let mut in_stream = Pipe::new(r"\\.\pipe\hdg-pipe");
 
-        match command {
-            "initialize" => self.send(&dap::Msg::Response {
-                request_seq,
-                success: true,
-                e: dap::Response::Initialize,
-            }),
-            "launch" => {
-                self.send(&dap::Msg::Response {
-                    request_seq,
-                    success: true,
-                    e: dap::Response::Launch,
-                });
-                let args: LaunchRequestArgs =
-                    serde_json::from_value(request.get("arguments").unwrap().clone()).unwrap();
-                return Some(Status::Launch {
-                    seq: request_seq,
-                    args,
-                });
-            }
-            _ => {
-                warn!("コマンドを認識できませんでした {:?}", command);
-                return None;
-            }
-        }
+    let (stdout_tx, stdout_rx) = mpsc::sync_channel(1);
+    let stdout_tx = &stdout_tx;
+    let (child_tx, child_rx) = mpsc::sync_channel(0);
+    let (accept_tx, accept_rx) = mpsc::sync_channel::<Pipe>(1);
 
-        None
-    }
+    let mut child_opt = None;
 
-    fn run(&mut self) -> Status {
-        loop {
-            debug!("BLH: Receiving...");
-            if !self.r.recv(&mut self.body) {
-                debug!("BLH: result=Disconnect");
-                return Status::Disconnect;
-            }
-
-            let message = serde_json::from_slice(&self.body).unwrap();
-            match self.handle(&message) {
-                None => continue,
-                Some(result) => {
-                    debug!("BLH: return");
-                    return result;
-                }
-            }
-        }
-    }
-}
-
-struct AfterLaunchHandler {
-    launch_seq: i64,
-    args: dap::LaunchRequestArgs,
-    stream: Option<Pipe>,
-}
-
-impl AfterLaunchHandler {
-    fn run(&mut self) {
-        let mut in_stream = self.stream.take().unwrap();
-        let mut out_stream = in_stream.try_clone().expect("duplicate pipe");
-
-        info!("オプションを送信します");
-
-        {
-            let mut w = dac::DebugAdapterWriter::new(&mut out_stream);
-            w.write(&dap::Msg::Request {
-                seq: self.launch_seq,
-                e: dap::Request::Launch {
-                    args: self.args.clone(),
-                },
-            });
-        }
-
-        info!("通信の中継を開始します");
-
-        let j1 = thread::spawn(move || {
-            let mut stdin = io::stdin();
+    thread::scope(move |scope| {
+        // [dap-reader]
+        let tx_for_dap_reader = Arc::clone(&tx);
+        scope.spawn(move || {
+            debug!("[dap-reader] 開始");
+            let tx = tx_for_dap_reader;
+            let mut dap_reader = dac::DebugAdapterReader::new(BufReader::new(io::stdin()));
             let mut buf = vec![0; 4096];
-            let mut go = || loop {
-                let n = stdin.read(&mut buf)?;
-                if n == 0 {
-                    return Ok(());
+            let mut launching = false;
+
+            loop {
+                if !dap_reader.recv(&mut buf) {
+                    debug!("[dap-reader] 標準入力が閉じました");
+                    tx.send(AMsg::DapReaderExited).unwrap();
+                    return;
                 }
 
-                {
-                    out_stream.write_all(&buf[0..n])?;
-                    out_stream.flush()?;
+                let msg: serde_json::Value = serde_json::from_slice(&buf).unwrap();
+
+                // let request = msg.as_object().unwrap();
+                let seq = msg.get("seq").unwrap().as_i64().unwrap();
+                let command = msg.get("command").unwrap().as_str().unwrap();
+                let mut terminated = false;
+
+                match command {
+                    "launch" => launching = true,
+                    "terminated" => terminated = true,
+                    _ => {}
+                }
+
+                debug!("[dap-reader] 読み取りました (seq: {seq}, command: {command})");
+                tx.send(AMsg::DapReaderRecv(msg)).unwrap();
+
+                if launching {
+                    break;
+                }
+                if terminated {
+                    debug!("[dap-reader] Launchの前に停止しました");
+                    return;
+                }
+            }
+
+            assert!(launching);
+            debug!("[dap-reader] クライアント側のパイプが開かれるのを待っています");
+            let mut out_stream = accept_rx.recv().unwrap_or_else(|err| {
+                error!("accept_rx.recv {err:?}");
+                tx.send(AMsg::DapReaderExited).unwrap();
+                panic!();
+            });
+
+            debug!("[dap-reader] Launchリクエストを転送します");
+            write!(out_stream, "Content-Length: {}\r\n\r\n", buf.len()).unwrap();
+            out_stream.write_all(&buf).unwrap();
+            out_stream.flush().unwrap();
+
+            debug!("[dap-reader] Launchリクエストの後");
+            let mut stdin = dap_reader.into_inner();
+            buf.clear();
+
+            let result = loop {
+                let n = match stdin.read(&mut buf) {
+                    Ok(0) => {
+                        debug!("[dap-reader] 標準入力が閉じました");
+                        break Ok(());
+                    }
+                    Ok(it) => it,
+                    Err(err) => break Err(err),
+                };
+                if let Err(err) = out_stream.write_all(&buf[..n]) {
+                    break Err(err);
+                }
+                if let Err(err) = out_stream.flush() {
+                    break Err(err);
                 }
             };
-            go().unwrap_or_else(|err: io::Error| error!("[j1] {:?}", err));
-            debug!("[j1] exited");
+
+            tx.send(AMsg::DapReaderExited).unwrap();
+            if let Err(err) = result {
+                debug!("[dap-reader] {err:?}");
+            }
+            debug!("[dap-reader] 終了");
         });
 
-        let j2 = thread::spawn(move || {
+        // [pipe-copy]
+        let tx_for_pipe_copy = Arc::clone(&tx);
+        scope.spawn(move || {
+            debug!("[pipe-copy] 開始");
+            let tx = tx_for_pipe_copy;
             let mut buf = vec![0; 4096];
-            let mut stdout = io::stdout();
-            let mut go = || loop {
-                let n = in_stream.read(&mut buf)?;
-                if n == 0 {
-                    return Ok(());
-                }
-                stdout.write_all(&buf[0..n])?;
-                stdout.flush()?;
-            };
-            go().unwrap_or_else(|err: io::Error| error!("[j2] {:?}", err));
-            debug!("[j2] exited");
+
+            in_stream.accept();
+            let out_stream = in_stream.try_clone().expect("duplicate pipe");
+            accept_tx.send(out_stream).unwrap();
+            debug!("[pipe-copy] クライアント側のパイプが開かれました");
+
+            loop {
+                let n = match in_stream.read(&mut buf) {
+                    Ok(0) => {
+                        debug!("[pipe-copy] パイプが閉じました");
+                        break;
+                    }
+                    Ok(it) => it,
+                    Err(err) => {
+                        debug!("[pipe-copy] 読み取り中 {err:?}");
+                        break;
+                    }
+                };
+                stdout_tx
+                    .send(WMsg::WriteBytes(buf[..n].to_owned()))
+                    .unwrap();
+            }
+            tx.send(AMsg::PipeExited).unwrap();
+            debug!("[pipe-copy] 終了");
         });
 
-        j1.join().ok();
-        j2.join().ok();
+        // [stdout]
+        let tx_for_stdout = Arc::clone(&tx);
+        scope.spawn(move || {
+            debug!("[stdout] 開始");
+            let tx = tx_for_stdout;
+            let mut stdout_opt = Some(io::stdout());
+            let mut buf = Vec::with_capacity(4096);
+            for msg in stdout_rx {
+                match msg {
+                    WMsg::WriteMsg(msg) => {
+                        debug!("[stdout] On WriteMsg");
+                        let stdout = stdout_opt.take().unwrap();
+                        let local_buf = mem::take(&mut buf);
 
-        info!("終了を通知します");
+                        let mut dap_writer =
+                            dac::DebugAdapterWriter::with_buffer(stdout, local_buf);
+                        dap_writer.write(&msg);
+                        let (stdout, local_buf) = dap_writer.into_inner();
 
-        {
-            let mut w = dac::DebugAdapterWriter::new(io::stdout());
-            w.write(&dap::Msg::Event {
-                e: dap::Event::Terminated { restart: false },
+                        stdout_opt = Some(stdout);
+                        buf = local_buf;
+                        buf.clear();
+                    }
+                    WMsg::WriteBytes(data) => {
+                        debug!("[stdout] On WriteBytes({}B)", data.len());
+                        let stdout = stdout_opt.as_mut().unwrap();
+                        stdout.write_all(&data).unwrap();
+                        stdout.flush().unwrap();
+                    }
+                    WMsg::Exit => {
+                        debug!("[stdout] On Exit");
+                        break;
+                    }
+                }
+            }
+            tx.send(AMsg::StdOutExited).unwrap_or_else(|_| {
+                error!("[stdout] tx.send");
             });
-        }
-    }
-}
+            debug!("[stdout] 終了");
+        });
 
-struct Program;
+        // [child]
+        let tx_for_child = Arc::clone(&tx);
+        scope.spawn(move || {
+            debug!("[child] 開始");
+            let tx = tx_for_child;
 
-impl Program {
-    fn run(&self) {
-        debug!("init");
+            let child_ref: Arc<Mutex<Option<process::Child>>> = child_rx.recv().unwrap();
+            debug!("[child] 子プロセスを受け取りました");
 
-        let result = BeforeLaunchHandler {
-            r: dac::DebugAdapterReader::new(io::BufReader::new(io::stdin())),
-            w: dac::DebugAdapterWriter::new(io::stdout()),
-            body: Vec::new(),
-        }
-        .run();
-
-        let (launch_seq, args) = match result {
-            Status::Disconnect => {
-                info!("プログラムの起動前に切断されました");
-                return;
+            loop {
+                thread::sleep(Duration::from_millis(500));
+                let mut guard = child_ref.lock().unwrap();
+                let child = match guard.as_mut() {
+                    Some(it) => it,
+                    None => {
+                        debug!("[child] キルを検出しました");
+                        break;
+                    }
+                };
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        debug!("[child] 終了を検出しました ({status:?})");
+                        break;
+                    }
+                    Ok(None) => continue,
+                    Err(err) => {
+                        debug!("[child] try_wait {err:?}");
+                        break;
+                    }
+                }
             }
-            Status::Launch { seq, args } => (seq, args),
-        };
+            tx.send(AMsg::ChildExited).unwrap_or_else(|_| {
+                error!("[child] tx.send");
+            });
+            debug!("[child] 終了");
+        });
 
-        debug!("引数: {:?}", args);
+        // [main]
+        scope.spawn(move || {
+            debug!("[main] 開始");
+            for msg in rx {
+                match msg {
+                    AMsg::DapReaderRecv(msg) => {
+                        debug!("[main] On DapReaderRecv");
+                        let req = msg.as_object().unwrap();
+                        let seq = msg.get("seq").unwrap().as_i64().unwrap();
+                        let command = msg.get("command").unwrap().as_str().unwrap();
 
-        info!("パイプを作成します");
-        let stream = Pipe::new(r"\\.\pipe\hdg-pipe");
+                        match command {
+                            "initialize" => {
+                                stdout_tx
+                                    .send(WMsg::WriteMsg(dap::Msg::Response {
+                                        request_seq: seq,
+                                        success: true,
+                                        e: dap::Response::Initialize,
+                                    }))
+                                    .unwrap();
 
-        info!("デバッグ実行を開始します");
+                                stdout_tx
+                                    .send(WMsg::WriteMsg(dap::Msg::Event {
+                                        e: dap::Event::Initialized,
+                                    }))
+                                    .unwrap();
+                                continue;
+                            }
+                            "configurationDone" => {
+                                stdout_tx
+                                    .send(WMsg::WriteMsg(dap::Msg::Response {
+                                        request_seq: seq,
+                                        success: true,
+                                        e: dap::Response::ConfigurationDone,
+                                    }))
+                                    .unwrap();
+                                continue;
+                            }
+                            "launch" => {
+                                stdout_tx
+                                    .send(WMsg::WriteMsg(dap::Msg::Response {
+                                        request_seq: seq,
+                                        success: true,
+                                        e: dap::Response::Launch,
+                                    }))
+                                    .unwrap();
 
-        // FIXME: args.program に指定されたスクリプトをコンパイル・実行する
-        let rt_file = PathBuf::from(format!("{}/hsp3.exe", &args.root));
-        let ax_file = "examples/inc_loop.ax";
+                                let args: LaunchRequestArgs =
+                                    serde_json::from_value(req.get("arguments").unwrap().clone())
+                                        .unwrap();
 
-        // let comp_path = path::PathBuf::from(args.root.clone()).join("cHspComp.exe");
-        // let mut child = match process::Command::new(comp_path)
-        //     .arg("/diw")
-        //     .arg(args.program.clone())
-        //     .stdin(process::Stdio::null())
-        //     .stdout(process::Stdio::null())
-        //     .stderr(process::Stdio::null())
-        //     .spawn()
-        // {
-        //     Err(err) => {
-        //         error!("デバッグ実行を開始できません {:?}", err);
-        //         return;
-        //     }
-        //     Ok(child) => child,
-        // };
-        // let comp_path = path::PathBuf::from(args.root.clone()).join("cHspComp.exe");
-        let mut child = match process::Command::new(rt_file)
-            .arg(ax_file)
-            .stdin(process::Stdio::null())
-            .stdout(process::Stdio::null())
-            .stderr(process::Stdio::null())
-            .env("RUST_BACKTRACE", "1")
-            .spawn()
-        {
-            Err(err) => {
-                error!("デバッグ実行を開始できません {:?}", err);
-                return;
+                                tx.send(AMsg::Launch { args }).unwrap();
+                                continue;
+                            }
+                            _ => {
+                                debug!("[main] \\- 不明なコマンド '{command}'");
+                                continue;
+                            }
+                        }
+                    }
+                    AMsg::Launch { args } => {
+                        debug!("[main] On Launch");
+
+                        // FIXME: args.program に指定されたスクリプトをコンパイル・実行する
+                        let rt_file = PathBuf::from(format!("{}/hsp3.exe", &args.root));
+                        let ax_file = "examples/inc_loop.ax";
+
+                        let child = process::Command::new(rt_file)
+                            .arg(ax_file)
+                            .stdin(process::Stdio::null())
+                            .stdout(process::Stdio::null())
+                            .stderr(process::Stdio::inherit())
+                            .env("RUST_BACKTRACE", "1")
+                            .spawn()
+                            .unwrap_or_else(|err| panic!("デバッグ実行を開始できません {:?}", err));
+
+                        debug!("[main] \\- Sending child (pid: {})", child.id());
+                        let child = Arc::new(Mutex::new(Some(child)));
+                        child_tx.send(Arc::clone(&child)).unwrap();
+                        child_opt = Some(child);
+                        continue;
+                    }
+                    AMsg::DapReaderExited => {
+                        debug!("[main] On DapReaderExited");
+                        tx.send(AMsg::DisconnectSelf).unwrap();
+                    }
+                    AMsg::PipeExited => {
+                        debug!("[main] On PipeExited");
+                        tx.send(AMsg::DisconnectSelf).unwrap();
+                    }
+                    AMsg::StdOutExited => {
+                        debug!("[main] On StdOutExited");
+                        tx.send(AMsg::DisconnectSelf).unwrap();
+                    }
+                    AMsg::ChildExited => {
+                        debug!("[main] On ChildExited");
+                        tx.send(AMsg::DisconnectSelf).unwrap();
+                    }
+                    AMsg::DisconnectSelf => {
+                        debug!("[main] On DisconnectSelf");
+
+                        // 子プロセスをキルする
+                        'killing: {
+                            let child = match child_opt.take() {
+                                Some(it) => it,
+                                None => {
+                                    debug!("[main] \\- 子プロセスはすでに終了しているようです");
+                                    break 'killing;
+                                }
+                            };
+                            let mut child_opt = match child.lock() {
+                                Ok(it) => it,
+                                Err(err) => {
+                                    debug!("[main] \\- child.lock {err:?}");
+                                    break 'killing;
+                                }
+                            };
+                            let mut child = match child_opt.take() {
+                                Some(it) => it,
+                                None => {
+                                    // 起動されていないか、すでに終了している
+                                    debug!("[main] \\- No child");
+                                    break 'killing;
+                                }
+                            };
+                            child.kill().unwrap_or_else(|err| {
+                                warn!("[main] \\- 子プロセスをキルできません {err:?}");
+                            });
+                        }
+
+                        // 標準出力への書き込みを終了する
+                        stdout_tx.send(WMsg::Exit).unwrap();
+                        break;
+                    }
+                }
             }
-            Ok(child) => child,
-        };
-
-        debug!("クライアント側のパイプを待機しています");
-        stream.accept();
-
-        AfterLaunchHandler {
-            launch_seq,
-            args,
-            stream: Some(stream),
-        }
-        .run();
-
-        info!("子プロセスをキルします");
-        // eprintln!("10秒後にデバッグ実行を停止します");
-        // thread::sleep(std::time::Duration::from_secs(10));
-        child.kill().ok();
-
-        info!("終了");
-    }
+            debug!("[main] 終了");
+        });
+    });
+    debug!("thread::scope finished");
 }
 
 /// ロガーを設定する
@@ -271,5 +414,7 @@ fn init_logger() {
 
 fn main() {
     init_logger();
-    Program {}.run();
+    debug!("=== 開始 ===");
+    run();
+    debug!("=== 終了 ===");
 }

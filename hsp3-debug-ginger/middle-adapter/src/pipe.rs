@@ -99,6 +99,11 @@ impl Pipe {
 
         if unsafe { ConnectNamedPipe(h, null_mut()) } == 0 {
             let n = unsafe { GetLastError() };
+            if n == 535 {
+                // ERROR_PIPE_CONNECTED
+                eprintln!("[pipe] ERROR_PIPE_CONNECTED");
+                return;
+            }
             panic!("ConnectNamedPipe {n}")
         }
     }

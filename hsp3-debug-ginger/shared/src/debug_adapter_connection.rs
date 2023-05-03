@@ -14,6 +14,10 @@ impl<R: BufRead> DebugAdapterReader<R> {
         }
     }
 
+    pub fn into_inner(self) -> R {
+        self.r
+    }
+
     pub fn recv(&mut self, body: &mut Vec<u8>) -> bool {
         // ヘッダー行を読む。
         self.line.clear();
@@ -22,6 +26,7 @@ impl<R: BufRead> DebugAdapterReader<R> {
             // EOF.
             return false;
         }
+        debug!("[DAC] recv (line: {:?})", self.line);
 
         if !self.line.starts_with("Content-Length:") {
             error!("ERROR expected content-length header");
@@ -35,6 +40,7 @@ impl<R: BufRead> DebugAdapterReader<R> {
             }
             Ok(len) => len,
         };
+        debug!("[DAC]   \\- (len: {:?})", len);
 
         // ヘッダーの終わりの `\r\n` を読み飛ばす。
         self.line.clear();
@@ -61,6 +67,14 @@ impl<W: Write> DebugAdapterWriter<W> {
             w,
             buffer: Vec::new(),
         }
+    }
+
+    pub fn with_buffer(w: W, buffer: Vec<u8>) -> Self {
+        DebugAdapterWriter { w, buffer }
+    }
+
+    pub fn into_inner(self) -> (W, Vec<u8>) {
+        (self.w, self.buffer)
     }
 
     pub fn write<T: serde::Serialize>(&mut self, obj: &T) {

@@ -84,6 +84,7 @@ impl Worker {
             .expect("Open pipe");
 
         let mut out_stream = in_stream.try_clone().expect("Duplicate pipe");
+        let mut dap_writer = dac::DebugAdapterWriter::new(&mut out_stream);
 
         debug!("[connection] Send stream");
         self.stream_tx.send(in_stream).unwrap();
@@ -103,7 +104,7 @@ impl Worker {
             match msg {
                 Action::Send(msg) => {
                     debug!("[connection::Worker] Send");
-                    dac::DebugAdapterWriter::new(&mut out_stream).write(&msg);
+                    dap_writer.write(&msg);
                 }
             }
         }

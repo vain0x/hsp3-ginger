@@ -11,8 +11,8 @@ use std::{
     path::PathBuf,
     process::{self, Command},
     sync::{
-        mpsc::{self},
-        Arc, Mutex,
+        atomic::{self, AtomicU32},
+        mpsc, Arc, Mutex,
     },
     thread,
     time::Duration,
@@ -74,12 +74,16 @@ fn main() {
         .spawn()
         .expect("middle-adapter spawn");
 
+    let mut ap_stdin = ap.stdin.take().unwrap();
+    let mut ap_stdout = ap.stdout.take().unwrap();
+
     // 複数の処理を並行に行うため、複数のスレッドを起動する
     //
     // - スレッド同士はメッセージ通信によって協調動作する (txで送信, rxで受信)
     // - (Graceful shutdown) すべてのスレッドがtx, rxを破棄すると全スレッドが処理を完了し、testerが終了できる
     let (tx, rx) = mpsc::sync_channel(1);
     let tx = Arc::new(tx);
+    let seq = AtomicU32::new(1);
 
     let (handler_tx, handler_rx) = mpsc::sync_channel(1);
     let handler_state = Arc::new(Mutex::new(Some((Arc::clone(&tx), handler_rx))));
@@ -112,10 +116,7 @@ fn main() {
     })
     .unwrap();
 
-    thread::scope(move |scope| {
-        let mut ap_stdin = ap.stdin.take().unwrap();
-        let mut ap_stdout = ap.stdout.take().unwrap();
-
+    thread::scope(|scope| {
         // アダプタープロセスの終了を待つスレッド
         scope.spawn({
             let tx = Arc::clone(&tx);
@@ -147,6 +148,7 @@ fn main() {
                         Msg::CancelRequested => {
                             eprintln!("tester.main: On CancelRequested");
 
+                            // #sendDisconnectedReq
                             let disconnect_req =
                                 r#"{{"type": "request", "command": "disconnect", "seq": 9999}}"#
                                     .to_string();
@@ -169,8 +171,9 @@ fn main() {
 
         // アダプターの標準出力から読み取りを行うスレッド
         scope.spawn({
-            // let tx = Arc::clone(&tx);
-            move || {
+            let seq = &seq;
+            let tx = Arc::clone(&tx);
+             move || {
                 let mut buf = [0; 4096];
                 loop {
                     match ap_stdout.read(&mut buf) {
@@ -182,9 +185,47 @@ fn main() {
                             let msg = String::from_utf8_lossy(&buf[0..n]);
                             eprintln!("tester.stdout: 読み込み({n}): ``{msg}``");
 
-                            // if msg.contains(r#""terminated""#) {
-                            //     eprintln!("tester.stdout: デバッギが終了したようです");
-                            // }
+                            if msg.contains(r#""initialized""#) {
+                                eprintln!("tester: On initialized event");
+                                eprintln!("write configuration done");
+                                let configuration_done_req = {
+                                    let seq = seq.fetch_add(1, atomic::Ordering::AcqRel);
+                                    format!(
+                                        r#"{{"type": "request", "command": "configurationDone", "seq": {}}}"#,
+                                        seq
+                                    )
+                                };
+                                tx.send(Msg::Write(configuration_done_req)).unwrap();
+
+                                eprintln!("write launch");
+                                let launch_req = {
+                                    let seq = seq.fetch_add(1, atomic::Ordering::AcqRel);
+
+                                    let mut p = workspace_dir.to_owned();
+                                    p.extend("adapter/tests/hsp/main.hsp".split('/'));
+
+                                    format!(
+                                        r#"{{"type": "request", "command": "launch", "seq": {}, "arguments": {{"cwd": "{}", "root": "{}", "program": "{}", "trace": true}}}}"#,
+                                        seq,
+                                        workspace_dir.to_string_lossy().replace('\\', "/"),
+                                        hsp3_root.to_string_lossy().replace('\\', "/"),
+                                        p.to_string_lossy().replace('\\', "/")
+                                    )
+                                };
+                                tx.send(Msg::Write(launch_req)).unwrap();
+                            }
+
+                            if msg.contains(r#""terminated""#) {
+                                eprintln!("tester.stdout: On terminated event");
+
+                                let disconnect_req =
+                                    r#"{{"type": "request", "command": "disconnect", "seq": 9999}}"#
+                                    .to_string();
+
+                                tx.send(Msg::Write(disconnect_req)).unwrap_or_else(|err| {
+                                    eprintln!("tester.main: Error {err:?}");
+                                });
+                            }
                             continue;
                         }
                         Err(err) => {
@@ -199,33 +240,14 @@ fn main() {
         // デバッグセッションの開始時の処理:
         {
             eprintln!("write initialize");
-            let mut seq = 0;
             let initialize_req = {
-                seq += 1;
+                let seq = seq.fetch_add(1, atomic::Ordering::AcqRel);
                 format!(
                     r#"{{"type": "request", "command": "initialize", "seq": {}}}"#,
                     seq
                 )
             };
             tx.send(Msg::Write(initialize_req)).unwrap();
-
-            eprintln!("write launch");
-            let launch_req = {
-                seq += 1;
-
-                let mut p = workspace_dir.to_owned();
-                p.extend("adapter/tests/hsp/main.hsp".split('/'));
-
-                format!(
-                    r#"{{"type": "request", "command": "launch", "seq": {}, "arguments": {{"cwd": "{}", "root": "{}", "program": "{}", "trace": true}}}}"#,
-                    seq,
-                    workspace_dir.to_string_lossy().replace('\\', "/"),
-                    hsp3_root.to_string_lossy().replace('\\', "/"),
-                    p.to_string_lossy().replace('\\', "/")
-                )
-            };
-            tx.send(Msg::Write(launch_req)).unwrap();
-
             drop(tx);
         }
     });
