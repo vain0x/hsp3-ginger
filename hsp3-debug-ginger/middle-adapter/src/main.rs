@@ -9,6 +9,7 @@
 //! 3. LaunchRequest の引数として渡される情報を adapter に引き渡す。
 //! 4. 名前付きパイプの通信を標準入出力に転送して、adapter と VSCode が通信できるようにする。
 
+mod hspcmp;
 mod pipe;
 
 #[allow(unused_imports)]

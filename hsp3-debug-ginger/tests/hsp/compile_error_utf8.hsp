@@ -1,0 +1,7 @@
+// コンパイルエラーのテスト用のスクリプトファイル (UTF-8エンコーディング版)
+
+#include "hsp3utf.as"
+
+    mes "Hello, world!"
+    mes "ここで構文エラー" !
+    mes "Bye"

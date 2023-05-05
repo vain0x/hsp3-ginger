@@ -1,0 +1,5 @@
+; コンパイルエラーのテスト用のスクリプトファイル (shift_jis版)
+
+    mes "Hello, world!"
+    mes "ここで構文エラー" !
+    mes "Bye"
