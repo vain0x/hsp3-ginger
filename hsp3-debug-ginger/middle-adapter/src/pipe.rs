@@ -88,7 +88,8 @@ impl Pipe {
     /// パイプハンドルを複製する
     ///
     /// (同一のパイプを参照するオブジェクトをもう1つ作るということ。パイプがもう1つ作られるわけではない)
-    pub(crate) fn try_clone(&self) -> io::Result<Self> {
+    #[allow(unused)]
+    fn try_clone(&self) -> io::Result<Self> {
         let f = self.f.try_clone()?;
         Ok(Pipe { f })
     }

@@ -35,6 +35,7 @@ type Func0 = unsafe extern "stdcall" fn(i32, i32, i32, i32) -> i32;
 type Func1 = unsafe extern "stdcall" fn(*mut c_char, i32, i32, i32) -> i32;
 type Func5 = unsafe extern "stdcall" fn(*mut c_char, *mut c_char, i32, i32) -> i32;
 type Func6 = unsafe extern "stdcall" fn(*mut c_void, *mut c_char, i32, i32) -> i32;
+#[allow(unused)]
 type Func16 = unsafe extern "stdcall" fn(i32, i32, i32, *mut c_char) -> i32;
 
 #[derive(Default)]
