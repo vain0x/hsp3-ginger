@@ -37,7 +37,7 @@ enum AMsg {
     PipeExited,
     StdOutExited,
     ChildExited,
-    Launch { args: LaunchRequestArgs },
+    Launch { seq: i64, args: LaunchRequestArgs },
     DisconnectSelf,
 }
 
@@ -297,19 +297,19 @@ fn run() {
                                 continue;
                             }
                             "launch" => {
-                                stdout_tx
-                                    .send(WMsg::WriteMsg(dap::Msg::Response {
-                                        request_seq: seq,
-                                        success: true,
-                                        e: dap::Response::Launch,
-                                    }))
-                                    .unwrap();
+                                // stdout_tx
+                                //     .send(WMsg::WriteMsg(dap::Msg::Response {
+                                //         request_seq: seq,
+                                //         success: true,
+                                //         e: dap::Response::Launch,
+                                //     }))
+                                //     .unwrap();
 
                                 let args: LaunchRequestArgs =
                                     serde_json::from_value(req.get("arguments").unwrap().clone())
                                         .unwrap();
 
-                                tx.send(AMsg::Launch { args }).unwrap();
+                                tx.send(AMsg::Launch { seq, args }).unwrap();
                                 continue;
                             }
                             _ => {
@@ -318,26 +318,111 @@ fn run() {
                             }
                         }
                     }
-                    AMsg::Launch { args } => {
+                    AMsg::Launch { seq, args } => {
                         debug!("[main] On Launch");
 
-                        // FIXME: args.program に指定されたスクリプトをコンパイル・実行する
-                        let rt_file = PathBuf::from(format!("{}/hsp3.exe", &args.root));
-                        let ax_file = "examples/inc_loop.ax";
+                        let LaunchRequestArgs {
+                            cwd,
+                            root: hsp3_root,
+                            program,
+                            trace: _,
+                        } = args;
+                        let hsp3_root = PathBuf::from(hsp3_root);
+                        let program = PathBuf::from(program);
 
-                        let child = process::Command::new(rt_file)
-                            .arg(ax_file)
-                            .stdin(process::Stdio::null())
-                            .stdout(process::Stdio::null())
-                            .stderr(process::Stdio::inherit())
-                            .env("RUST_BACKTRACE", "1")
-                            .spawn()
-                            .unwrap_or_else(|err| panic!("デバッグ実行を開始できません {:?}", err));
+                        let objname = program
+                            .parent()
+                            .unwrap()
+                            .join("obj")
+                            .to_str()
+                            .unwrap()
+                            .to_string();
 
-                        debug!("[main] \\- Sending child (pid: {})", child.id());
-                        let child = Arc::new(Mutex::new(Some(child)));
-                        child_tx.send(Arc::clone(&child)).unwrap();
-                        child_opt = Some(child);
+                        let mut options = hspcmp::CompileOptions::default();
+                        options.objname = Some(&objname);
+                        // options.utf8_input = true;
+
+                        let result = 'launch: {
+                            let output = match hspcmp::compile(&program, &hsp3_root, options) {
+                                Ok(it) => it,
+                                Err(err) => {
+                                    error!("[main] \\- compile {err:?}");
+                                    break 'launch Err((
+                                        1001,
+                                        format!("コンパイルできません\n\n{err:?}"),
+                                    ));
+                                }
+                            };
+
+                            debug!(
+                                "[main] \\- compiled:\n  ok={:?},\n  runtime={:?},\n  message={:?}",
+                                output.ok, output.runtime, output.message
+                            );
+
+                            if !output.ok {
+                                break 'launch Err((
+                                    1002,
+                                    format!(
+                                        "コンパイルエラーが発生しました。\n\n{}",
+                                        &output.message
+                                    ),
+                                ));
+                            }
+
+                            let mut runtime = PathBuf::from(&hsp3_root);
+                            if output.runtime != "hsp3.exe" {
+                                runtime.push("runtime");
+                            }
+                            runtime.push(&output.runtime);
+
+                            let spawn_result = process::Command::new(&runtime)
+                                .arg(objname)
+                                .stdin(process::Stdio::null())
+                                .stdout(process::Stdio::null())
+                                .stderr(process::Stdio::inherit())
+                                .env("RUST_BACKTRACE", "1")
+                                .current_dir(&cwd)
+                                .spawn();
+
+                            let child = match spawn_result {
+                                Ok(it) => it,
+                                Err(err) => {
+                                    break 'launch Err((
+                                        1003,
+                                        format!(
+                                            "スクリプトの実行に際しエラーが発生しました\n\n{err:?}"
+                                        ),
+                                    ))
+                                }
+                            };
+
+                            debug!("[main] \\- Sending child (pid: {})", child.id());
+                            let child = Arc::new(Mutex::new(Some(child)));
+                            child_tx.send(Arc::clone(&child)).unwrap();
+                            child_opt = Some(child);
+                            Ok(())
+                        };
+
+                        match result {
+                            Ok(()) => stdout_tx
+                                .send(WMsg::WriteMsg(dap::Msg::Response {
+                                    request_seq: seq,
+                                    success: true,
+                                    e: dap::Response::Launch,
+                                }))
+                                .unwrap(),
+                            Err((code, message)) => {
+                                stdout_tx
+                                    .send(WMsg::WriteMsg(dap::Msg::Response {
+                                        request_seq: seq,
+                                        success: false,
+                                        e: dap::Response::Error(dap::Message::with_message(
+                                            code, message,
+                                        )),
+                                    }))
+                                    .unwrap();
+                            }
+                        }
                         continue;
                     }
                     AMsg::DapReaderExited => {

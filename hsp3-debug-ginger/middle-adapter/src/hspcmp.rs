@@ -40,35 +40,35 @@ type Func16 = unsafe extern "stdcall" fn(i32, i32, i32, *mut c_char) -> i32;
 #[derive(Default)]
 pub(crate) struct CompileOptions<'a> {
     /// `hspcmp.dll` へのパス
-    lib_path: Option<&'a Path>,
-    refname: Option<&'a str>,
+    pub lib_path: Option<&'a Path>,
+    pub refname: Option<&'a str>,
 
     /// 出力されるオブジェクトファイルの名前
-    objname: Option<&'a str>,
+    pub objname: Option<&'a str>,
 
     /// `common` ディレクトリへのパス
     ///
     /// (既定値: `hsp3_root` の直下のcommon)
-    compath: Option<&'a Path>,
+    pub compath: Option<&'a Path>,
 
     /// スクリプトファイルをUTF-8とみなして読み込む
     ///
     /// trueなら、`hsc_comp` の第2引数のフラグ32を立てる
     /// (既定値: false)
-    utf8_input: bool,
+    pub utf8_input: bool,
 
     /// 文字列データをUTF-8コードに変換して出力する
     ///
     /// trueなら、`hsc_comp` の第1引数p1にフラグ4を立てる。
     /// (既定値: false)
-    utf8_output: bool,
+    pub utf8_output: bool,
 }
 
 #[derive(Default)]
 pub(crate) struct CompileOutput {
-    ok: bool,
-    runtime: String,
-    message: String,
+    pub ok: bool,
+    pub runtime: String,
+    pub message: String,
 }
 
 #[cfg(target_pointer_width = "32")]
