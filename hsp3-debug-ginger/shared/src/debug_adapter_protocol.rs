@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -137,6 +138,8 @@ pub enum Response {
     Disconnect {
         restart: bool,
     },
+    /// `success: false` のとき
+    Error(Message),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -175,4 +178,32 @@ pub enum Event {
     Terminated {
         restart: bool,
     },
+}
+
+// https://microsoft.github.io/debug-adapter-protocol/specification#Types_Message
+/// エラーメッセージ
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Message {
+    /// エラーの種類を表す一意なID
+    id: i64,
+    /// メッセージ。変数を `{name}` のかたちで埋め込める
+    format: String,
+    /// `format` に埋め込まれた変数の値
+    variables: Option<HashMap<String, String>>,
+    /// エラーをユーザーに見せるか
+    show_user: Option<bool>,
+}
+
+impl Message {
+    pub fn with_message(id: i64, message: String) -> Self {
+        let mut map = HashMap::new();
+        map.insert("msg".to_string(), message);
+        Self {
+            id,
+            format: "{msg}".into(),
+            variables: Some(map),
+            show_user: None,
+        }
+    }
 }
