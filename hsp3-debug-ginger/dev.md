@@ -16,9 +16,6 @@
     - バージョンはLTS版が推奨される。
     - インストールすると node と npm が入る。
     - VSCode 向けの拡張機能の開発に使う。
-- [cHspComp] (HSP コマンドラインコンパイラ) をインストールする
-    - exe を HSP のインストールディレクトリにコピーする。
-    - HSP スクリプトのデバッグ実行を開始するのに使う。
 
 その他:
 
@@ -72,5 +69,4 @@ new-item -itemType symbolicLink -path hsp3debug.dll -value "C:/repo/hsp3-debug-g
 [llvm-project/Releases]: https://github.com/llvm/llvm-project/releases
 [bindgen]: https://github.com/rust-lang/rust-bindgen
 [Node.js]: https://nodejs.org
-[cHspComp]: http://lldev.jp/others/freeware.html#chspcomp
 [PowerShell/Releases]: https://github.com/PowerShell/PowerShell/releases/latest

@@ -15,9 +15,8 @@
 - [最新のリリース](https://github.com/vain0x/hsp3-debug-ginger/releases/latest) から build.vsix をダウンロードして VSCode にインストールする。
     - VSCode のコマンドパレットに「VSIX からのインストール」がある。
 - hsp (アーカイブ版) を新たにインストールする。 (**推奨**)
-- chspcomp.exe, hsp3debug.dll, hsp3debug-ginger-adapter.dll を hsp のディレクトリに配置する。
-    - [chspcomp.exe は公式サイトからダウンロードする](http://lldev.jp/others/freeware.html#chspcomp)
-    - 後者2つは `C:\Users\<ユーザー名>\.vscode\extensions\vain0x.vscode-hsp3-debug-ginger-0.1.0\out\x86-sjis` にある。
+- hsp3debug.dll, hsp3debug-ginger-adapter.dll を hsp のディレクトリに配置する。
+    - `C:\Users\<ユーザー名>\.vscode\extensions\vain0x.vscode-hsp3-debug-ginger-0.1.0\out\x86-sjis` にある。
 - 新しいディレクトリを作って2つのファイルを作る。
     - main.hsp (中身は何でもいい)
     - [.vscode/launch.json](examples/.vscode/launch.json)
