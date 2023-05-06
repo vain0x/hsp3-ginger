@@ -202,7 +202,7 @@ fn main() {
                                     let seq = seq.fetch_add(1, atomic::Ordering::AcqRel);
 
                                     let mut p = workspace_dir.to_owned();
-                                    p.extend("adapter/tests/hsp/main.hsp".split('/'));
+                                    p.extend("examples/inc_loop.hsp".split('/'));
 
                                     format!(
                                         r#"{{"type": "request", "command": "launch", "seq": {}, "arguments": {{"cwd": "{}", "root": "{}", "program": "{}", "trace": true}}}}"#,

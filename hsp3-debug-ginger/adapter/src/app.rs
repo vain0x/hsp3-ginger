@@ -91,10 +91,10 @@ pub(crate) struct Worker {
     hsprt_sender: Option<hsprt::Sender>,
     is_connected: bool,
     launch_args: Option<dap::LaunchRequestArgs>,
+    before_launch: Vec<dap::Msg>,
     state: RuntimeState,
     debug_info: Option<hsp_ext::debug_info::DebugInfo<hsp_ext::debug_info::HspConstantMap>>,
     source_map: Option<hsp_ext::source_map::SourceMap>,
-    did_send_initialized_event: bool,
     // #[allow(unused)]
     // join_handle: Option<thread::JoinHandle<()>>,
 }
@@ -113,6 +113,7 @@ impl Worker {
             hsprt_sender: Some(hsprt_sender),
             is_connected: false,
             launch_args: None,
+            before_launch: vec![],
             state: RuntimeState {
                 file_path: None,
                 file_name: None,
@@ -121,7 +122,6 @@ impl Worker {
             },
             debug_info: None,
             source_map: None,
-            did_send_initialized_event: false,
             // join_handle: Some(join_handle),
         };
 
@@ -130,10 +130,6 @@ impl Worker {
 
     pub fn set_connection_sender(&mut self, connection_sender: connection::Sender) {
         self.connection_sender = Some(connection_sender);
-    }
-
-    fn is_launch_response_sent(&self) -> bool {
-        self.launch_args.is_some()
     }
 
     pub fn run(mut self) {
@@ -217,14 +213,10 @@ impl Worker {
     }
 
     fn send_pause_event(&self) {
-        if self.state.stopped && self.is_launch_response_sent() {
-            self.send_event(dap::Event::Stopped {
-                reason: "pause".to_owned(),
-                thread_id: MAIN_THREAD_ID,
-            });
-        } else {
-            debug!("[app] send_pause_event skipped");
-        }
+        self.send_event(dap::Event::Stopped {
+            reason: "pause".to_owned(),
+            thread_id: MAIN_THREAD_ID,
+        });
     }
 
     fn on_request(&mut self, seq: i64, request: dap::Request) {
@@ -234,8 +226,8 @@ impl Worker {
                 self.load_source_map();
                 self.send_response(seq, dap::Response::Launch);
 
-                if !mem::replace(&mut self.did_send_initialized_event, true) {
-                    self.send_event(dap::Event::Initialized);
+                for msg in mem::take(&mut self.before_launch) {
+                    self.handle(Action::AfterRequestReceived(msg));
                 }
             }
             dap::Request::SetExceptionBreakpoints { .. } => {
@@ -387,6 +379,13 @@ impl Worker {
         debug!("[app] {:?}", action);
 
         match action {
+            Action::AfterRequestReceived(msg @ dap::Msg::Request { .. })
+                if self.launch_args.is_none() && !is_launch_req(&msg) =>
+            {
+                // middle-adapterからlaunchリクエストを受け取るまで他のメッセージは処理しない
+                debug!("[app] \\- deferred until launch");
+                self.before_launch.push(msg);
+            }
             Action::AfterRequestReceived(dap::Msg::Request { seq, e }) => {
                 self.on_request(seq, e);
             }
@@ -428,4 +427,14 @@ impl Worker {
             }
         }
     }
+}
+
+fn is_launch_req(msg: &dap::Msg) -> bool {
+    matches!(
+        msg,
+        dap::Msg::Request {
+            e: dap::Request::Launch { .. },
+            ..
+        }
+    )
 }
