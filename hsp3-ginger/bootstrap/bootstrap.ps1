@@ -1,6 +1,8 @@
 # bootstrap.hsp を使って ginger (CLI) の実行ファイルを作成する。
 # 使い方: bootstrap/bootstrap "path/to/hsp"
 
+$ErrorActionPreference = 'Stop'
+
 $hsp3Home = $args[0]
 
 if (!$hsp3Home) {
@@ -12,39 +14,41 @@ if (!$hsp3Home) {
     exit 1
 }
 
-$workDir = (get-item .).fullName
+$baseDir = (get-item .).fullName
 
-# 実行ファイル生成用のスクリプトをコンパイルする。
-& "$hsp3Home/hspcmp.exe" "--compath=$hsp3Home/common/" "$workDir/bootstrap/bootstrap.hsp"
-if (!$?) {
-    write-error 'bootstrap.hsp のコンパイルに失敗しました。'
-    exit 1
-}
-
-# AXファイルが生成されたことを確認する。
-$bootstrapAx = "$workDir/bootstrap/bootstrap.ax"
-if (!(test-path $bootstrapAx)) {
-    write-error "$bootstrapAx が見つかりません。"
-    exit 1
-}
-
-# ginger の実行ファイルを生成する。
 try {
-    cd $hsp3Home
+    chdir 'bootstrap'
 
-    & "$hsp3Home/hsp3cl.exe" $bootstrapAx "$workDir/src/ginger_main_cli.hsp"
+    # 実行ファイル生成用のスクリプトをコンパイルする。
+    & "$hsp3Home/hspcmp.exe" "--compath=$hsp3Home/common/" "$baseDir/bootstrap/bootstrap.hsp"
+    if (!$?) {
+        write-error 'bootstrap.hsp のコンパイルに失敗しました。'
+        exit 1
+    }
+
+    # AXファイルが生成されたことを確認する。
+    $bootstrapAx = './bootstrap.ax'
+    if (!(test-path $bootstrapAx)) {
+        write-error "$bootstrapAx が見つかりません。"
+        exit 1
+    }
+
+    # ginger の実行ファイルを生成する。
+    & "$hsp3Home/hsp3cl.exe" $bootstrapAx
     if (!$?) {
         write-error 'ginger の実行ファイル生成に失敗しました。'
         exit 1
     }
 
-    & "$hsp3Home/ginger.exe" build "$workDir/src/ginger_main_gui.hsp"
-    if (!$?) {
-        write-error 'ginger_gui の実行ファイル生成に失敗しました。'
-        exit 1
-    }
+    # & "$baseDir/src/ginger.exe" build --hsp $hsp3Home "$baseDir/src/ginger_main_gui.hsp"
+    # if (!$?) {
+    #     write-error 'ginger_gui の実行ファイル生成に失敗しました。'
+    #     exit 1
+    # }
 
-    cp "$hsp3Home/ginger.exe" "$workDir/bin/ginger.exe"
+    move-item -force "$baseDir/src/ginger.exe" "$baseDir/bin/ginger.exe"
+
+    echo 'OK'
 } finally {
-    cd $workDir
+    cd $baseDir
 }

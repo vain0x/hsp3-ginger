@@ -65,18 +65,13 @@ ginger: HSP3 ビルドツール
 インストールするもの:
 
 - PowerShell (>= 7)
-- HSP (>= 3.6)
+- HSP (>= 3.7)
 
 ### ビルド
 
-注意: HSP3_HOMEの下の `ginger.exe` と、`bin/ginger.exe` の両方が上書きされる。
-
-pwshでこのディレクトリを開く。
+pwshでこのディレクトリを開き、次のコマンドを実行することで、gingerの実行ファイルを作成できます。
+(HSPのインストールディレクトリへのパスは適当に変更してください)
 
 ```pwsh
-# HSPのインストールディレクトリを設定する。(ファイルパスは適当に変更してください。)
-$env:HSP3_HOME = 'C:/hsp36'
-
-# ビルドする。
-bootstrap/bootstrap
+bootstrap/bootstrap 'C:/hsp37beta'
 ```
