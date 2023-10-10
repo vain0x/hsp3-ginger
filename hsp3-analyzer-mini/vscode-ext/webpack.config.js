@@ -29,6 +29,10 @@ const config = {
     extensions: ['.ts', '.js']
   },
   module: {
+    // avoid warning
+    // https://github.com/TypeFox/monaco-languageclient/issues/7#issuecomment-316263636
+    noParse: /vscode-languageserver-types/,
+
     rules: [
       {
         test: /\.ts$/,
