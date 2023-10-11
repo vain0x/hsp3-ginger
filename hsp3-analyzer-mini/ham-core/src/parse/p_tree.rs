@@ -347,10 +347,13 @@ impl Debug for PIfStmt {
 #[must_use]
 pub(crate) struct PConstStmt {
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
+    #[allow(unused)]
     pub(crate) ty_opt: Option<(PConstTy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
+    #[allow(unused)]
     pub(crate) init_opt: Option<PExpr>,
 }
 
@@ -391,10 +394,13 @@ pub(crate) struct PDefineStmt {
 #[must_use]
 pub(crate) struct PEnumStmt {
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
+    #[allow(unused)]
     pub(crate) equal_opt: Option<PToken>,
+    #[allow(unused)]
     pub(crate) init_opt: Option<PExpr>,
 }
 
@@ -442,8 +448,11 @@ pub(crate) struct PDefFuncStmt {
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PUseLibStmt {
+    #[allow(unused)]
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
+    #[allow(unused)]
     pub(crate) file_path_opt: Option<PToken>,
 }
 
@@ -452,14 +461,17 @@ pub(crate) struct PUseLibStmt {
 #[must_use]
 pub(crate) struct PLibFuncStmt {
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
     pub(crate) onexit_opt: Option<PToken>,
     /// DLL からエクスポートされる関数の名前 (識別子または文字列)
+    #[allow(unused)]
     pub(crate) func_name_opt: Option<PToken>,
     /// 関数の引数の型を表す整数リテラル
     /// (HSP2.x 時代の機能)
+    #[allow(unused)]
     pub(crate) type_id_opt: Option<PToken>,
     pub(crate) params: Vec<PParam>,
 }
@@ -468,9 +480,11 @@ pub(crate) struct PLibFuncStmt {
 #[must_use]
 pub(crate) struct PUseComStmt {
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
+    #[allow(unused)]
     pub(crate) args: Vec<PArg>,
 }
 
@@ -478,18 +492,24 @@ pub(crate) struct PUseComStmt {
 #[must_use]
 pub(crate) struct PComFuncStmt {
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
+    #[allow(unused)]
     pub(crate) index_opt: Option<PToken>,
+    #[allow(unused)]
     pub(crate) params: Vec<PParam>,
 }
 
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PRegCmdStmt {
+    #[allow(unused)]
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
+    #[allow(unused)]
     pub(crate) args: Vec<PArg>,
 }
 
@@ -498,9 +518,11 @@ pub(crate) struct PRegCmdStmt {
 #[must_use]
 pub(crate) struct PCmdStmt {
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
     pub(crate) privacy_opt: Option<(PPrivacy, PToken)>,
     pub(crate) name_opt: Option<PToken>,
+    #[allow(unused)]
     pub(crate) command_id_opt: Option<PToken>,
 }
 
@@ -515,6 +537,7 @@ pub(crate) struct PModuleStmt {
     pub(crate) name_opt: Option<PToken>,
     pub(crate) fields: Vec<PParam>,
     pub(crate) stmts: Vec<PStmt>,
+    #[allow(unused)]
     pub(crate) global_opt: Option<PGlobalStmt>,
     pub(crate) behind: Loc,
 }
@@ -522,6 +545,7 @@ pub(crate) struct PModuleStmt {
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PGlobalStmt {
+    #[allow(unused)]
     pub(crate) hash: PToken,
     pub(crate) keyword: PToken,
 }
@@ -531,7 +555,9 @@ pub(crate) struct PGlobalStmt {
 #[must_use]
 pub(crate) struct PIncludeStmt {
     pub(crate) hash: PToken,
+    #[allow(unused)]
     pub(crate) keyword: PToken,
+    #[allow(unused)]
     pub(crate) kind: PIncludeKind,
     pub(crate) file_path_opt: Option<PToken>,
 }
@@ -598,6 +624,7 @@ impl Debug for PStmt {
 #[must_use]
 pub(crate) struct PRoot {
     pub(crate) stmts: Vec<PStmt>,
+    #[allow(unused)]
     pub(crate) skipped: Vec<PToken>,
     pub(crate) eof: PToken,
 }
