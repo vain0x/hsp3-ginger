@@ -8,7 +8,7 @@ HSP3 の静的解析ツールです。
 
 - [Visual Studio Code](https://code.visualstudio.com) をインストールしてください。
 - VSCode で次の拡張機能をインストールしてください:
-    - `language-hsp3` (または `vain0x.hsp3-vscode-syntax`)
+    - `language-hsp3`
     - `hsp3-analyzer-mini`
 - HSP3 のインストールディレクトリを設定してください。例:
 
@@ -52,10 +52,10 @@ HSP3 の静的解析ツールです。
 この LSP は変数の定義・使用箇所を正確に解析できません。代わりに、代入や `dim` 命令などを見つけたら変数が定義されたとみなすことにしています。
 
 ```hsp
-    // dim 命令の最初の引数に指定されたので、変数 x が「定義」されたとみなす
+    ; dim 命令の最初の引数に指定されたので、変数 x が「定義」されたとみなす
     dim x
 
-    // = の左辺にあるので、変数 y が「定義」されたとみなす
+    ; = の左辺にあるので、変数 y が「定義」されたとみなす
     y = 1
 ```
 
@@ -104,7 +104,7 @@ HSP3 の静的解析ツールです。
 
 ```hsp
     repeat
-        return // ← 警告
+        return ; ← 警告
     loop
 ```
 
@@ -115,13 +115,50 @@ HSP3 の静的解析ツールです。
 
 ```hsp
 #module
-#deffunc use_var var x // ← 変数を受け取る命令
+#deffunc use_var var x ; ← 変数を受け取る命令
     return
 #global
 
-    use_var 1 // ← 明らかに変数でない (警告)
+    use_var 1 ; ← 明らかに変数でない (警告)
 ```
 
 ### インクルード先への移動
 
 `#include` の上で「定義に移動」すると、include先とみなされるファイルに移動できます。
+
+----
+
+## 設定
+
+### 機能の無効化
+
+設定によって一部の機能を選択して無効にできます。(はじめはすべての機能が有効になっています)
+
+また、一部の機能はVSCodeがはじめから提供している設定項目によって無効化できます。
+これらは `[hsp3]` セクション内に指定することで、HSPのファイルを開いている場合に限定して設定できます。
+
+```json
+{
+    // リント
+    "hsp3-analyzer-mini.lint-enabled": false,
+
+    "[hsp3]": {
+        // ホバー (マウスカーソルを合わせるとツールチップが出る機能)
+        "editor.hover.enabled": false,
+
+        // 入力補完
+        "editor.suggestOnTriggerCharacters": false,
+
+        // パラメーターヒント
+        // (命令や関数のパラメータの入力中にツールチップが出る機能。シグネチャヘルプともいう)
+        "editor.parameterHints.enabled": false,
+
+        // セマンティックハイライト (定義済みの単語を種類別に色分けする機能。シンタックスハイライトとは別)
+        "editor.semanticHighlighting.enabled": false,
+
+        // カッコや引用符 ('") がペアで入力される機能
+        "editor.autoClosingBrackets": "never",
+        "editor.autoClosingQuotes": "never",
+    }
+}
+```

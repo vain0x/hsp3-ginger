@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 fn print_help() {
     println!(
-        r#"{} v{version}
+        r#"{name} v{version}
 
 **注意**: うまく動作する保証はありません！
     必ずバックアップがあることを確認し、
