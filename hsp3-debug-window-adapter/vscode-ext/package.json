@@ -74,7 +74,7 @@
                         "properties": {
                             "program": {
                                 "type": "string",
-                                "description": "デバッグ実行時に実行されるファイルを指定します。省略時は、開いているドキュメントを一時ファイル(hsptmp)に保存して実行します。",
+                                "description": "デバッグ実行時に実行されるファイルを指定します。省略時は、開いているドキュメントを実行します。",
                                 "default": ""
                             },
                             "utf8Support": {

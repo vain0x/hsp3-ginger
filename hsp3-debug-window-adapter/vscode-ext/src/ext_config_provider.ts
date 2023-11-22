@@ -26,7 +26,7 @@ const doResolveDebugConfiguration = async (config: DebugConfiguration, distDir: 
         return null
     }
 
-    let utf8Support = config.utf8Support || "auto"
+    let utf8Support: string | undefined = config.utf8Support || "auto"
     if (utf8Support === "auto") {
         let text: string | undefined
         if (config.program) {
@@ -50,7 +50,15 @@ const doResolveDebugConfiguration = async (config: DebugConfiguration, distDir: 
 
     const utf8Input = utf8Support === "enabled" || utf8Support === "input"
 
-    config.program = config.program || await createHsptmp(utf8Input)
+    let program: string | undefined = config.program
+    if (!program) {
+        program = window.activeTextEditor?.document.fileName
+        if (!program) {
+            program = await createHsptmp(utf8Input)
+        }
+    }
+
+    config.program = program
     config.hsp3Root = config.hsp3Root || await selectHsp3Root()
     config.utf8Support = utf8Support
     config.distDir = config.distDir || distDir
