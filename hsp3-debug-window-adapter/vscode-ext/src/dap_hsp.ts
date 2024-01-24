@@ -12,7 +12,7 @@ import { DebugProtocol } from "@vscode/debugprotocol"
  */
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
     /**
-     * 実行する HSP3 スクリプトのファイルパス (基本的には hsptmp への絶対パス)
+     * 実行する HSP3 スクリプトのファイルパス
      */
     program: string
 

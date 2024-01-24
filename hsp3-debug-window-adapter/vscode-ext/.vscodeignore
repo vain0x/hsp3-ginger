@@ -16,9 +16,12 @@ packfile
 
 
 # プロジェクト固有の除外項目
+docs/
 src/
 target/
+dist/*.ax
 dist/*.js.map
+dist/*.log
 dist/*.md
 *.ps1
 tsconfig.json

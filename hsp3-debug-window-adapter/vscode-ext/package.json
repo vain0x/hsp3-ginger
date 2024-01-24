@@ -2,7 +2,7 @@
     "name": "hsp3-debug-window-adapter",
     "displayName": "HSP3 デバッグ (標準のデバッグウィンドウを使用)",
     "description": "HSP3のスクリプトをデバッグ実行できるようにする拡張機能です。VSCodeのデバッグツールではなく、HSP3標準のデバッグウィンドウを使用します。",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "author": {
         "name": "vain0x",
         "email": "vainzerox@gmail.com"
@@ -74,7 +74,7 @@
                         "properties": {
                             "program": {
                                 "type": "string",
-                                "description": "デバッグ実行時に実行されるファイルを指定します。省略時は、開いているドキュメントを一時ファイル(hsptmp)に保存して実行します。",
+                                "description": "デバッグ実行時に実行されるファイルを指定します。省略時は、開いているドキュメントを実行します。",
                                 "default": ""
                             },
                             "utf8Support": {
