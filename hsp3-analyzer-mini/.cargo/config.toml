@@ -1,0 +1,4 @@
+[build]
+# 「VC++ ランタイムライブラリ」を静的リンクする (ライブラリをインストールしていない環境で実行可能にするため)
+# c.f. https://doc.rust-lang.org/reference/linkage.html#static-and-dynamic-c-runtimes
+rustflags = ["-C", "target-feature=+crt-static"]
