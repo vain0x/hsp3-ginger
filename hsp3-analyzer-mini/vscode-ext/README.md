@@ -142,6 +142,9 @@ HSP3 の静的解析ツールです。
     // リント
     "hsp3-analyzer-mini.lint-enabled": false,
 
+    // ドキュメントシンボル、アウトライン
+    "hsp3-analyzer-mini.documentSymbol.enabled": false,
+
     "[hsp3]": {
         // ホバー (マウスカーソルを合わせるとツールチップが出る機能)
         "editor.hover.enabled": false,

@@ -45,6 +45,11 @@
           "type": "string",
           "description": "HSP3のインストールディレクトリへの絶対パス。未設定のときは環境変数 HSP3_ROOT を参照します。"
         },
+        "hsp3-analyzer-mini.documentSymbol.enabled": {
+          "type": "boolean",
+          "description": "trueならドキュメントシンボル機能を有効化します。(※ファイル内で定義されている単語を検索する機能) (default: true)",
+          "default": true
+        },
         "hsp3-analyzer-mini.lint-enabled": {
           "type": "boolean",
           "description": "trueならリント(静的検証)を行い、スクリプトの誤りと思われる箇所に警告を出します。falseを設定すると無効化できます。(default: true)",
