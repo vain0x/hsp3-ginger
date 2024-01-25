@@ -59,7 +59,7 @@
 
 > [keep a changelog](https://keepachangelog.com/ja/)
 
-[0.5.0]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.6.0
+[0.5.0]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.5.0
 [0.4.0]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.4.0
 [0.3.1]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.3.1
 [0.3.0]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.3.0
