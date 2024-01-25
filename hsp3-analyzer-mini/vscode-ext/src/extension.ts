@@ -95,7 +95,7 @@ const newLspClient = (lspBin: string): LanguageClient => {
     },
   }
 
-  return new LanguageClient("hsp3", "hsp3 LSP", serverOptions, clientOptions)
+  return new LanguageClient("hsp3-analyzer-mini", "HSP3アナライザー・ミニ", serverOptions, clientOptions)
 }
 
 // -----------------------------------------------
