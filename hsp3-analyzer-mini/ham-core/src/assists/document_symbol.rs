@@ -44,7 +44,10 @@ pub(crate) fn symbol(
     wa.require_project_for_doc(doc)
         .collect_doc_symbols(doc, &mut symbols);
 
-    symbols.sort_by_key(|s| s.1.start());
+    // 空のシンボルを除去する (名前が空のシンボルがどこかで登録されている(?))
+    symbols.retain(|(s, _)| !s.name().is_empty());
+
+    symbols.sort_by_key(|(_, loc)| loc.start());
 
     let symbol_information_list = symbols
         .into_iter()

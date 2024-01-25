@@ -512,3 +512,39 @@ fn resolve_scope_at(module_map: &ModuleMap, deffunc_map: &DefFuncMap, pos: Pos16
 
     scope
 }
+
+// ===============================================
+
+#[cfg(test)]
+mod tests {
+    use self::lang::Lang;
+    use super::*;
+
+    // `collect_doc_symbols` にラベルの定義箇所が含まれること
+    #[test]
+    fn test_labels() {
+        let mut wa = WorkspaceAnalysis::default();
+        wa.initialize(WorkspaceHost::default());
+
+        let doc: DocId = 1;
+        let text = r#"
+*lab1: stop
+    goto *lab1
+    goto *lab2
+*lab2: stop
+        "#;
+
+        wa.update_doc(doc, Lang::Hsp3, text.into());
+        let p = wa.require_project_for_doc(doc);
+        let mut symbols = vec![];
+        p.collect_doc_symbols(doc, &mut symbols);
+
+        let actual = symbols
+            .into_iter()
+            .map(|(s, loc)| format!("{}:{:?} {}", s.name(), s.kind, loc.start()))
+            .collect::<Vec<_>>()
+            .join("; ");
+        let expected = "lab1:Label 2:2; lab2:Label 5:2";
+        assert_eq!(actual, expected);
+    }
+}

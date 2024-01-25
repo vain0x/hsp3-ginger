@@ -67,6 +67,9 @@ const getHsp3Root = () => {
 const lintIsEnabled = () =>
   workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("lint-enabled") ?? true
 
+const documentSymbolEnabled = () =>
+  workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("documentSymbol.enabled") === true
+
 // -----------------------------------------------
 // LSPクライアント
 // -----------------------------------------------
@@ -93,9 +96,12 @@ const newLspClient = (lspBin: string): LanguageClient => {
       // `workspace/didChangeWatchedFiles` のための監視対象
       fileEvents: workspace.createFileSystemWatcher("**/*.hsp"),
     },
+    initializationOptions: {
+      documentSymbol: { enabled: documentSymbolEnabled() },
+    },
   }
 
-  return new LanguageClient("hsp3", "hsp3 LSP", serverOptions, clientOptions)
+  return new LanguageClient("hsp3-analyzer-mini", "HSP3アナライザー・ミニ", serverOptions, clientOptions)
 }
 
 // -----------------------------------------------

@@ -1,7 +1,7 @@
 {
   "name": "hsp3-analyzer-mini",
   "displayName": "HSP3 アナライザー・ミニ (LSP)",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "HSP3 のインテリセンス",
   "repository": "https://github.com/vain0x/hsp3-ginger",
   "author": "vain0x",
@@ -44,6 +44,11 @@
         "hsp3-analyzer-mini.hsp3-root": {
           "type": "string",
           "description": "HSP3のインストールディレクトリへの絶対パス。未設定のときは環境変数 HSP3_ROOT を参照します。"
+        },
+        "hsp3-analyzer-mini.documentSymbol.enabled": {
+          "type": "boolean",
+          "description": "trueならドキュメントシンボル機能を有効化します。(※ファイル内で定義されている単語を検索する機能) (default: true)",
+          "default": true
         },
         "hsp3-analyzer-mini.lint-enabled": {
           "type": "boolean",

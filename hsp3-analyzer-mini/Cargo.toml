@@ -5,6 +5,7 @@ members = [
     "ham-lsp-server-exe",
     "ham-rewrite",
 ]
+resolver = "2"
 
 [profile.release]
 # 以下の設定で実行ファイルが小さくなる。(リリースビルドのみ)
