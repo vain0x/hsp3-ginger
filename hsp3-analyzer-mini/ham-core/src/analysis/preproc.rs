@@ -128,7 +128,12 @@ fn on_block(block: &PBlock, ctx: &mut Ctx) {
 
 fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
-        PStmt::Label(_) | PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
+        PStmt::Label(PLabel { star, name_opt }) => {
+            if let Some(name) = name_opt {
+                ctx.add_symbol(HspSymbolKind::Label, star, name, ImportMode::Local);
+            }
+        }
+        PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
         PStmt::If(stmt) => {
             on_block(&stmt.body, ctx);
             on_block(&stmt.alt, ctx);
