@@ -182,18 +182,35 @@ const dev = (context: ExtensionContext): void => {
   const doReload = async () => {
     // LSPクライアントが起動中なら停止させる。
     if (client.needsStop()) {
-      const stateChanged = waitClientStateChange()
-      await client.stop()
-      await stateChanged // 完全に停止するのを待つ。
+      try {
+        await Promise.all([
+          waitClientStateChange(), // 完全に停止するのを待つ
+          client.stop(),
+        ])
+      } catch (err) {
+        // (vscode-languageclient@9) `client.stop` が例外を投げることがあり、ここでキャッチする
+        // その際にエラー通知 ("Pending response rejected...") も出るが、それを非表示にする方法は分からなかった
+        // (ほかのメソッド呼び出しや、clientOptionsのerrorHandler, middleware(sendResponse)などで例外のキャッチを試した)
+        // ref: https://github.com/microsoft/vscode-languageserver-node/issues/1307
+        console.error("ham: stop:", err)
+        setTimeout(requestReload, 300)
+        return
+      }
     }
 
     await copyLspBin()
     startWatcher()
 
     // LSPクライアントを起動する。
-    const stateChanged = waitClientStateChange()
-    client.start()
-    await stateChanged
+    try {
+      await Promise.all([
+        waitClientStateChange(),
+        client.start(),
+      ])
+    } catch (err) {
+      console.error("ham: restart:", err)
+      return
+    }
   }
 
   let current: Promise<void> | null = null
