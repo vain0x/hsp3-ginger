@@ -6,7 +6,7 @@
 
 以下のツールをインストールしてください。
 
-- [Node.js](https://nodejs.org) (>= 17)
+- [Node.js](https://nodejs.org) (>= 20)
 - [Rust](https://rustlang.org)
 
 はじめに、パッケージのインストールなどが必要です。次のスクリプトを使ってください。
