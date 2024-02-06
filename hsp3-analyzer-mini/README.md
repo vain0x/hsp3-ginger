@@ -19,4 +19,4 @@ HSP3 の静的解析ツールです。Language Server Protocol (LSP) 準拠。
 
 ## 開発者用のドキュメント
 
-この拡張機能の開発に関する資料は docs/dev/README.md を参照してください
+この拡張機能の開発に関する資料は ./docs/dev にあります
