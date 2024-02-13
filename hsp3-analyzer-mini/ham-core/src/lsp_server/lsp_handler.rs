@@ -23,31 +23,12 @@ impl<W: io::Write> LspHandler<W> {
             // 他のリクエストを送らないので id=1 しか使わない。
             1,
             "client/registerCapability",
-            RegistrationParams {
-                registrations: vec![Registration {
-                    id: "1".into(),
-                    method: "workspace/didChangeWatchedFiles".into(),
-                    register_options: Some(
-                        serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
-                            watchers: vec![FileSystemWatcher {
-                                kind: Some(
-                                    WatchKind::Create | WatchKind::Change | WatchKind::Delete,
-                                ),
-                                glob_pattern: "**/*.hsp".into(),
-                            }],
-                        })
-                        .unwrap(),
-                    ),
-                }],
-            },
+            watch_cap(),
         );
     }
 
-    fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
-        let init_config = params
-            .initialization_options
-            .and_then(|options| serde_json::from_value::<init_config::InitConfig>(options).ok())
-            .unwrap_or_default();
+    fn initialize<'a>(&'a mut self, mut params: InitializeParams) -> InitializeResult {
+        let init_config = to_init_config(&mut params);
 
         let watchable = params
             .capabilities
@@ -63,67 +44,7 @@ impl<W: io::Write> LspHandler<W> {
         }
 
         InitializeResult {
-            capabilities: ServerCapabilities {
-                text_document_sync: Some(TextDocumentSyncCapability::Options(
-                    TextDocumentSyncOptions {
-                        open_close: Some(true),
-                        change: Some(TextDocumentSyncKind::FULL),
-                        ..TextDocumentSyncOptions::default()
-                    },
-                )),
-                code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
-                completion_provider: Some(CompletionOptions {
-                    resolve_provider: Some(true),
-                    trigger_characters: None,
-                    ..CompletionOptions::default()
-                }),
-                definition_provider: Some(OneOf::Left(true)),
-                document_formatting_provider: Some(OneOf::Left(true)),
-                document_highlight_provider: Some(OneOf::Left(true)),
-                document_symbol_provider: if init_config.document_symbol.enabled {
-                    Some(OneOf::Left(true))
-                } else {
-                    None
-                },
-                hover_provider: Some(HoverProviderCapability::Simple(true)),
-                references_provider: Some(OneOf::Left(true)),
-                rename_provider: Some(OneOf::Right(RenameOptions {
-                    prepare_provider: Some(true),
-                    work_done_progress_options: WorkDoneProgressOptions::default(),
-                })),
-                semantic_tokens_provider: Some(
-                    SemanticTokensServerCapabilities::SemanticTokensOptions(
-                        SemanticTokensOptions {
-                            legend: SemanticTokensLegend {
-                                token_types: vec![
-                                    SemanticTokenType::PARAMETER, // 0
-                                    SemanticTokenType::VARIABLE,  // 1
-                                    SemanticTokenType::FUNCTION,  // 2
-                                    SemanticTokenType::MACRO,     // 3
-                                    SemanticTokenType::NAMESPACE, // 4
-                                    SemanticTokenType::KEYWORD,   // 5
-                                ],
-                                token_modifiers: vec![
-                                    SemanticTokenModifier::READONLY, // 0b01
-                                    SemanticTokenModifier::STATIC,   // 0b10
-                                ],
-                            },
-                            full: Some(SemanticTokensFullOptions::Bool(true)),
-                            ..Default::default()
-                        },
-                    ),
-                ),
-                signature_help_provider: Some(SignatureHelpOptions {
-                    trigger_characters: Some(vec![
-                        " ".to_string(),
-                        "(".to_string(),
-                        ",".to_string(),
-                    ]),
-                    ..Default::default()
-                }),
-                workspace_symbol_provider: Some(OneOf::Left(true)),
-                ..ServerCapabilities::default()
-            },
+            capabilities: server_cap(init_config),
             // 参考: https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-crates
             server_info: Some(ServerInfo {
                 name: env!("CARGO_PKG_NAME").to_string(),
@@ -453,11 +374,11 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.workspace_symbol(msg.params);
                 self.sender.send_response(msg.id, response);
             }
-            "$/cancelRequest" => self.sender.send_error_code(
-                msg.id,
-                error::METHOD_NOT_FOUND,
-                "キャンセルは未実装です。",
-            ),
+            // "$/cancelRequest" => self.sender.send_error_code(
+            //     msg.id,
+            //     error::METHOD_NOT_FOUND,
+            //     "キャンセルは未実装です。",
+            // ),
             _ => self.sender.send_error_code(
                 msg.id,
                 error::METHOD_NOT_FOUND,
@@ -470,5 +391,87 @@ impl<W: io::Write> LspHandler<W> {
         loop {
             receiver.read_next(|json| self.did_receive(json));
         }
+    }
+}
+
+pub(crate) fn to_init_config(params: &mut InitializeParams) -> init_config::InitConfig {
+    std::mem::take(&mut params.initialization_options)
+        .and_then(|options| serde_json::from_value::<init_config::InitConfig>(options).ok())
+        .unwrap_or_default()
+}
+
+pub(crate) fn server_cap(init_config: init_config::InitConfig) -> ServerCapabilities {
+    ServerCapabilities {
+        text_document_sync: Some(TextDocumentSyncCapability::Options(
+            TextDocumentSyncOptions {
+                open_close: Some(true),
+                change: Some(TextDocumentSyncKind::FULL),
+                ..TextDocumentSyncOptions::default()
+            },
+        )),
+        code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
+        completion_provider: Some(CompletionOptions {
+            resolve_provider: Some(true),
+            trigger_characters: None,
+            ..CompletionOptions::default()
+        }),
+        definition_provider: Some(OneOf::Left(true)),
+        document_formatting_provider: Some(OneOf::Left(true)),
+        document_highlight_provider: Some(OneOf::Left(true)),
+        document_symbol_provider: if init_config.document_symbol.enabled {
+            Some(OneOf::Left(true))
+        } else {
+            None
+        },
+        hover_provider: Some(HoverProviderCapability::Simple(true)),
+        references_provider: Some(OneOf::Left(true)),
+        rename_provider: Some(OneOf::Right(RenameOptions {
+            prepare_provider: Some(true),
+            work_done_progress_options: WorkDoneProgressOptions::default(),
+        })),
+        semantic_tokens_provider: Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
+            SemanticTokensOptions {
+                legend: SemanticTokensLegend {
+                    token_types: vec![
+                        SemanticTokenType::PARAMETER, // 0
+                        SemanticTokenType::VARIABLE,  // 1
+                        SemanticTokenType::FUNCTION,  // 2
+                        SemanticTokenType::MACRO,     // 3
+                        SemanticTokenType::NAMESPACE, // 4
+                        SemanticTokenType::KEYWORD,   // 5
+                    ],
+                    token_modifiers: vec![
+                        SemanticTokenModifier::READONLY, // 0b01
+                        SemanticTokenModifier::STATIC,   // 0b10
+                    ],
+                },
+                full: Some(SemanticTokensFullOptions::Bool(true)),
+                ..Default::default()
+            },
+        )),
+        signature_help_provider: Some(SignatureHelpOptions {
+            trigger_characters: Some(vec![" ".to_string(), "(".to_string(), ",".to_string()]),
+            ..Default::default()
+        }),
+        workspace_symbol_provider: Some(OneOf::Left(true)),
+        ..ServerCapabilities::default()
+    }
+}
+
+pub(crate) fn watch_cap() -> RegistrationParams {
+    RegistrationParams {
+        registrations: vec![Registration {
+            id: "1".into(),
+            method: "workspace/didChangeWatchedFiles".into(),
+            register_options: Some(
+                serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
+                    watchers: vec![FileSystemWatcher {
+                        kind: Some(WatchKind::Create | WatchKind::Change | WatchKind::Delete),
+                        glob_pattern: "**/*.hsp".into(),
+                    }],
+                })
+                .unwrap(),
+            ),
+        }],
     }
 }

@@ -12,6 +12,7 @@ mod tests;
 
 use token::{tokenize, TokenKind};
 
+pub use crate::lsp_server::lsp2::run_server2;
 pub use crate::lsp_server::lsp_main::start_lsp_server;
 
 /// 多くのモジュールからインポートされるシンボル:

@@ -1,4 +1,4 @@
-use ham_core::start_lsp_server;
+use ham_core::{run_server2, start_lsp_server};
 use std::{env::ArgsOs, path::PathBuf};
 
 enum Arg {
@@ -77,7 +77,7 @@ fn switch_on_args(mut args: ArgsOs) {
     match arg {
         Arg::Version => exit_with_version(),
         Arg::Help => exit_with_help(),
-        Arg::Lsp => start_lsp_server(hsp3_root),
+        Arg::Lsp => run_server2(hsp3_root).unwrap(), // start_lsp_server(hsp3_root),
     }
 }
 
