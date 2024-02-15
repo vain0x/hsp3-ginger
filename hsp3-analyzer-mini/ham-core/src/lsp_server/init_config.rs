@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 #[derive(Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct InitConfig {
+pub(crate) struct InitConfig {
     pub(super) document_symbol: DocumentSymbol,
 }
 

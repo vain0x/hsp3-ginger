@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::lang_service::LangService;
 use crate::lsp_server::init_config::InitConfig;
 use crate::lsp_server::lsp_handler::{server_cap, to_init_config};
@@ -6,43 +8,62 @@ use lsp_server::{Connection, ExtractError, Message, Notification, Request, Reque
 use lsp_types::notification::{
     DidChangeTextDocument, DidOpenTextDocument, Exit, Initialized, Notification as _,
 };
+use lsp_types::InitializeResult;
 use lsp_types::{
     request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
 };
 use lsp_types::{request::Request as _, OneOf};
+use std::collections::HashMap;
 use std::error::Error;
+use std::mem;
 use std::path::PathBuf;
 
 pub fn run_server2(hsp3_root: PathBuf) -> Result<(), Box<dyn Error + Sync + Send>> {
     // Note that  we must have our logging only write out to stderr.
     eprintln!("starting generic LSP server");
 
-    let lang_service = LangService::new(hsp3_root, get_options_from_env());
+    let mut model = LangService::new(hsp3_root, get_options_from_env());
 
     // Create the transport. Includes the stdio (stdin and stdout) versions but this could
     // also be implemented to use sockets or HTTP.
     let (connection, io_threads) = Connection::stdio();
 
+    // 初期化処理:
+    let (init_id, params) = connection.initialize_start()?;
+    let mut params = serde_json::from_value::<InitializeParams>(params)?;
+    let init_config = to_init_config(&mut params);
+
+    connection.initialize_finish(
+        init_id,
+        serde_json::to_value(InitializeResult {
+            capabilities: server_cap(init_config),
+            ..Default::default()
+        })
+        .unwrap(),
+    )?;
+    model.initialize(params.root_uri);
+    model.did_initialize();
+
     // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
-    let server_capabilities = serde_json::to_value(
-        // TODO: use init_config to compute server_caps
-        &server_cap(InitConfig::default()),
-        //     ServerCapabilities {
-        //     definition_provider: Some(OneOf::Left(true)),
-        //     ..Default::default()
-        // }
-    )
-    .unwrap();
-    let init_params = match connection.initialize(server_capabilities) {
-        Ok(it) => it,
-        Err(e) => {
-            if e.channel_is_disconnected() {
-                io_threads.join()?;
-            }
-            return Err(e.into());
-        }
-    };
-    main_loop(connection, init_params, lang_service)?;
+    // let server_capabilities = serde_json::to_value(
+    //     // TODO: use init_config to compute server_caps
+    //     &server_cap(InitConfig::default()),
+    //     //     ServerCapabilities {
+    //     //     definition_provider: Some(OneOf::Left(true)),
+    //     //     ..Default::default()
+    //     // }
+    // )
+    // .unwrap();
+    // let init_params = match connection.initialize(server_capabilities) {
+    //     Ok(it) => it,
+    //     Err(e) => {
+    //         if e.channel_is_disconnected() {
+    //             io_threads.join()?;
+    //         }
+    //         return Err(e.into());
+    //     }
+    // };
+    main_loop(connection, model)?;
     io_threads.join()?;
 
     // Shut down gracefully.
@@ -52,14 +73,12 @@ pub fn run_server2(hsp3_root: PathBuf) -> Result<(), Box<dyn Error + Sync + Send
 
 fn main_loop(
     connection: Connection,
-    init_params: serde_json::Value,
     mut model: LangService,
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
-    let init_params: InitializeParams = serde_json::from_value(init_params).unwrap();
-    model.initialize(init_params.root_uri);
-    model.did_initialize();
+    // let init_params: InitializeParams = serde_json::from_value(init_params).unwrap();
 
     eprintln!("starting example main loop");
+
     for msg in &connection.receiver {
         // eprintln!("got msg: {msg:?}");
         match msg {
