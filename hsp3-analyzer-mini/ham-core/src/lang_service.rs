@@ -2,7 +2,12 @@ pub(crate) mod docs;
 mod search_common;
 pub(crate) mod search_hsphelp;
 
-use self::docs::{DocChange, Docs};
+use self::{
+    docs::{DocChange, Docs},
+    search_hsphelp::HspHelpInfo,
+    source::DocId,
+    workspace_analysis::DocAnalysisMap,
+};
 use super::*;
 use crate::{
     analysis::*,
@@ -16,6 +21,61 @@ use crate::{
 };
 use lsp_types::*;
 
+// pub(crate) enum RootType {
+//     Common,
+//     HspHelp,
+//     Workspace,
+// }
+
+#[derive(Clone, Copy)]
+pub(crate) struct IsReadOnly(bool);
+
+/// スクリプトが入っているディレクトリ群のルート
+#[derive(Clone)]
+pub(crate) struct SourceRoot(Rc<(PathBuf, IsReadOnly)>);
+
+pub(crate) struct RelPath {
+    base: SourceRoot,
+    pathname: Rc<PathBuf>,
+}
+
+// GlobalState = RootDb + Server state
+pub(crate) struct GlobalState {}
+
+// input + analysis
+pub(crate) struct RootDb {
+    // input:
+    pub(crate) builtin_env: Rc<SymbolEnv>,
+    pub(crate) common_docs: Rc<HashMap<String, DocId>>,
+    pub(crate) hsphelp_info: Rc<HspHelpInfo>,
+    pub(crate) entrypoints: Vec<DocId>,
+
+    // input state:
+    pub(crate) dirty_docs: HashSet<DocId>,
+    pub(crate) doc_texts: HashMap<DocId, (Lang, RcStr)>,
+
+    // すべてのドキュメントの解析結果を使って構築される情報:
+    doc_analysis_map: DocAnalysisMap,
+    module_map: ModuleMap,
+    project1: ProjectAnalysis,
+    project_opt: Option<ProjectAnalysis>,
+
+    // computed:
+    computed: Rc<RefCell<ComputedData>>,
+}
+
+// pub(crate) struct Computed<T> {
+//     cell_rc: Rc<RefCell<T>>,
+// }
+
+pub(crate) struct ComputedData {
+    doc_analysis_map: DocAnalysisMap,
+    module_map: ModuleMap,
+    project1: ProjectAnalysis,
+    project_opt: Option<ProjectAnalysis>,
+}
+
+// config
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,
     pub(crate) watcher_enabled: bool,
@@ -43,10 +103,15 @@ impl Default for LangServiceOptions {
 #[derive(Default)]
 pub(super) struct LangService {
     wa: WorkspaceAnalysis,
+    // config(1)
     hsp3_root: PathBuf,
+    // workspaces
     root_uri_opt: Option<CanonicalUri>,
+    // config
     options: LangServiceOptions,
+    // mem_docs
     docs: Docs,
+    // diagnostics_collection
     diagnostics_cache: DiagnosticsCache,
 }
 
@@ -92,7 +157,7 @@ impl LangService {
     pub(super) fn did_initialize(&mut self) {
         let mut builtin_env = SymbolEnv::default();
         let mut common_docs = HashMap::new();
-        let mut entrypoints = vec![];
+        let mut entrypoints;
 
         search_common(&self.hsp3_root, &mut self.docs, &mut common_docs);
 
@@ -105,28 +170,12 @@ impl LangService {
         .unwrap_or_default();
 
         info!("ルートディレクトリからgingerプロジェクトファイルを収集します。");
-        {
-            let root_dir_opt = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path());
-            let project_files = root_dir_opt
-                .into_iter()
-                .filter_map(|dir| glob::glob(&format!("{}/**/ginger.txt", dir.to_str()?)).ok())
-                .flatten()
-                .filter_map(|path_opt| path_opt.ok())
-                .filter_map(|path| Some((path.clone(), fs::read_to_string(&path).ok()?)));
-            for (path, contents) in project_files {
-                let dir = path.parent();
-                let docs = contents
-                    .lines()
-                    .enumerate()
-                    .map(|(i, line)| (i, line.trim_end()))
-                    .filter(|&(_, line)| line != "")
-                    .filter_map(|(i, name)| {
-                        let name = dir?.join(name);
-                        if !name.exists() {
-                            warn!("ファイルがありません {:?}:{}", path, i);
-                            return None;
-                        }
-
+        entrypoints = match self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
+            Some(root_dir) => {
+                let files = analysis::collect::collect_project_files(root_dir);
+                files
+                    .into_iter()
+                    .filter_map(|name| {
                         let doc = match self.docs.ensure_file_opened(&name) {
                             Some(it) => it,
                             None => {
@@ -135,19 +184,11 @@ impl LangService {
                             }
                         };
                         Some(doc)
-                    });
-
-                entrypoints.extend(docs);
-            }
-
-            trace!(
-                "entrypoints={:?}",
-                entrypoints
-                    .iter()
-                    .map(|&doc| self.docs.get_uri(doc).ok_or(doc))
+                    })
                     .collect::<Vec<_>>()
-            );
-        }
+            }
+            None => vec![],
+        };
 
         self.wa.initialize(WorkspaceHost {
             builtin_env: Rc::new(builtin_env),

@@ -1,3 +1,4 @@
+use self::lang_service::RootDb;
 use super::*;
 
 pub(crate) fn references(
@@ -22,4 +23,28 @@ pub(crate) fn references(
             .filter_map(|loc| loc_to_location(loc, docs))
             .collect(),
     )
+}
+
+pub(crate) fn references2(
+    db: &RootDb,
+    doc: DocId,
+    pos: Pos16,
+    include_definition: bool,
+) -> Option<Vec<Location>> {
+    // let (doc, pos) = from_document_position(&uri, position, docs)?;
+    // let project = wa.require_project_for_doc(doc);
+    // let (symbol, _) = project.locate_symbol(doc, pos)?;
+
+    // let mut locs = vec![];
+    // if include_definition {
+    //     project.collect_symbol_defs(&symbol, &mut locs);
+    // }
+    // project.collect_symbol_uses(&symbol, &mut locs);
+
+    // Some(
+    //     locs.into_iter()
+    //         .filter_map(|loc| loc_to_location(loc, docs))
+    //         .collect(),
+    // )
+    Some(vec![])
 }

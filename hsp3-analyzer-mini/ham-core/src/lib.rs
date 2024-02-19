@@ -2,7 +2,6 @@
 extern crate log;
 
 pub mod c_api;
-
 mod assists;
 mod help_source;
 mod lang;
@@ -39,8 +38,9 @@ use std::{
 mod analysis {
     use super::*;
 
+    pub(crate) mod collect;
     mod comment;
-    mod doc_analysis;
+    pub(crate) mod doc_analysis;
     mod integrate;
     mod name_system;
     mod preproc;
@@ -49,7 +49,7 @@ mod analysis {
     mod symbol;
     mod syntax_linter;
     mod var;
-    mod workspace_analysis;
+    pub(crate) mod workspace_analysis;
 
     pub(crate) use self::{
         doc_analysis::DocAnalysis,

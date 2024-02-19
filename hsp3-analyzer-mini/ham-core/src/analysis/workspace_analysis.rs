@@ -1,6 +1,6 @@
 use super::*;
 
-type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
+pub(crate) type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
 
 /// ワークスペースの外側のデータ
 #[derive(Default)]
