@@ -5,7 +5,7 @@ pub(crate) mod search_hsphelp;
 use self::{
     docs::{DocChange, Docs},
     search_hsphelp::HspHelpInfo,
-    source::DocId,
+    source::{DocId, Loc, Pos16},
     workspace_analysis::DocAnalysisMap,
 };
 use super::*;
@@ -54,6 +54,8 @@ pub(crate) struct RootDb {
     pub(crate) dirty_docs: HashSet<DocId>,
     pub(crate) doc_texts: HashMap<DocId, (Lang, RcStr)>,
 
+    pub(crate) docs: RootDocs,
+
     // すべてのドキュメントの解析結果を使って構築される情報:
     doc_analysis_map: DocAnalysisMap,
     module_map: ModuleMap,
@@ -62,6 +64,28 @@ pub(crate) struct RootDb {
 
     // computed:
     computed: Rc<RefCell<ComputedData>>,
+}
+impl RootDb {
+    pub(crate) fn locate_symbol(&self, doc: DocId, pos: Pos16) -> Option<(SymbolRc, Loc)> {
+        todo!()
+    }
+    pub(crate) fn collect_symbol_defs(&self, symbol: &SymbolRc, output: &mut Vec<Loc>) {
+        todo!()
+    }
+    pub(crate) fn collect_symbol_uses(&self, symbol: &SymbolRc, output: &mut Vec<Loc>) {
+        todo!()
+    }
+}
+
+pub(crate) struct RootDocs;
+impl RootDocs {
+    pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
+        todo!()
+    }
+
+    pub(crate) fn get_uri(&self, doc: DocId) -> Option<CanonicalUri> {
+        todo!()
+    }
 }
 
 // pub(crate) struct Computed<T> {
