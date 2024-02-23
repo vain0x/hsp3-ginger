@@ -101,12 +101,11 @@ impl PToken {
 
                 p_tokens.push(PToken {
                     leading: [].into(),
-                    body: TokenData {
+                    body: RcItem::new_single(TokenData {
                         kind: TokenKind::Eos,
                         text: "".into(),
                         loc,
-                    }
-                    .into(),
+                    }),
                     trailing: [].into(),
                 });
             }

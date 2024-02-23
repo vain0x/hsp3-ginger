@@ -1,10 +1,9 @@
+use super::rc_item::RcItem;
 use std::{
     fmt::{self, Debug, Formatter},
     ops::{Deref, Index, Range, RangeFrom, RangeTo},
     rc::Rc,
 };
-
-use super::rc_item::RcItem;
 
 /// 共有可能な配列を表す。
 ///
@@ -19,19 +18,15 @@ pub(crate) struct RcSlice<T> {
 
 enum Repr<T> {
     Empty,
-    NonEmpty {
-        underlying: Rc<[T]>,
-        start: usize,
-        end: usize,
-    },
+    NonEmpty { full: Rc<[T]>, start: u32, end: u32 },
 }
 
 impl<T> RcSlice<T> {
     /// 空のスライス
     pub(crate) const EMPTY: Self = RcSlice { repr: Repr::Empty };
 
-    pub(crate) fn new(underlying: Rc<[T]>, start: usize, end: usize) -> Self {
-        let n = underlying.len();
+    pub(crate) fn new(full: Rc<[T]>, start: usize, end: usize) -> Self {
+        let n = full.len();
         assert!(start <= end && end <= n);
 
         if start >= end {
@@ -40,18 +35,18 @@ impl<T> RcSlice<T> {
             debug_assert!(start < n && start < end);
             RcSlice {
                 repr: Repr::NonEmpty {
-                    underlying,
-                    start,
-                    end,
+                    full,
+                    start: start as u32,
+                    end: end as u32,
                 },
             }
         }
     }
 
     pub(crate) fn from_iter(iter: impl IntoIterator<Item = T>) -> Self {
-        let items = iter.into_iter().collect::<Box<[_]>>();
+        let items = Rc::from_iter(iter);
         let len = items.len();
-        Self::new(Rc::from(items), 0, len)
+        Self::new(items, 0, len)
     }
 
     /// 空か？
@@ -79,10 +74,10 @@ impl<T> RcSlice<T> {
         match self.repr {
             Repr::Empty => &[],
             Repr::NonEmpty {
-                ref underlying,
+                ref full,
                 start,
                 end,
-            } => &underlying[start..end],
+            } => &full[start as usize..end as usize],
         }
     }
 
@@ -91,13 +86,13 @@ impl<T> RcSlice<T> {
         match self.repr {
             Repr::Empty => Self::EMPTY,
             Repr::NonEmpty {
-                ref underlying,
+                ref full,
                 start: base_start,
                 end: base_end,
             } => {
-                let new_start = (base_start + start).min(base_end);
-                let new_end = (base_start + end).min(base_end);
-                RcSlice::new(underlying.clone(), new_start, new_end)
+                let new_start = ((base_start as usize) + start).min(base_end as usize);
+                let new_end = ((base_start as usize) + end).min(base_end as usize);
+                RcSlice::new(full.clone(), new_start, new_end)
             }
         }
     }
@@ -107,13 +102,13 @@ impl<T> RcSlice<T> {
         match self.repr {
             Repr::Empty => None,
             Repr::NonEmpty {
-                ref underlying,
+                ref full,
                 start,
                 end,
             } => {
-                let i = start + index;
-                if i < end {
-                    Some(RcItem::new(underlying.clone(), i))
+                let i = (start as usize) + index;
+                if i < (end as usize) {
+                    Some(RcItem::new(full.clone(), i))
                 } else {
                     None
                 }
@@ -202,18 +197,18 @@ impl<T: Debug> Debug for RcSlice<T> {
     }
 }
 
-// WHY-NOT: `derive(Clone)` だと `T: Clone` のときしかCloneを実装しない。
+// `derive(Clone)` だと `T: Clone` のときしかCloneを実装しない。
 impl<T> Clone for RcSlice<T> {
     fn clone(&self) -> Self {
         match self.repr {
             Repr::Empty => RcSlice::EMPTY,
             Repr::NonEmpty {
-                ref underlying,
+                ref full,
                 start,
                 end,
             } => RcSlice {
                 repr: Repr::NonEmpty {
-                    underlying: underlying.clone(),
+                    full: full.clone(),
                     start,
                     end,
                 },
