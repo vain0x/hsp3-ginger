@@ -101,7 +101,7 @@ impl V {
         }
     }
 
-    fn find_previous_token(&mut self, token: &PToken) -> Option<RcItem<PToken>> {
+    fn find_previous_token(&self, token: &PToken) -> Option<RcItem<PToken>> {
         let i = self
             .tokens
             .binary_search_by_key(&token.body_pos(), PToken::body_pos)
@@ -110,7 +110,7 @@ impl V {
     }
 
     #[cfg(unused)]
-    fn find_next_token(&mut self, token: &PToken) -> Option<RcItem<PToken>> {
+    fn find_next_token(&self, token: &PToken) -> Option<RcItem<PToken>> {
         let i = self
             .tokens
             .binary_search_by_key(token.body_pos(), PToken::body_pos)
@@ -118,7 +118,7 @@ impl V {
         self.tokens.item(i + 1)
     }
 
-    fn get_leading_blank_range(&mut self, token: &PToken) -> Range {
+    fn get_leading_blank_range(&self, token: &PToken) -> Range {
         // 同じ行の前方に別のトークンがある場合、このトークンの前方の空白は直前のトークンのtrailingに含まれている。
         let leaded_by_newlines = token.leading.iter().any(|t| t.kind == TokenKind::Newlines);
         if !leaded_by_newlines {
