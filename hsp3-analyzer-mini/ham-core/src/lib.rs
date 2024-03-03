@@ -39,6 +39,7 @@ mod analysis {
     use super::*;
 
     mod comment;
+    mod compute_active_docs;
     mod doc_analysis;
     mod integrate;
     mod name_system;

@@ -16,8 +16,13 @@ pub(crate) struct WorkspaceAnalysis {
     dirty_docs: HashSet<DocId>,
     doc_texts: HashMap<DocId, (Lang, RcStr)>,
 
+    // computed:
+    active_docs: Rc<HashSet<DocId>>,
+    active_help_docs: Rc<HashSet<DocId>>,
+    help_docs: Rc<HashMap<DocId, DocId>>,
+
     // すべてのドキュメントの解析結果を使って構築される情報:
-    doc_analysis_map: DocAnalysisMap,
+    pub(crate) doc_analysis_map: DocAnalysisMap,
     module_map: ModuleMap,
     project1: ProjectAnalysis,
     project_opt: Option<ProjectAnalysis>,
@@ -114,11 +119,56 @@ impl WorkspaceAnalysis {
 
         self.doc_analysis_map = doc_analysis_map;
 
+        // NOTE: プロジェクトシステムの移行中
+        {
+            self.project1.invalidate();
+            let p = &mut self.project1;
+
+            // プロジェクトをinvalidateしたので `active_docs` への参照は一意になっているはず。
+            // `Rc` をunwrapできる
+            debug_assert_eq!(Rc::strong_count(&self.active_docs), 1);
+
+            let mut active_docs = match Rc::get_mut(&mut self.active_docs) {
+                Some(it) => take(it),
+                None => HashSet::default(),
+            };
+            let mut active_help_docs = match Rc::get_mut(&mut self.active_help_docs) {
+                Some(it) => take(it),
+                None => HashSet::default(),
+            };
+            let mut help_docs = match Rc::get_mut(&mut self.help_docs) {
+                Some(it) => take(it),
+                None => HashMap::default(),
+            };
+
+            compute_active_docs::compute_active_docs(
+                &self.doc_analysis_map,
+                &p.entrypoints,
+                &p.common_docs,
+                &p.hsphelp_info,
+                &p.project_docs,
+                &mut active_docs,
+                &mut active_help_docs,
+                &mut help_docs,
+                &mut p.include_resolution,
+            );
+
+            self.active_docs = Rc::new(active_docs);
+            self.active_help_docs = Rc::new(active_help_docs);
+            self.help_docs = Rc::new(help_docs);
+
+            trace!("analysis computed: active_docs:{}", p.active_docs.len());
+        }
+
         // 以前の解析結果を捨てる:
         for p in [Some(&mut self.project1), self.project_opt.as_mut()]
             .iter_mut()
             .flatten()
         {
+            p.active_docs = Rc::clone(&self.active_docs);
+            p.active_help_docs = Rc::clone(&self.active_help_docs);
+            p.help_docs = Rc::clone(&self.help_docs);
+
             p.compute(&self.doc_analysis_map, &self.module_map);
         }
 

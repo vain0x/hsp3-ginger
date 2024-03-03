@@ -28,13 +28,13 @@ pub(crate) struct ProjectAnalysis {
     pub(super) common_docs: Rc<HashMap<String, DocId>>,
     pub(super) hsphelp_info: Rc<HspHelpInfo>,
     pub(super) project_docs: Rc<ProjectDocs>,
+    pub(super) active_docs: Rc<HashSet<DocId>>,
+    pub(super) active_help_docs: Rc<HashSet<DocId>>,
+    // common doc -> hsphelp doc
+    pub(super) help_docs: Rc<HashMap<DocId, DocId>>,
 
     // 解析結果:
     computed: bool,
-    pub(super) active_docs: HashSet<DocId>,
-    pub(super) active_help_docs: HashSet<DocId>,
-    // common doc -> hsphelp doc
-    pub(super) help_docs: HashMap<DocId, DocId>,
     pub(super) public_env: PublicEnv,
     pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
     pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
@@ -51,9 +51,9 @@ pub(crate) struct ProjectAnalysis {
 impl ProjectAnalysis {
     pub(crate) fn invalidate(&mut self) {
         self.computed = false;
-        self.active_docs.clear();
-        self.active_help_docs.clear();
-        self.help_docs.clear();
+        take(&mut self.active_docs);
+        take(&mut self.active_help_docs);
+        take(&mut self.help_docs);
         self.public_env.clear();
         self.ns_env.clear();
         self.doc_symbols_map.clear();
@@ -67,97 +67,6 @@ impl ProjectAnalysis {
 
     pub(crate) fn is_computed(&self) -> bool {
         self.computed
-    }
-
-    fn compute_active_docs(&mut self, doc_analysis_map: &DocAnalysisMap) {
-        let entrypoints = &self.entrypoints;
-        let common_docs = self.common_docs.as_ref();
-        let hsphelp_info = self.hsphelp_info.as_ref();
-        let project_docs = self.project_docs.as_ref();
-        let active_docs = &mut self.active_docs;
-        let help_docs = &mut self.help_docs;
-        let active_help_docs = &mut self.active_help_docs;
-        let include_resolution = &mut self.include_resolution;
-        let diagnostics = &mut self.diagnostics;
-
-        match entrypoints {
-            EntryPoints::Docs(entrypoints) => {
-                assert_ne!(entrypoints.len(), 0);
-
-                // エントリーポイントから推移的にincludeされるドキュメントを集める。
-                let mut stack = entrypoints
-                    .iter()
-                    .map(|&doc| (doc, None))
-                    .collect::<Vec<_>>();
-                active_docs.extend(entrypoints.iter().cloned());
-
-                while let Some((doc, _)) = stack.pop() {
-                    debug_assert!(active_docs.contains(&doc));
-                    let da = match doc_analysis_map.get(&doc) {
-                        Some(it) => it,
-                        None => continue,
-                    };
-
-                    for &(ref path, loc) in &da.includes {
-                        let path = path.as_str();
-                        let doc_opt = project_docs
-                            .find(path, Some(loc.doc))
-                            .or_else(|| common_docs.get(path).cloned());
-                        let d = match doc_opt {
-                            Some(it) => it,
-                            None => {
-                                diagnostics.push((
-                                    format!("includeを解決できません: {:?}", path),
-                                    loc.clone(),
-                                ));
-                                continue;
-                            }
-                        };
-                        include_resolution.push((loc, d));
-                        if active_docs.insert(d) {
-                            stack.push((d, Some(loc)));
-                        }
-                    }
-                }
-            }
-            EntryPoints::NonCommon => {
-                // includeされていないcommonのファイルだけ除外する。
-
-                let mut included_docs = HashSet::new();
-                let in_common = common_docs.values().cloned().collect::<HashSet<_>>();
-
-                for (&doc, da) in doc_analysis_map.iter() {
-                    if in_common.contains(&doc) {
-                        continue;
-                    }
-
-                    for (include, _) in &da.includes {
-                        let doc_opt = self.common_docs.get(include.as_str()).cloned();
-                        included_docs.extend(doc_opt);
-                    }
-                }
-
-                active_docs.extend(
-                    doc_analysis_map
-                        .keys()
-                        .cloned()
-                        .filter(|doc| !in_common.contains(&doc) || included_docs.contains(&doc)),
-                );
-            }
-        }
-
-        // hsphelp
-        {
-            trace!("active_help_docs.len={}", active_help_docs.len());
-            active_help_docs.extend(hsphelp_info.builtin_docs.iter().cloned());
-
-            for (&common_doc, &hs_doc) in &hsphelp_info.linked_docs {
-                if active_docs.contains(&common_doc) {
-                    active_help_docs.insert(hs_doc);
-                    help_docs.insert(common_doc, hs_doc);
-                }
-            }
-        }
     }
 
     fn compute_symbols(&mut self, doc_analysis_map: &DocAnalysisMap, module_map: &ModuleMap) {
@@ -247,7 +156,6 @@ impl ProjectAnalysis {
         }
         self.computed = true;
 
-        self.compute_active_docs(doc_analysis_map);
         self.compute_symbols(doc_analysis_map, module_map);
 
         // デバッグ用: 集計を出す。
@@ -257,8 +165,7 @@ impl ProjectAnalysis {
             .map(|symbols| symbols.len())
             .sum::<usize>();
         trace!(
-            "computed: active_docs={} def_sites={} use_sites={} symbols={}",
-            self.active_docs.len(),
+            "computed: def_sites={} use_sites={} symbols={}",
             self.def_sites.len(),
             self.use_sites.len(),
             total_symbol_count
