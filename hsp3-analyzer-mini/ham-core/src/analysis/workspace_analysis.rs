@@ -269,7 +269,7 @@ impl WorkspaceAnalysis {
             .map(|(symbol, loc)| ((loc.doc, loc.start()), symbol.clone()))
             .collect::<HashMap<_, _>>();
 
-        let mut ctx = Sema {
+        let mut ctx = SemaLinter {
             use_site_map,
             diagnostics: vec![],
         };

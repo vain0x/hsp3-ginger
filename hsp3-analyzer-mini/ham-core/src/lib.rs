@@ -44,7 +44,7 @@ mod analysis {
     mod name_system;
     mod preproc;
     mod project_analysis;
-    mod sema;
+    mod sema_linter;
     mod symbol;
     mod syntax_linter;
     mod var;
@@ -55,7 +55,7 @@ mod analysis {
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
-        sema::{Diagnostic, Sema},
+        sema_linter::{Diagnostic, SemaLinter},
         symbol::{
             module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,
             ModuleMap, ModuleRc,

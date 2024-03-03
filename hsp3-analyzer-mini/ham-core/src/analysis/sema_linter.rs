@@ -8,12 +8,12 @@ pub(crate) enum Diagnostic {
 
 type UseSiteMap = HashMap<(DocId, Pos), SymbolRc>;
 
-pub(crate) struct Sema {
+pub(crate) struct SemaLinter {
     pub(crate) use_site_map: UseSiteMap,
     pub(crate) diagnostics: Vec<(Diagnostic, Loc)>,
 }
 
-impl Sema {
+impl SemaLinter {
     pub(crate) fn on_root(&mut self, root: &PRoot) {
         for stmt in &root.stmts {
             on_stmt(stmt, self)
@@ -25,7 +25,7 @@ impl Sema {
     }
 }
 
-fn on_stmt(stmt: &PStmt, ctx: &mut Sema) {
+fn on_stmt(stmt: &PStmt, ctx: &mut SemaLinter) {
     match stmt {
         PStmt::Label(_) => {}
         PStmt::Assign(_) => {}
@@ -91,7 +91,7 @@ fn symbol_kind_is_definitely_rval(kind: HspSymbolKind) -> bool {
     }
 }
 
-fn arg_is_definitely_rval(arg: &PArg, ctx: &Sema) -> bool {
+fn arg_is_definitely_rval(arg: &PArg, ctx: &SemaLinter) -> bool {
     let mut expr_opt = arg.expr_opt.as_ref();
     while let Some(expr) = expr_opt {
         match expr {
