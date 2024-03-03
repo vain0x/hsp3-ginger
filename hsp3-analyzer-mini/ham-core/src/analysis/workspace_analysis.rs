@@ -199,8 +199,6 @@ impl WorkspaceAnalysis {
             p.doc_symbols_map = self.doc_symbols_map.clone();
             p.def_sites = self.def_sites.clone();
             p.use_sites = self.use_sites.clone();
-
-            p.compute(&self.doc_analysis_map, &self.module_map);
         }
 
         // デバッグ用: 集計を出す。
@@ -297,7 +295,7 @@ impl WorkspaceAnalysis {
         self.compute();
 
         let p = self.project_opt.as_mut().unwrap_or(&mut self.project1);
-        p.compute(&self.doc_analysis_map, &self.module_map)
+        p.compute(&self.doc_analysis_map)
     }
 
     pub(crate) fn require_project_for_doc(&mut self, doc: DocId) -> ProjectAnalysisRef {
@@ -305,14 +303,11 @@ impl WorkspaceAnalysis {
 
         if let Some(p) = self.project_opt.as_mut() {
             if p.active_docs.contains(&doc) {
-                debug_assert!(p.is_computed());
-                return p.compute(&self.doc_analysis_map, &self.module_map);
+                return p.compute(&self.doc_analysis_map);
             }
         }
 
-        debug_assert!(self.project1.is_computed());
-        self.project1
-            .compute(&self.doc_analysis_map, &self.module_map)
+        self.project1.compute(&self.doc_analysis_map)
     }
 
     pub(crate) fn diagnose(&mut self, diagnostics: &mut Vec<(String, Loc)>) {

@@ -64,23 +64,11 @@ impl ProjectAnalysis {
         self.diagnostics.clear();
     }
 
-    pub(crate) fn is_computed(&self) -> bool {
-        self.computed
-    }
-
+    // NOTE: プロジェクトシステムの移行中。ここに計算処理はもうない
     pub(crate) fn compute<'a>(
         &'a mut self,
         doc_analysis_map: &'a DocAnalysisMap,
-        #[allow(unused)] module_map: &ModuleMap,
     ) -> ProjectAnalysisRef<'a> {
-        if self.computed {
-            return ProjectAnalysisRef {
-                doc_analysis_map,
-                project: self,
-            };
-        }
-        self.computed = true;
-
         ProjectAnalysisRef {
             doc_analysis_map,
             project: self,
