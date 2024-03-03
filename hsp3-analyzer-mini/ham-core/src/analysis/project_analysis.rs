@@ -81,19 +81,6 @@ impl ProjectAnalysis {
         }
         self.computed = true;
 
-        // デバッグ用: 集計を出す。
-        let total_symbol_count = self
-            .doc_symbols_map
-            .values()
-            .map(|symbols| symbols.len())
-            .sum::<usize>();
-        trace!(
-            "computed: def_sites={} use_sites={} symbols={}",
-            self.def_sites.len(),
-            self.use_sites.len(),
-            total_symbol_count
-        );
-
         ProjectAnalysisRef {
             doc_analysis_map,
             project: self,

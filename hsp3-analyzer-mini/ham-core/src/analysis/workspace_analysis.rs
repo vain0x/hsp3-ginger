@@ -182,8 +182,6 @@ impl WorkspaceAnalysis {
                 &mut self.def_sites,
                 &mut self.use_sites,
             );
-
-            trace!("analysis computed: active_docs:{}", p.active_docs.len());
         }
 
         // 以前の解析結果を捨てる:
@@ -203,6 +201,22 @@ impl WorkspaceAnalysis {
             p.use_sites = self.use_sites.clone();
 
             p.compute(&self.doc_analysis_map, &self.module_map);
+        }
+
+        // デバッグ用: 集計を出す。
+        {
+            let total_symbol_count = self
+                .doc_symbols_map
+                .values()
+                .map(|symbols| symbols.len())
+                .sum::<usize>();
+            trace!(
+                "computed: active_docs={} def_sites={} use_sites={} symbols={}",
+                self.active_docs.len(),
+                self.def_sites.len(),
+                self.use_sites.len(),
+                total_symbol_count
+            );
         }
 
         assert_eq!(self.project1.diagnostics.len(), 0);
