@@ -125,6 +125,12 @@ impl LangService {
                 .collect::<Vec<_>>()
         );
 
+        let entrypoints = if !entrypoints.is_empty() {
+            EntryPoints::Docs(entrypoints)
+        } else {
+            EntryPoints::NonCommon
+        };
+
         self.wa.initialize(WorkspaceHost {
             builtin_env: Rc::new(builtin_env),
             common_docs: Rc::new(common_docs),

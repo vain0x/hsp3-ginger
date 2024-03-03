@@ -2,15 +2,13 @@ use self::workspace_analysis::DocAnalysisMap;
 use super::*;
 
 pub(crate) enum EntryPoints {
-    Docs(Vec<DocId>),
-
-    #[allow(unused)]
     NonCommon,
+    Docs(Vec<DocId>),
 }
 
 impl Default for EntryPoints {
     fn default() -> Self {
-        EntryPoints::Docs(vec![])
+        EntryPoints::NonCommon
     }
 }
 

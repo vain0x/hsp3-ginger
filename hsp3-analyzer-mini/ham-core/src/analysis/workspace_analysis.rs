@@ -8,7 +8,7 @@ pub(crate) struct WorkspaceHost {
     pub(crate) builtin_env: Rc<SymbolEnv>,
     pub(crate) common_docs: Rc<HashMap<String, DocId>>,
     pub(crate) hsphelp_info: Rc<HspHelpInfo>,
-    pub(crate) entrypoints: Vec<DocId>,
+    pub(crate) entrypoints: EntryPoints,
 }
 
 #[derive(Default)]
@@ -36,7 +36,6 @@ pub(crate) struct WorkspaceAnalysis {
     pub(crate) doc_analysis_map: DocAnalysisMap,
     module_map: ModuleMap,
     project1: ProjectAnalysis,
-    project_opt: Option<ProjectAnalysis>,
 }
 
 impl WorkspaceAnalysis {
@@ -48,18 +47,7 @@ impl WorkspaceAnalysis {
             entrypoints,
         } = host;
 
-        self.project_opt = if !entrypoints.is_empty() {
-            let mut p = ProjectAnalysis::default();
-            p.entrypoints = EntryPoints::Docs(entrypoints);
-            p.common_docs = common_docs.clone();
-            p.hsphelp_info = hsphelp_info.clone();
-            p.public_env.builtin = builtin_env.clone();
-            Some(p)
-        } else {
-            None
-        };
-
-        self.project1.entrypoints = EntryPoints::NonCommon;
+        self.project1.entrypoints = entrypoints;
         self.project1.common_docs = common_docs;
         self.project1.hsphelp_info = hsphelp_info;
         self.project1.public_env.builtin = builtin_env;
@@ -81,12 +69,7 @@ impl WorkspaceAnalysis {
 
     pub(crate) fn set_project_docs(&mut self, project_docs: ProjectDocs) {
         let project_docs = Rc::new(project_docs);
-        for p in [Some(&mut self.project1), self.project_opt.as_mut()]
-            .iter_mut()
-            .flatten()
-        {
-            p.project_docs = project_docs.clone();
-        }
+        self.project1.project_docs = project_docs;
     }
 
     fn compute(&mut self) {
@@ -172,9 +155,7 @@ impl WorkspaceAnalysis {
         }
 
         // 以前の解析結果を捨てる:
-        for p in [Some(&mut self.project1), self.project_opt.as_mut()]
-            .iter_mut()
-            .flatten()
+        let p = &mut self.project1;
         {
             // NOTE: プロジェクトシステムの移行中。この非効率なコピーは後でなくなる予定
             p.active_docs = self.active_docs.clone();
@@ -281,20 +262,11 @@ impl WorkspaceAnalysis {
 
     pub(crate) fn require_some_project(&mut self) -> ProjectAnalysisRef {
         self.compute();
-
-        let p = self.project_opt.as_mut().unwrap_or(&mut self.project1);
-        p.compute(&self.doc_analysis_map)
+        self.project1.compute(&self.doc_analysis_map)
     }
 
-    pub(crate) fn require_project_for_doc(&mut self, doc: DocId) -> ProjectAnalysisRef {
+    pub(crate) fn require_project_for_doc(&mut self, _doc: DocId) -> ProjectAnalysisRef {
         self.compute();
-
-        if let Some(p) = self.project_opt.as_mut() {
-            if p.active_docs.contains(&doc) {
-                return p.compute(&self.doc_analysis_map);
-            }
-        }
-
         self.project1.compute(&self.doc_analysis_map)
     }
 
@@ -307,10 +279,7 @@ impl WorkspaceAnalysis {
     pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
         self.compute();
 
-        let p = match self.project_opt.as_ref() {
-            Some(it) => it,
-            None => return,
-        };
+        let p = &self.project1;
 
         for (&doc, da) in self.doc_analysis_map.iter() {
             if !p.active_docs.contains(&doc) {
@@ -336,10 +305,7 @@ impl WorkspaceAnalysis {
     pub(crate) fn diagnose_precisely(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
         self.compute();
 
-        let p = match &self.project_opt {
-            Some(it) => it,
-            None => return,
-        };
+        let p = &self.project1;
 
         // diagnose:
 
