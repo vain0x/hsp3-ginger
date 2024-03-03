@@ -1,6 +1,6 @@
 use super::*;
 
-type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
+pub(crate) type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
 
 /// ワークスペースの外側のデータ
 #[derive(Default)]
@@ -20,6 +20,12 @@ pub(crate) struct WorkspaceAnalysis {
     active_docs: Rc<HashSet<DocId>>,
     active_help_docs: Rc<HashSet<DocId>>,
     help_docs: Rc<HashMap<DocId, DocId>>,
+
+    pub(super) public_env: PublicEnv,
+    pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
+    pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
+    pub(super) def_sites: Vec<(SymbolRc, Loc)>,
+    pub(super) use_sites: Vec<(SymbolRc, Loc)>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     pub(crate) doc_analysis_map: DocAnalysisMap,
@@ -82,11 +88,19 @@ impl WorkspaceAnalysis {
             return;
         }
 
+        // invalidate:
         self.project1.invalidate();
         if let Some(p) = self.project_opt.as_mut() {
             p.invalidate();
         }
 
+        self.public_env.clear();
+        self.ns_env.clear();
+        self.doc_symbols_map.clear();
+        self.def_sites.clear();
+        self.use_sites.clear();
+
+        // compute:
         let mut doc_analysis_map = take(&mut self.doc_analysis_map);
         self.module_map.clear();
 
@@ -121,7 +135,6 @@ impl WorkspaceAnalysis {
 
         // NOTE: プロジェクトシステムの移行中
         {
-            self.project1.invalidate();
             let p = &mut self.project1;
 
             // プロジェクトをinvalidateしたので `active_docs` への参照は一意になっているはず。
@@ -157,6 +170,19 @@ impl WorkspaceAnalysis {
             self.active_help_docs = Rc::new(active_help_docs);
             self.help_docs = Rc::new(help_docs);
 
+            compute_symbols::compute_symbols(
+                &p.hsphelp_info,
+                &self.active_docs,
+                &self.help_docs,
+                &self.doc_analysis_map,
+                &self.module_map,
+                &mut self.public_env,
+                &mut self.ns_env,
+                &mut self.doc_symbols_map,
+                &mut self.def_sites,
+                &mut self.use_sites,
+            );
+
             trace!("analysis computed: active_docs:{}", p.active_docs.len());
         }
 
@@ -168,6 +194,13 @@ impl WorkspaceAnalysis {
             p.active_docs = Rc::clone(&self.active_docs);
             p.active_help_docs = Rc::clone(&self.active_help_docs);
             p.help_docs = Rc::clone(&self.help_docs);
+
+            // NOTE: プロジェクトシステムの移行中。この非効率なコピーは後でなくなる予定
+            p.public_env = self.public_env.clone();
+            p.ns_env = self.ns_env.clone();
+            p.doc_symbols_map = self.doc_symbols_map.clone();
+            p.def_sites = self.def_sites.clone();
+            p.use_sites = self.use_sites.clone();
 
             p.compute(&self.doc_analysis_map, &self.module_map);
         }

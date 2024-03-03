@@ -40,6 +40,7 @@ mod analysis {
 
     mod comment;
     mod compute_active_docs;
+    mod compute_symbols;
     mod doc_analysis;
     mod integrate;
     mod name_system;

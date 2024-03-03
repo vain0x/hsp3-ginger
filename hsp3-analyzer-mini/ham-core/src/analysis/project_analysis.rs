@@ -1,6 +1,5 @@
+use self::workspace_analysis::DocAnalysisMap;
 use super::*;
-
-type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
 
 pub(crate) enum EntryPoints {
     Docs(Vec<DocId>),
@@ -69,84 +68,10 @@ impl ProjectAnalysis {
         self.computed
     }
 
-    fn compute_symbols(&mut self, doc_analysis_map: &DocAnalysisMap, module_map: &ModuleMap) {
-        let active_docs = &self.active_docs;
-        let public_env = &mut self.public_env;
-        let ns_env = &mut self.ns_env;
-        let doc_symbols_map = &mut self.doc_symbols_map;
-        let def_sites = &mut self.def_sites;
-        let use_sites = &mut self.use_sites;
-
-        // 複数ファイルに渡る環境を構築する。
-        for (&doc, da) in doc_analysis_map.iter() {
-            if !active_docs.contains(&doc) {
-                continue;
-            }
-
-            extend_public_env_from_symbols(&da.preproc_symbols, public_env, ns_env);
-        }
-
-        // 変数の定義箇所を決定する。
-        doc_symbols_map.extend(
-            doc_analysis_map
-                .iter()
-                .filter(|(&doc, _)| active_docs.contains(&doc))
-                .map(|(&doc, da)| (doc, da.preproc_symbols.clone())),
-        );
-
-        for (&doc, da) in doc_analysis_map.iter() {
-            if !active_docs.contains(&doc) {
-                continue;
-            }
-
-            let symbols = doc_symbols_map.get_mut(&doc).unwrap();
-
-            def_sites.extend(symbols.iter().filter_map(|symbol| {
-                let loc = symbol.preproc_def_site_opt?;
-                Some((symbol.clone(), loc))
-            }));
-
-            crate::analysis::var::analyze_var_def(
-                doc,
-                da.tree_opt.as_ref().unwrap(),
-                &module_map,
-                symbols,
-                public_env,
-                ns_env,
-                def_sites,
-                use_sites,
-            );
-
-            // ヘルプファイルの情報をシンボルに統合する。
-            if let Some(hs_doc) = self.help_docs.get(&doc) {
-                if let Some(hs_symbols) = self.hsphelp_info.doc_symbols.get(&hs_doc) {
-                    let mut hs_symbols_map = hs_symbols
-                        .iter()
-                        .map(|s| (s.label.as_str(), s.clone()))
-                        .collect::<HashMap<_, _>>();
-
-                    for symbol in symbols {
-                        let mut link_opt = symbol.linked_symbol_opt.borrow_mut();
-                        if link_opt.is_some() {
-                            continue;
-                        }
-
-                        let s = match hs_symbols_map.remove(symbol.name.as_str()) {
-                            Some(it) => it,
-                            None => continue,
-                        };
-
-                        *link_opt = Some(s.clone());
-                    }
-                }
-            }
-        }
-    }
-
     pub(crate) fn compute<'a>(
         &'a mut self,
         doc_analysis_map: &'a DocAnalysisMap,
-        module_map: &ModuleMap,
+        #[allow(unused)] module_map: &ModuleMap,
     ) -> ProjectAnalysisRef<'a> {
         if self.computed {
             return ProjectAnalysisRef {
@@ -155,8 +80,6 @@ impl ProjectAnalysis {
             };
         }
         self.computed = true;
-
-        self.compute_symbols(doc_analysis_map, module_map);
 
         // デバッグ用: 集計を出す。
         let total_symbol_count = self

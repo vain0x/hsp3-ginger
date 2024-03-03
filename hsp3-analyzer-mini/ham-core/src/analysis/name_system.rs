@@ -66,7 +66,7 @@ impl SymbolEnv {
 /// 名前空間
 pub(crate) type NsEnv = HashMap<RcStr, SymbolEnv>;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct PublicEnv {
     /// 標準命令などのシンボルが属す環境。(この環境はソースファイルの変更時に無効化しないので、globalと分けている。)
     pub(crate) builtin: Rc<SymbolEnv>,
