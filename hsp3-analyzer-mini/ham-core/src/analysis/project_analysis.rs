@@ -27,13 +27,12 @@ pub(crate) struct ProjectAnalysis {
     pub(super) common_docs: Rc<HashMap<String, DocId>>,
     pub(super) hsphelp_info: Rc<HspHelpInfo>,
     pub(super) project_docs: Rc<ProjectDocs>,
-    pub(super) active_docs: Rc<HashSet<DocId>>,
-    pub(super) active_help_docs: Rc<HashSet<DocId>>,
+    pub(super) active_docs: HashSet<DocId>,
+    pub(super) active_help_docs: HashSet<DocId>,
     // common doc -> hsphelp doc
-    pub(super) help_docs: Rc<HashMap<DocId, DocId>>,
+    pub(super) help_docs: HashMap<DocId, DocId>,
 
     // 解析結果:
-    computed: bool,
     pub(super) public_env: PublicEnv,
     pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
     pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
@@ -43,30 +42,13 @@ pub(crate) struct ProjectAnalysis {
     /// (loc, doc): locにあるincludeがdocに解決されたことを表す。
     pub(super) include_resolution: Vec<(Loc, DocId)>,
 
-    diagnosed: bool,
     pub(super) diagnostics: Vec<(String, Loc)>,
 }
 
 impl ProjectAnalysis {
-    pub(crate) fn invalidate(&mut self) {
-        self.computed = false;
-        take(&mut self.active_docs);
-        take(&mut self.active_help_docs);
-        take(&mut self.help_docs);
-        self.public_env.clear();
-        self.ns_env.clear();
-        self.doc_symbols_map.clear();
-        self.def_sites.clear();
-        self.use_sites.clear();
-        self.include_resolution.clear();
-
-        self.diagnosed = false;
-        self.diagnostics.clear();
-    }
-
     // NOTE: プロジェクトシステムの移行中。ここに計算処理はもうない
     pub(crate) fn compute<'a>(
-        &'a mut self,
+        &'a self,
         doc_analysis_map: &'a DocAnalysisMap,
     ) -> ProjectAnalysisRef<'a> {
         ProjectAnalysisRef {

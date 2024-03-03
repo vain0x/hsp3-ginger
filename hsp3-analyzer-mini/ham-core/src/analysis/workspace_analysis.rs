@@ -17,15 +17,20 @@ pub(crate) struct WorkspaceAnalysis {
     doc_texts: HashMap<DocId, (Lang, RcStr)>,
 
     // computed:
-    active_docs: Rc<HashSet<DocId>>,
-    active_help_docs: Rc<HashSet<DocId>>,
-    help_docs: Rc<HashMap<DocId, DocId>>,
+    pub(super) active_docs: HashSet<DocId>,
+    pub(super) active_help_docs: HashSet<DocId>,
+    pub(super) help_docs: HashMap<DocId, DocId>,
 
     pub(super) public_env: PublicEnv,
     pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
     pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
     pub(super) def_sites: Vec<(SymbolRc, Loc)>,
     pub(super) use_sites: Vec<(SymbolRc, Loc)>,
+
+    /// (loc, doc): locにあるincludeがdocに解決されたことを表す。
+    pub(super) include_resolution: Vec<(Loc, DocId)>,
+
+    pub(super) diagnostics: Vec<(String, Loc)>,
 
     // すべてのドキュメントの解析結果を使って構築される情報:
     pub(crate) doc_analysis_map: DocAnalysisMap,
@@ -74,7 +79,8 @@ impl WorkspaceAnalysis {
         self.doc_analysis_map.remove(&doc);
     }
 
-    pub(crate) fn set_project_docs(&mut self, project_docs: Rc<ProjectDocs>) {
+    pub(crate) fn set_project_docs(&mut self, project_docs: ProjectDocs) {
+        let project_docs = Rc::new(project_docs);
         for p in [Some(&mut self.project1), self.project_opt.as_mut()]
             .iter_mut()
             .flatten()
@@ -89,16 +95,18 @@ impl WorkspaceAnalysis {
         }
 
         // invalidate:
-        self.project1.invalidate();
-        if let Some(p) = self.project_opt.as_mut() {
-            p.invalidate();
+        {
+            self.active_docs.clear();
+            self.active_help_docs.clear();
+            self.help_docs.clear();
+            self.public_env.clear();
+            self.ns_env.clear();
+            self.doc_symbols_map.clear();
+            self.def_sites.clear();
+            self.use_sites.clear();
+            self.include_resolution.clear();
+            self.diagnostics.clear();
         }
-
-        self.public_env.clear();
-        self.ns_env.clear();
-        self.doc_symbols_map.clear();
-        self.def_sites.clear();
-        self.use_sites.clear();
 
         // compute:
         let mut doc_analysis_map = take(&mut self.doc_analysis_map);
@@ -135,24 +143,7 @@ impl WorkspaceAnalysis {
 
         // NOTE: プロジェクトシステムの移行中
         {
-            let p = &mut self.project1;
-
-            // プロジェクトをinvalidateしたので `active_docs` への参照は一意になっているはず。
-            // `Rc` をunwrapできる
-            debug_assert_eq!(Rc::strong_count(&self.active_docs), 1);
-
-            let mut active_docs = match Rc::get_mut(&mut self.active_docs) {
-                Some(it) => take(it),
-                None => HashSet::default(),
-            };
-            let mut active_help_docs = match Rc::get_mut(&mut self.active_help_docs) {
-                Some(it) => take(it),
-                None => HashSet::default(),
-            };
-            let mut help_docs = match Rc::get_mut(&mut self.help_docs) {
-                Some(it) => take(it),
-                None => HashMap::default(),
-            };
+            let p = &self.project1;
 
             compute_active_docs::compute_active_docs(
                 &self.doc_analysis_map,
@@ -160,15 +151,11 @@ impl WorkspaceAnalysis {
                 &p.common_docs,
                 &p.hsphelp_info,
                 &p.project_docs,
-                &mut active_docs,
-                &mut active_help_docs,
-                &mut help_docs,
-                &mut p.include_resolution,
+                &mut self.active_docs,
+                &mut self.active_help_docs,
+                &mut self.help_docs,
+                &mut self.include_resolution,
             );
-
-            self.active_docs = Rc::new(active_docs);
-            self.active_help_docs = Rc::new(active_help_docs);
-            self.help_docs = Rc::new(help_docs);
 
             compute_symbols::compute_symbols(
                 &p.hsphelp_info,
@@ -189,16 +176,17 @@ impl WorkspaceAnalysis {
             .iter_mut()
             .flatten()
         {
-            p.active_docs = Rc::clone(&self.active_docs);
-            p.active_help_docs = Rc::clone(&self.active_help_docs);
-            p.help_docs = Rc::clone(&self.help_docs);
-
             // NOTE: プロジェクトシステムの移行中。この非効率なコピーは後でなくなる予定
+            p.active_docs = self.active_docs.clone();
+            p.active_help_docs = self.active_help_docs.clone();
+            p.help_docs = self.help_docs.clone();
             p.public_env = self.public_env.clone();
             p.ns_env = self.ns_env.clone();
             p.doc_symbols_map = self.doc_symbols_map.clone();
             p.def_sites = self.def_sites.clone();
             p.use_sites = self.use_sites.clone();
+            p.include_resolution = self.include_resolution.clone();
+            p.diagnostics = self.diagnostics.clone();
         }
 
         // デバッグ用: 集計を出す。
