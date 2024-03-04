@@ -35,10 +35,14 @@ pub(crate) fn full(
     wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<lsp_types::SemanticToken>> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
-    let project = wa.require_project_for_doc(doc);
+
+    // force compute
+    let _project = wa.require_project_for_doc(doc);
 
     let mut symbols = vec![];
-    project.collect_symbol_occurrences(&mut symbols);
+    for (symbol, loc) in wa.def_sites.iter().chain(&wa.use_sites) {
+        symbols.push((symbol, *loc));
+    }
 
     let mut tokens: Vec<lsp_types::SemanticToken> = vec![];
 
@@ -83,4 +87,63 @@ pub(crate) fn full(
     }
 
     Some(tokens)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lang_service::{docs::NO_VERSION, LangService};
+    use std::fmt::Write as _;
+
+    fn dummy_url(s: &str) -> Url {
+        let dummy_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".no_exist");
+        Url::from_file_path(&dummy_root.join(s)).unwrap()
+    }
+
+    #[test]
+    fn tokens_test() {
+        let mut ls = LangService::new_standalone();
+
+        let uri = dummy_url("semantic_tokens.hsp");
+        ls.open_doc(
+            uri.clone(),
+            NO_VERSION,
+            r#"
+#const k = 42
+#define macro1
+#define ctype macro2(%1) (%1)
+#enum e = 10
+#cmd kw
+
+#module m1
+#defcfunc f int n, var v, local l
+    return
+#global
+
+    s = 0
+"#
+            .into(),
+        );
+
+        let tokens = ls.semantic_tokens(uri.clone());
+        let mut sb = String::new();
+        let mut y = 1;
+        let mut x = 1;
+        for t in tokens.data {
+            if t.delta_line > 0 {
+                y += t.delta_line;
+                x = t.delta_start + 1;
+            } else {
+                x += t.delta_start;
+            }
+
+            write!(
+                sb,
+                "{}:{} {}/{}\n",
+                y, x, t.token_type, t.token_modifiers_bitset
+            )
+            .unwrap();
+        }
+        assert_eq!(sb, "2:8 1/1\n3:9 3/0\n4:15 3/0\n5:7 1/1\n6:6 5/0\n8:9 4/0\n9:11 2/0\n9:17 1/1\n9:24 0/0\n9:33 1/0\n13:5 1/2\n");
+    }
 }

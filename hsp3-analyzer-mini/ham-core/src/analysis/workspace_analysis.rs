@@ -24,7 +24,7 @@ pub(crate) struct WorkspaceAnalysis {
     pub(super) public_env: PublicEnv,
     pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
     pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
-    pub(super) def_sites: Vec<(SymbolRc, Loc)>,
+    pub(crate) def_sites: Vec<(SymbolRc, Loc)>,
     pub(crate) use_sites: Vec<(SymbolRc, Loc)>,
 
     /// (loc, doc): locにあるincludeがdocに解決されたことを表す。
