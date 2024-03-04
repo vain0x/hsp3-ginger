@@ -64,7 +64,9 @@ mod analysis {
         },
         symbol::{DefInfo, HspSymbolKind, SymbolDetails, SymbolRc},
         syntax_linter::SyntaxLint,
-        workspace_analysis::{DocSyntax, WorkspaceAnalysis, WorkspaceHost},
+        workspace_analysis::{
+            collect_workspace_symbols, DocSyntax, WorkspaceAnalysis, WorkspaceHost,
+        },
     };
     pub(crate) use super::assists::{
         completion::{

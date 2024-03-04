@@ -212,38 +212,6 @@ impl<'a> ProjectAnalysisRef<'a> {
         );
     }
 
-    pub(crate) fn collect_all_symbols(self, name_filter: &str, symbols: &mut Vec<(SymbolRc, Loc)>) {
-        let p = self.project;
-
-        let name_filter = name_filter.trim().to_ascii_lowercase();
-
-        let map = p
-            .def_sites
-            .iter()
-            .filter(|(symbol, _)| symbol.name.contains(&name_filter))
-            .map(|(symbol, loc)| (symbol.clone(), *loc))
-            .collect::<HashMap<_, _>>();
-
-        for (&doc, doc_symbols) in &p.doc_symbols_map {
-            if !p.active_docs.contains(&doc) {
-                continue;
-            }
-
-            for symbol in doc_symbols {
-                if !symbol.name.contains(&name_filter) {
-                    continue;
-                }
-
-                let def_site = match map.get(symbol) {
-                    Some(it) => *it,
-                    None => continue,
-                };
-
-                symbols.push((symbol.clone(), def_site));
-            }
-        }
-    }
-
     pub(crate) fn collect_doc_symbols(self, doc: DocId, symbols: &mut Vec<(SymbolRc, Loc)>) {
         let p = self.project;
 

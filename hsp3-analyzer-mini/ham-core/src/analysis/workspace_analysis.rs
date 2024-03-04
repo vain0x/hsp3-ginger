@@ -260,11 +260,6 @@ impl WorkspaceAnalysis {
         Some((token.text.clone(), token.loc))
     }
 
-    pub(crate) fn require_some_project(&mut self) -> ProjectAnalysisRef {
-        self.compute();
-        self.project1.compute(&self.doc_analysis_map)
-    }
-
     pub(crate) fn require_project_for_doc(&mut self, _doc: DocId) -> ProjectAnalysisRef {
         self.compute();
         self.project1.compute(&self.doc_analysis_map)
@@ -351,4 +346,39 @@ pub(crate) struct DocSyntax<'a> {
     pub(crate) text: RcStr,
     pub(crate) tokens: RcSlice<PToken>,
     pub(crate) root: &'a PRoot,
+}
+
+pub(crate) fn collect_workspace_symbols(
+    wa: &WorkspaceAnalysis,
+    query: &str,
+    symbols: &mut Vec<(SymbolRc, Loc)>,
+) {
+    let p = &wa;
+    let name_filter = query.trim().to_ascii_lowercase();
+
+    let map = p
+        .def_sites
+        .iter()
+        .filter(|(symbol, _)| symbol.name.contains(&name_filter))
+        .map(|(symbol, loc)| (symbol.clone(), *loc))
+        .collect::<HashMap<_, _>>();
+
+    for (&doc, doc_symbols) in &p.doc_symbols_map {
+        if !p.active_docs.contains(&doc) {
+            continue;
+        }
+
+        for symbol in doc_symbols {
+            if !symbol.name.contains(&name_filter) {
+                continue;
+            }
+
+            let def_site = match map.get(symbol) {
+                Some(it) => *it,
+                None => continue,
+            };
+
+            symbols.push((symbol.clone(), def_site));
+        }
+    }
 }
