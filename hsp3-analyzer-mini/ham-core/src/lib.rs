@@ -68,11 +68,8 @@ mod analysis {
             collect_workspace_symbols, DocSyntax, WorkspaceAnalysis, WorkspaceHost,
         },
     };
-    pub(crate) use super::assists::{
-        completion::{
-            collect_symbols_as_completion_items, in_preproc, in_str_or_comment, ACompletionItem,
-        },
-        signature_help::{SignatureHelpContext, SignatureHelpHost},
+    pub(crate) use super::assists::completion::{
+        collect_symbols_as_completion_items, in_preproc, in_str_or_comment, ACompletionItem,
     };
 
     use crate::{

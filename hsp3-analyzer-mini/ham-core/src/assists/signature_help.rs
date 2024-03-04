@@ -4,25 +4,33 @@ use lsp_types::{
     Documentation, ParameterInformation, ParameterLabel, SignatureHelp, SignatureInformation,
 };
 
-#[derive(Default)]
-pub(crate) struct SignatureHelpHost {
-    pub(crate) use_site_map: HashMap<Pos, SymbolRc>,
+/// シグネチャヘルプの生成に使うデータ
+pub(crate) struct SignatureHelpDb {
+    use_site_map: HashMap<Pos, SymbolRc>,
 }
 
-impl SignatureHelpHost {
-    pub(crate) fn process(&mut self, pos: Pos16, root: &PRoot) -> Option<SignatureHelpContext> {
-        let mut v = V {
-            pos,
-            host: take(self),
-            out: None,
-        };
-        v.on_root(&root);
-        let V { host, out, .. } = v;
-        *self = host;
-        out
+impl SignatureHelpDb {
+    fn generate(wa: &WorkspaceAnalysis, doc: DocId) -> Self {
+        let use_site_map = wa
+            .use_sites
+            .iter()
+            .filter_map(|&(ref symbol, loc)| {
+                if loc.doc == doc {
+                    Some((loc.start(), symbol.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashMap<_, _>>();
+        Self { use_site_map }
+    }
+
+    fn resolve_symbol(&self, pos: Pos) -> Option<&SymbolRc> {
+        self.use_site_map.get(&pos)
     }
 }
 
+/// シグネチャヘルプを生成するために使うカーソル周辺の情報
 pub(crate) struct SignatureHelpContext {
     pub(crate) signature_data: Rc<SignatureData>,
     pub(crate) arg_index: usize,
@@ -30,16 +38,12 @@ pub(crate) struct SignatureHelpContext {
 }
 
 struct V {
+    db: SignatureHelpDb,
     pos: Pos16,
-    host: SignatureHelpHost,
     out: Option<SignatureHelpContext>,
 }
 
 impl V {
-    fn resolve_symbol(&self, pos: Pos) -> Option<SymbolRc> {
-        self.host.use_site_map.get(&pos).cloned()
-    }
-
     fn find_signature(&self, symbol: &SymbolRc) -> Option<Rc<SignatureData>> {
         symbol.signature_opt()
     }
@@ -54,7 +58,7 @@ impl V {
             return;
         }
 
-        let symbol = match self.resolve_symbol(callee.body_pos()) {
+        let symbol = match self.db.resolve_symbol(callee.body_pos()) {
             Some(it) => it,
             None => return,
         };
@@ -124,13 +128,20 @@ pub(crate) fn signature_help(
         return None;
     }
 
+    let db = SignatureHelpDb::generate(wa, doc);
+    let syntax = wa.get_syntax(doc)?;
+
+    let ctx = {
+        let mut v = V { db, pos, out: None };
+        v.on_root(syntax.root);
+        v.out?
+    };
+
     let SignatureHelpContext {
         signature_data,
         ctype,
         arg_index,
-    } = wa
-        .require_project_for_doc(doc)
-        .get_signature_help_context(doc, pos)?;
+    } = ctx;
 
     let command = NamePath::new(&signature_data.name).base;
 

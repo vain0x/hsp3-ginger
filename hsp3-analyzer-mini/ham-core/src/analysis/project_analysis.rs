@@ -57,34 +57,6 @@ impl ProjectAnalysis {
 }
 
 impl<'a> ProjectAnalysisRef<'a> {
-    fn syntax_tree(self, doc: DocId) -> Option<&'a PRoot> {
-        Some(self.doc_analysis_map.get(&doc)?.tree_opt.as_ref()?)
-    }
-
-    pub(crate) fn get_signature_help_context(
-        self,
-        doc: DocId,
-        pos: Pos16,
-    ) -> Option<SignatureHelpContext> {
-        let tree = self.syntax_tree(doc)?;
-
-        let use_site_map = self
-            .project
-            .use_sites
-            .iter()
-            .filter_map(|&(ref symbol, loc)| {
-                if loc.doc == doc {
-                    Some((loc.start(), symbol.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect::<HashMap<_, _>>();
-
-        let mut h = SignatureHelpHost { use_site_map };
-        h.process(pos, tree)
-    }
-
     pub(crate) fn locate_symbol(self, doc: DocId, pos: Pos16) -> Option<(SymbolRc, Loc)> {
         self.project
             .def_sites
