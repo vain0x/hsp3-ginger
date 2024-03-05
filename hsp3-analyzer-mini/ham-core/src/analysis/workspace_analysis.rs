@@ -13,8 +13,16 @@ pub(crate) struct WorkspaceHost {
 
 #[derive(Default)]
 pub(crate) struct WorkspaceAnalysis {
+    // state:
     dirty_docs: HashSet<DocId>,
+
+    // input:
     doc_texts: HashMap<DocId, (Lang, RcStr)>,
+
+    common_docs: Rc<HashMap<String, DocId>>,
+    hsphelp_info: Rc<HspHelpInfo>,
+    entrypoints: EntryPoints,
+    project_docs: Rc<ProjectDocs>,
 
     // computed:
     pub(super) active_docs: HashSet<DocId>,
@@ -47,10 +55,11 @@ impl WorkspaceAnalysis {
             entrypoints,
         } = host;
 
-        self.project1.entrypoints = entrypoints;
-        self.project1.common_docs = common_docs;
-        self.project1.hsphelp_info = hsphelp_info;
-        self.project1.public_env.builtin = builtin_env;
+        self.common_docs = common_docs;
+        self.hsphelp_info = hsphelp_info;
+        self.entrypoints = entrypoints;
+
+        self.public_env.builtin = builtin_env;
     }
 
     pub(crate) fn update_doc(&mut self, doc: DocId, lang: Lang, text: RcStr) {
@@ -68,8 +77,7 @@ impl WorkspaceAnalysis {
     }
 
     pub(crate) fn set_project_docs(&mut self, project_docs: ProjectDocs) {
-        let project_docs = Rc::new(project_docs);
-        self.project1.project_docs = project_docs;
+        self.project_docs = Rc::new(project_docs);
     }
 
     fn is_computed(&self) -> bool {
@@ -130,14 +138,12 @@ impl WorkspaceAnalysis {
 
         // NOTE: プロジェクトシステムの移行中
         {
-            let p = &self.project1;
-
             compute_active_docs::compute_active_docs(
                 &self.doc_analysis_map,
-                &p.entrypoints,
-                &p.common_docs,
-                &p.hsphelp_info,
-                &p.project_docs,
+                &self.entrypoints,
+                &self.common_docs,
+                &self.hsphelp_info,
+                &self.project_docs,
                 &mut self.active_docs,
                 &mut self.active_help_docs,
                 &mut self.help_docs,
@@ -145,7 +151,7 @@ impl WorkspaceAnalysis {
             );
 
             compute_symbols::compute_symbols(
-                &p.hsphelp_info,
+                &self.hsphelp_info,
                 &self.active_docs,
                 &self.help_docs,
                 &self.doc_analysis_map,
@@ -162,16 +168,8 @@ impl WorkspaceAnalysis {
         let p = &mut self.project1;
         {
             // NOTE: プロジェクトシステムの移行中。この非効率なコピーは後でなくなる予定
-            p.active_docs = self.active_docs.clone();
-            p.active_help_docs = self.active_help_docs.clone();
-            p.help_docs = self.help_docs.clone();
-            p.public_env = self.public_env.clone();
-            p.ns_env = self.ns_env.clone();
-            p.doc_symbols_map = self.doc_symbols_map.clone();
             p.def_sites = self.def_sites.clone();
             p.use_sites = self.use_sites.clone();
-            p.include_resolution = self.include_resolution.clone();
-            p.diagnostics = self.diagnostics.clone();
         }
 
         // デバッグ用: 集計を出す。
@@ -190,22 +188,19 @@ impl WorkspaceAnalysis {
             );
         }
 
-        assert_eq!(self.project1.diagnostics.len(), 0);
+        assert_eq!(self.diagnostics.len(), 0);
     }
 
-    #[allow(unused)]
     pub(crate) fn hsphelp_info(&self) -> &HspHelpInfo {
-        &self.project1.hsphelp_info
+        &self.hsphelp_info
     }
 
-    #[allow(unused)]
     pub(crate) fn is_active_doc(&self, doc: DocId) -> bool {
         assert!(self.is_computed());
         debug_assert!(!self.active_help_docs.contains(&doc));
         self.active_docs.contains(&doc)
     }
 
-    #[allow(unused)]
     pub(crate) fn is_active_help_doc(&self, doc: DocId) -> bool {
         assert!(self.is_computed());
         debug_assert!(!self.active_docs.contains(&doc));
@@ -297,10 +292,8 @@ impl WorkspaceAnalysis {
     pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
         self.compute();
 
-        let p = &self.project1;
-
         for (&doc, da) in self.doc_analysis_map.iter() {
-            if !p.active_docs.contains(&doc) {
+            if !self.is_active_doc(doc) {
                 continue;
             }
 
@@ -323,11 +316,9 @@ impl WorkspaceAnalysis {
     pub(crate) fn diagnose_precisely(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
         self.compute();
 
-        let p = &self.project1;
-
         // diagnose:
 
-        let use_site_map = p
+        let use_site_map = self
             .use_sites
             .iter()
             .map(|(symbol, loc)| ((loc.doc, loc.start()), symbol.clone()))
@@ -339,7 +330,7 @@ impl WorkspaceAnalysis {
         };
 
         for (&doc, da) in self.doc_analysis_map.iter() {
-            if !p.active_docs.contains(&doc) {
+            if !self.is_active_doc(doc) {
                 continue;
             }
 
@@ -351,7 +342,6 @@ impl WorkspaceAnalysis {
             ctx.on_root(root);
         }
 
-        // どのプロジェクトに由来するか覚えておく必要がある
         diagnostics.extend(ctx.diagnostics.into_iter().map(|(d, loc)| {
             let msg = match d {
                 Diagnostic::Undefined => "定義が見つかりません",
@@ -361,7 +351,7 @@ impl WorkspaceAnalysis {
             (msg, loc)
         }));
 
-        diagnostics.extend(p.diagnostics.clone());
+        // diagnostics.extend(self.diagnostics.clone());
     }
 }
 
