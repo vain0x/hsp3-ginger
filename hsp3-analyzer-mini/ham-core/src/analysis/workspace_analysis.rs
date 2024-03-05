@@ -348,6 +348,29 @@ pub(crate) struct DocSyntax<'a> {
     pub(crate) root: &'a PRoot,
 }
 
+pub(crate) fn collect_doc_symbols(
+    wa: &WorkspaceAnalysis,
+    doc: DocId,
+    symbols: &mut Vec<(SymbolRc, Loc)>,
+) {
+    let doc_symbols = match wa.doc_symbols_map.get(&doc) {
+        Some(it) => it,
+        None => return,
+    };
+
+    let def_site_map = wa
+        .def_sites
+        .iter()
+        .filter(|(_, loc)| loc.doc == doc)
+        .cloned()
+        .collect::<HashMap<_, _>>();
+
+    symbols.extend(doc_symbols.iter().filter_map(|symbol| {
+        let loc = def_site_map.get(&symbol)?;
+        Some((symbol.clone(), *loc))
+    }));
+}
+
 pub(crate) fn collect_workspace_symbols(
     wa: &WorkspaceAnalysis,
     query: &str,

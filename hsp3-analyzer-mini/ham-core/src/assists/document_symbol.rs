@@ -40,9 +40,11 @@ pub(crate) fn symbol(
 ) -> Option<DocumentSymbolResponse> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
 
+    // force compute
+    let _ = wa.require_project_for_doc(doc);
+
     let mut symbols = vec![];
-    wa.require_project_for_doc(doc)
-        .collect_doc_symbols(doc, &mut symbols);
+    collect_doc_symbols(wa, doc, &mut symbols);
 
     // 空のシンボルを除去する (名前が空のシンボルがどこかで登録されている(?))
     symbols.retain(|(s, _)| !s.name().is_empty());
@@ -61,4 +63,74 @@ pub(crate) fn symbol(
         .collect();
 
     Some(DocumentSymbolResponse::Flat(symbol_information_list))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lang_service::{docs::NO_VERSION, LangService};
+    use std::fmt::Write as _;
+
+    fn dummy_url(s: &str) -> Url {
+        let dummy_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".no_exist");
+        Url::from_file_path(&dummy_root.join(s)).unwrap()
+    }
+
+    fn format_symbol(w: &mut String, symbol: &SymbolInformation) {
+        let location = &symbol.location;
+        let start = location.range.start;
+        write!(
+            w,
+            "{}:{}:{} {} {:?}",
+            location.uri.path_segments().unwrap().last().unwrap(),
+            start.line + 1,
+            start.character + 1,
+            symbol.name,
+            symbol.kind
+        )
+        .unwrap();
+    }
+
+    fn format_response(w: &mut String, res: &DocumentSymbolResponse) {
+        match res {
+            DocumentSymbolResponse::Flat(symbols) => {
+                for symbol in symbols {
+                    format_symbol(w, symbol);
+                    *w += "\n"
+                }
+            }
+            DocumentSymbolResponse::Nested(_) => panic!("no use"),
+        }
+    }
+
+    #[test]
+    fn test() {
+        let mut ls = LangService::new_standalone();
+
+        let main_uri = dummy_url("main.hsp");
+        ls.open_doc(
+            main_uri.clone(),
+            NO_VERSION,
+            r#"
+#module m1
+#deffunc f int a, str b
+    return
+#global
+
+    goto *my_label
+
+*my_label
+    s1 = 0
+    f 1, 2
+    return
+            "#
+            .into(),
+        );
+
+        let res = ls.document_symbol(main_uri.clone()).unwrap();
+        let mut formatted = String::new();
+        format_response(&mut formatted, &res);
+        // FIXME: my_labelが重複している
+        debug_assert_eq!(formatted, "main.hsp:2:9 m1 Module\nmain.hsp:3:10 f Function\nmain.hsp:3:16 a Constant\nmain.hsp:3:23 b Constant\nmain.hsp:9:2 my_label Constant\nmain.hsp:9:2 my_label Constant\nmain.hsp:10:5 s1 Variable\n");
+    }
 }

@@ -178,27 +178,6 @@ impl<'a> ProjectAnalysisRef<'a> {
         );
     }
 
-    pub(crate) fn collect_doc_symbols(self, doc: DocId, symbols: &mut Vec<(SymbolRc, Loc)>) {
-        let p = self.project;
-
-        let doc_symbols = match p.doc_symbols_map.get(&doc) {
-            Some(it) => it,
-            None => return,
-        };
-
-        let def_site_map = p
-            .def_sites
-            .iter()
-            .filter(|(_, loc)| loc.doc == doc)
-            .cloned()
-            .collect::<HashMap<_, _>>();
-
-        symbols.extend(doc_symbols.iter().filter_map(|symbol| {
-            let loc = def_site_map.get(&symbol)?;
-            Some((symbol.clone(), *loc))
-        }));
-    }
-
     pub(crate) fn find_include_target(self, doc: DocId, pos: Pos16) -> Option<DocId> {
         let p = self.project;
         let (_, dest_doc) = *p
