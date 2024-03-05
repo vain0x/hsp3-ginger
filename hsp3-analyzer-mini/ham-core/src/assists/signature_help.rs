@@ -4,32 +4,6 @@ use lsp_types::{
     Documentation, ParameterInformation, ParameterLabel, SignatureHelp, SignatureInformation,
 };
 
-/// シグネチャヘルプの生成に使うデータ
-pub(crate) struct SignatureHelpDb {
-    use_site_map: HashMap<Pos, SymbolRc>,
-}
-
-impl SignatureHelpDb {
-    fn generate(wa: &WorkspaceAnalysis, doc: DocId) -> Self {
-        let use_site_map = wa
-            .use_sites
-            .iter()
-            .filter_map(|&(ref symbol, loc)| {
-                if loc.doc == doc {
-                    Some((loc.start(), symbol.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect::<HashMap<_, _>>();
-        Self { use_site_map }
-    }
-
-    fn resolve_symbol(&self, pos: Pos) -> Option<&SymbolRc> {
-        self.use_site_map.get(&pos)
-    }
-}
-
 /// シグネチャヘルプを生成するために使うカーソル周辺の情報
 pub(crate) struct SignatureHelpContext {
     pub(crate) signature_data: Rc<SignatureData>,

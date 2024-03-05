@@ -67,7 +67,7 @@ mod analysis {
         workspace_analysis::{
             collect_doc_symbols, collect_preproc_completion_items,
             collect_symbol_occurrences_in_doc, collect_symbols_in_scope, collect_workspace_symbols,
-            find_include_target, DocSyntax, WorkspaceAnalysis, WorkspaceHost,
+            find_include_target, DocSyntax, SignatureHelpDb, WorkspaceAnalysis, WorkspaceHost,
         },
     };
 
