@@ -20,8 +20,9 @@ fn goto_include_target(
     wa: &mut WorkspaceAnalysis,
     locs: &mut Vec<Loc>,
 ) -> Option<()> {
-    let project = wa.require_project_for_doc(doc);
-    let dest_doc = project.find_include_target(doc, pos)?;
+    // force compute
+    let _ = wa.require_project_for_doc(doc);
+    let dest_doc = find_include_target(wa, doc, pos)?;
     locs.push(Loc::from_doc(dest_doc));
     Some(())
 }

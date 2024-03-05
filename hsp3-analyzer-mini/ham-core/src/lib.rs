@@ -66,7 +66,8 @@ mod analysis {
         syntax_linter::SyntaxLint,
         workspace_analysis::{
             collect_doc_symbols, collect_preproc_completion_items, collect_symbols_in_scope,
-            collect_workspace_symbols, DocSyntax, WorkspaceAnalysis, WorkspaceHost,
+            collect_workspace_symbols, find_include_target, DocSyntax, WorkspaceAnalysis,
+            WorkspaceHost,
         },
     };
 

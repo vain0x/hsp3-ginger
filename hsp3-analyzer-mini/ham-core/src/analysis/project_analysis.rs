@@ -77,14 +77,4 @@ impl<'a> ProjectAnalysisRef<'a> {
             }
         }
     }
-
-    pub(crate) fn find_include_target(self, doc: DocId, pos: Pos16) -> Option<DocId> {
-        let p = self.project;
-        let (_, dest_doc) = *p
-            .include_resolution
-            .iter()
-            .find(|&(loc, _)| loc.is_touched(doc, pos))?;
-
-        Some(dest_doc)
-    }
 }

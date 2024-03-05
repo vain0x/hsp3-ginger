@@ -526,3 +526,13 @@ pub(crate) fn collect_workspace_symbols(
         }
     }
 }
+
+/// 指定した位置に `#include` があるなら、その参照先のドキュメントを取得する
+pub(crate) fn find_include_target(wa: &WorkspaceAnalysis, doc: DocId, pos: Pos16) -> Option<DocId> {
+    let (_, dest_doc) = *wa
+        .include_resolution
+        .iter()
+        .find(|&(loc, _)| loc.is_touched(doc, pos))?;
+
+    Some(dest_doc)
+}
