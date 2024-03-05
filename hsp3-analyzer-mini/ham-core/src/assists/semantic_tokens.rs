@@ -40,16 +40,12 @@ pub(crate) fn full(
     let _project = wa.require_project_for_doc(doc);
 
     let mut symbols = vec![];
-    for (symbol, loc) in wa.def_sites.iter().chain(&wa.use_sites) {
-        symbols.push((symbol, *loc));
-    }
+    collect_symbol_occurrences_in_doc(wa, doc, &mut symbols);
 
     let mut tokens: Vec<lsp_types::SemanticToken> = vec![];
 
     for (symbol, loc) in symbols {
-        if loc.doc != doc {
-            continue;
-        }
+        assert_eq!(loc.doc, doc);
 
         let (token_type, token_modifiers_bitset) = match to_semantic_token_kind(&symbol) {
             Some(it) => it,

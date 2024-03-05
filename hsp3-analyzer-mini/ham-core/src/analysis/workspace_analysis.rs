@@ -492,6 +492,20 @@ pub(crate) fn collect_doc_symbols(
     }));
 }
 
+/// 指定したドキュメント内のすべてのシンボルの出現箇所 (定義・使用両方) を列挙する
+/// (セマンティックトークン用)
+pub(crate) fn collect_symbol_occurrences_in_doc<'a>(
+    wa: &'a WorkspaceAnalysis,
+    doc: DocId,
+    symbols: &mut Vec<(&'a SymbolRc, Loc)>,
+) {
+    for (symbol, loc) in wa.def_sites.iter().chain(&wa.use_sites) {
+        if loc.doc == doc {
+            symbols.push((symbol, *loc));
+        }
+    }
+}
+
 pub(crate) fn collect_workspace_symbols(
     wa: &WorkspaceAnalysis,
     query: &str,
