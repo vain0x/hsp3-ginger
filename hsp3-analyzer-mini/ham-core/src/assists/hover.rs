@@ -14,7 +14,7 @@ pub(crate) fn hover(
 
     let (contents, loc) = (|| -> Option<_> {
         let (symbol, symbol_loc) = project.locate_symbol(doc, pos)?;
-        let (name, kind, details) = project.get_symbol_details(&symbol)?;
+        let (name, kind, details) = get_symbol_details(&symbol)?;
 
         let mut contents = vec![];
         contents.push(plain_text_to_marked_string(format!("{} ({})", name, kind)));
@@ -71,6 +71,14 @@ pub(crate) fn hover(
         contents: HoverContents::Array(contents),
         range: Some(loc_to_range(loc)),
     })
+}
+
+fn get_symbol_details(symbol: &SymbolRc) -> Option<(RcStr, &'static str, SymbolDetails)> {
+    Some((
+        symbol.name(),
+        symbol.kind.as_str(),
+        symbol.compute_details(),
+    ))
 }
 
 fn documentation_to_marked_string(d: Documentation) -> MarkedString {

@@ -66,17 +66,6 @@ impl<'a> ProjectAnalysisRef<'a> {
             .cloned()
     }
 
-    pub(crate) fn get_symbol_details(
-        self,
-        symbol: &SymbolRc,
-    ) -> Option<(RcStr, &'static str, SymbolDetails)> {
-        Some((
-            symbol.name(),
-            symbol.kind.as_str(),
-            symbol.compute_details(),
-        ))
-    }
-
     pub(crate) fn collect_symbol_defs(self, symbol: &SymbolRc, locs: &mut Vec<Loc>) {
         for &(ref s, loc) in &self.project.def_sites {
             if s == symbol {
