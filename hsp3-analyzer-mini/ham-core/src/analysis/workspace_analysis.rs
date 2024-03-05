@@ -72,6 +72,10 @@ impl WorkspaceAnalysis {
         self.project1.project_docs = project_docs;
     }
 
+    fn is_computed(&self) -> bool {
+        self.dirty_docs.is_empty()
+    }
+
     fn compute(&mut self) {
         if self.dirty_docs.is_empty() {
             return;
@@ -187,6 +191,25 @@ impl WorkspaceAnalysis {
         }
 
         assert_eq!(self.project1.diagnostics.len(), 0);
+    }
+
+    #[allow(unused)]
+    pub(crate) fn hsphelp_info(&self) -> &HspHelpInfo {
+        &self.project1.hsphelp_info
+    }
+
+    #[allow(unused)]
+    pub(crate) fn is_active_doc(&self, doc: DocId) -> bool {
+        assert!(self.is_computed());
+        debug_assert!(!self.active_help_docs.contains(&doc));
+        self.active_docs.contains(&doc)
+    }
+
+    #[allow(unused)]
+    pub(crate) fn is_active_help_doc(&self, doc: DocId) -> bool {
+        assert!(self.is_computed());
+        debug_assert!(!self.active_docs.contains(&doc));
+        self.active_help_docs.contains(&doc)
     }
 
     pub(crate) fn in_preproc(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
