@@ -199,8 +199,7 @@ fn do_completion(
     }
 
     if wa.in_preproc(doc, pos).unwrap_or(false) {
-        wa.require_project_for_doc(doc)
-            .collect_preproc_completion_items(&mut items);
+        collect_preproc_completion_items(wa, &mut items);
         return Some(new_completion_list(items));
     }
 

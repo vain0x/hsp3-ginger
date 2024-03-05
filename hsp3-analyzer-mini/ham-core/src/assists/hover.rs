@@ -33,8 +33,7 @@ pub(crate) fn hover(
 
         let mut completion_items = vec![];
         if in_preproc(pos, &tokens) {
-            wa.require_project_for_doc(doc)
-                .collect_preproc_completion_items(&mut completion_items);
+            collect_preproc_completion_items(wa, &mut completion_items);
         }
 
         let item = completion_items

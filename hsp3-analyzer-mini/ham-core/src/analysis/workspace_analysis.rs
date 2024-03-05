@@ -371,6 +371,44 @@ pub(crate) struct DocSyntax<'a> {
     pub(crate) root: &'a PRoot,
 }
 
+// FIXME: lsp_typesをここで使うべきではない
+// (hover, completionの2か所で使われている。ここではシンボルを生成して、completion側でCompletionItemに変換するべき)
+/// プリプロセッサ命令やプリプロセッサ関連のキーワードを入力補完候補として列挙する
+pub(crate) fn collect_preproc_completion_items(
+    wa: &WorkspaceAnalysis,
+    completion_items: &mut Vec<lsp_types::CompletionItem>,
+) {
+    for (keyword, detail) in &[
+        ("ctype", "関数形式のマクロを表す"),
+        ("global", "グローバルスコープを表す"),
+        ("local", "localパラメータ、またはローカルスコープを表す"),
+        ("int", "整数型のパラメータ、または整数型の定数を表す"),
+        ("double", "実数型のパラメータ、または実数型の定数を表す"),
+        ("str", "文字列型のパラメータを表す"),
+        ("label", "ラベル型のパラメータを表す"),
+        ("var", "変数 (配列要素) のパラメータを表す"),
+        ("array", "配列変数のパラメータを表す"),
+    ] {
+        let sort_prefix = 'a';
+        completion_items.push(lsp_types::CompletionItem {
+            kind: Some(lsp_types::CompletionItemKind::KEYWORD),
+            label: keyword.to_string(),
+            detail: Some(detail.to_string()),
+            sort_text: Some(format!("{}{}", sort_prefix, keyword)),
+            ..Default::default()
+        });
+    }
+
+    completion_items.extend(
+        wa.hsphelp_info()
+            .doc_symbols
+            .iter()
+            .filter(|(&doc, _)| wa.is_active_help_doc(doc))
+            .flat_map(|(_, symbols)| symbols.iter().filter(|s| s.label.starts_with("#")))
+            .cloned(),
+    );
+}
+
 pub(crate) fn collect_doc_symbols(
     wa: &WorkspaceAnalysis,
     doc: DocId,

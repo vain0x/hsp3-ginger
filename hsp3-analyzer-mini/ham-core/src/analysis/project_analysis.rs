@@ -128,45 +128,6 @@ impl<'a> ProjectAnalysisRef<'a> {
         );
     }
 
-    // FIXME: lsp_typesをここで使うべきではない
-    pub(crate) fn collect_preproc_completion_items(
-        self,
-        completion_items: &mut Vec<lsp_types::CompletionItem>,
-    ) {
-        let p = self.project;
-
-        for (keyword, detail) in &[
-            ("ctype", "関数形式のマクロを表す"),
-            ("global", "グローバルスコープを表す"),
-            ("local", "localパラメータ、またはローカルスコープを表す"),
-            ("int", "整数型のパラメータ、または整数型の定数を表す"),
-            ("double", "実数型のパラメータ、または実数型の定数を表す"),
-            ("str", "文字列型のパラメータを表す"),
-            ("label", "ラベル型のパラメータを表す"),
-            ("var", "変数 (配列要素) のパラメータを表す"),
-            ("array", "配列変数のパラメータを表す"),
-        ] {
-            use lsp_types::{CompletionItem as CI, CompletionItemKind as K};
-            let sort_prefix = 'a';
-            completion_items.push(CI {
-                kind: Some(K::KEYWORD),
-                label: keyword.to_string(),
-                detail: Some(detail.to_string()),
-                sort_text: Some(format!("{}{}", sort_prefix, keyword)),
-                ..CI::default()
-            });
-        }
-
-        completion_items.extend(
-            p.hsphelp_info
-                .doc_symbols
-                .iter()
-                .filter(|(&doc, _)| p.active_help_docs.contains(&doc))
-                .flat_map(|(_, symbols)| symbols.iter().filter(|s| s.label.starts_with("#")))
-                .cloned(),
-        );
-    }
-
     pub(crate) fn find_include_target(self, doc: DocId, pos: Pos16) -> Option<DocId> {
         let p = self.project;
         let (_, dest_doc) = *p
