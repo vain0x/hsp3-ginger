@@ -94,3 +94,152 @@ fn documentation_to_marked_string(d: Documentation) -> MarkedString {
         }) => markdown_marked_string(value),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use self::assists::lsp::from_proto;
+    use super::*;
+    use crate::{
+        assists::lsp::to_proto,
+        lang_service::{docs::NO_VERSION, LangService},
+    };
+    use std::fmt::Write as _;
+
+    fn dummy_url(s: &str) -> Url {
+        let dummy_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".no_exist");
+        Url::from_file_path(&dummy_root.join(s)).unwrap()
+    }
+
+    // 指定した文字列の指定位置への `Pos` を生成する
+    fn pos_at(s: &str, row: u32, column: u32) -> Pos {
+        let mut index = 0;
+        for _ in 0..row {
+            let len = match s[index..].find('\n') {
+                Some(it) => it,
+                None => panic!("invalid row"),
+            };
+            index += len + 1; // 1 for LF
+        }
+        let row_start = index;
+        index += column as usize;
+        assert!(s.is_char_boundary(index));
+        let column16 = s[row_start..index]
+            .chars()
+            .map(|c| c.len_utf16())
+            .sum::<usize>();
+        Pos::new(index as u32, row, column, column16 as u32)
+    }
+
+    fn format_content(w: &mut String, content: &MarkedString) {
+        match content {
+            MarkedString::LanguageString(s) => {
+                if s.language == "plaintext" {
+                    write!(w, "{:?}", s.value).unwrap();
+                } else {
+                    write!(w, "#{} {:?}", s.language, s.value).unwrap();
+                }
+            }
+            MarkedString::String(s) => {
+                write!(w, "{:?}", s).unwrap();
+            }
+        }
+    }
+
+    fn format_response(w: &mut String, hover_opt: Option<&Hover>) {
+        let hover = match hover_opt {
+            Some(it) => it,
+            None => {
+                *w += "None";
+                return;
+            }
+        };
+
+        match hover.range {
+            Some(r) => {
+                let pos = from_proto::pos16(r.start);
+                write!(w, "@{} ", pos).unwrap();
+            }
+            None => {}
+        }
+
+        match &hover.contents {
+            HoverContents::Scalar(content) => format_content(w, content),
+            HoverContents::Array(contents) => {
+                for (i, content) in contents.iter().enumerate() {
+                    if i >= 1 {
+                        *w += "; ";
+                    }
+                    write!(w, "[{}] ", i + 1).unwrap();
+                    format_content(w, content);
+                }
+            }
+            HoverContents::Markup(_) => panic!("no use"),
+        }
+    }
+
+    #[test]
+    fn symbol_test() {
+        let mut ls = LangService::new_standalone();
+
+        let main_uri = dummy_url("main.hsp");
+        let src = r#"
+#module
+#defcfunc f int a
+    return a + 1
+#global
+
+    mes f(42) + 1
+"#;
+        ls.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
+
+        let mut w = String::new();
+
+        w += "On `f` def:\n";
+        format_response(
+            &mut w,
+            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 2, 10)))
+                .as_ref(),
+        );
+
+        w += "\n\nOn `a` def (param of f):\n";
+        format_response(
+            &mut w,
+            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 2, 16)))
+                .as_ref(),
+        );
+
+        w += "\n\nOn `f` use:\n";
+        format_response(
+            &mut w,
+            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 6, 8)))
+                .as_ref(),
+        );
+
+        assert_eq!(w, "On `f` def:\n@3:11 [1] \"f (関数)\"\n\nOn `a` def (param of f):\n@3:17 [1] \"a (int)\"\n\nOn `f` use:\n@7:9 [1] \"f (関数)\"");
+    }
+
+    #[test]
+    fn preproc_test() {
+        let mut ls = LangService::new_standalone();
+
+        let main_uri = dummy_url("main.hsp");
+        let src = r#"
+#define ctype hiword(%1) (((%1) >> 16) & 0xFFFF)
+"#;
+        ls.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
+
+        let mut w = String::new();
+
+        w += "On `<|>ctype`:\n";
+        format_response(
+            &mut w,
+            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 1, 8)))
+                .as_ref(),
+        );
+
+        assert_eq!(
+            w,
+            "On `<|>ctype`:\n@2:9 [1] \"ctype\"; [2] \"関数形式のマクロを表す\""
+        );
+    }
+}
