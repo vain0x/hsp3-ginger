@@ -11,6 +11,11 @@ pub(crate) mod semantic_tokens;
 pub(crate) mod signature_help;
 pub(crate) mod workspace_symbol;
 
+pub(crate) mod lsp {
+    pub(crate) mod from_proto;
+    pub(crate) mod to_proto;
+}
+
 pub(crate) mod rewrites {
     use super::*;
 

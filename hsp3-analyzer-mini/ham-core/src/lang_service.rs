@@ -2,7 +2,10 @@ pub(crate) mod docs;
 mod search_common;
 pub(crate) mod search_hsphelp;
 
-use self::docs::{DocChange, Docs};
+use self::{
+    docs::{DocChange, Docs},
+    source::DocId,
+};
 use super::*;
 use crate::{
     analysis::*,
@@ -383,5 +386,23 @@ impl LangService {
             ok
         });
         diagnostics
+    }
+}
+
+/// ドキュメントの管理機能を提供するもの
+///
+/// (`LangService` がドキュメントDBの役割を持つことを示している)
+pub(crate) trait DocDb {
+    fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri>;
+    fn find_doc_by_uri(&self, uri: &CanonicalUri) -> Option<DocId>;
+}
+
+impl DocDb for LangService {
+    fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
+        self.docs.get_uri(doc)
+    }
+
+    fn find_doc_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
+        self.docs.find_by_uri(uri)
     }
 }
