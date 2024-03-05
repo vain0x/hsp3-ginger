@@ -53,7 +53,7 @@ mod analysis {
     mod workspace_analysis;
 
     pub(crate) use self::{
-        doc_analysis::{resolve_scope_at, DocAnalysis},
+        doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
@@ -69,7 +69,6 @@ mod analysis {
             collect_workspace_symbols, DocSyntax, WorkspaceAnalysis, WorkspaceHost,
         },
     };
-    pub(crate) use super::assists::completion::{in_preproc, in_str_or_comment};
 
     use crate::{
         lang::Lang,

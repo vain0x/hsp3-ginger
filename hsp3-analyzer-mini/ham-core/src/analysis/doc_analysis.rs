@@ -44,6 +44,44 @@ impl DocAnalysis {
     }
 }
 
+/// 指定した位置がコメント内か
+pub(crate) fn in_str_or_comment(pos: Pos16, tokens: &[PToken]) -> bool {
+    let i = match tokens.binary_search_by_key(&pos, |t| Pos16::from(t.ahead().range.start())) {
+        Ok(i) | Err(i) => i.saturating_sub(1),
+    };
+
+    tokens[i..]
+        .iter()
+        .take_while(|t| t.ahead().start() <= pos)
+        .flat_map(|t| t.iter())
+        .filter(|t| t.loc.range.contains_inclusive(pos))
+        .any(|t| match t.kind {
+            TokenKind::Str => t.loc.range.start() < pos && pos < t.loc.range.end(),
+            TokenKind::Comment => t.loc.range.start() < pos,
+            _ => false,
+        })
+}
+
+/// 指定した位置がプリプロセッサ行の中か
+pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
+    // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。
+
+    // 指定位置付近のトークンを探す。
+    let mut i = match tokens.binary_search_by_key(&pos, |token| token.body_pos16()) {
+        Ok(i) | Err(i) => i,
+    };
+
+    // 遡って '#' の位置を探す。ただしEOSをみつけたら終わり。
+    loop {
+        match tokens.get(i).map(|t| (t.kind(), t.body_pos())) {
+            Some((TokenKind::Hash, p)) if p <= pos => return true,
+            Some((TokenKind::Eos, p)) if p < pos => return false,
+            _ if i == 0 => return false,
+            _ => i -= 1,
+        }
+    }
+}
+
 pub(crate) fn resolve_scope_at(da: &DocAnalysis, pos: Pos16) -> LocalScope {
     let mut scope = LocalScope::default();
 

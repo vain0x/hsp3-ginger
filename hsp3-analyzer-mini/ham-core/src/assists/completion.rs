@@ -3,50 +3,12 @@ use crate::{
     analysis::{HspSymbolKind, Scope, SymbolRc},
     assists::from_document_position,
     lang_service::docs::Docs,
-    parse::{p_param_ty::PParamCategory, PToken},
-    source::*,
-    token::TokenKind,
+    parse::p_param_ty::PParamCategory,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
-
-pub(crate) fn in_str_or_comment(pos: Pos16, tokens: &[PToken]) -> bool {
-    let i = match tokens.binary_search_by_key(&pos, |t| Pos16::from(t.ahead().range.start())) {
-        Ok(i) | Err(i) => i.saturating_sub(1),
-    };
-
-    tokens[i..]
-        .iter()
-        .take_while(|t| t.ahead().start() <= pos)
-        .flat_map(|t| t.iter())
-        .filter(|t| t.loc.range.contains_inclusive(pos))
-        .any(|t| match t.kind {
-            TokenKind::Str => t.loc.range.start() < pos && pos < t.loc.range.end(),
-            TokenKind::Comment => t.loc.range.start() < pos,
-            _ => false,
-        })
-}
-
-pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
-    // '#' から文末の間においてプリプロセッサ関連の補完を有効化する。
-
-    // 指定位置付近のトークンを探す。
-    let mut i = match tokens.binary_search_by_key(&pos, |token| token.body_pos16()) {
-        Ok(i) | Err(i) => i,
-    };
-
-    // 遡って '#' の位置を探す。ただしEOSをみつけたら終わり。
-    loop {
-        match tokens.get(i).map(|t| (t.kind(), t.body_pos())) {
-            Some((TokenKind::Hash, p)) if p <= pos => return true,
-            Some((TokenKind::Eos, p)) if p < pos => return false,
-            _ if i == 0 => return false,
-            _ => i -= 1,
-        }
-    }
-}
 
 /// `hsphelp` を参照して入力補完候補を列挙する (プリプロセッサ関連は除く)
 fn collect_hsphelp_completion_items(
