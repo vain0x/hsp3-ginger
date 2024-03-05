@@ -409,6 +409,66 @@ pub(crate) fn collect_preproc_completion_items(
     );
 }
 
+/// 指定位置のスコープに属するシンボルを列挙する (入力補完用)
+pub(crate) fn collect_symbols_in_scope(
+    wa: &WorkspaceAnalysis,
+    doc: DocId,
+    pos: Pos16,
+    out_symbols: &mut Vec<SymbolRc>,
+) {
+    let scope = match wa.doc_analysis_map.get(&doc) {
+        Some(da) => resolve_scope_at(da, pos),
+        None => return,
+    };
+
+    let doc_symbols = wa
+        .doc_symbols_map
+        .iter()
+        .filter_map(|(&d, symbols)| {
+            if d == doc || wa.is_active_doc(d) {
+                Some((d, symbols.as_slice()))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    fn collect_local(symbols: &[SymbolRc], local: &LocalScope, out_symbols: &mut Vec<SymbolRc>) {
+        for s in symbols {
+            let scope = match &s.scope_opt {
+                Some(it) => it,
+                None => continue,
+            };
+            if scope.is_visible_to(local) {
+                out_symbols.push(s.clone());
+            }
+        }
+    }
+
+    // 指定したドキュメント内のローカルシンボルを列挙する
+    if let Some((_, symbols)) = doc_symbols.iter().find(|&&(d, _)| d == doc) {
+        collect_local(symbols, &scope, out_symbols);
+    }
+
+    // ほかのドキュメントのローカルシンボルを列挙する
+    if scope.is_outside_module() {
+        for &(d, symbols) in &doc_symbols {
+            if d != doc {
+                collect_local(symbols, &scope, out_symbols);
+            }
+        }
+    }
+
+    // グローバルシンボルを列挙する
+    for &(_, symbols) in &doc_symbols {
+        for s in symbols {
+            if let Some(Scope::Global) = s.scope_opt {
+                out_symbols.push(s.clone());
+            }
+        }
+    }
+}
+
 pub(crate) fn collect_doc_symbols(
     wa: &WorkspaceAnalysis,
     doc: DocId,

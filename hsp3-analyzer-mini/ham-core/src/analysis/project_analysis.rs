@@ -14,7 +14,6 @@ impl Default for EntryPoints {
 
 #[derive(Clone, Copy)]
 pub(crate) struct ProjectAnalysisRef<'a> {
-    doc_analysis_map: &'a DocAnalysisMap,
     project: &'a ProjectAnalysis,
 }
 
@@ -47,12 +46,9 @@ impl ProjectAnalysis {
     // NOTE: プロジェクトシステムの移行中。ここに計算処理はもうない
     pub(crate) fn compute<'a>(
         &'a self,
-        doc_analysis_map: &'a DocAnalysisMap,
+        #[allow(unused)] doc_analysis_map: &'a DocAnalysisMap,
     ) -> ProjectAnalysisRef<'a> {
-        ProjectAnalysisRef {
-            doc_analysis_map,
-            project: self,
-        }
+        ProjectAnalysisRef { project: self }
     }
 }
 
@@ -80,35 +76,6 @@ impl<'a> ProjectAnalysisRef<'a> {
                 locs.push(loc);
             }
         }
-    }
-
-    pub(crate) fn collect_completion_items(
-        self,
-        doc: DocId,
-        pos: Pos16,
-        completion_items: &mut Vec<ACompletionItem>,
-    ) {
-        let doc_analysis_map = self.doc_analysis_map;
-        let p = self.project;
-
-        let scope = match doc_analysis_map.get(&doc) {
-            Some(da) => resolve_scope_at(da, pos),
-            None => LocalScope::default(),
-        };
-
-        let doc_symbols = p
-            .doc_symbols_map
-            .iter()
-            .filter_map(|(&d, symbols)| {
-                if d == doc || p.active_docs.contains(&d) {
-                    Some((d, symbols.as_slice()))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-
-        collect_symbols_as_completion_items(doc, scope, &doc_symbols, completion_items);
     }
 
     pub(crate) fn find_include_target(self, doc: DocId, pos: Pos16) -> Option<DocId> {

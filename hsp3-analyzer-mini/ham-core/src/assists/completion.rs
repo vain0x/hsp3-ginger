@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    analysis::{HspSymbolKind, LocalScope, Scope, SymbolRc},
+    analysis::{HspSymbolKind, Scope, SymbolRc},
     assists::from_document_position,
     lang_service::docs::Docs,
     parse::{p_param_ty::PParamCategory, PToken},
@@ -11,10 +11,6 @@ use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentatio
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
-
-pub(crate) enum ACompletionItem {
-    Symbol(SymbolRc),
-}
 
 pub(crate) fn in_str_or_comment(pos: Pos16, tokens: &[PToken]) -> bool {
     let i = match tokens.binary_search_by_key(&pos, |t| Pos16::from(t.ahead().range.start())) {
@@ -65,58 +61,6 @@ fn collect_hsphelp_completion_items(
             .flat_map(|(_, symbols)| symbols.iter().filter(|s| !s.label.starts_with("#")))
             .cloned(),
     );
-}
-
-fn collect_local_completion_items(
-    symbols: &[SymbolRc],
-    local: &LocalScope,
-    completion_items: &mut Vec<ACompletionItem>,
-) {
-    for s in symbols {
-        let scope = match &s.scope_opt {
-            Some(it) => it,
-            None => continue,
-        };
-        if scope.is_visible_to(local) {
-            completion_items.push(ACompletionItem::Symbol(s.clone()));
-        }
-    }
-}
-
-fn collect_global_completion_items(
-    symbols: &[SymbolRc],
-    completion_items: &mut Vec<ACompletionItem>,
-) {
-    for s in symbols {
-        if let Some(Scope::Global) = s.scope_opt {
-            completion_items.push(ACompletionItem::Symbol(s.clone()));
-        }
-    }
-}
-
-pub(crate) fn collect_symbols_as_completion_items(
-    doc: DocId,
-    scope: LocalScope,
-    doc_symbols: &[(DocId, &[SymbolRc])],
-    completion_items: &mut Vec<ACompletionItem>,
-) {
-    if let Some((_, symbols)) = doc_symbols.iter().find(|&&(d, _)| d == doc) {
-        collect_local_completion_items(symbols, &scope, completion_items);
-    }
-
-    if scope.is_outside_module() {
-        for &(d, symbols) in doc_symbols {
-            if d == doc {
-                continue;
-            }
-
-            collect_local_completion_items(symbols, &scope, completion_items);
-        }
-    }
-
-    for &(_, symbols) in doc_symbols {
-        collect_global_completion_items(symbols, completion_items);
-    }
 }
 
 fn to_completion_symbol_kind(kind: HspSymbolKind) -> CompletionItemKind {
@@ -218,19 +162,17 @@ fn do_completion(
         return Some(new_completion_list(items));
     }
 
-    let mut completion_items = vec![];
-    let p = wa.require_project_for_doc(doc);
-    p.collect_completion_items(doc, pos, &mut completion_items);
+    {
+        let mut symbols = vec![];
+        collect_symbols_in_scope(wa, doc, pos, &mut symbols);
 
-    for item in completion_items {
-        match item {
-            ACompletionItem::Symbol(symbol) => {
-                if symbol.linked_symbol_opt.borrow().is_some() {
-                    continue;
-                }
-
-                items.push(to_lsp_completion_item(&symbol));
+        for symbol in symbols {
+            // `hsphelp` に記載されているシンボルは除く
+            if symbol.linked_symbol_opt.borrow().is_some() {
+                continue;
             }
+
+            items.push(to_lsp_completion_item(&symbol));
         }
     }
 

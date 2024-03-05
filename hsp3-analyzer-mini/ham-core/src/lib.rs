@@ -65,13 +65,11 @@ mod analysis {
         symbol::{DefInfo, HspSymbolKind, SymbolDetails, SymbolRc},
         syntax_linter::SyntaxLint,
         workspace_analysis::{
-            collect_doc_symbols, collect_preproc_completion_items, collect_workspace_symbols,
-            DocSyntax, WorkspaceAnalysis, WorkspaceHost,
+            collect_doc_symbols, collect_preproc_completion_items, collect_symbols_in_scope,
+            collect_workspace_symbols, DocSyntax, WorkspaceAnalysis, WorkspaceHost,
         },
     };
-    pub(crate) use super::assists::completion::{
-        collect_symbols_as_completion_items, in_preproc, in_str_or_comment, ACompletionItem,
-    };
+    pub(crate) use super::assists::completion::{in_preproc, in_str_or_comment};
 
     use crate::{
         lang::Lang,
