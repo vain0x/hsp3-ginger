@@ -111,23 +111,6 @@ impl<'a> ProjectAnalysisRef<'a> {
         collect_symbols_as_completion_items(doc, scope, &doc_symbols, completion_items);
     }
 
-    // FIXME: lsp_typesをここで使うべきではない
-    pub(crate) fn collect_hsphelp_completion_items(
-        self,
-        completion_items: &mut Vec<lsp_types::CompletionItem>,
-    ) {
-        let p = self.project;
-
-        completion_items.extend(
-            p.hsphelp_info
-                .doc_symbols
-                .iter()
-                .filter(|(&doc, _)| p.active_help_docs.contains(&doc))
-                .flat_map(|(_, symbols)| symbols.iter().filter(|s| !s.label.starts_with("#")))
-                .cloned(),
-        );
-    }
-
     pub(crate) fn find_include_target(self, doc: DocId, pos: Pos16) -> Option<DocId> {
         let p = self.project;
         let (_, dest_doc) = *p

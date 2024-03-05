@@ -52,6 +52,21 @@ pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
     }
 }
 
+/// `hsphelp` を参照して入力補完候補を列挙する (プリプロセッサ関連は除く)
+fn collect_hsphelp_completion_items(
+    wa: &WorkspaceAnalysis,
+    completion_items: &mut Vec<lsp_types::CompletionItem>,
+) {
+    completion_items.extend(
+        wa.hsphelp_info()
+            .doc_symbols
+            .iter()
+            .filter(|(&doc, _)| wa.is_active_help_doc(doc))
+            .flat_map(|(_, symbols)| symbols.iter().filter(|s| !s.label.starts_with("#")))
+            .cloned(),
+    );
+}
+
 fn collect_local_completion_items(
     symbols: &[SymbolRc],
     local: &LocalScope,
@@ -219,7 +234,7 @@ fn do_completion(
         }
     }
 
-    p.collect_hsphelp_completion_items(&mut items);
+    collect_hsphelp_completion_items(wa, &mut items);
 
     // HACK: 不要な候補を削除する。(__hspdef__ はスクリプトの記述的にインクルードガードとみなされないので有効なシンボルとして登録されてしまう。)
     if let Some(i) = items.iter().position(|item| item.label == "__hspdef__") {
