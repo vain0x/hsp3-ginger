@@ -43,7 +43,6 @@ pub(crate) struct WorkspaceAnalysis {
     // すべてのドキュメントの解析結果を使って構築される情報:
     pub(crate) doc_analysis_map: DocAnalysisMap,
     module_map: ModuleMap,
-    project1: ProjectAnalysis,
 }
 
 impl WorkspaceAnalysis {
@@ -164,14 +163,6 @@ impl WorkspaceAnalysis {
             );
         }
 
-        // 以前の解析結果を捨てる:
-        let p = &mut self.project1;
-        {
-            // NOTE: プロジェクトシステムの移行中。この非効率なコピーは後でなくなる予定
-            p.def_sites = self.def_sites.clone();
-            p.use_sites = self.use_sites.clone();
-        }
-
         // デバッグ用: 集計を出す。
         {
             let total_symbol_count = self
@@ -278,9 +269,13 @@ impl WorkspaceAnalysis {
         Some((token.text.clone(), token.loc))
     }
 
-    pub(crate) fn require_project_for_doc(&mut self, _doc: DocId) -> ProjectAnalysisRef {
+    pub(crate) fn require_project_for_doc(&mut self, _doc: DocId) -> ProjectAnalysisRef<'_> {
         self.compute();
-        self.project1.compute(&self.doc_analysis_map)
+
+        ProjectAnalysisRef {
+            def_sites: &self.def_sites,
+            use_sites: &self.use_sites,
+        }
     }
 
     pub(crate) fn diagnose(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
