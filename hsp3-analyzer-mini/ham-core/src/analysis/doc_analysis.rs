@@ -43,3 +43,25 @@ impl DocAnalysis {
         self.preproc_symbols = preproc.symbols;
     }
 }
+
+pub(crate) fn resolve_scope_at(da: &DocAnalysis, pos: Pos16) -> LocalScope {
+    let mut scope = LocalScope::default();
+
+    scope.module_opt = da.module_map.iter().find_map(|(&m, module_data)| {
+        if range_is_touched(&module_data.content_loc.range, pos) {
+            Some(m.clone())
+        } else {
+            None
+        }
+    });
+
+    scope.deffunc_opt = da.deffunc_map.iter().find_map(|(&d, deffunc_data)| {
+        if range_is_touched(&deffunc_data.content_loc.range, pos) {
+            Some(d)
+        } else {
+            None
+        }
+    });
+
+    scope
+}

@@ -53,7 +53,7 @@ mod analysis {
     mod workspace_analysis;
 
     pub(crate) use self::{
-        doc_analysis::DocAnalysis,
+        doc_analysis::{resolve_scope_at, DocAnalysis},
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
         project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},

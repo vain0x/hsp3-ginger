@@ -92,7 +92,7 @@ impl<'a> ProjectAnalysisRef<'a> {
         let p = self.project;
 
         let scope = match doc_analysis_map.get(&doc) {
-            Some(da) => resolve_scope_at(&da.module_map, &da.deffunc_map, pos),
+            Some(da) => resolve_scope_at(da, pos),
             None => LocalScope::default(),
         };
 
@@ -176,26 +176,4 @@ impl<'a> ProjectAnalysisRef<'a> {
 
         Some(dest_doc)
     }
-}
-
-fn resolve_scope_at(module_map: &ModuleMap, deffunc_map: &DefFuncMap, pos: Pos16) -> LocalScope {
-    let mut scope = LocalScope::default();
-
-    scope.module_opt = module_map.iter().find_map(|(&m, module_data)| {
-        if range_is_touched(&module_data.content_loc.range, pos) {
-            Some(m.clone())
-        } else {
-            None
-        }
-    });
-
-    scope.deffunc_opt = deffunc_map.iter().find_map(|(&d, deffunc_data)| {
-        if range_is_touched(&deffunc_data.content_loc.range, pos) {
-            Some(d)
-        } else {
-            None
-        }
-    });
-
-    scope
 }
