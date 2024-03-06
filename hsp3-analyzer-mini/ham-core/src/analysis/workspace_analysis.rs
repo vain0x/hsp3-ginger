@@ -22,7 +22,7 @@ pub(crate) struct WorkspaceAnalysis {
     common_docs: Rc<HashMap<String, DocId>>,
     hsphelp_info: Rc<HspHelpInfo>,
     entrypoints: EntryPoints,
-    project_docs: Rc<ProjectDocs>,
+    pub(super) project_docs: Rc<ProjectDocs>,
 
     // computed:
     pub(super) active_docs: HashSet<DocId>,
@@ -79,7 +79,7 @@ impl WorkspaceAnalysis {
         self.project_docs = Rc::new(project_docs);
     }
 
-    fn is_computed(&self) -> bool {
+    pub(super) fn is_computed(&self) -> bool {
         self.dirty_docs.is_empty()
     }
 
