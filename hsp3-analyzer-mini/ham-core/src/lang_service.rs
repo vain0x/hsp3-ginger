@@ -64,16 +64,26 @@ impl LangService {
 
     #[cfg(test)]
     pub(crate) fn new_standalone() -> Self {
-        let hsp3_root = PathBuf::from("/tmp/.not_exist");
-        let options = LangServiceOptions::minimal();
-
         let mut ls = Self {
-            hsp3_root,
-            options,
+            // no_exist/hsp3
+            hsp3_root: test_util::test_root_path().join("hsp3"),
+            // no_exist/ws
+            root_uri_opt: Some(
+                CanonicalUri::from_file_path(&test_util::test_root_path().join("ws")).unwrap(),
+            ),
+            options: LangServiceOptions::minimal(),
             ..Default::default()
         };
         ls.wa.initialize(WorkspaceHost::default());
         ls
+    }
+
+    #[cfg(test)]
+    pub(crate) fn analyze_for_test(&mut self) -> (&WorkspaceAnalysis, &Docs) {
+        // force compute
+        self.poll();
+        let _ = self.wa.require_project_for_doc(0);
+        (&self.wa, &self.docs)
     }
 
     pub(super) fn watcher_enabled(&self) -> bool {
@@ -404,5 +414,18 @@ impl DocDb for LangService {
 
     fn find_doc_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
         self.docs.find_by_uri(uri)
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test_util {
+    use std::path::PathBuf;
+
+    pub(crate) fn test_root_path() -> PathBuf {
+        if cfg!(target_os = "windows") {
+            PathBuf::from("Z:/no_exist")
+        } else {
+            PathBuf::from("/.no_exist")
+        }
     }
 }
