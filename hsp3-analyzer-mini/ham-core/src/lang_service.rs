@@ -79,10 +79,9 @@ impl LangService {
     }
 
     #[cfg(test)]
-    pub(crate) fn analyze_for_test(&mut self) -> (&WorkspaceAnalysis, &Docs) {
+    pub(crate) fn analyze_for_test(&mut self) -> (AnalysisRef<'_>, &Docs) {
         self.poll();
-        self.wa.ensure_computed();
-        (&self.wa, &self.docs)
+        (self.wa.compute_analysis(), &self.docs)
     }
 
     pub(super) fn watcher_enabled(&self) -> bool {
@@ -249,15 +248,20 @@ impl LangService {
 
         let mut actions = vec![];
         actions.extend(
-            assists::rewrites::flip_comma::flip_comma(&uri, range, &self.docs, &mut self.wa)
-                .unwrap_or_default(),
-        );
-        actions.extend(
-            assists::rewrites::generate_include_guard::generate_include_guard(
+            assists::rewrites::flip_comma::flip_comma(
+                &self.wa.compute_analysis(),
                 &uri,
                 range,
                 &self.docs,
-                &mut self.wa,
+            )
+            .unwrap_or_default(),
+        );
+        actions.extend(
+            assists::rewrites::generate_include_guard::generate_include_guard(
+                &self.wa.compute_analysis(),
+                &uri,
+                range,
+                &self.docs,
             )
             .unwrap_or_default(),
         );
@@ -267,7 +271,7 @@ impl LangService {
     pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
         self.poll();
 
-        assists::completion::completion(uri, position, &self.docs, &mut self.wa)
+        assists::completion::completion(&self.wa.compute_analysis(), uri, position, &self.docs)
             .unwrap_or_else(assists::completion::incomplete_completion_list)
     }
 
@@ -275,19 +279,24 @@ impl LangService {
         &mut self,
         completion_item: CompletionItem,
     ) -> Option<CompletionItem> {
-        assists::completion::completion_resolve(completion_item, &self.docs, &mut self.wa)
+        assists::completion::completion_resolve(
+            &self.wa.compute_analysis(),
+            completion_item,
+            &self.docs,
+        )
     }
 
     pub(crate) fn formatting(&mut self, uri: Url) -> Option<Vec<TextEdit>> {
         self.poll();
 
-        assists::formatting::formatting(uri, &self.docs, &mut self.wa)
+        assists::formatting::formatting(&self.wa.compute_analysis(), uri, &self.docs)
     }
 
     pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
         self.poll();
 
-        assists::definitions::definitions(uri, position, &self.docs, &mut self.wa).unwrap_or(vec![])
+        assists::definitions::definitions(&self.wa.compute_analysis(), uri, position, &self.docs)
+            .unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
@@ -297,20 +306,25 @@ impl LangService {
     ) -> Vec<DocumentHighlight> {
         self.poll();
 
-        assists::document_highlight::document_highlight(uri, position, &self.docs, &mut self.wa)
-            .unwrap_or(vec![])
+        assists::document_highlight::document_highlight(
+            &self.wa.compute_analysis(),
+            uri,
+            position,
+            &self.docs,
+        )
+        .unwrap_or(vec![])
     }
 
     pub(super) fn document_symbol(&mut self, uri: Url) -> Option<DocumentSymbolResponse> {
         self.poll();
 
-        assists::document_symbol::symbol(uri, &self.docs, &mut self.wa)
+        assists::document_symbol::symbol(&self.wa.compute_analysis(), uri, &self.docs)
     }
 
     pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
         self.poll();
 
-        assists::hover::hover(uri, position, &self.docs, &mut self.wa)
+        assists::hover::hover(&self.wa.compute_analysis(), uri, position, &self.docs)
     }
 
     pub(super) fn references(
@@ -321,8 +335,14 @@ impl LangService {
     ) -> Vec<Location> {
         self.poll();
 
-        assists::references::references(uri, position, include_definition, &self.docs, &mut self.wa)
-            .unwrap_or(vec![])
+        assists::references::references(
+            &self.wa.compute_analysis(),
+            uri,
+            position,
+            include_definition,
+            &self.docs,
+        )
+        .unwrap_or(vec![])
     }
 
     pub(super) fn prepare_rename(
@@ -332,7 +352,7 @@ impl LangService {
     ) -> Option<PrepareRenameResponse> {
         self.poll();
 
-        assists::rename::prepare_rename(uri, position, &self.docs, &mut self.wa)
+        assists::rename::prepare_rename(&self.wa.compute_analysis(), uri, position, &self.docs)
     }
 
     pub(super) fn rename(
@@ -343,14 +363,20 @@ impl LangService {
     ) -> Option<WorkspaceEdit> {
         self.poll();
 
-        assists::rename::rename(uri, position, new_name, &self.docs, &mut self.wa)
+        assists::rename::rename(
+            &self.wa.compute_analysis(),
+            uri,
+            position,
+            new_name,
+            &self.docs,
+        )
     }
 
     pub(super) fn semantic_tokens(&mut self, uri: Url) -> lsp_types::SemanticTokens {
         self.poll();
 
-        let tokens =
-            assists::semantic_tokens::full(uri, &self.docs, &mut self.wa).unwrap_or(vec![]);
+        let tokens = assists::semantic_tokens::full(&self.wa.compute_analysis(), uri, &self.docs)
+            .unwrap_or(vec![]);
         SemanticTokens {
             data: tokens,
             result_id: None,
@@ -360,13 +386,18 @@ impl LangService {
     pub(super) fn signature_help(&mut self, uri: Url, position: Position) -> Option<SignatureHelp> {
         self.poll();
 
-        assists::signature_help::signature_help(uri, position, &self.docs, &mut self.wa)
+        assists::signature_help::signature_help(
+            &self.wa.compute_analysis(),
+            uri,
+            position,
+            &self.docs,
+        )
     }
 
     pub(super) fn workspace_symbol(&mut self, query: String) -> Vec<SymbolInformation> {
         self.poll();
 
-        assists::workspace_symbol::symbol(&query, &self.docs, &mut self.wa)
+        assists::workspace_symbol::symbol(&self.wa.compute_analysis(), &query, &self.docs)
     }
 
     pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
@@ -376,8 +407,11 @@ impl LangService {
 
         self.poll();
 
-        let mut diagnostics =
-            assists::diagnose::diagnose(&self.docs, &mut self.diagnostics_cache, &mut self.wa);
+        let mut diagnostics = assists::diagnose::diagnose(
+            &self.wa.compute_analysis(),
+            &self.docs,
+            &mut self.diagnostics_cache,
+        );
 
         // hsp3のファイルにdiagnosticsを出さない。
         diagnostics.retain(|(uri, _, _)| {

@@ -30,12 +30,11 @@ fn to_semantic_token_kind(symbol: &SymbolRc) -> Option<(u32, u32)> {
 }
 
 pub(crate) fn full(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<lsp_types::SemanticToken>> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
-    wa.ensure_computed();
 
     let mut symbols = vec![];
     collect_symbol_occurrences_in_doc(wa, doc, &mut symbols);

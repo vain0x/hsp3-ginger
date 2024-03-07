@@ -45,6 +45,25 @@ pub(crate) struct WorkspaceAnalysis {
     module_map: ModuleMap,
 }
 
+pub(crate) struct AnalysisRef<'a> {
+    // input:
+    doc_texts: &'a HashMap<DocId, (Lang, RcStr)>,
+
+    hsphelp_info: &'a HspHelpInfo,
+    pub(super) project_docs: &'a ProjectDocs,
+
+    // computed:
+    pub(super) active_docs: &'a HashSet<DocId>,
+    pub(super) active_help_docs: &'a HashSet<DocId>,
+
+    pub(super) doc_symbols_map: &'a HashMap<DocId, Vec<SymbolRc>>,
+    pub(super) def_sites: &'a [(SymbolRc, Loc)],
+    pub(super) use_sites: &'a [(SymbolRc, Loc)],
+
+    // すべてのドキュメントの解析結果を使って構築される情報:
+    pub(super) doc_analysis_map: &'a DocAnalysisMap,
+}
+
 impl WorkspaceAnalysis {
     pub(crate) fn initialize(&mut self, host: WorkspaceHost) {
         let WorkspaceHost {
@@ -77,10 +96,6 @@ impl WorkspaceAnalysis {
 
     pub(crate) fn set_project_docs(&mut self, project_docs: ProjectDocs) {
         self.project_docs = Rc::new(project_docs);
-    }
-
-    pub(super) fn is_computed(&self) -> bool {
-        self.dirty_docs.is_empty()
     }
 
     /// 未実行の解析処理があるなら行う
@@ -183,48 +198,58 @@ impl WorkspaceAnalysis {
         assert_eq!(self.diagnostics.len(), 0);
     }
 
-    pub(crate) fn ensure_computed(&mut self) {
-        self.compute();
-        assert!(self.is_computed());
+    pub(crate) fn get_analysis(&self) -> AnalysisRef<'_> {
+        AnalysisRef {
+            doc_texts: &self.doc_texts,
+            hsphelp_info: &self.hsphelp_info,
+            project_docs: &self.project_docs,
+            active_docs: &self.active_docs,
+            active_help_docs: &self.active_help_docs,
+            doc_symbols_map: &self.doc_symbols_map,
+            def_sites: &self.def_sites,
+            use_sites: &self.use_sites,
+            doc_analysis_map: &self.doc_analysis_map,
+        }
     }
 
+    pub(crate) fn compute_analysis(&mut self) -> AnalysisRef<'_> {
+        self.compute();
+        self.get_analysis()
+    }
+}
+
+impl AnalysisRef<'_> {
     pub(crate) fn hsphelp_info(&self) -> &HspHelpInfo {
         &self.hsphelp_info
     }
 
     pub(crate) fn is_active_doc(&self, doc: DocId) -> bool {
-        assert!(self.is_computed());
         debug_assert!(!self.active_help_docs.contains(&doc));
         self.active_docs.contains(&doc)
     }
 
     pub(crate) fn is_active_help_doc(&self, doc: DocId) -> bool {
-        assert!(self.is_computed());
         debug_assert!(!self.active_docs.contains(&doc));
         self.active_help_docs.contains(&doc)
     }
 
     pub(crate) fn in_preproc(&self, doc: DocId, pos: Pos16) -> Option<bool> {
-        assert!(self.is_computed());
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         Some(in_preproc(pos, tokens))
     }
 
     pub(crate) fn in_str_or_comment(&self, doc: DocId, pos: Pos16) -> Option<bool> {
-        assert!(self.is_computed());
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         Some(in_str_or_comment(pos, tokens))
     }
 
     pub(crate) fn has_include_guard(&self, doc: DocId) -> bool {
-        assert!(self.is_computed());
         self.doc_analysis_map
             .get(&doc)
             .map_or(false, |da| da.include_guard.is_some())
     }
 
     pub(crate) fn on_include_guard(&self, doc: DocId, pos: Pos16) -> Option<Loc> {
-        assert!(self.is_computed());
         Some(
             self.doc_analysis_map
                 .get(&doc)?
@@ -236,7 +261,6 @@ impl WorkspaceAnalysis {
     }
 
     pub(crate) fn get_syntax(&self, doc: DocId) -> Option<DocSyntax> {
-        assert!(self.is_computed());
         let (_, text) = self
             .doc_texts
             .get(&doc)
@@ -250,7 +274,6 @@ impl WorkspaceAnalysis {
     }
 
     pub(crate) fn get_ident_at(&self, doc: DocId, pos: Pos16) -> Option<(RcStr, Loc)> {
-        assert!(self.is_computed());
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         let token = match tokens.binary_search_by_key(&pos, |t| t.body_pos16()) {
             Ok(i) => tokens[i].body.as_ref(),
@@ -270,7 +293,6 @@ impl WorkspaceAnalysis {
     }
 
     pub(crate) fn require_project_for_doc(&self, _doc: DocId) -> ProjectAnalysisRef<'_> {
-        assert!(self.is_computed());
         ProjectAnalysisRef {
             def_sites: &self.def_sites,
             use_sites: &self.use_sites,
@@ -278,12 +300,10 @@ impl WorkspaceAnalysis {
     }
 
     pub(crate) fn diagnose(&self, diagnostics: &mut Vec<(String, Loc)>) {
-        assert!(self.is_computed());
         self.diagnose_precisely(diagnostics);
     }
 
     pub(crate) fn diagnose_syntax_lints(&self, lints: &mut Vec<(SyntaxLint, Loc)>) {
-        assert!(self.is_computed());
         for (&doc, da) in self.doc_analysis_map.iter() {
             if !self.is_active_doc(doc) {
                 continue;
@@ -357,8 +377,7 @@ pub(crate) struct SignatureHelpDb {
 }
 
 impl SignatureHelpDb {
-    pub(crate) fn generate(wa: &WorkspaceAnalysis, doc: DocId) -> Self {
-        assert!(wa.is_computed());
+    pub(crate) fn generate(wa: &AnalysisRef<'_>, doc: DocId) -> Self {
         let use_site_map = wa
             .use_sites
             .iter()
@@ -382,10 +401,9 @@ impl SignatureHelpDb {
 // (hover, completionの2か所で使われている。ここではシンボルを生成して、completion側でCompletionItemに変換するべき)
 /// プリプロセッサ命令やプリプロセッサ関連のキーワードを入力補完候補として列挙する
 pub(crate) fn collect_preproc_completion_items(
-    wa: &WorkspaceAnalysis,
+    wa: &AnalysisRef<'_>,
     completion_items: &mut Vec<lsp_types::CompletionItem>,
 ) {
-    assert!(wa.is_computed());
     for (keyword, detail) in &[
         ("ctype", "関数形式のマクロを表す"),
         ("global", "グローバルスコープを表す"),
@@ -419,12 +437,11 @@ pub(crate) fn collect_preproc_completion_items(
 
 /// 指定位置のスコープに属するシンボルを列挙する (入力補完用)
 pub(crate) fn collect_symbols_in_scope(
-    wa: &WorkspaceAnalysis,
+    wa: &AnalysisRef<'_>,
     doc: DocId,
     pos: Pos16,
     out_symbols: &mut Vec<SymbolRc>,
 ) {
-    assert!(wa.is_computed());
     let scope = match wa.doc_analysis_map.get(&doc) {
         Some(da) => resolve_scope_at(da, pos),
         None => return,
@@ -479,11 +496,10 @@ pub(crate) fn collect_symbols_in_scope(
 }
 
 pub(crate) fn collect_doc_symbols(
-    wa: &WorkspaceAnalysis,
+    wa: &AnalysisRef<'_>,
     doc: DocId,
     symbols: &mut Vec<(SymbolRc, Loc)>,
 ) {
-    assert!(wa.is_computed());
     let doc_symbols = match wa.doc_symbols_map.get(&doc) {
         Some(it) => it,
         None => return,
@@ -505,12 +521,11 @@ pub(crate) fn collect_doc_symbols(
 /// 指定したドキュメント内のすべてのシンボルの出現箇所 (定義・使用両方) を列挙する
 /// (セマンティックトークン用)
 pub(crate) fn collect_symbol_occurrences_in_doc<'a>(
-    wa: &'a WorkspaceAnalysis,
+    wa: &AnalysisRef<'a>,
     doc: DocId,
     symbols: &mut Vec<(&'a SymbolRc, Loc)>,
 ) {
-    assert!(wa.is_computed());
-    for (symbol, loc) in wa.def_sites.iter().chain(&wa.use_sites) {
+    for (symbol, loc) in wa.def_sites.iter().chain(wa.use_sites) {
         if loc.doc == doc {
             symbols.push((symbol, *loc));
         }
@@ -518,23 +533,21 @@ pub(crate) fn collect_symbol_occurrences_in_doc<'a>(
 }
 
 pub(crate) fn collect_workspace_symbols(
-    wa: &WorkspaceAnalysis,
+    wa: &AnalysisRef<'_>,
     query: &str,
     symbols: &mut Vec<(SymbolRc, Loc)>,
 ) {
-    assert!(wa.is_computed());
-    let p = &wa;
     let name_filter = query.trim().to_ascii_lowercase();
 
-    let map = p
+    let map = wa
         .def_sites
         .iter()
         .filter(|(symbol, _)| symbol.name.contains(&name_filter))
         .map(|(symbol, loc)| (symbol.clone(), *loc))
         .collect::<HashMap<_, _>>();
 
-    for (&doc, doc_symbols) in &p.doc_symbols_map {
-        if !p.active_docs.contains(&doc) {
+    for (&doc, doc_symbols) in wa.doc_symbols_map.iter() {
+        if !wa.active_docs.contains(&doc) {
             continue;
         }
 
@@ -554,12 +567,15 @@ pub(crate) fn collect_workspace_symbols(
 }
 
 /// 指定した位置に `#include` があるなら、その参照先のドキュメントを取得する
-pub(crate) fn find_include_target(wa: &WorkspaceAnalysis, doc: DocId, pos: Pos16) -> Option<DocId> {
-    assert!(wa.is_computed());
-    let (_, dest_doc) = *wa
-        .include_resolution
-        .iter()
-        .find(|&(loc, _)| loc.is_touched(doc, pos))?;
+#[allow(unused)]
+pub(crate) fn find_include_target(wa: &AnalysisRef<'_>, doc: DocId, pos: Pos16) -> Option<DocId> {
+    // FIXME: 再実装
+    // (include_resolutionが機能停止中のため無効化)
+    // let (_, dest_doc) = *wa
+    //     .include_resolution
+    //     .iter()
+    //     .find(|&(loc, _)| loc.is_touched(doc, pos))?;
 
-    Some(dest_doc)
+    // Some(dest_doc)
+    None
 }

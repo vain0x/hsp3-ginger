@@ -3,13 +3,12 @@ use crate::{assists::from_document_position, lang_service::docs::Docs};
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Url};
 
 pub(crate) fn document_highlight(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<DocumentHighlight>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    wa.ensure_computed();
     let project = wa.require_project_for_doc(doc);
     let (symbol, _) = project.locate_symbol(doc, pos)?;
 

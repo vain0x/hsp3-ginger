@@ -12,7 +12,7 @@ use std::collections::HashSet;
 
 /// `hsphelp` を参照して入力補完候補を列挙する (プリプロセッサ関連は除く)
 fn collect_hsphelp_completion_items(
-    wa: &WorkspaceAnalysis,
+    wa: &AnalysisRef<'_>,
     completion_items: &mut Vec<lsp_types::CompletionItem>,
 ) {
     completion_items.extend(
@@ -106,15 +106,14 @@ pub(crate) fn incomplete_completion_list() -> CompletionList {
 }
 
 fn do_completion(
+    wa: &AnalysisRef<'_>,
     uri: &Url,
     position: Position,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<CompletionList> {
     let mut items = vec![];
 
     let (doc, pos) = from_document_position(uri, position, docs)?;
-    wa.ensure_computed();
 
     if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
         return None;
@@ -174,12 +173,12 @@ struct CompletionData {
 }
 
 pub(crate) fn completion(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<CompletionList> {
-    let mut completion_list = do_completion(&uri, position, docs, wa)?;
+    let mut completion_list = do_completion(wa, &uri, position, docs)?;
 
     for item in &mut completion_list.items {
         if item.documentation.is_none() && item.data.is_none() {
@@ -204,9 +203,9 @@ pub(crate) fn completion(
 }
 
 pub(crate) fn completion_resolve(
+    wa: &AnalysisRef<'_>,
     mut resolved_item: CompletionItem,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<CompletionItem> {
     let data: CompletionData = match resolved_item
         .data
@@ -228,7 +227,7 @@ pub(crate) fn completion_resolve(
         data_opt,
     } = data;
 
-    let list = do_completion(&uri, position, docs, wa)?;
+    let list = do_completion(wa, &uri, position, docs)?;
     let item = list
         .items
         .into_iter()

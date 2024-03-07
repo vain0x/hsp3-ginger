@@ -322,13 +322,8 @@ impl PVisitor for V {
     }
 }
 
-pub(crate) fn formatting(
-    uri: Url,
-    docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
-) -> Option<Vec<TextEdit>> {
+pub(crate) fn formatting(wa: &AnalysisRef<'_>, uri: Url, docs: &Docs) -> Option<Vec<TextEdit>> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
-    wa.ensure_computed();
     let DocSyntax { text, tokens, root } = wa.get_syntax(doc)?;
 
     let mut ctx = V {

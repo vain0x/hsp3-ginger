@@ -4,13 +4,12 @@ use lsp_types::{
 };
 
 pub(crate) fn hover(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<Hover> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    wa.ensure_computed();
     let project = wa.require_project_for_doc(doc);
 
     let (contents, loc) = (|| -> Option<_> {

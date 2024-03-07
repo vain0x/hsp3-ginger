@@ -7,15 +7,14 @@ use lsp_types::{
 };
 
 pub(crate) fn generate_include_guard(
+    wa: &AnalysisRef<'_>,
     uri: &Url,
     range: Range,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<CodeAction>> {
     let (doc, pos) = from_document_position(&uri, range.start, &docs)?;
     let version = docs.get_version(doc);
 
-    wa.ensure_computed();
     let DocSyntax { text, tokens, .. } = wa.get_syntax(doc)?;
 
     // カーソルが行頭にあって、最初のトークン以前にあって、文字列やコメントの外であって、インクルードガードがまだないとき。

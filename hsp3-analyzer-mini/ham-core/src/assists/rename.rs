@@ -5,13 +5,12 @@ use lsp_types::{
 };
 
 pub(crate) fn prepare_rename(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<PrepareRenameResponse> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    wa.ensure_computed();
     let project = wa.require_project_for_doc(doc);
 
     // FIXME: カーソル直下に識別子があって、それの定義がワークスペース内のファイル (commonやhsphelpでない) にあったときだけSomeを返す。
@@ -22,16 +21,15 @@ pub(crate) fn prepare_rename(
 }
 
 pub(crate) fn rename(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     position: Position,
     new_name: String,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<WorkspaceEdit> {
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
         let (doc, pos) = from_document_position(&uri, position, docs)?;
-        wa.ensure_computed();
         let project = wa.require_project_for_doc(doc);
 
         let (symbol, _) = project.locate_symbol(doc, pos)?;

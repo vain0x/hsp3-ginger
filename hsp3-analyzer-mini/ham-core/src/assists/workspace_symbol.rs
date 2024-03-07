@@ -29,11 +29,7 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
     Some(it)
 }
 
-pub(crate) fn symbol(
-    query: &str,
-    docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
-) -> Vec<SymbolInformation> {
+pub(crate) fn symbol(wa: &AnalysisRef<'_>, query: &str, docs: &Docs) -> Vec<SymbolInformation> {
     let mut symbols = vec![];
     collect_workspace_symbols(wa, query, &mut symbols);
 

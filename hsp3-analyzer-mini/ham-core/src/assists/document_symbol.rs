@@ -34,14 +34,11 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
 }
 
 pub(crate) fn symbol(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<DocumentSymbolResponse> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
-
-    wa.ensure_computed();
-    let _ = wa.require_project_for_doc(doc);
 
     let mut symbols = vec![];
     collect_doc_symbols(wa, doc, &mut symbols);

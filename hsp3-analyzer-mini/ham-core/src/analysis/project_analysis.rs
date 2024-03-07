@@ -46,14 +46,12 @@ impl<'a> ProjectAnalysisRef<'a> {
 /// ファイル間の `include` の関係を表す有向グラフを構築する
 #[allow(unused)]
 fn generate_include_graph(
-    wa: &WorkspaceAnalysis,
+    wa: &AnalysisRef<'_>,
     docs: &lang_service::docs::Docs,
     include_graph: &mut HashMap<DocId, Vec<DocId>>,
     // 辺をすべて逆向きにしたもの
     include_graph_rev: &mut HashMap<DocId, Vec<DocId>>,
 ) {
-    assert!(wa.is_computed());
-
     let get_name = |doc: DocId| match docs
         .get_uri(doc)
         .and_then(|uri| uri.to_file_path())
@@ -66,7 +64,7 @@ fn generate_include_graph(
         None => format!("{}", doc),
     };
 
-    for (&src_doc, da) in &wa.doc_analysis_map {
+    for (&src_doc, da) in wa.doc_analysis_map {
         let src_name = get_name(src_doc);
         // eprintln!("  >{}:{} ({})", src_doc, src_name, da.includes.len());
 
@@ -137,7 +135,7 @@ impl Default for CollectSymbolQuery {
 ///  使用側も後方参照が可能なので同様に扱う)
 #[allow(unused)]
 pub(crate) fn collect_symbols2(
-    wa: &WorkspaceAnalysis,
+    wa: &AnalysisRef<'_>,
     docs: &lang_service::docs::Docs,
     include_graph: &HashMap<DocId, Vec<DocId>>,
     include_graph_rev: &HashMap<DocId, Vec<DocId>>,
@@ -188,14 +186,14 @@ pub(crate) fn collect_symbols2(
     let is_reachable = |doc: DocId| reachable.contains(&doc);
 
     if query.def_site {
-        for (symbol, loc) in &wa.def_sites {
+        for (symbol, loc) in wa.def_sites {
             if is_reachable(loc.doc) {
                 symbols.push(symbol.clone());
             }
         }
     }
     if query.use_site {
-        for (symbol, loc) in &wa.use_sites {
+        for (symbol, loc) in wa.use_sites {
             if is_reachable(loc.doc) {
                 symbols.push(symbol.clone());
             }
@@ -299,6 +297,7 @@ mod tests {
         );
 
         let (wa, docs) = ls.analyze_for_test();
+        let wa = &wa;
         let mut include_graph = HashMap::new();
         let mut include_graph_rev = HashMap::new();
         generate_include_graph(wa, docs, &mut include_graph, &mut include_graph_rev);

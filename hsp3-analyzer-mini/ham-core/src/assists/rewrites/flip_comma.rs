@@ -63,10 +63,10 @@ impl PVisitor for V {
 }
 
 pub(crate) fn flip_comma(
+    wa: &AnalysisRef<'_>,
     uri: &Url,
     range: Range,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<CodeAction>> {
     let (doc, pos) = from_document_position(uri, range.start, &docs)?;
     let version = docs.get_version(doc);

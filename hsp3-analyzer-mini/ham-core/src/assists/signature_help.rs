@@ -91,14 +91,13 @@ impl PVisitor for V {
 }
 
 pub(crate) fn signature_help(
+    wa: &AnalysisRef<'_>,
     uri: Url,
     position: Position,
     docs: &Docs,
-    wa: &mut WorkspaceAnalysis,
 ) -> Option<SignatureHelp> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
 
-    wa.ensure_computed();
     if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
         return None;
     }
