@@ -64,6 +64,7 @@ pub(crate) fn diagnose(
     wa: &mut WorkspaceAnalysis,
 ) -> Vec<(Url, Option<i32>, Vec<Diagnostic>)> {
     let mut dd = vec![];
+    wa.ensure_computed();
     wa.diagnose(&mut dd);
 
     let mut lints = vec![];

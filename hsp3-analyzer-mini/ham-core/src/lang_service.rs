@@ -80,9 +80,8 @@ impl LangService {
 
     #[cfg(test)]
     pub(crate) fn analyze_for_test(&mut self) -> (&WorkspaceAnalysis, &Docs) {
-        // force compute
         self.poll();
-        let _ = self.wa.require_project_for_doc(0);
+        self.wa.ensure_computed();
         (&self.wa, &self.docs)
     }
 

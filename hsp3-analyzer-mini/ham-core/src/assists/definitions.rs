@@ -8,6 +8,7 @@ fn goto_symbol_definition(
     wa: &mut WorkspaceAnalysis,
     locs: &mut Vec<Loc>,
 ) -> Option<()> {
+    wa.ensure_computed();
     let project = wa.require_project_for_doc(doc);
     let (symbol, _) = project.locate_symbol(doc, pos)?;
     project.collect_symbol_defs(&symbol, locs);
@@ -20,8 +21,7 @@ fn goto_include_target(
     wa: &mut WorkspaceAnalysis,
     locs: &mut Vec<Loc>,
 ) -> Option<()> {
-    // force compute
-    let _ = wa.require_project_for_doc(doc);
+    wa.ensure_computed();
     let dest_doc = find_include_target(wa, doc, pos)?;
     locs.push(Loc::from_doc(dest_doc));
     Some(())

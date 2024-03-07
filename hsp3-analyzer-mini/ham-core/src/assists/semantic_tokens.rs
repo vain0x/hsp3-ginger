@@ -35,9 +35,7 @@ pub(crate) fn full(
     wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<lsp_types::SemanticToken>> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
-
-    // force compute
-    let _project = wa.require_project_for_doc(doc);
+    wa.ensure_computed();
 
     let mut symbols = vec![];
     collect_symbol_occurrences_in_doc(wa, doc, &mut symbols);

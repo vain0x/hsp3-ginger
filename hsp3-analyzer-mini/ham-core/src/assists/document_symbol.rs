@@ -40,7 +40,7 @@ pub(crate) fn symbol(
 ) -> Option<DocumentSymbolResponse> {
     let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
 
-    // force compute
+    wa.ensure_computed();
     let _ = wa.require_project_for_doc(doc);
 
     let mut symbols = vec![];

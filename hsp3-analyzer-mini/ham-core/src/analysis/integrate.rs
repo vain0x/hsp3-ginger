@@ -50,6 +50,7 @@ mod tests {
 
         wa.update_doc(doc, Lang::Hsp3, text.into());
 
+        wa.ensure_computed();
         let p = wa.require_project_for_doc(doc);
 
         for (name, pos) in cursors {
@@ -88,6 +89,7 @@ mod tests {
 
         wa.update_doc(doc, Lang::Hsp3, text.into());
 
+        wa.ensure_computed();
         let p = wa.require_project_for_doc(doc);
 
         for (name, pos) in cursors {

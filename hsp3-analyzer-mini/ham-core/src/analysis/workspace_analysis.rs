@@ -83,6 +83,7 @@ impl WorkspaceAnalysis {
         self.dirty_docs.is_empty()
     }
 
+    /// 未実行の解析処理があるなら行う
     fn compute(&mut self) {
         if self.dirty_docs.is_empty() {
             return;
@@ -182,6 +183,11 @@ impl WorkspaceAnalysis {
         assert_eq!(self.diagnostics.len(), 0);
     }
 
+    pub(crate) fn ensure_computed(&mut self) {
+        self.compute();
+        assert!(self.is_computed());
+    }
+
     pub(crate) fn hsphelp_info(&self) -> &HspHelpInfo {
         &self.hsphelp_info
     }
@@ -198,31 +204,27 @@ impl WorkspaceAnalysis {
         self.active_help_docs.contains(&doc)
     }
 
-    pub(crate) fn in_preproc(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
-        self.compute();
-
+    pub(crate) fn in_preproc(&self, doc: DocId, pos: Pos16) -> Option<bool> {
+        assert!(self.is_computed());
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         Some(in_preproc(pos, tokens))
     }
 
-    pub(crate) fn in_str_or_comment(&mut self, doc: DocId, pos: Pos16) -> Option<bool> {
-        self.compute();
-
+    pub(crate) fn in_str_or_comment(&self, doc: DocId, pos: Pos16) -> Option<bool> {
+        assert!(self.is_computed());
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         Some(in_str_or_comment(pos, tokens))
     }
 
-    pub(crate) fn has_include_guard(&mut self, doc: DocId) -> bool {
-        self.compute();
-
+    pub(crate) fn has_include_guard(&self, doc: DocId) -> bool {
+        assert!(self.is_computed());
         self.doc_analysis_map
             .get(&doc)
             .map_or(false, |da| da.include_guard.is_some())
     }
 
-    pub(crate) fn on_include_guard(&mut self, doc: DocId, pos: Pos16) -> Option<Loc> {
-        self.compute();
-
+    pub(crate) fn on_include_guard(&self, doc: DocId, pos: Pos16) -> Option<Loc> {
+        assert!(self.is_computed());
         Some(
             self.doc_analysis_map
                 .get(&doc)?
@@ -233,9 +235,8 @@ impl WorkspaceAnalysis {
         )
     }
 
-    pub(crate) fn get_syntax(&mut self, doc: DocId) -> Option<DocSyntax> {
-        self.compute();
-
+    pub(crate) fn get_syntax(&self, doc: DocId) -> Option<DocSyntax> {
+        assert!(self.is_computed());
         let (_, text) = self
             .doc_texts
             .get(&doc)
@@ -248,9 +249,8 @@ impl WorkspaceAnalysis {
         })
     }
 
-    pub(crate) fn get_ident_at(&mut self, doc: DocId, pos: Pos16) -> Option<(RcStr, Loc)> {
-        self.compute();
-
+    pub(crate) fn get_ident_at(&self, doc: DocId, pos: Pos16) -> Option<(RcStr, Loc)> {
+        assert!(self.is_computed());
         let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
         let token = match tokens.binary_search_by_key(&pos, |t| t.body_pos16()) {
             Ok(i) => tokens[i].body.as_ref(),
@@ -269,24 +269,21 @@ impl WorkspaceAnalysis {
         Some((token.text.clone(), token.loc))
     }
 
-    pub(crate) fn require_project_for_doc(&mut self, _doc: DocId) -> ProjectAnalysisRef<'_> {
-        self.compute();
-
+    pub(crate) fn require_project_for_doc(&self, _doc: DocId) -> ProjectAnalysisRef<'_> {
+        assert!(self.is_computed());
         ProjectAnalysisRef {
             def_sites: &self.def_sites,
             use_sites: &self.use_sites,
         }
     }
 
-    pub(crate) fn diagnose(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
-        self.compute();
-
+    pub(crate) fn diagnose(&self, diagnostics: &mut Vec<(String, Loc)>) {
+        assert!(self.is_computed());
         self.diagnose_precisely(diagnostics);
     }
 
-    pub(crate) fn diagnose_syntax_lints(&mut self, lints: &mut Vec<(SyntaxLint, Loc)>) {
-        self.compute();
-
+    pub(crate) fn diagnose_syntax_lints(&self, lints: &mut Vec<(SyntaxLint, Loc)>) {
+        assert!(self.is_computed());
         for (&doc, da) in self.doc_analysis_map.iter() {
             if !self.is_active_doc(doc) {
                 continue;
@@ -308,9 +305,7 @@ impl WorkspaceAnalysis {
         }
     }
 
-    pub(crate) fn diagnose_precisely(&mut self, diagnostics: &mut Vec<(String, Loc)>) {
-        self.compute();
-
+    fn diagnose_precisely(&self, diagnostics: &mut Vec<(String, Loc)>) {
         // diagnose:
 
         let use_site_map = self
@@ -363,6 +358,7 @@ pub(crate) struct SignatureHelpDb {
 
 impl SignatureHelpDb {
     pub(crate) fn generate(wa: &WorkspaceAnalysis, doc: DocId) -> Self {
+        assert!(wa.is_computed());
         let use_site_map = wa
             .use_sites
             .iter()
@@ -389,6 +385,7 @@ pub(crate) fn collect_preproc_completion_items(
     wa: &WorkspaceAnalysis,
     completion_items: &mut Vec<lsp_types::CompletionItem>,
 ) {
+    assert!(wa.is_computed());
     for (keyword, detail) in &[
         ("ctype", "関数形式のマクロを表す"),
         ("global", "グローバルスコープを表す"),
@@ -427,6 +424,7 @@ pub(crate) fn collect_symbols_in_scope(
     pos: Pos16,
     out_symbols: &mut Vec<SymbolRc>,
 ) {
+    assert!(wa.is_computed());
     let scope = match wa.doc_analysis_map.get(&doc) {
         Some(da) => resolve_scope_at(da, pos),
         None => return,
@@ -485,6 +483,7 @@ pub(crate) fn collect_doc_symbols(
     doc: DocId,
     symbols: &mut Vec<(SymbolRc, Loc)>,
 ) {
+    assert!(wa.is_computed());
     let doc_symbols = match wa.doc_symbols_map.get(&doc) {
         Some(it) => it,
         None => return,
@@ -510,6 +509,7 @@ pub(crate) fn collect_symbol_occurrences_in_doc<'a>(
     doc: DocId,
     symbols: &mut Vec<(&'a SymbolRc, Loc)>,
 ) {
+    assert!(wa.is_computed());
     for (symbol, loc) in wa.def_sites.iter().chain(&wa.use_sites) {
         if loc.doc == doc {
             symbols.push((symbol, *loc));
@@ -522,6 +522,7 @@ pub(crate) fn collect_workspace_symbols(
     query: &str,
     symbols: &mut Vec<(SymbolRc, Loc)>,
 ) {
+    assert!(wa.is_computed());
     let p = &wa;
     let name_filter = query.trim().to_ascii_lowercase();
 
@@ -554,6 +555,7 @@ pub(crate) fn collect_workspace_symbols(
 
 /// 指定した位置に `#include` があるなら、その参照先のドキュメントを取得する
 pub(crate) fn find_include_target(wa: &WorkspaceAnalysis, doc: DocId, pos: Pos16) -> Option<DocId> {
+    assert!(wa.is_computed());
     let (_, dest_doc) = *wa
         .include_resolution
         .iter()

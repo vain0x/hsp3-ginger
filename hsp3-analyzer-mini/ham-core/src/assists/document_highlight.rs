@@ -9,6 +9,7 @@ pub(crate) fn document_highlight(
     wa: &mut WorkspaceAnalysis,
 ) -> Option<Vec<DocumentHighlight>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
+    wa.ensure_computed();
     let project = wa.require_project_for_doc(doc);
     let (symbol, _) = project.locate_symbol(doc, pos)?;
 

@@ -15,6 +15,7 @@ pub(crate) fn generate_include_guard(
     let (doc, pos) = from_document_position(&uri, range.start, &docs)?;
     let version = docs.get_version(doc);
 
+    wa.ensure_computed();
     let DocSyntax { text, tokens, .. } = wa.get_syntax(doc)?;
 
     // カーソルが行頭にあって、最初のトークン以前にあって、文字列やコメントの外であって、インクルードガードがまだないとき。
