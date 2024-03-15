@@ -98,6 +98,10 @@ impl WorkspaceAnalysis {
         self.project_docs = Rc::new(project_docs);
     }
 
+    pub(crate) fn is_computed(&self) -> bool {
+        self.dirty_docs.is_empty()
+    }
+
     /// 未実行の解析処理があるなら行う
     fn compute(&mut self) {
         if self.dirty_docs.is_empty() {
@@ -199,6 +203,7 @@ impl WorkspaceAnalysis {
     }
 
     pub(crate) fn get_analysis(&self) -> AnalysisRef<'_> {
+        assert!(self.is_computed());
         AnalysisRef {
             doc_texts: &self.doc_texts,
             hsphelp_info: &self.hsphelp_info,
