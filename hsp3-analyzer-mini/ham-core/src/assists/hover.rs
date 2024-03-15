@@ -190,6 +190,7 @@ mod tests {
     mes f(42) + 1
 "#;
         ls.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
+        let ls = ls.compute_ref();
 
         let mut w = String::new();
 
@@ -226,6 +227,7 @@ mod tests {
 #define ctype hiword(%1) (((%1) >> 16) & 0xFFFF)
 "#;
         ls.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
+        let ls = ls.compute_ref();
 
         let mut w = String::new();
 

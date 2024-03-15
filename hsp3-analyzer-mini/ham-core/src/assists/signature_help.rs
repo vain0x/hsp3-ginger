@@ -207,6 +207,7 @@ f 1, ""
             "#
             .into(),
         );
+        let ls = ls.compute_ref();
 
         let opt = ls.signature_help(
             main_uri.clone(),
@@ -268,6 +269,7 @@ f 1, ""
 
         let main_uri = dummy_url("main.hsp");
         ls.open_doc(main_uri.clone(), NO_VERSION, r#"mes f(1, "")"#.into());
+        let ls = ls.compute_ref();
 
         let opt = ls.signature_help(
             main_uri.clone(),

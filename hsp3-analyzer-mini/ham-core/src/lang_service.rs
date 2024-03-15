@@ -53,6 +53,12 @@ pub(super) struct LangService {
     diagnostics_cache: DiagnosticsCache,
 }
 
+/// `LangService` の解析処理を完了した状態への参照
+pub(super) struct LangServiceRef<'a> {
+    wa: AnalysisRef<'a>,
+    docs: &'a Docs,
+}
+
 impl LangService {
     pub(super) fn new(hsp3_root: PathBuf, options: LangServiceOptions) -> Self {
         Self {
@@ -80,8 +86,8 @@ impl LangService {
 
     #[cfg(test)]
     pub(crate) fn analyze_for_test(&mut self) -> (AnalysisRef<'_>, &Docs) {
-        self.poll();
-        (self.wa.compute_analysis(), &self.docs)
+        self.process_changes();
+        (self.wa.get_analysis(), &self.docs)
     }
 
     pub(super) fn watcher_enabled(&self) -> bool {
@@ -157,9 +163,15 @@ impl LangService {
         }
     }
 
+    fn is_computed(&self) -> bool {
+        !self.docs.has_changes() && self.wa.is_computed()
+    }
+
     /// ドキュメントの変更を集積して、解析器の状態を更新する。
-    fn poll(&mut self) {
+    fn process_changes(&mut self) {
         self.apply_doc_changes();
+        self.wa.compute_analysis();
+        assert!(self.is_computed());
     }
 
     fn apply_doc_changes(&mut self) {
@@ -203,23 +215,34 @@ impl LangService {
         }
     }
 
+    fn get_ref(&mut self) -> LangServiceRef<'_> {
+        assert!(self.is_computed());
+        LangServiceRef {
+            wa: self.wa.get_analysis(),
+            docs: &self.docs,
+        }
+    }
+
+    /// 未実行の解析処理があれば処理し、解析処理を行うための参照を作る
+    pub(crate) fn compute_ref(&mut self) -> LangServiceRef<'_> {
+        self.process_changes();
+        self.get_ref()
+    }
+
     pub(super) fn shutdown(&mut self) {}
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i32, text: String) {
         let uri = CanonicalUri::from_url(&uri);
-
         self.docs.open_doc_in_editor(uri, version, text.into());
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: i32, text: String) {
         let uri = CanonicalUri::from_url(&uri);
-
         self.docs.change_doc_in_editor(uri, version, text.into());
     }
 
     pub(super) fn close_doc(&mut self, uri: Url) {
         let uri = CanonicalUri::from_url(&uri);
-
         self.docs.close_doc_in_editor(uri);
     }
 
@@ -237,175 +260,118 @@ impl LangService {
         let uri = CanonicalUri::from_url(&uri);
         self.docs.close_file_by_uri(uri);
     }
+}
 
+impl<'a> LangServiceRef<'a> {
     pub(super) fn code_action(
-        &mut self,
+        &self,
         uri: Url,
         range: Range,
         _context: CodeActionContext,
     ) -> Vec<CodeAction> {
-        self.poll();
-
         let mut actions = vec![];
         actions.extend(
-            assists::rewrites::flip_comma::flip_comma(
-                &self.wa.compute_analysis(),
-                &uri,
-                range,
-                &self.docs,
-            )
-            .unwrap_or_default(),
+            assists::rewrites::flip_comma::flip_comma(&self.wa, &uri, range, &self.docs)
+                .unwrap_or_default(),
         );
         actions.extend(
             assists::rewrites::generate_include_guard::generate_include_guard(
-                &self.wa.compute_analysis(),
-                &uri,
-                range,
-                &self.docs,
+                &self.wa, &uri, range, &self.docs,
             )
             .unwrap_or_default(),
         );
         actions
     }
 
-    pub(super) fn completion(&mut self, uri: Url, position: Position) -> CompletionList {
-        self.poll();
-
-        assists::completion::completion(&self.wa.compute_analysis(), uri, position, &self.docs)
+    pub(super) fn completion(&self, uri: Url, position: Position) -> CompletionList {
+        assists::completion::completion(&self.wa, uri, position, &self.docs)
             .unwrap_or_else(assists::completion::incomplete_completion_list)
     }
 
     pub(super) fn completion_resolve(
-        &mut self,
+        &self,
         completion_item: CompletionItem,
     ) -> Option<CompletionItem> {
-        assists::completion::completion_resolve(
-            &self.wa.compute_analysis(),
-            completion_item,
-            &self.docs,
-        )
+        assists::completion::completion_resolve(&self.wa, completion_item, &self.docs)
     }
 
-    pub(crate) fn formatting(&mut self, uri: Url) -> Option<Vec<TextEdit>> {
-        self.poll();
-
-        assists::formatting::formatting(&self.wa.compute_analysis(), uri, &self.docs)
+    pub(crate) fn formatting(&self, uri: Url) -> Option<Vec<TextEdit>> {
+        assists::formatting::formatting(&self.wa, uri, &self.docs)
     }
 
-    pub(super) fn definitions(&mut self, uri: Url, position: Position) -> Vec<Location> {
-        self.poll();
-
-        assists::definitions::definitions(&self.wa.compute_analysis(), uri, position, &self.docs)
-            .unwrap_or(vec![])
+    pub(super) fn definitions(&self, uri: Url, position: Position) -> Vec<Location> {
+        assists::definitions::definitions(&self.wa, uri, position, &self.docs).unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
-        &mut self,
+        &self,
         uri: Url,
         position: Position,
     ) -> Vec<DocumentHighlight> {
-        self.poll();
-
-        assists::document_highlight::document_highlight(
-            &self.wa.compute_analysis(),
-            uri,
-            position,
-            &self.docs,
-        )
-        .unwrap_or(vec![])
+        assists::document_highlight::document_highlight(&self.wa, uri, position, &self.docs)
+            .unwrap_or(vec![])
     }
 
-    pub(super) fn document_symbol(&mut self, uri: Url) -> Option<DocumentSymbolResponse> {
-        self.poll();
-
-        assists::document_symbol::symbol(&self.wa.compute_analysis(), uri, &self.docs)
+    pub(super) fn document_symbol(&self, uri: Url) -> Option<DocumentSymbolResponse> {
+        assists::document_symbol::symbol(&self.wa, uri, &self.docs)
     }
 
-    pub(super) fn hover(&mut self, uri: Url, position: Position) -> Option<Hover> {
-        self.poll();
-
-        assists::hover::hover(&self.wa.compute_analysis(), uri, position, &self.docs)
+    pub(super) fn hover(&self, uri: Url, position: Position) -> Option<Hover> {
+        assists::hover::hover(&self.wa, uri, position, &self.docs)
     }
 
     pub(super) fn references(
-        &mut self,
+        &self,
         uri: Url,
         position: Position,
         include_definition: bool,
     ) -> Vec<Location> {
-        self.poll();
-
-        assists::references::references(
-            &self.wa.compute_analysis(),
-            uri,
-            position,
-            include_definition,
-            &self.docs,
-        )
-        .unwrap_or(vec![])
+        assists::references::references(&self.wa, uri, position, include_definition, &self.docs)
+            .unwrap_or(vec![])
     }
 
     pub(super) fn prepare_rename(
-        &mut self,
+        &self,
         uri: Url,
         position: Position,
     ) -> Option<PrepareRenameResponse> {
-        self.poll();
-
-        assists::rename::prepare_rename(&self.wa.compute_analysis(), uri, position, &self.docs)
+        assists::rename::prepare_rename(&self.wa, uri, position, &self.docs)
     }
 
     pub(super) fn rename(
-        &mut self,
+        &self,
         uri: Url,
         position: Position,
         new_name: String,
     ) -> Option<WorkspaceEdit> {
-        self.poll();
-
-        assists::rename::rename(
-            &self.wa.compute_analysis(),
-            uri,
-            position,
-            new_name,
-            &self.docs,
-        )
+        assists::rename::rename(&self.wa, uri, position, new_name, &self.docs)
     }
 
-    pub(super) fn semantic_tokens(&mut self, uri: Url) -> lsp_types::SemanticTokens {
-        self.poll();
-
-        let tokens = assists::semantic_tokens::full(&self.wa.compute_analysis(), uri, &self.docs)
-            .unwrap_or(vec![]);
+    pub(super) fn semantic_tokens(&self, uri: Url) -> lsp_types::SemanticTokens {
+        let tokens = assists::semantic_tokens::full(&self.wa, uri, &self.docs).unwrap_or(vec![]);
         SemanticTokens {
             data: tokens,
             result_id: None,
         }
     }
 
-    pub(super) fn signature_help(&mut self, uri: Url, position: Position) -> Option<SignatureHelp> {
-        self.poll();
-
-        assists::signature_help::signature_help(
-            &self.wa.compute_analysis(),
-            uri,
-            position,
-            &self.docs,
-        )
+    pub(super) fn signature_help(&self, uri: Url, position: Position) -> Option<SignatureHelp> {
+        assists::signature_help::signature_help(&self.wa, uri, position, &self.docs)
     }
 
-    pub(super) fn workspace_symbol(&mut self, query: String) -> Vec<SymbolInformation> {
-        self.poll();
-
-        assists::workspace_symbol::symbol(&self.wa.compute_analysis(), &query, &self.docs)
+    pub(super) fn workspace_symbol(&self, query: String) -> Vec<SymbolInformation> {
+        assists::workspace_symbol::symbol(&self.wa, &query, &self.docs)
     }
+}
 
+// TODO: implブロックを統合する
+impl LangService {
     pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
         if !self.options.lint_enabled {
             return vec![];
         }
 
-        self.poll();
+        self.process_changes();
 
         let mut diagnostics = assists::diagnose::diagnose(
             &self.wa.compute_analysis(),

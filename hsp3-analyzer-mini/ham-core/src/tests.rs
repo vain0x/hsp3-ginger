@@ -78,6 +78,8 @@ fn symbols_tests() {
         ls.open_doc(uri, 1, text);
     }
 
+    let ls = ls.compute_ref();
+
     const EXCLUDE_DEFINITION: bool = false;
 
     assert!(!map.is_empty());
@@ -196,6 +198,8 @@ fn namespace_tests() {
             lines_map.insert(uri.clone(), lines);
             ls.open_doc(uri, NO_VERSION, text);
         }
+
+        let ls = ls.compute_ref();
 
         assert!(!word_map.is_empty(), "^def/^useがみつかるはず");
 
@@ -358,7 +362,10 @@ fn formatting_tests() {
         let formatted = {
             let mut ls = LangService::new_standalone();
             ls.open_doc(uri.clone(), NO_VERSION, text.to_string());
-            let edits = ls.formatting(uri.clone()).expect("formatting");
+            let edits = ls
+                .compute_ref()
+                .formatting(uri.clone())
+                .expect("formatting");
             apply_edits(&text, edits)
         };
 
@@ -411,7 +418,7 @@ fn formatting_blank_test() {
     let actual = {
         let mut ls = LangService::new_standalone();
         ls.open_doc(uri.clone(), NO_VERSION, text.to_string());
-        let edits = ls.formatting(uri.clone()).expect("formatting");
+        let edits = ls.compute_ref().formatting(uri).expect("formatting");
         apply_edits(&text, edits)
     };
 

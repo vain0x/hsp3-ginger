@@ -123,8 +123,7 @@ mod tests {
             "#
             .into(),
         );
-
-        let res = ls.document_symbol(main_uri.clone()).unwrap();
+        let res = ls.compute_ref().document_symbol(main_uri).unwrap();
         let mut formatted = String::new();
         format_response(&mut formatted, &res);
         // FIXME: my_labelが重複している

@@ -215,7 +215,7 @@ pub unsafe extern "C" fn ham_hover(
         None => return FALSE,
     };
 
-    let contents = match (*instance).lang_service.hover(uri, position) {
+    let contents = match (*instance).lang_service.compute_ref().hover(uri, position) {
         Some(hover) => match hover.contents {
             HoverContents::Scalar(scalar) => marked_string_to_string(scalar),
             HoverContents::Array(contents) => contents

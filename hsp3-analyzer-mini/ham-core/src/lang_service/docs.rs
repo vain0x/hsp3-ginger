@@ -131,6 +131,10 @@ impl Docs {
         }
     }
 
+    pub(crate) fn has_changes(&self) -> bool {
+        !self.doc_changes.is_empty()
+    }
+
     pub(crate) fn drain_doc_changes(&mut self, changes: &mut Vec<DocChange>) {
         changes.extend(self.doc_changes.drain(..));
     }

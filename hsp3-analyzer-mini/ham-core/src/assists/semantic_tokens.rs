@@ -97,9 +97,9 @@ mod tests {
     fn tokens_test() {
         let mut ls = LangService::new_standalone();
 
-        let uri = dummy_url("semantic_tokens.hsp");
+        let main_uri = dummy_url("semantic_tokens.hsp");
         ls.open_doc(
-            uri.clone(),
+            main_uri.clone(),
             NO_VERSION,
             r#"
 #const k = 42
@@ -118,7 +118,7 @@ mod tests {
             .into(),
         );
 
-        let tokens = ls.semantic_tokens(uri.clone());
+        let tokens = ls.compute_ref().semantic_tokens(main_uri);
         let mut sb = String::new();
         let mut y = 1;
         let mut x = 1;

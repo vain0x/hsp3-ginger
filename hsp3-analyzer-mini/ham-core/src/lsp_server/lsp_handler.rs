@@ -168,11 +168,12 @@ impl<W: io::Write> LspHandler<W> {
 
     fn text_document_code_action(&mut self, params: CodeActionParams) -> Vec<CodeAction> {
         self.model
+            .compute_ref()
             .code_action(params.text_document.uri, params.range, params.context)
     }
 
     fn text_document_completion(&mut self, params: CompletionParams) -> CompletionList {
-        self.model.completion(
+        self.model.compute_ref().completion(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
         )
@@ -182,14 +183,16 @@ impl<W: io::Write> LspHandler<W> {
         &mut self,
         params: CompletionItem,
     ) -> Option<CompletionItem> {
-        self.model.completion_resolve(params)
+        self.model.compute_ref().completion_resolve(params)
     }
 
     fn text_document_formatting(
         &mut self,
         params: DocumentFormattingParams,
     ) -> Option<Vec<TextEdit>> {
-        self.model.formatting(params.text_document.uri)
+        self.model
+            .compute_ref()
+            .formatting(params.text_document.uri)
     }
 
     fn text_document_definition(
@@ -198,6 +201,7 @@ impl<W: io::Write> LspHandler<W> {
     ) -> lsp_types::GotoDefinitionResponse {
         let definitions = self
             .model
+            .compute_ref()
             .definitions(params.text_document.uri, params.position);
 
         if definitions.len() == 1 {
@@ -212,6 +216,7 @@ impl<W: io::Write> LspHandler<W> {
         params: TextDocumentPositionParams,
     ) -> Vec<lsp_types::DocumentHighlight> {
         self.model
+            .compute_ref()
             .document_highlight(params.text_document.uri, params.position)
     }
 
@@ -219,11 +224,15 @@ impl<W: io::Write> LspHandler<W> {
         &mut self,
         params: DocumentSymbolParams,
     ) -> Option<lsp_types::DocumentSymbolResponse> {
-        self.model.document_symbol(params.text_document.uri)
+        self.model
+            .compute_ref()
+            .document_symbol(params.text_document.uri)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {
-        self.model.hover(params.text_document.uri, params.position)
+        self.model
+            .compute_ref()
+            .hover(params.text_document.uri, params.position)
     }
 
     fn text_document_prepare_rename(
@@ -231,11 +240,12 @@ impl<W: io::Write> LspHandler<W> {
         params: TextDocumentPositionParams,
     ) -> Option<PrepareRenameResponse> {
         self.model
+            .compute_ref()
             .prepare_rename(params.text_document.uri, params.position)
     }
 
     fn text_document_references(&mut self, params: ReferenceParams) -> Vec<Location> {
-        self.model.references(
+        self.model.compute_ref().references(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
             params.context.include_declaration,
@@ -243,7 +253,7 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn text_document_rename(&mut self, params: RenameParams) -> Option<WorkspaceEdit> {
-        self.model.rename(
+        self.model.compute_ref().rename(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
             params.new_name,
@@ -255,7 +265,7 @@ impl<W: io::Write> LspHandler<W> {
         params: SemanticTokensParams,
     ) -> SemanticTokensResult {
         let uri = params.text_document.uri;
-        SemanticTokensResult::Tokens(self.model.semantic_tokens(uri))
+        SemanticTokensResult::Tokens(self.model.compute_ref().semantic_tokens(uri))
     }
 
     fn text_document_signature_help(
@@ -267,7 +277,7 @@ impl<W: io::Write> LspHandler<W> {
             (p.text_document.uri, p.position)
         };
 
-        self.model.signature_help(uri, position)
+        self.model.compute_ref().signature_help(uri, position)
     }
 
     fn workspace_did_change_watched_files(&mut self, params: DidChangeWatchedFilesParams) {
@@ -282,7 +292,7 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
-        self.model.workspace_symbol(params.query)
+        self.model.compute_ref().workspace_symbol(params.query)
     }
 
     fn diagnose(&mut self) {
