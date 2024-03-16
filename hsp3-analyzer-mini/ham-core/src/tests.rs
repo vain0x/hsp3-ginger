@@ -1,5 +1,7 @@
 #![cfg(test)]
 
+pub(crate) mod dummy_path;
+
 use super::*;
 use crate::{
     lang_service::{docs::NO_VERSION, LangService},

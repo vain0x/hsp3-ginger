@@ -208,8 +208,8 @@ mod tests {
     use lsp_types::Url;
 
     fn dummy_url(s: &str) -> Url {
-        let dummy_root = test_util::test_root_path().join("ws").join(s);
-        Url::from_file_path(&dummy_root.join(s)).unwrap()
+        let workspace_dir = crate::tests::dummy_path::dummy_path().join("ws").join(s);
+        Url::from_file_path(&workspace_dir.join(s)).unwrap()
     }
 
     fn add_doc(ls: &mut LangService, name: &str, text: &str) -> (DocId, CanonicalUri) {

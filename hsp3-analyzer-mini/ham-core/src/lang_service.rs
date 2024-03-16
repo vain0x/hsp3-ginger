@@ -70,13 +70,12 @@ impl LangService {
 
     #[cfg(test)]
     pub(crate) fn new_standalone() -> Self {
+        let root = tests::dummy_path::dummy_path();
         let mut ls = Self {
             // no_exist/hsp3
-            hsp3_root: test_util::test_root_path().join("hsp3"),
+            hsp3_root: root.clone().join("hsp3"),
             // no_exist/ws
-            root_uri_opt: Some(
-                CanonicalUri::from_file_path(&test_util::test_root_path().join("ws")).unwrap(),
-            ),
+            root_uri_opt: Some(CanonicalUri::from_file_path(&root.join("ws")).unwrap()),
             options: LangServiceOptions::minimal(),
             ..Default::default()
         };
@@ -413,18 +412,5 @@ impl DocDb for LangService {
 
     fn find_doc_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
         self.docs.find_by_uri(uri)
-    }
-}
-
-#[cfg(test)]
-pub(crate) mod test_util {
-    use std::path::PathBuf;
-
-    pub(crate) fn test_root_path() -> PathBuf {
-        if cfg!(target_os = "windows") {
-            PathBuf::from("Z:/no_exist")
-        } else {
-            PathBuf::from("/.no_exist")
-        }
     }
 }

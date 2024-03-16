@@ -177,8 +177,8 @@ mod tests {
     use crate::lang_service::{docs::NO_VERSION, LangService};
 
     fn dummy_url(s: &str) -> Url {
-        let dummy_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".no_exist");
-        Url::from_file_path(&dummy_root.join(s)).unwrap()
+        let workspace_dir = crate::tests::dummy_path::dummy_path().join("ws").join(s);
+        Url::from_file_path(&workspace_dir.join(s)).unwrap()
     }
 
     #[test]

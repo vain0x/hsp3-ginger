@@ -105,8 +105,8 @@ mod tests {
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> Url {
-        let dummy_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".no_exist");
-        Url::from_file_path(&dummy_root.join(s)).unwrap()
+        let workspace_dir = crate::tests::dummy_path::dummy_path().join("ws").join(s);
+        Url::from_file_path(&workspace_dir.join(s)).unwrap()
     }
 
     // 指定した文字列の指定位置への `Pos` を生成する

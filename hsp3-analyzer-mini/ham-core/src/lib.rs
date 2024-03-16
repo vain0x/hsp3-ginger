@@ -79,9 +79,6 @@ mod analysis {
         source::*,
         token::{TokenData, TokenKind},
     };
-
-    #[cfg(test)]
-    pub(crate) use lang_service::test_util;
 }
 
 mod parse {
