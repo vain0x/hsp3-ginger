@@ -167,6 +167,8 @@ mod utils {
     pub(crate) mod read_file;
 }
 
+pub mod commands;
+
 pub fn rewrite_fn(text: String) -> String {
     let text_len = text.len();
     let text = RcStr::from(text);
