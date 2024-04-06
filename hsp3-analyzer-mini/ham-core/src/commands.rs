@@ -14,22 +14,16 @@ use std::{
 /// 字句解析・構文解析にかかる時間を測る
 ///
 /// (HSP3のインストールディレクトリのcommon, sampleにあるファイルをそれぞれパースしてトータルの時間を図る)
-pub fn profile_parse() {
-    let hsp3_root = std::env::var("HSP3_ROOT").unwrap();
-    debug!("HSP3_ROOT={hsp3_root}");
-
-    // verify path
-    let sysroot_path = PathBuf::from(&hsp3_root);
-    if !std::fs::metadata(&sysroot_path).expect("metadata").is_dir() {
-        panic!("expected a directory");
-    }
-
-    let paths = vec![
-        glob::glob(&format!("{}/common/**/*.hsp", hsp3_root)).unwrap(),
-        glob::glob(&format!("{}/common/**/*.as", hsp3_root)).unwrap(),
-        glob::glob(&format!("{}/sample/**/*.hsp", hsp3_root)).unwrap(),
-        glob::glob(&format!("{}/sample/**/*.as", hsp3_root)).unwrap(),
-    ];
+pub fn profile_parse(hsp3_root: PathBuf) {
+    let paths = {
+        let root = hsp3_root.to_str().unwrap();
+        vec![
+            glob::glob(&format!("{}/common/**/*.hsp", root)).unwrap(),
+            glob::glob(&format!("{}/common/**/*.as", root)).unwrap(),
+            glob::glob(&format!("{}/sample/**/*.hsp", root)).unwrap(),
+            glob::glob(&format!("{}/sample/**/*.as", root)).unwrap(),
+        ]
+    };
 
     let mut results = vec![];
     let mut total = Duration::ZERO;
