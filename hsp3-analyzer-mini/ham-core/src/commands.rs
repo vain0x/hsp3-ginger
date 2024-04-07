@@ -7,9 +7,44 @@ use crate::{
 };
 use std::{
     hash::{Hash, Hasher},
+    io::{stdin, stdout, Read, Write},
     path::PathBuf,
     time::Duration,
 };
+
+/// ファイルを構文解析して構文木を出力する (出力内容は仮)
+pub fn parse(files: Vec<String>) {
+    assert!(!files.is_empty());
+    let multiple = files.len() != 0;
+
+    for (file_index, filename) in files.into_iter().enumerate() {
+        let text = if filename == "-" {
+            let mut buf = String::new();
+            stdin().read_to_string(&mut buf).unwrap();
+            buf
+        } else {
+            let mut buf = String::new();
+            if !read_file(&PathBuf::from(&filename), &mut buf) {
+                panic!("ERROR: Cannot read {filename:?}");
+            }
+            buf
+        };
+
+        let doc: DocId = (file_index as usize) + 1;
+        let text = RcStr::from(text);
+
+        let tokens = crate::token::tokenize(doc, text);
+        let tokens = PToken::from_tokens(tokens.into());
+        let root = parse_root(tokens);
+
+        let mut out = stdout().lock();
+        if multiple {
+            write!(out, "file: {filename}\n{root:?}\n").unwrap();
+        } else {
+            write!(out, "{root:?}\n").unwrap();
+        }
+    }
+}
 
 /// 字句解析・構文解析にかかる時間を測る
 ///

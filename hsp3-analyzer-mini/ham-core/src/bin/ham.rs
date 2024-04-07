@@ -19,6 +19,7 @@ fn get_help() -> String {
         ham --hsp "C:/hsp36" profile-parse
 
     SUBCOMMANDS:
+        parse [FILES...]
         profile-parse
 
     OPTIONS:
@@ -44,7 +45,7 @@ fn exit_with_version() -> ! {
     std::process::exit(0)
 }
 
-static SUBCOMMANDS: &'static [&'static str] = &["profile-parse", "help", "version"];
+static SUBCOMMANDS: &'static [&'static str] = &["parse", "profile-parse", "help", "version"];
 
 static ERROR_HSP3_ROOT_MISSING: &'static str = "HSPのインストールディレクトリを指定してください。(例: コマンドライン引数に --hsp C:/hsp36 のように指定する、あるいは環境変数 HSP3_ROOT にパスを指定する)";
 
@@ -67,7 +68,7 @@ fn main() {
                     hsp3_root_opt = Some(value.to_string());
                 }
                 _ => {
-                    eprintln!("ERROR: Unrecognized option: '{arg:?}'");
+                    eprintln!("ERROR: Unrecognized option: {arg:?}");
                     std::process::exit(1)
                 }
             }
@@ -76,31 +77,44 @@ fn main() {
 
         if subcommand_opt.is_none() {
             if !SUBCOMMANDS.contains(&arg.as_str()) {
-                eprintln!("ERROR: Unrecognized subcommand: '{arg:?}'");
+                eprintln!("ERROR: Unrecognized subcommand: {arg:?}");
                 std::process::exit(1)
             }
 
             subcommand_opt = Some(arg);
-            continue;
+            break;
         }
-
-        eprintln!("ERROR: Unrecognized argument: '{arg:?}'.");
-        std::process::exit(1)
-    }
-
-    let hsp3_root = PathBuf::from(
-        hsp3_root_opt
-            .or_else(|| std::env::var("HSP3_ROOT").ok())
-            .expect(ERROR_HSP3_ROOT_MISSING),
-    );
-    if !hsp3_root.is_dir() {
-        panic!("HSP3_ROOTディレクトリがみつかりません: '{hsp3_root:?}'");
     }
 
     match subcommand_opt.unwrap_or_default().as_str() {
         "" | "help" => exit_with_help(),
         "version" => exit_with_version(),
+        "parse" => {
+            let mut files = vec![];
+            for arg in args.into_iter() {
+                if arg.starts_with("-") && arg != "-" {
+                    panic!("ERROR: Unknown argument: {arg:?}");
+                }
+                files.push(arg);
+            }
+            if files.is_empty() {
+                panic!("ERROR: 入力ファイルが指定されていません");
+            }
+
+            commands::parse(files);
+        }
         "profile-parse" => {
+            let hsp3_root = PathBuf::from(
+                hsp3_root_opt
+                    .or_else(|| std::env::var("HSP3_ROOT").ok())
+                    .expect(ERROR_HSP3_ROOT_MISSING),
+            );
+            if !hsp3_root.is_dir() {
+                panic!("HSP3_ROOTディレクトリがみつかりません: {hsp3_root:?}");
+            }
+            if let Some(arg) = args.next() {
+                panic!("ERROR: Unrecognized argument: {arg:?}");
+            }
             commands::profile_parse(hsp3_root);
         }
         arg => unreachable!("arg={arg:?}"),
