@@ -49,6 +49,18 @@
 
 ----
 
+## コマンド
+
+CLIコマンドで機能を部分的に実行できるようになっている (`ham.exe`, 実装は `ham-core/src/bin/ham.rs`)
+
+構文木の文字列表示:
+
+```sh
+cargo run --bin ham parse hsed3-ext/app_main.hsp >output.txt
+```
+
+----
+
 ## 課題など
 
 ### マクロ機能がないこと
