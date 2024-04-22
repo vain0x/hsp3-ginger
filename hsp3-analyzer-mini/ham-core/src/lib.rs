@@ -12,7 +12,9 @@ mod lsp_server;
 #[cfg(test)]
 mod tests {
     use super::*;
+    mod parse_tests;
     mod symbol_tests;
+    mod tokenize_tests;
 }
 
 #[cfg(test)]
@@ -112,8 +114,6 @@ mod parse {
     pub(crate) mod parse_preproc;
     pub(crate) mod parse_stmt;
 
-    mod parse_tests;
-
     pub(crate) use p_const_ty::PConstTy;
     pub(crate) use p_jump_modifier::PJumpModifier;
     pub(crate) use p_param_ty::PParamTy;
@@ -164,7 +164,6 @@ mod token {
     mod token_kind;
     mod tokenize_context;
     mod tokenize_rules;
-    mod tokenize_tests;
 
     pub(crate) use token_data::TokenData;
     pub(crate) use token_kind::TokenKind;

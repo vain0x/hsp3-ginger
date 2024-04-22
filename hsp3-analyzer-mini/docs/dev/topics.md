@@ -59,6 +59,17 @@ CLIコマンドで機能を部分的に実行できるようになっている (
 cargo run --bin ham parse hsed3-ext/app_main.hsp >output.txt
 ```
 
+## テスト
+
+```sh
+cargo test
+
+# HSPのファイルを参照するコードを含むテスト
+# (実行時に環境変数 HSP3_ROOT にHSP3のインストールディレクトリへのパスを指定する必要がある)
+# parse_testsはfailing
+cargo test --features full_test
+```
+
 ----
 
 ## 課題など

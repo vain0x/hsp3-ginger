@@ -7,6 +7,10 @@ edition = "2021"
 [lib]
 doctest = false
 
+[features]
+# 時間のかかるテストを含めてすべてのテストを実行する (cargo test --feature)
+full_test = []
+
 [dependencies]
 encoding = "0.2.33"
 glob = "0.3.0"

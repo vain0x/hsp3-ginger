@@ -1,15 +1,19 @@
-#![cfg(skip)]
 #![cfg(test)]
 
 use crate::{
+    parse::{parse_root, PToken},
     source::DocId,
+    token::{self, TokenKind},
     utils::{rc_str::RcStr, read_file::read_file},
 };
 use std::{fs, path::PathBuf, rc::Rc};
 
+// FIXME: tokenize_tests と重複
 #[test]
-fn tokenize_standard_files() {
-    let hsp3_root: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3");
+#[cfg_attr(not(feature = "full_test"), ignore)]
+fn parse_standard_files() {
+    let hsp3_root: &str = option_env!("HSP3_ROOT")
+        .unwrap_or_else(|| concat!(env!("CARGO_MANIFEST_DIR"), "/../vendor/hsp3"));
 
     let tests_dir = {
         let project_dir: &'static str = env!("CARGO_MANIFEST_DIR");
@@ -18,6 +22,7 @@ fn tokenize_standard_files() {
 
     let mut last_id = 0;
     let mut text = Rc::new(String::new());
+    let mut ok = true;
 
     let paths = vec![
         glob::glob(&format!("{}/common/**/*.hsp", hsp3_root)).unwrap(),
@@ -36,7 +41,7 @@ fn tokenize_standard_files() {
                 .unwrap()
                 .replace("/", "...")
                 .replace("\\", "...");
-            tests_dir.join("tokenize").join(&format!("{}.txt", name))
+            tests_dir.join("parse").join(&format!("{}.txt", name))
         };
 
         let previous_output_opt = fs::read_to_string(&output_path).ok();
@@ -55,8 +60,20 @@ fn tokenize_standard_files() {
                 last_id += 1;
                 last_id
             };
-            let tokens = { crate::token::tokenize(doc, RcStr::new(text.clone(), 0, text.len())) };
-            format!("{:#?}\n", tokens)
+            let tokens = token::tokenize(doc, RcStr::from(text.to_string()));
+            let tokens = PToken::from_tokens(tokens.into());
+            let root = parse_root(tokens);
+
+            for t in root
+                .skipped
+                .iter()
+                .filter(|t| t.kind() != TokenKind::Eos && t.kind() != TokenKind::Colon)
+            {
+                eprintln!("path={:?} skipped {:?}{:?}", path, t.kind(), t.body.loc);
+                ok = false;
+            }
+
+            format!("{:#?}\n", root)
         };
 
         if previous_output_opt.map_or(true, |previous| previous != output) {
@@ -66,5 +83,8 @@ fn tokenize_standard_files() {
 
     if last_id == 0 {
         panic!("no files");
+    }
+    if !ok {
+        panic!("something wrong")
     }
 }
