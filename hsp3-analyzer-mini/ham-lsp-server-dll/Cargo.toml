@@ -9,3 +9,4 @@ ham-core = { path = "../ham-core" }
 
 [lib]
 crate-type = ["cdylib"]
+doctest = false
