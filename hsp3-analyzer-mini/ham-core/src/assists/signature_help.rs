@@ -177,7 +177,7 @@ mod tests {
     use crate::lang_service::{docs::NO_VERSION, LangService};
 
     fn dummy_url(s: &str) -> Url {
-        let workspace_dir = crate::tests::dummy_path::dummy_path().join("ws").join(s);
+        let workspace_dir = crate::test_utils::dummy_path().join("ws").join(s);
         Url::from_file_path(&workspace_dir.join(s)).unwrap()
     }
 

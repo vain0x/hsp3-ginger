@@ -8,7 +8,22 @@ mod help_source;
 mod lang;
 mod lang_service;
 mod lsp_server;
-mod tests;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    mod symbol_tests;
+}
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+    mod dummy_path;
+    mod test_setup;
+
+    pub(crate) use self::dummy_path::dummy_path;
+    #[allow(unused)]
+    pub(crate) use self::test_setup::set_test_logger;
+}
 
 use token::{tokenize, TokenKind};
 

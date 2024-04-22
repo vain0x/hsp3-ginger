@@ -1,7 +1,5 @@
 #![cfg(test)]
 
-pub(crate) mod dummy_path;
-
 use super::*;
 use crate::{
     lang_service::{docs::NO_VERSION, LangService},
@@ -10,16 +8,6 @@ use crate::{
 };
 use expect_test::expect_file;
 use lsp_types::{Position, Url};
-
-/// テスト中に `debug!()` などのログが出力されるようにする
-#[allow(unused)]
-pub(crate) fn set_test_logger() {
-    env_logger::builder()
-        .is_test(true)
-        .filter_level(log::LevelFilter::Trace)
-        .try_init()
-        .unwrap();
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum DefOrUse {
@@ -420,8 +408,8 @@ fn formatting_tests() {
 
 #[test]
 fn formatting_blank_test() {
-    let text = include_str!["../../tests/formatting/blank.hsp"];
-    let expected = expect_file!["../../tests/formatting/blank.expected.hsp"];
+    let text = include_str!["../../../tests/formatting/blank.hsp"];
+    let expected = expect_file!["../../../tests/formatting/blank.expected.hsp"];
 
     let uri = CanonicalUri::from_file_path(&PathBuf::from("blank.hsp"))
         .unwrap()

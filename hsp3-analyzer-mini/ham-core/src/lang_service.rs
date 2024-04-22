@@ -70,7 +70,7 @@ impl LangService {
 
     #[cfg(test)]
     pub(crate) fn new_standalone() -> Self {
-        let root = tests::dummy_path::dummy_path();
+        let root = crate::test_utils::dummy_path();
         let mut ls = Self {
             // no_exist/hsp3
             hsp3_root: root.clone().join("hsp3"),
