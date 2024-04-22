@@ -11,6 +11,16 @@ use crate::{
 use expect_test::expect_file;
 use lsp_types::{Position, Url};
 
+/// テスト中に `debug!()` などのログが出力されるようにする
+#[allow(unused)]
+pub(crate) fn set_test_logger() {
+    env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Trace)
+        .try_init()
+        .unwrap();
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum DefOrUse {
     Def,
