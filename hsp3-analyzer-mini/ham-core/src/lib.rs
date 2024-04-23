@@ -28,8 +28,6 @@ pub(crate) mod test_utils {
     pub(crate) use self::test_setup::set_test_logger;
 }
 
-use token::{tokenize, TokenKind};
-
 pub use crate::lsp_server::lsp_main::start_lsp_server;
 
 /// 多くのモジュールからインポートされるシンボル:
@@ -180,75 +178,4 @@ mod utils {
     pub(crate) mod rc_slice;
     pub(crate) mod rc_str;
     pub(crate) mod read_file;
-}
-
-pub fn rewrite_fn(text: String) -> String {
-    let text_len = text.len();
-    let text = RcStr::from(text);
-    let tokens = tokenize(1, text.clone());
-
-    let mut output = String::with_capacity(text_len);
-    for token in tokens {
-        match token.kind {
-            TokenKind::Comment if token.text.starts_with("//") => {
-                assert!(!token.text.contains("\n"), "コメントは改行を含まないはず");
-                let slash = token.text.chars().take_while(|&c| c == '/').count();
-                let space = token.text[slash..]
-                    .chars()
-                    .take_while(|&c| c == ' ')
-                    .count();
-                let tab = token.text[slash..]
-                    .chars()
-                    .take_while(|&c| c == '\t')
-                    .count();
-                let rest = &token.text[slash + space.max(tab)..];
-
-                // "// ----..." みたいなやつ(境界線)
-                if slash == 2 && space == 1 && rest.len() >= 10 && rest.chars().all(|c| c == '-') {
-                    output += "; -";
-                    output += rest;
-                    continue;
-                }
-                if slash == 2 && space == 1 && rest.len() >= 10 && rest.chars().all(|c| c == '=') {
-                    output += "; =";
-                    output += rest;
-                    continue;
-                }
-
-                let mut n = slash + space;
-
-                if slash == 3 {
-                    // スラッシュ3つはドキュメンテーションコメントとみなす。
-                    output += ";;";
-                    n -= 2;
-                } else {
-                    output += ";";
-                    n -= 1;
-                };
-
-                if tab >= 1 {
-                    // タブによるスペースは調整しない。
-                    for _ in 0..tab {
-                        output += "\t";
-                    }
-                } else if space == 1 {
-                    // もともとスペースが1個ならスペースによる桁合わせは行われていないとみなして、1つだけスペースを入れる。
-                    output += " ";
-                } else if space >= 2 {
-                    // 桁を合わせる。
-                    for _ in 0..n {
-                        output += " ";
-                    }
-                }
-
-                output += rest;
-                continue;
-            }
-            _ => {}
-        }
-
-        output += &token.text;
-    }
-
-    output
 }

@@ -53,10 +53,40 @@
 
 CLIコマンドで機能を部分的に実行できるようになっている (`ham.exe`, 実装は `ham-core/src/bin/ham.rs`)
 
-構文木の文字列表示:
+### `parse`: 構文木の文字列表示
 
 ```sh
 cargo run --bin ham parse hsed3-ext/app_main.hsp >output.txt
+```
+
+### `format-comments`: コメント形式の変更 (`//` → `;`)
+
+**注意**: ファイルは上書きされます。実行前に必ずバックアップを用意してください
+
+自分用に作ったコマンド。
+HSPのスクリプト (UTF-8) のコメントのスタイルを変更する
+
+使用例:
+
+```
+EXAMPLE:
+    (1)
+        {name} a.hsp b.hsp c.hsp
+
+    (2)
+        cat input.hsp | {name} - >output.hsp
+```
+
+動作例:
+
+```hsp
+; コメント
+```
+
+↓
+
+```
+// コメント
 ```
 
 ## テスト

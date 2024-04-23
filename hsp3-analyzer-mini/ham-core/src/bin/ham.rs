@@ -6,26 +6,36 @@
 // HSP3_ROOT=C:/.../hsp3x cargo run --bin ham
 // ```
 
-use ham_core::subcommands;
-use std::path::PathBuf;
+use ham_core::subcommands::{self, format_comments::format_comments};
+use std::{
+    fs,
+    io::{stdin, stdout, Read, Write},
+    path::PathBuf,
+};
 
 fn get_help() -> String {
     format!(
         r#"ham {version}
-    USAGE:
-        ham [OPTIONS] [SUBCOMMAND]
 
-    EXAMPLE:
-        ham --hsp "C:/hsp36" profile-parse
+    USAGE: ham [OPTIONS] [SUBCOMMAND]
+
+    EXAMPLE: ham --hsp "C:/hsp36" profile-parse
 
     SUBCOMMANDS:
         parse [FILES...]
+
         profile-parse
+            (HSPインストールディレクトリの指定が必須)
+
+        format-comments [FILES]
+            (**注意**: ファイルは上書きされます。必ずバックアップしてください)
+            HSPのスクリプトのコメントを // 形式から ; 形式に変更し、
+            入力スクリプトファイルを上書きします
 
     OPTIONS:
         -h, --help      Print help
         -V, --version   Print Version
-            --hsp       HSP インストールディレクトリ (必須)
+            --hsp       HSPインストールディレクトリ
 "#,
         version = get_version()
     )
@@ -45,7 +55,13 @@ fn exit_with_version() -> ! {
     std::process::exit(0)
 }
 
-static SUBCOMMANDS: &'static [&'static str] = &["parse", "profile-parse", "help", "version"];
+static SUBCOMMANDS: &'static [&'static str] = &[
+    "format-comments",
+    "parse",
+    "profile-parse",
+    "help",
+    "version",
+];
 
 static ERROR_HSP3_ROOT_MISSING: &'static str = "HSPのインストールディレクトリを指定してください。(例: コマンドライン引数に --hsp C:/hsp36 のように指定する、あるいは環境変数 HSP3_ROOT にパスを指定する)";
 
@@ -89,6 +105,30 @@ fn main() {
     match subcommand_opt.unwrap_or_default().as_str() {
         "" | "help" => exit_with_help(),
         "version" => exit_with_version(),
+        "format-comments" => {
+            let mut count = 0;
+            for arg in args {
+                if arg.starts_with("-") && arg != "-" {
+                    panic!("ERROR: Unknown argument: {arg:?}");
+                }
+                if arg == "-" {
+                    let mut buf = String::with_capacity(4096);
+                    stdin().read_to_string(&mut buf).unwrap();
+                    let output = format_comments(&buf);
+                    stdout().write_all(output.as_bytes()).unwrap();
+                } else {
+                    let filename = arg;
+                    let contents = fs::read_to_string(&filename).expect("read");
+                    let output = format_comments(&contents);
+                    fs::write(&filename, &output).expect("write");
+                }
+                count += 1;
+            }
+            if count == 0 {
+                eprintln!("ERROR: 入力ファイルが出力されていません");
+            }
+            return;
+        }
         "parse" => {
             let mut files = vec![];
             for arg in args.into_iter() {
