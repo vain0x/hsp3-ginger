@@ -2,6 +2,7 @@
 extern crate log;
 
 pub mod c_api;
+pub mod subcommands;
 
 mod assists;
 mod help_source;
@@ -180,8 +181,6 @@ mod utils {
     pub(crate) mod rc_str;
     pub(crate) mod read_file;
 }
-
-pub mod commands;
 
 pub fn rewrite_fn(text: String) -> String {
     let text_len = text.len();

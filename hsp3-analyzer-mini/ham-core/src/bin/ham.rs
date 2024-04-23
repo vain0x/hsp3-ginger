@@ -6,7 +6,7 @@
 // HSP3_ROOT=C:/.../hsp3x cargo run --bin ham
 // ```
 
-use ham_core::commands;
+use ham_core::subcommands;
 use std::path::PathBuf;
 
 fn get_help() -> String {
@@ -101,7 +101,7 @@ fn main() {
                 panic!("ERROR: 入力ファイルが指定されていません");
             }
 
-            commands::parse(files);
+            subcommands::parse::parse_subcommand(files);
         }
         "profile-parse" => {
             let hsp3_root = PathBuf::from(
@@ -115,7 +115,7 @@ fn main() {
             if let Some(arg) = args.next() {
                 panic!("ERROR: Unrecognized argument: {arg:?}");
             }
-            commands::profile_parse(hsp3_root);
+            subcommands::profile_parse::profile_parse_subcommand(hsp3_root);
         }
         arg => unreachable!("arg={arg:?}"),
     }
