@@ -100,6 +100,18 @@ cargo test
 cargo test --features full_test
 ```
 
+### `expect`
+
+スナップショットテストのため [expect-test](https://github.com/rust-analyzer/expect-test) というクレートを使っている。
+**スナップショットテスト** とは入力データとその計算結果が一致することを確認すること
+
+使いかたは `expect!` でソースコード内を検索するとみつかる。
+はじめは `expect![[""]]` とだけ書いておいて、次のように計算結果を更新すると楽
+
+```sh
+UPDATE_EXPECT=1 cargo test
+```
+
 ----
 
 ## 課題など
