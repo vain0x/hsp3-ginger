@@ -2,7 +2,6 @@
 members = [
     "ham-core",
     "ham-lsp-server-dll",
-    "ham-lsp-server-exe",
 ]
 resolver = "2"
 
