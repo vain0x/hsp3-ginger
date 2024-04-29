@@ -96,10 +96,10 @@ fn documentation_to_marked_string(d: Documentation) -> MarkedString {
 
 #[cfg(test)]
 mod tests {
-    use self::assists::lsp::from_proto;
+    use self::ide::lsp::from_proto;
     use super::*;
     use crate::{
-        assists::lsp::to_proto,
+        ide::lsp::to_proto,
         lang_service::{docs::NO_VERSION, LangService},
     };
     use std::fmt::Write as _;

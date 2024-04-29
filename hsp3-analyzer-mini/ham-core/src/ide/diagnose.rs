@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    assists::{loc_to_range, to_lsp_range},
+    ide::{loc_to_range, to_lsp_range},
     lang_service::docs::Docs,
 };
 use lsp_types::{Diagnostic, DiagnosticSeverity, Url};

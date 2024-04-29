@@ -1,7 +1,7 @@
 //! LSPの型からほかの形式への変換
 
 use crate::{
-    assists::CanonicalUri,
+    ide::CanonicalUri,
     lang_service::{DocDb, LangService},
     source,
 };

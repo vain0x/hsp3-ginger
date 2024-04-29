@@ -1,5 +1,5 @@
 use super::*;
-use crate::{assists::from_document_position, lang_service::docs::Docs};
+use crate::{ide::from_document_position, lang_service::docs::Docs};
 use lsp_types::{Location, Position, Url};
 
 fn goto_symbol_definition(

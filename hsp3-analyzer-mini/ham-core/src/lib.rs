@@ -4,7 +4,7 @@ extern crate log;
 pub mod c_api;
 pub mod subcommands;
 
-mod assists;
+mod ide;
 mod help_source;
 mod lang;
 mod lang_service;

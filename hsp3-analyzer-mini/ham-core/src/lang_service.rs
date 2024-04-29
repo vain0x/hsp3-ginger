@@ -9,8 +9,8 @@ use self::{
 use super::*;
 use crate::{
     analysis::*,
-    assists::{self, diagnose::DiagnosticsCache},
     help_source::HsSymbol,
+    ide::{self, diagnose::DiagnosticsCache},
     lang::Lang,
     lang_service::{
         docs::DocChangeOrigin, search_common::search_common, search_hsphelp::search_hsphelp,
@@ -270,11 +270,11 @@ impl<'a> LangServiceRef<'a> {
     ) -> Vec<CodeAction> {
         let mut actions = vec![];
         actions.extend(
-            assists::rewrites::flip_comma::flip_comma(&self.wa, &uri, range, &self.docs)
+            ide::rewrites::flip_comma::flip_comma(&self.wa, &uri, range, &self.docs)
                 .unwrap_or_default(),
         );
         actions.extend(
-            assists::rewrites::generate_include_guard::generate_include_guard(
+            ide::rewrites::generate_include_guard::generate_include_guard(
                 &self.wa, &uri, range, &self.docs,
             )
             .unwrap_or_default(),
@@ -283,23 +283,23 @@ impl<'a> LangServiceRef<'a> {
     }
 
     pub(super) fn completion(&self, uri: Url, position: Position) -> CompletionList {
-        assists::completion::completion(&self.wa, uri, position, &self.docs)
-            .unwrap_or_else(assists::completion::incomplete_completion_list)
+        ide::completion::completion(&self.wa, uri, position, &self.docs)
+            .unwrap_or_else(ide::completion::incomplete_completion_list)
     }
 
     pub(super) fn completion_resolve(
         &self,
         completion_item: CompletionItem,
     ) -> Option<CompletionItem> {
-        assists::completion::completion_resolve(&self.wa, completion_item, &self.docs)
+        ide::completion::completion_resolve(&self.wa, completion_item, &self.docs)
     }
 
     pub(crate) fn formatting(&self, uri: Url) -> Option<Vec<TextEdit>> {
-        assists::formatting::formatting(&self.wa, uri, &self.docs)
+        ide::formatting::formatting(&self.wa, uri, &self.docs)
     }
 
     pub(super) fn definitions(&self, uri: Url, position: Position) -> Vec<Location> {
-        assists::definitions::definitions(&self.wa, uri, position, &self.docs).unwrap_or(vec![])
+        ide::definitions::definitions(&self.wa, uri, position, &self.docs).unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
@@ -307,16 +307,16 @@ impl<'a> LangServiceRef<'a> {
         uri: Url,
         position: Position,
     ) -> Vec<DocumentHighlight> {
-        assists::document_highlight::document_highlight(&self.wa, uri, position, &self.docs)
+        ide::document_highlight::document_highlight(&self.wa, uri, position, &self.docs)
             .unwrap_or(vec![])
     }
 
     pub(super) fn document_symbol(&self, uri: Url) -> Option<DocumentSymbolResponse> {
-        assists::document_symbol::symbol(&self.wa, uri, &self.docs)
+        ide::document_symbol::symbol(&self.wa, uri, &self.docs)
     }
 
     pub(super) fn hover(&self, uri: Url, position: Position) -> Option<Hover> {
-        assists::hover::hover(&self.wa, uri, position, &self.docs)
+        ide::hover::hover(&self.wa, uri, position, &self.docs)
     }
 
     pub(super) fn references(
@@ -325,7 +325,7 @@ impl<'a> LangServiceRef<'a> {
         position: Position,
         include_definition: bool,
     ) -> Vec<Location> {
-        assists::references::references(&self.wa, uri, position, include_definition, &self.docs)
+        ide::references::references(&self.wa, uri, position, include_definition, &self.docs)
             .unwrap_or(vec![])
     }
 
@@ -334,7 +334,7 @@ impl<'a> LangServiceRef<'a> {
         uri: Url,
         position: Position,
     ) -> Option<PrepareRenameResponse> {
-        assists::rename::prepare_rename(&self.wa, uri, position, &self.docs)
+        ide::rename::prepare_rename(&self.wa, uri, position, &self.docs)
     }
 
     pub(super) fn rename(
@@ -343,11 +343,11 @@ impl<'a> LangServiceRef<'a> {
         position: Position,
         new_name: String,
     ) -> Option<WorkspaceEdit> {
-        assists::rename::rename(&self.wa, uri, position, new_name, &self.docs)
+        ide::rename::rename(&self.wa, uri, position, new_name, &self.docs)
     }
 
     pub(super) fn semantic_tokens(&self, uri: Url) -> lsp_types::SemanticTokens {
-        let tokens = assists::semantic_tokens::full(&self.wa, uri, &self.docs).unwrap_or(vec![]);
+        let tokens = ide::semantic_tokens::full(&self.wa, uri, &self.docs).unwrap_or(vec![]);
         SemanticTokens {
             data: tokens,
             result_id: None,
@@ -355,11 +355,11 @@ impl<'a> LangServiceRef<'a> {
     }
 
     pub(super) fn signature_help(&self, uri: Url, position: Position) -> Option<SignatureHelp> {
-        assists::signature_help::signature_help(&self.wa, uri, position, &self.docs)
+        ide::signature_help::signature_help(&self.wa, uri, position, &self.docs)
     }
 
     pub(super) fn workspace_symbol(&self, query: String) -> Vec<SymbolInformation> {
-        assists::workspace_symbol::symbol(&self.wa, &query, &self.docs)
+        ide::workspace_symbol::symbol(&self.wa, &query, &self.docs)
     }
 }
 
@@ -372,7 +372,7 @@ impl LangService {
 
         self.process_changes();
 
-        let mut diagnostics = assists::diagnose::diagnose(
+        let mut diagnostics = ide::diagnose::diagnose(
             &self.wa.compute_analysis(),
             &self.docs,
             &mut self.diagnostics_cache,

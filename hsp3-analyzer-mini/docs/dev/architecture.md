@@ -102,7 +102,7 @@
 
 - エディタがサーバーに `references` リクエストを送る (ドキュメントのURIと行番号・列番号が含まれる)
 - サーバーがそのリクエストを受け取り、`lsp_handler` で `text_document_references` 関数が呼ばれる
-- 処理の本体は `assists/references.rs` にある
+- 処理の本体は `ide/references.rs` にある
 - 指定したドキュメントに関連するプロジェクトの解析結果 (ProjectAnalysis) を取得する
     - このときプロジェクトに対して解析処理が行われる
         (この解析結果は次にそのプロジェクトに変更があるまで保持される)

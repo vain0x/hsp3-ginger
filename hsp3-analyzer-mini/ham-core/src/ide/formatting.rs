@@ -3,7 +3,7 @@
 //! 字下げや空白を調整する。
 
 use super::*;
-use crate::{assists::to_lsp_range, lang_service::docs::Docs, parse::*};
+use crate::{ide::to_lsp_range, lang_service::docs::Docs, parse::*};
 use lsp_types::{TextEdit, Url};
 
 fn index_range(range: Range) -> std::ops::Range<usize> {

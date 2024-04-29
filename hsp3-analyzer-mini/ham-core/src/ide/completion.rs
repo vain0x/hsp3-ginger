@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     analysis::{HspSymbolKind, Scope, SymbolRc},
-    assists::from_document_position,
+    ide::from_document_position,
     lang_service::docs::Docs,
     parse::p_param_ty::PParamCategory,
 };
