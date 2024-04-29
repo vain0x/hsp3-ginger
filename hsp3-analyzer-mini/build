@@ -3,7 +3,7 @@
 set -eux
 
 # ビルドする。
-cargo build -p ham-core -p ham-lsp-server-exe
+cargo build --bin ham
 
 # DLL は32ビットでビルドする。
 cargo build -p ham-lsp-server-dll --target i686-pc-windows-msvc

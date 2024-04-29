@@ -1,10 +1,15 @@
 dist/*.js
 dist/*.js.map
+out/*.exe
 out/*.js
 out/*.js.map
-out/ham-lsp-server-exe
-out/ham-lsp-server-exe.exe
+out/ham
 ham.vsix
+
+
+
+# old
+out/ham-lsp-server-exe
 
 
 

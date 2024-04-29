@@ -11,7 +11,7 @@ then
 fi
 
 # 配布用ディレクトリに必要なファイルを入れる。
-cp ../target/release/ham-lsp-server-exe ./out/ham-lsp-server-exe
+cp ../target/release/ham ./out/ham
 
 # 拡張機能をビルドする。
 npm run webpack-prod

@@ -5,8 +5,8 @@ HSP3 の静的解析ツールです。Language Server Protocol (LSP) 準拠。
 機能などは [vscode-ext/README.md](./vscode-ext/README.md) を参照。
 
 - [ham-core](./ham-core): 解析機能および LSP サーバーの実装
+    - [bin/ham](./ham-core/src/bin/ham.rs): 実行ファイルのエントリーポイント
     - [ham-lsp-server-dll](./ham-lsp-server-dll): DLL 版をビルドするためのプロジェクト
-    - [ham-lsp-server-exe](./ham-lsp-server-exe): exe 版をビルドするためのプロジェクト
 - [vscode-ext](./vscode-ext): VSCode 拡張機能
 
 ----
