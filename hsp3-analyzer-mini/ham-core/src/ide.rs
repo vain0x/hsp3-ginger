@@ -16,7 +16,7 @@ pub(crate) mod lsp {
     pub(crate) mod to_proto;
 }
 
-pub(crate) mod rewrites {
+pub(crate) mod code_actions {
     use super::*;
 
     pub(crate) mod flip_comma;

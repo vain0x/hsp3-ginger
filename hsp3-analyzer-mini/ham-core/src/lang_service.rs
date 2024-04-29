@@ -270,11 +270,11 @@ impl<'a> LangServiceRef<'a> {
     ) -> Vec<CodeAction> {
         let mut actions = vec![];
         actions.extend(
-            ide::rewrites::flip_comma::flip_comma(&self.wa, &uri, range, &self.docs)
+            ide::code_actions::flip_comma::flip_comma(&self.wa, &uri, range, &self.docs)
                 .unwrap_or_default(),
         );
         actions.extend(
-            ide::rewrites::generate_include_guard::generate_include_guard(
+            ide::code_actions::generate_include_guard::generate_include_guard(
                 &self.wa, &uri, range, &self.docs,
             )
             .unwrap_or_default(),
