@@ -58,7 +58,6 @@ mod analysis {
     mod compute_active_docs;
     mod compute_symbols;
     mod doc_analysis;
-    mod integrate;
     mod name_system;
     mod preproc;
     mod project_analysis;
