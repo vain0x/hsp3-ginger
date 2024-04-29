@@ -13,7 +13,7 @@
 #include "hsp3utf.as"
 
 #include "hsedsdk.as"
-#include "mod_ham_lsp_server.hsp"
+#include "mod_ham_sdk.hsp"
 #include "mod_hsed.hsp"
 #include "mod_hsed_carets.hsp"
 #include "mod_hsed_client.hsp"

@@ -1,8 +1,9 @@
 [workspace]
 members = [
     "ham-core",
-    "ham-lsp-server-dll",
+    "ham-sdk",
 ]
+
 resolver = "2"
 
 # このセクションはデバッグビルドの設定を指定する

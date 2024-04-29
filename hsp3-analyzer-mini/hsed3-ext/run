@@ -6,8 +6,8 @@ set -eu
 
 (
     cd ..
-    cargo build -p ham-lsp-server-dll --target i686-pc-windows-msvc
-    cp target/i686-pc-windows-msvc/debug/ham_lsp_server_dll.dll ~/bin/ham_lsp_server_dll.dll
+    cargo build -p ham-sdk --target i686-pc-windows-msvc
+    cp target/i686-pc-windows-msvc/debug/ham_sdk.dll ~/bin/ham_sdk.dll
 )
 
 ginger run app_main.hsp

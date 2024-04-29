@@ -1,10 +1,10 @@
 ; LICENSE: CC0-1.0
 ; v0
 
-#ifndef included_ham_lsp_server_hsp
-#define included_ham_lsp_server_hsp
+#ifndef included_ham_sdk_hsp
+#define included_ham_sdk_hsp
 
-#uselib "ham_lsp_server_dll.dll"
+#uselib "ham_sdk.dll"
 #func ham_init "ham_init"
 
 ; hsp3-analyzer-mini (ham) を起動する
@@ -116,7 +116,7 @@
 #func global ham_hover "ham_hover" sptr, sptr, int, int, int, var, var
 
 ; HACK: module の中で include されていたらエラーにする。
-#module m_ham_lsp_server
+#module m_ham_sdk
 #global
 
     ham_init

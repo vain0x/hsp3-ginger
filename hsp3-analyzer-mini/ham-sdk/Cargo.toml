@@ -1,5 +1,5 @@
 [package]
-name = "ham-lsp-server-dll"
+name = "ham-sdk"
 version = "0.5.1"
 authors = ["vain0x <vainzerox@gmail.com>"]
 edition = "2021"

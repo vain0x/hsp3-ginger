@@ -5,7 +5,7 @@
 #include "hsp3utf.as"
 
 #include "hsedsdk.as"
-#include "mod_ham_lsp_server.hsp"
+#include "mod_ham_sdk.hsp"
 
 #module m_hamls_example
 
