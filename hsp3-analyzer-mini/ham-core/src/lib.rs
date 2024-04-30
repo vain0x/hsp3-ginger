@@ -4,8 +4,8 @@ extern crate log;
 pub mod c_api;
 pub mod subcommands;
 
-mod ide;
 mod help_source;
+mod ide;
 mod lang;
 mod lang_service;
 mod lsp_server;
@@ -71,7 +71,7 @@ mod analysis {
         doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
-        project_analysis::{EntryPoints, ProjectAnalysisRef},
+        project_analysis::{collect_symbols2, EntryPoints, IncludeGraph, ProjectAnalysisRef},
         sema_linter::{Diagnostic, SemaLinter},
         symbol::{
             module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,

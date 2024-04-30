@@ -43,14 +43,28 @@ impl<'a> ProjectAnalysisRef<'a> {
     }
 }
 
+#[derive(Default)]
+pub(crate) struct IncludeGraph {
+    edges: HashMap<DocId, Vec<DocId>>,
+    // 辺をすべて逆向きにしたもの
+    rev: HashMap<DocId, Vec<DocId>>,
+}
+
+impl IncludeGraph {
+    #[allow(unused)]
+    pub(crate) fn generate(wa: &AnalysisRef<'_>, docs: &lang_service::docs::Docs) -> Self {
+        let mut it = Self::default();
+        generate_include_graph(wa, docs, &mut it);
+        it
+    }
+}
+
 /// ファイル間の `include` の関係を表す有向グラフを構築する
 #[allow(unused)]
 fn generate_include_graph(
     wa: &AnalysisRef<'_>,
     docs: &lang_service::docs::Docs,
-    include_graph: &mut HashMap<DocId, Vec<DocId>>,
-    // 辺をすべて逆向きにしたもの
-    include_graph_rev: &mut HashMap<DocId, Vec<DocId>>,
+    include_graph: &mut IncludeGraph,
 ) {
     let get_name = |doc: DocId| match docs
         .get_uri(doc)
@@ -81,20 +95,25 @@ fn generate_include_graph(
             };
             debug!("include {}:{} -> {}", src_name, l.range, included_name);
 
-            include_graph.entry(src_doc).or_default().push(included_doc);
+            include_graph
+                .edges
+                .entry(src_doc)
+                .or_default()
+                .push(included_doc);
         }
     }
 
     // dedup
-    for (_, included_docs) in include_graph.iter_mut() {
+    for (_, included_docs) in include_graph.edges.iter_mut() {
         included_docs.sort();
         included_docs.dedup();
     }
 
     // 逆向き
-    for (&src_doc, target_docs) in include_graph.iter() {
+    for (&src_doc, target_docs) in include_graph.edges.iter() {
         for &target_doc in target_docs {
-            include_graph_rev
+            include_graph
+                .rev
                 .entry(target_doc)
                 .or_default()
                 .push(src_doc);
@@ -102,7 +121,7 @@ fn generate_include_graph(
     }
 
     // dedup
-    for (_, src_docs) in include_graph_rev.iter_mut() {
+    for (_, src_docs) in include_graph.rev.iter_mut() {
         src_docs.sort();
         src_docs.dedup();
     }
@@ -137,8 +156,7 @@ impl Default for CollectSymbolQuery {
 pub(crate) fn collect_symbols2(
     wa: &AnalysisRef<'_>,
     docs: &lang_service::docs::Docs,
-    include_graph: &HashMap<DocId, Vec<DocId>>,
-    include_graph_rev: &HashMap<DocId, Vec<DocId>>,
+    include_graph: &IncludeGraph,
     doc: DocId,
     query: CollectSymbolQuery,
     symbols: &mut Vec<SymbolRc>,
@@ -158,7 +176,7 @@ pub(crate) fn collect_symbols2(
 
             reachable.insert(doc);
 
-            if let Some(target_docs) = include_graph.get(&doc) {
+            if let Some(target_docs) = include_graph.edges.get(&doc) {
                 stack.extend(target_docs);
             }
         }
@@ -177,7 +195,7 @@ pub(crate) fn collect_symbols2(
 
             reachable.insert(doc);
 
-            if let Some(target_docs) = include_graph_rev.get(&doc) {
+            if let Some(target_docs) = include_graph.rev.get(&doc) {
                 stack.extend(target_docs);
             }
         }
@@ -298,9 +316,8 @@ mod tests {
 
         let (wa, docs) = ls.analyze_for_test();
         let wa = &wa;
-        let mut include_graph = HashMap::new();
-        let mut include_graph_rev = HashMap::new();
-        generate_include_graph(wa, docs, &mut include_graph, &mut include_graph_rev);
+        let mut include_graph = IncludeGraph::default();
+        generate_include_graph(wa, docs, &mut include_graph);
 
         let def_only = CollectSymbolQuery {
             def_site: true,
@@ -315,7 +332,6 @@ mod tests {
             wa,
             docs,
             &include_graph,
-            &include_graph_rev,
             mx.0,
             def_only.clone(),
             &mut symbols,
@@ -329,7 +345,6 @@ mod tests {
             wa,
             docs,
             &include_graph,
-            &include_graph_rev,
             main.0,
             def_only.clone(),
             &mut symbols,
@@ -343,7 +358,6 @@ mod tests {
             wa,
             docs,
             &include_graph,
-            &include_graph_rev,
             mx_tests.0,
             def_only.clone(),
             &mut symbols,
@@ -358,7 +372,6 @@ mod tests {
             wa,
             docs,
             &include_graph,
-            &include_graph_rev,
             isolation.0,
             def_only.clone(),
             &mut symbols,
