@@ -299,7 +299,7 @@ impl<'a> LangServiceRef<'a> {
     }
 
     pub(super) fn definitions(&self, uri: Url, position: Position) -> Vec<Location> {
-        ide::definitions::definitions(&self.wa, uri, position, &self.docs).unwrap_or(vec![])
+        ide::definitions::definitions(&self.wa, self.docs, uri, position).unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
@@ -325,7 +325,7 @@ impl<'a> LangServiceRef<'a> {
         position: Position,
         include_definition: bool,
     ) -> Vec<Location> {
-        ide::references::references(&self.wa, uri, position, include_definition, &self.docs)
+        ide::references::references(&self.wa, self.docs, uri, position, include_definition)
             .unwrap_or(vec![])
     }
 
@@ -334,7 +334,7 @@ impl<'a> LangServiceRef<'a> {
         uri: Url,
         position: Position,
     ) -> Option<PrepareRenameResponse> {
-        ide::rename::prepare_rename(&self.wa, uri, position, &self.docs)
+        ide::rename::prepare_rename(&self.wa, &self.docs, uri, position)
     }
 
     pub(super) fn rename(
@@ -343,7 +343,7 @@ impl<'a> LangServiceRef<'a> {
         position: Position,
         new_name: String,
     ) -> Option<WorkspaceEdit> {
-        ide::rename::rename(&self.wa, uri, position, new_name, &self.docs)
+        ide::rename::rename(&self.wa, &self.docs, uri, position, new_name)
     }
 
     pub(super) fn semantic_tokens(&self, uri: Url) -> lsp_types::SemanticTokens {

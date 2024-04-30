@@ -2,20 +2,21 @@ use super::*;
 
 pub(crate) fn references(
     wa: &AnalysisRef<'_>,
+    docs: &Docs,
     uri: Url,
     position: Position,
     include_definition: bool,
-    docs: &Docs,
 ) -> Option<Vec<Location>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
     let project = wa.require_project_for_doc(doc);
     let (symbol, _) = project.locate_symbol(doc, pos)?;
 
+    let include_graph = IncludeGraph::generate(wa, docs);
     let mut locs = vec![];
     if include_definition {
-        project.collect_symbol_defs(&symbol, &mut locs);
+        collect_symbol_defs(wa, &include_graph, doc, &symbol, &mut locs);
     }
-    project.collect_symbol_uses(&symbol, &mut locs);
+    collect_symbol_uses(wa, &include_graph, doc, &symbol, &mut locs);
 
     Some(
         locs.into_iter()

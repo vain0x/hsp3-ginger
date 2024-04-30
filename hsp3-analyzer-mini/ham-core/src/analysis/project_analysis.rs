@@ -25,22 +25,6 @@ impl<'a> ProjectAnalysisRef<'a> {
             .find(|&(_, loc)| loc.is_touched(doc, pos))
             .cloned()
     }
-
-    pub(crate) fn collect_symbol_defs(self, symbol: &SymbolRc, locs: &mut Vec<Loc>) {
-        for &(ref s, loc) in self.def_sites {
-            if s == symbol {
-                locs.push(loc);
-            }
-        }
-    }
-
-    pub(crate) fn collect_symbol_uses(self, symbol: &SymbolRc, locs: &mut Vec<Loc>) {
-        for &(ref s, loc) in self.use_sites {
-            if s == symbol {
-                locs.push(loc);
-            }
-        }
-    }
 }
 
 #[derive(Default)]
@@ -155,11 +139,10 @@ impl Default for CollectSymbolQuery {
 #[allow(unused)]
 pub(crate) fn collect_symbols2(
     wa: &AnalysisRef<'_>,
-    docs: &lang_service::docs::Docs,
     include_graph: &IncludeGraph,
     doc: DocId,
     query: CollectSymbolQuery,
-    symbols: &mut Vec<SymbolRc>,
+    symbols: &mut Vec<(SymbolRc, Loc)>,
 ) {
     let mut reachable: HashSet<DocId> = HashSet::new();
 
@@ -206,15 +189,55 @@ pub(crate) fn collect_symbols2(
     if query.def_site {
         for (symbol, loc) in wa.def_sites {
             if is_reachable(loc.doc) {
-                symbols.push(symbol.clone());
+                symbols.push((symbol.clone(), *loc));
             }
         }
     }
     if query.use_site {
         for (symbol, loc) in wa.use_sites {
             if is_reachable(loc.doc) {
-                symbols.push(symbol.clone());
+                symbols.push((symbol.clone(), *loc));
             }
+        }
+    }
+}
+
+pub(crate) fn collect_symbol_defs(
+    wa: &AnalysisRef<'_>,
+    include_graph: &IncludeGraph,
+    doc: DocId,
+    symbol: &SymbolRc,
+    locs: &mut Vec<Loc>,
+) {
+    let query = CollectSymbolQuery {
+        def_site: true,
+        use_site: false,
+    };
+    let mut symbols = vec![];
+    collect_symbols2(wa, &include_graph, doc, query, &mut symbols);
+    for (s, loc) in symbols {
+        if s == *symbol {
+            locs.push(loc);
+        }
+    }
+}
+
+pub(crate) fn collect_symbol_uses(
+    wa: &AnalysisRef<'_>,
+    include_graph: &IncludeGraph,
+    doc: DocId,
+    symbol: &SymbolRc,
+    locs: &mut Vec<Loc>,
+) {
+    let query = CollectSymbolQuery {
+        def_site: false,
+        use_site: true,
+    };
+    let mut symbols = vec![];
+    collect_symbols2(wa, &include_graph, doc, query, &mut symbols);
+    for (s, loc) in symbols {
+        if s == *symbol {
+            locs.push(loc);
         }
     }
 }
@@ -238,8 +261,8 @@ mod tests {
         (doc, uri)
     }
 
-    fn format_symbols(symbols: &[SymbolRc]) -> String {
-        let mut names = symbols.iter().map(|s| s.name()).collect::<Vec<_>>();
+    fn format_symbols(symbols: &[(SymbolRc, Loc)]) -> String {
+        let mut names = symbols.iter().map(|(s, _)| s.name()).collect::<Vec<_>>();
         names.sort();
         names.join(", ")
     }
@@ -328,27 +351,13 @@ mod tests {
         // mod_x基準で定義箇所を列挙する:
         // 下流であるmain, mod_x_testsの両方がみえる
         let mut symbols = vec![];
-        collect_symbols2(
-            wa,
-            docs,
-            &include_graph,
-            mx.0,
-            def_only.clone(),
-            &mut symbols,
-        );
+        collect_symbols2(wa, &include_graph, mx.0, def_only.clone(), &mut symbols);
         assert_eq!(format_symbols(&symbols), "a, app_main, b, f, test_main");
         symbols.clear();
 
         // main基準で定義箇所を列挙する: mod_xにある命令fがみえる
         let mut symbols = vec![];
-        collect_symbols2(
-            wa,
-            docs,
-            &include_graph,
-            main.0,
-            def_only.clone(),
-            &mut symbols,
-        );
+        collect_symbols2(wa, &include_graph, main.0, def_only.clone(), &mut symbols);
         assert_eq!(format_symbols(&symbols), "a, app_main, b, f");
         symbols.clear();
 
@@ -356,7 +365,6 @@ mod tests {
         let mut symbols = vec![];
         collect_symbols2(
             wa,
-            docs,
             &include_graph,
             mx_tests.0,
             def_only.clone(),
@@ -370,7 +378,6 @@ mod tests {
         let mut symbols = vec![];
         collect_symbols2(
             wa,
-            docs,
             &include_graph,
             isolation.0,
             def_only.clone(),

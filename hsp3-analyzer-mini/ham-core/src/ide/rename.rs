@@ -6,9 +6,9 @@ use lsp_types::{
 
 pub(crate) fn prepare_rename(
     wa: &AnalysisRef<'_>,
+    docs: &Docs,
     uri: Url,
     position: Position,
-    docs: &Docs,
 ) -> Option<PrepareRenameResponse> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
     let project = wa.require_project_for_doc(doc);
@@ -22,10 +22,10 @@ pub(crate) fn prepare_rename(
 
 pub(crate) fn rename(
     wa: &AnalysisRef<'_>,
+    docs: &Docs,
     uri: Url,
     position: Position,
     new_name: String,
-    docs: &Docs,
 ) -> Option<WorkspaceEdit> {
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
@@ -34,9 +34,10 @@ pub(crate) fn rename(
 
         let (symbol, _) = project.locate_symbol(doc, pos)?;
 
+        let include_graph = IncludeGraph::generate(wa, docs);
         let mut locs = vec![];
-        project.collect_symbol_defs(&symbol, &mut locs);
-        project.collect_symbol_uses(&symbol, &mut locs);
+        collect_symbol_defs(wa, &include_graph, doc, &symbol, &mut locs);
+        collect_symbol_uses(wa, &include_graph, doc, &symbol, &mut locs);
         if locs.is_empty() {
             return None;
         }
