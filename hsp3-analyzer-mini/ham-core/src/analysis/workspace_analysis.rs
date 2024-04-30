@@ -297,11 +297,12 @@ impl AnalysisRef<'_> {
         Some((token.text.clone(), token.loc))
     }
 
-    pub(crate) fn require_project_for_doc(&self, _doc: DocId) -> ProjectAnalysisRef<'_> {
-        ProjectAnalysisRef {
-            def_sites: &self.def_sites,
-            use_sites: &self.use_sites,
-        }
+    pub(crate) fn locate_symbol(&self, doc: DocId, pos: Pos16) -> Option<(SymbolRc, Loc)> {
+        self.def_sites
+            .iter()
+            .chain(self.use_sites)
+            .find(|&(_, loc)| loc.is_touched(doc, pos))
+            .cloned()
     }
 
     pub(crate) fn diagnose(&self, diagnostics: &mut Vec<(String, Loc)>) {

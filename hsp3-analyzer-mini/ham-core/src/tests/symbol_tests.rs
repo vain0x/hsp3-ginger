@@ -307,10 +307,9 @@ mod ref_tests {
         wa.update_doc(doc, Lang::Hsp3, text.into());
 
         let wa = &wa.compute_analysis();
-        let p = wa.require_project_for_doc(doc);
 
         for (name, pos) in cursors {
-            let actual = p
+            let actual = wa
                 .locate_symbol(doc, pos.into())
                 .map(|(symbol, _)| symbol.name());
             assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);
@@ -346,10 +345,9 @@ mod ref_tests {
         wa.update_doc(doc, Lang::Hsp3, text.into());
 
         let wa = &wa.compute_analysis();
-        let p = wa.require_project_for_doc(doc);
 
         for (name, pos) in cursors {
-            let actual = p
+            let actual = wa
                 .locate_symbol(doc, pos.into())
                 .map(|(symbol, _)| symbol.name());
             assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);

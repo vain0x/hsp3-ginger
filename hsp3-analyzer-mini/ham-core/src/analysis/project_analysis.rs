@@ -11,22 +11,6 @@ impl Default for EntryPoints {
     }
 }
 
-#[derive(Clone, Copy)]
-pub(crate) struct ProjectAnalysisRef<'a> {
-    pub(super) def_sites: &'a [(SymbolRc, Loc)],
-    pub(super) use_sites: &'a [(SymbolRc, Loc)],
-}
-
-impl<'a> ProjectAnalysisRef<'a> {
-    pub(crate) fn locate_symbol(self, doc: DocId, pos: Pos16) -> Option<(SymbolRc, Loc)> {
-        self.def_sites
-            .iter()
-            .chain(self.use_sites)
-            .find(|&(_, loc)| loc.is_touched(doc, pos))
-            .cloned()
-    }
-}
-
 #[derive(Default)]
 pub(crate) struct IncludeGraph {
     edges: HashMap<DocId, Vec<DocId>>,

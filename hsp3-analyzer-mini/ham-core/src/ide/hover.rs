@@ -10,10 +10,9 @@ pub(crate) fn hover(
     docs: &Docs,
 ) -> Option<Hover> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    let project = wa.require_project_for_doc(doc);
 
     let (contents, loc) = (|| -> Option<_> {
-        let (symbol, symbol_loc) = project.locate_symbol(doc, pos)?;
+        let (symbol, symbol_loc) = wa.locate_symbol(doc, pos)?;
         let (name, kind, details) = get_symbol_details(&symbol)?;
 
         let mut contents = vec![];

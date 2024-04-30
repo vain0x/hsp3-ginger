@@ -9,8 +9,7 @@ pub(crate) fn document_highlight(
     docs: &Docs,
 ) -> Option<Vec<DocumentHighlight>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    let project = wa.require_project_for_doc(doc);
-    let (symbol, _) = project.locate_symbol(doc, pos)?;
+    let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
     let mut highlights = vec![];
     collect_highlights(wa, doc, &symbol, |kind, loc| {

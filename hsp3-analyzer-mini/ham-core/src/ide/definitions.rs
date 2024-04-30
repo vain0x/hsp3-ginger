@@ -9,8 +9,7 @@ fn goto_symbol_definition(
     pos: Pos16,
     locs: &mut Vec<Loc>,
 ) -> Option<()> {
-    let project = wa.require_project_for_doc(doc);
-    let (symbol, _) = project.locate_symbol(doc, pos)?;
+    let (symbol, _) = wa.locate_symbol(doc, pos)?;
     let include_graph = IncludeGraph::generate(wa, docs);
     collect_symbol_defs(wa, &include_graph, doc, &symbol, locs);
     Some(())

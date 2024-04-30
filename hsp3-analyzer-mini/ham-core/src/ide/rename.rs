@@ -11,11 +11,10 @@ pub(crate) fn prepare_rename(
     position: Position,
 ) -> Option<PrepareRenameResponse> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    let project = wa.require_project_for_doc(doc);
 
     // FIXME: カーソル直下に識別子があって、それの定義がワークスペース内のファイル (commonやhsphelpでない) にあったときだけSomeを返す。
 
-    let (_, loc) = project.locate_symbol(doc, pos)?;
+    let (_, loc) = wa.locate_symbol(doc, pos)?;
     let range = loc_to_range(loc);
     Some(PrepareRenameResponse::Range(range))
 }
@@ -30,9 +29,7 @@ pub(crate) fn rename(
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
         let (doc, pos) = from_document_position(&uri, position, docs)?;
-        let project = wa.require_project_for_doc(doc);
-
-        let (symbol, _) = project.locate_symbol(doc, pos)?;
+        let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
         let include_graph = IncludeGraph::generate(wa, docs);
         let mut locs = vec![];

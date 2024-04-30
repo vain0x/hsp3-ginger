@@ -8,8 +8,7 @@ pub(crate) fn references(
     include_definition: bool,
 ) -> Option<Vec<Location>> {
     let (doc, pos) = from_document_position(&uri, position, docs)?;
-    let project = wa.require_project_for_doc(doc);
-    let (symbol, _) = project.locate_symbol(doc, pos)?;
+    let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
     let include_graph = IncludeGraph::generate(wa, docs);
     let mut locs = vec![];
