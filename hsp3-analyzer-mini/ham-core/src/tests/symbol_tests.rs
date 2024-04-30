@@ -27,6 +27,7 @@ fn symbols_tests() {
     let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests");
 
     let mut ls = LangService::new_standalone();
+    ls.initialize(Some(Url::from_directory_path(tests_dir.clone()).unwrap()));
 
     let mut texts = HashMap::new();
 
