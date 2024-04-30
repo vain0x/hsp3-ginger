@@ -523,6 +523,46 @@ pub(crate) fn collect_doc_symbols(
     }));
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum DefOrUse {
+    Def,
+    Use,
+}
+
+/// 指定したドキュメントに含まれる、指定したシンボルの出現箇所をすべて列挙する
+///
+/// (`documentHighlight` 用)
+///
+/// - 指定したシンボルの、そのドキュメント内での出現箇所、それぞれにつき `on_site` 関数が呼ばれる
+/// - 出現箇所が複数ある場合、位置が前にあるものから順に呼び出しが行われる。
+///     同じ位置に対して複数回の呼び出しが行われることはない
+pub(crate) fn collect_highlights(
+    wa: &AnalysisRef<'_>,
+    doc: DocId,
+    symbol: &SymbolRc,
+    mut on_site: impl FnMut(DefOrUse, Loc),
+) {
+    let mut sites: Vec<(Loc, DefOrUse)> = vec![];
+    for (s, loc) in wa.def_sites {
+        if loc.doc == doc && s == symbol {
+            sites.push((*loc, DefOrUse::Def));
+        }
+    }
+    for (s, loc) in wa.use_sites {
+        if loc.doc == doc && s == symbol {
+            sites.push((*loc, DefOrUse::Use));
+        }
+    }
+
+    // 位置でソートする。同じ位置に定義・使用箇所が複数ある場合、定義だけ残して重複を除去する (dedup)
+    sites.sort();
+    sites.dedup_by_key(|(loc, _)| *loc);
+
+    for (loc, kind) in sites {
+        on_site(kind, loc);
+    }
+}
+
 /// 指定したドキュメント内のすべてのシンボルの出現箇所 (定義・使用両方) を列挙する
 /// (セマンティックトークン用)
 pub(crate) fn collect_symbol_occurrences_in_doc<'a>(

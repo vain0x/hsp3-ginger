@@ -80,10 +80,10 @@ mod analysis {
         symbol::{DefInfo, HspSymbolKind, SymbolDetails, SymbolRc},
         syntax_linter::SyntaxLint,
         workspace_analysis::{
-            collect_doc_symbols, collect_preproc_completion_items,
+            collect_doc_symbols, collect_highlights, collect_preproc_completion_items,
             collect_symbol_occurrences_in_doc, collect_symbols_in_scope, collect_workspace_symbols,
-            find_include_target, AnalysisRef, DocSyntax, SignatureHelpDb, WorkspaceAnalysis,
-            WorkspaceHost,
+            find_include_target, AnalysisRef, DefOrUse, DocSyntax, SignatureHelpDb,
+            WorkspaceAnalysis, WorkspaceHost,
         },
     };
 

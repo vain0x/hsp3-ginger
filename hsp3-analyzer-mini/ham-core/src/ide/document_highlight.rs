@@ -12,27 +12,18 @@ pub(crate) fn document_highlight(
     let project = wa.require_project_for_doc(doc);
     let (symbol, _) = project.locate_symbol(doc, pos)?;
 
-    let mut locs = vec![];
     let mut highlights = vec![];
+    collect_highlights(wa, doc, &symbol, |kind, loc| {
+        let kind = match kind {
+            DefOrUse::Def => DocumentHighlightKind::WRITE,
+            DefOrUse::Use => DocumentHighlightKind::READ,
+        };
 
-    project.collect_symbol_defs(&symbol, &mut locs);
-    highlights.extend(
-        locs.drain(..)
-            .map(|loc| (DocumentHighlightKind::WRITE, loc)),
-    );
+        highlights.push(DocumentHighlight {
+            kind: Some(kind),
+            range: loc_to_range(loc),
+        });
+    });
 
-    project.collect_symbol_uses(&symbol, &mut locs);
-    highlights.extend(locs.drain(..).map(|loc| (DocumentHighlightKind::READ, loc)));
-
-    highlights.retain(|(_, loc)| loc.doc == doc);
-
-    Some(
-        highlights
-            .into_iter()
-            .map(|(kind, loc)| DocumentHighlight {
-                kind: Some(kind),
-                range: loc_to_range(loc),
-            })
-            .collect(),
-    )
+    Some(highlights)
 }
