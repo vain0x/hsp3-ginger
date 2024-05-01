@@ -88,49 +88,6 @@ impl Docs {
         self.doc_versions.get(&doc).copied()
     }
 
-    /// 指定したURIが指すディレクトリの子孫であるドキュメントを探す。
-    pub(crate) fn get_docs_in(&self, uri: &CanonicalUri) -> ProjectDocs {
-        // ファイル名 -> 同じ名前を持つドキュメントのIDのリスト
-        let mut doc_env: HashMap<String, Vec<DocId>> = HashMap::new();
-        // ディレクトリへの相対パス -> ディレクトリID
-        let mut dir_env: HashMap<String, usize> = HashMap::new();
-        // ドキュメント -> 親ディレクトリのID
-        let mut doc_dirs: HashMap<DocId, usize> = HashMap::new();
-        // ディレクトリID -> ディレクトリに含まれるドキュメントのIDのリスト
-        let mut dirs: Vec<Vec<DocId>> = vec![];
-
-        let base_dir = match uri.to_file_path() {
-            Some(it) => it,
-            None => return ProjectDocs::default(),
-        };
-        for (&doc, uri) in &self.doc_to_uri {
-            (|| -> Option<()> {
-                let absolute_path = uri.to_file_path()?;
-                let relative_path = absolute_path.strip_prefix(&base_dir).ok()?;
-                let dir = relative_path.parent()?.to_string_lossy().replace("\\", "/");
-                let name = relative_path.file_name()?.to_string_lossy().to_string();
-
-                let dir_id = *dir_env.entry(dir).or_insert_with(|| {
-                    dirs.push(vec![]);
-                    dirs.len() - 1
-                });
-                dirs[dir_id].push(doc);
-                doc_dirs.insert(doc, dir_id);
-                doc_env.entry(name).or_default().push(doc);
-                Some(())
-            })();
-        }
-
-        let dirs = dirs.into_iter().map(Rc::new).collect::<Vec<_>>();
-        ProjectDocs {
-            doc_dirs: doc_dirs
-                .into_iter()
-                .map(|(doc, dir_id)| (doc, dirs[dir_id].clone()))
-                .collect(),
-            doc_env,
-        }
-    }
-
     pub(crate) fn has_changes(&self) -> bool {
         !self.doc_changes.is_empty()
     }
@@ -270,49 +227,95 @@ impl Docs {
     }
 }
 
-#[derive(Default)]
-pub(crate) struct ProjectDocs {
-    /// ドキュメント -> それが属するディレクトリ
-    /// (ディレクトリはそれに入っているドキュメントのリストで表す。)
-    pub(crate) doc_dirs: HashMap<DocId, Rc<Vec<DocId>>>,
+/// `#include` のファイルパスを解決する
+///
+/// - ドキュメント `base_doc` に `#include` が含まれていて、そこにファイルパス `included_name` が指定されているとする。
+///     そのincludeされるファイルへの `DocId` があれば返す
+/// - この関数では `common` やその他のパスが通ったディレクトリは探索されない
+pub(crate) fn resolve_included_name(
+    docs: &Docs,
+    included_name: &str,
+    base_doc: DocId,
+) -> Option<DocId> {
+    let i_path = match PathBuf::try_from(included_name) {
+        Ok(it) => it,
+        Err(_) => {
+            trace!("{:?} isn't a path", included_name);
+            return None;
+        }
+    };
 
-    /// ファイル名 -> その名前のドキュメント
-    pub(crate) doc_env: HashMap<String, Vec<DocId>>,
-}
-
-impl ProjectDocs {
-    /// 2つのドキュメントが同じディレクトリにある？
-    fn peer(&self, d1: DocId, d2: DocId) -> bool {
-        match (self.doc_dirs.get(&d1), self.doc_dirs.get(&d2)) {
-            (Some(dir1), Some(dir2)) => Rc::ptr_eq(dir1, dir2),
-            _ => false,
+    // absolute path?
+    if i_path.is_absolute() {
+        if let Some(u) = CanonicalUri::from_file_path(&i_path) {
+            if let Some(d) = docs.find_by_uri(&u) {
+                return Some(d);
+            }
         }
     }
 
-    /// ファイル名からドキュメントを探す。
-    ///
-    /// ディレクトリは無視して名前が一致するものを探す。
-    /// ただし `base_opt = Some(doc)` であり `doc` と同じディレクトリにその名前のファイルがあったら、それを使う。
-    pub(crate) fn find(&self, name: &str, base_opt: Option<DocId>) -> Option<DocId> {
-        debug_assert!(!name.contains('\\'));
-
-        let basename = match name.rfind('/') {
-            Some(i) => &name[i + 1..],
-            None => name,
-        };
-
-        if basename == "" || basename == "." || basename == ".." {
+    let src_file = match docs.get_uri(base_doc).and_then(|uri| uri.to_file_path()) {
+        Some(it) => it,
+        None => {
+            trace!("base_doc isn't open: {}", base_doc);
             return None;
         }
+    };
+    let src_dir = src_file.parent()?;
 
-        let docs = self.doc_env.get(basename)?;
+    let resolved_path = src_dir.join(i_path);
+    let resolved_uri = CanonicalUri::from_file_path(&resolved_path)?;
+    // debug!("resolved_uri = {:?}", resolved_uri.to_file_path());
+    docs.find_by_uri(&resolved_uri)
+}
 
-        if let Some(base) = base_opt {
-            if let it @ Some(_) = docs.iter().find(|&&d| self.peer(base, d)).cloned() {
-                return it;
-            }
-        }
+// ===============================================
 
-        docs.first().cloned()
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::dummy_path;
+    use std::{path::PathBuf, str::FromStr};
+
+    fn p(s: &str) -> PathBuf {
+        let p = PathBuf::from_str(s).unwrap();
+        dummy_path().join(p)
+    }
+
+    #[test]
+    fn test_resolve_included_name() {
+        // note: 相対パスを使ったincludeの解決がテスト中にうまくいかない
+        //       CanonicalUri の中でファイルパスを正規化(canonicalize)が失敗するせい
+        //       (パスの指す先にファイルがないと動作しないため)
+
+        let mut docs = Docs::default();
+        let a = docs.ensure_file_opened(&p("a.hsp")).unwrap();
+        let b = docs.ensure_file_opened(&p("b.hsp")).unwrap();
+        let c = docs.ensure_file_opened(&p("x/c.hsp")).unwrap();
+        let d = docs.ensure_file_opened(&p("x/d.hsp")).unwrap();
+        docs.ensure_file_opened(&p("y/e.hsp")).unwrap();
+
+        // aから兄弟・子孫に位置するファイルを参照できること
+        assert_eq!(resolve_included_name(&docs, "b.hsp", a), Some(b));
+        assert_eq!(resolve_included_name(&docs, "./b.hsp", a), Some(b));
+        assert_eq!(resolve_included_name(&docs, "x/c.hsp", a), Some(c));
+
+        // c (入れ子のディレクトリに含まれるファイル) から相対パスを使って参照できること
+        assert_eq!(resolve_included_name(&docs, "d.hsp", c), Some(d));
+        // assert_eq!(resolve_included_name(&docs, "../a.hsp", c), Some(a));
+        // assert_eq!(resolve_included_name(&docs, "../y/e.hsp", c), Some(e));
+
+        // 存在しないファイルは解決されないこと
+        assert_eq!(resolve_included_name(&docs, "c.hsp", a), None);
+
+        // 妙なケース: aからa自身への参照
+        assert_eq!(resolve_included_name(&docs, "a.hsp", a), Some(a));
+        // assert_eq!(resolve_included_name(&docs, "../a.hsp", a), Some(a));
+
+        // 不正なinclude名の例
+        assert_eq!(resolve_included_name(&docs, "", a), None);
+        assert_eq!(resolve_included_name(&docs, ".", a), None);
+        assert_eq!(resolve_included_name(&docs, "*", a), None);
+        assert_eq!(resolve_included_name(&docs, "/a.hsp", a), None);
     }
 }

@@ -1,7 +1,10 @@
+use crate::lang_service::docs::resolve_included_name;
+
 use super::*;
 
 pub(crate) enum EntryPoints {
     NonCommon,
+    #[allow(unused)]
     Docs(Vec<DocId>),
 }
 
@@ -51,23 +54,34 @@ fn generate_include_graph(
         // eprintln!("  >{}:{} ({})", src_doc, src_name, da.includes.len());
 
         for (included_name, l) in &da.includes {
-            let included_doc = match wa.project_docs.find(included_name, Some(src_doc)) {
-                Some(it) => it,
-                None => {
-                    debug!(
-                        "include unresolved: {}:{} ({})",
-                        src_name, l.range, included_name
-                    );
-                    continue;
-                }
-            };
-            debug!("include {}:{} -> {}", src_name, l.range, included_name);
+            // TODO: includeの解決
+            // let included_doc = match wa.project_docs.find(included_name, Some(src_doc)) {
+            //     Some(it) => it,
+            //     None => {
+            //         debug!(
+            //             "include unresolved: {}:{} ({})",
+            //             src_name, l.range, included_name
+            //         );
+            //         continue;
+            //     }
+            // };
+            let included_doc_opt = resolve_included_name(docs, included_name, src_doc)
+                .or_else(|| wa.common_docs.get(included_name.as_str()).cloned());
+            debug!(
+                "include {}:{} {:?} -> {:?}",
+                src_name,
+                l.start(),
+                included_name,
+                included_doc_opt
+            );
 
-            include_graph
-                .edges
-                .entry(src_doc)
-                .or_default()
-                .push(included_doc);
+            if let Some(included_doc) = included_doc_opt {
+                include_graph
+                    .edges
+                    .entry(src_doc)
+                    .or_default()
+                    .push(included_doc);
+            }
         }
     }
 
@@ -233,7 +247,7 @@ mod tests {
     use lsp_types::Url;
 
     fn dummy_url(s: &str) -> Url {
-        let workspace_dir = crate::test_utils::dummy_path().join("ws").join(s);
+        let workspace_dir = crate::test_utils::dummy_path().join("ws");
         Url::from_file_path(&workspace_dir.join(s)).unwrap()
     }
 

@@ -22,7 +22,6 @@ pub(crate) struct WorkspaceAnalysis {
     common_docs: Rc<HashMap<String, DocId>>,
     hsphelp_info: Rc<HspHelpInfo>,
     entrypoints: EntryPoints,
-    pub(super) project_docs: Rc<ProjectDocs>,
 
     // computed:
     pub(super) active_docs: HashSet<DocId>,
@@ -48,9 +47,8 @@ pub(crate) struct WorkspaceAnalysis {
 pub(crate) struct AnalysisRef<'a> {
     // input:
     doc_texts: &'a HashMap<DocId, (Lang, RcStr)>,
-
+    pub(crate) common_docs: &'a HashMap<String, DocId>,
     hsphelp_info: &'a HspHelpInfo,
-    pub(super) project_docs: &'a ProjectDocs,
 
     // computed:
     pub(super) active_docs: &'a HashSet<DocId>,
@@ -92,10 +90,6 @@ impl WorkspaceAnalysis {
         self.dirty_docs.insert(doc);
         self.doc_texts.remove(&doc);
         self.doc_analysis_map.remove(&doc);
-    }
-
-    pub(crate) fn set_project_docs(&mut self, project_docs: ProjectDocs) {
-        self.project_docs = Rc::new(project_docs);
     }
 
     pub(crate) fn is_computed(&self) -> bool {
@@ -162,7 +156,6 @@ impl WorkspaceAnalysis {
                 &self.entrypoints,
                 &self.common_docs,
                 &self.hsphelp_info,
-                &self.project_docs,
                 &mut self.active_docs,
                 &mut self.active_help_docs,
                 &mut self.help_docs,
@@ -206,8 +199,8 @@ impl WorkspaceAnalysis {
         assert!(self.is_computed());
         AnalysisRef {
             doc_texts: &self.doc_texts,
+            common_docs: &self.common_docs,
             hsphelp_info: &self.hsphelp_info,
-            project_docs: &self.project_docs,
             active_docs: &self.active_docs,
             active_help_docs: &self.active_help_docs,
             doc_symbols_map: &self.doc_symbols_map,

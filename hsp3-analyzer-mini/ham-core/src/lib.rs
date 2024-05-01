@@ -89,7 +89,7 @@ mod analysis {
 
     use crate::{
         lang::Lang,
-        lang_service::{docs::ProjectDocs, search_hsphelp::HspHelpInfo},
+        lang_service::search_hsphelp::HspHelpInfo,
         parse::{PRoot, PToken},
         source::*,
         token::{TokenData, TokenKind},

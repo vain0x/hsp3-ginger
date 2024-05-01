@@ -177,10 +177,10 @@ impl LangService {
         let mut doc_changes = vec![];
         self.docs.drain_doc_changes(&mut doc_changes);
 
-        let opened_or_closed = doc_changes.iter().any(|change| match change {
-            DocChange::Opened { .. } | DocChange::Closed { .. } => true,
-            _ => false,
-        });
+        // let opened_or_closed = doc_changes.iter().any(|change| match change {
+        //     DocChange::Opened { .. } | DocChange::Closed { .. } => true,
+        //     _ => false,
+        // });
 
         for change in doc_changes.drain(..) {
             match change {
@@ -206,12 +206,12 @@ impl LangService {
             }
         }
 
-        if opened_or_closed {
-            if let Some(root_uri) = &self.root_uri_opt {
-                let project_docs = self.docs.get_docs_in(root_uri);
-                self.wa.set_project_docs(project_docs);
-            }
-        }
+        // invalidate include graph
+        // if opened_or_closed {
+        //     if let Some(root_uri) = &self.root_uri_opt {
+        //         ...
+        //     }
+        // }
     }
 
     fn get_ref(&mut self) -> LangServiceRef<'_> {

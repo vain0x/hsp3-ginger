@@ -10,16 +10,16 @@ use super::*;
 ///  `hsphelp/foo.hs` は `common/foo.as` がアクティブである場合にアクティブとみなされる。)
 pub(crate) fn compute_active_docs(
     doc_analysis_map: &HashMap<DocId, DocAnalysis>,
-    entrypoints: &EntryPoints,
+    #[allow(unused)] entrypoints: &EntryPoints,
     common_docs: &HashMap<String, DocId>,
     hsphelp_info: &HspHelpInfo,
-    project_docs: &ProjectDocs,
     active_docs: &mut HashSet<DocId>,
     active_help_docs: &mut HashSet<DocId>,
     help_docs: &mut HashMap<DocId, DocId>,
-    include_resolution: &mut Vec<(Loc, DocId)>,
+    #[allow(unused)] include_resolution: &mut Vec<(Loc, DocId)>,
 ) {
     // `ginger.txt` 機能 (一時停止)
+    #[cfg(skip)]
     match entrypoints {
         EntryPoints::Docs(entrypoints) => {
             assert_ne!(entrypoints.len(), 0);
@@ -40,6 +40,7 @@ pub(crate) fn compute_active_docs(
 
                 for &(ref path, loc) in &da.includes {
                     let path = path.as_str();
+                    // TODO: includeの解決
                     let doc_opt = project_docs
                         .find(path, Some(loc.doc))
                         .or_else(|| common_docs.get(path).cloned());
@@ -61,9 +62,13 @@ pub(crate) fn compute_active_docs(
                 }
             }
         }
-        EntryPoints::NonCommon => {
-            // includeされていないcommonのファイルだけ除外する。
+        EntryPoints::NonCommon => {}
+    }
 
+    {
+        // common以外にあるすべてのファイルと、
+        // それらのファイルからincludeされているcommonのファイルはアクティブとする
+        {
             let mut included_docs = HashSet::new();
             let in_common = common_docs.values().cloned().collect::<HashSet<_>>();
 

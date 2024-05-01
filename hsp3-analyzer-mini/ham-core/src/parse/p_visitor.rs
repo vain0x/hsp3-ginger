@@ -222,6 +222,7 @@ pub(crate) trait PVisitor {
         self.on_stmt_default(stmt);
     }
 
+    #[allow(unused)]
     fn on_stmt_opt(&mut self, stmt_opt: Option<&PStmt>) {
         if let Some(stmt) = stmt_opt {
             self.on_stmt(stmt);
