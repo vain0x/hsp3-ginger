@@ -12,12 +12,12 @@ pub(crate) struct WorkspaceHost {
 
 #[derive(Default)]
 pub(crate) struct WorkspaceAnalysis {
-    // state:
-    dirty_docs: HashMap<DocId, (Lang, RcStr)>,
-
     // input:
     common_docs: Rc<HashMap<String, DocId>>,
     hsphelp_info: Rc<HspHelpInfo>,
+
+    // state:
+    dirty: bool,
 
     // computed:
     pub(super) active_docs: HashSet<DocId>,
@@ -69,71 +69,59 @@ impl WorkspaceAnalysis {
         self.hsphelp_info = hsphelp_info;
 
         self.public_env.builtin = builtin_env;
+        self.dirty = true;
+    }
+
+    pub(crate) fn invalidate(&mut self) {
+        self.dirty = true;
+        self.active_docs.clear();
+        self.active_help_docs.clear();
+        self.help_docs.clear();
+        self.public_env.clear();
+        self.ns_env.clear();
+        self.doc_symbols_map.clear();
+        self.def_sites.clear();
+        self.use_sites.clear();
+        self.include_resolution.clear();
+        self.diagnostics.clear();
+        self.module_map.clear();
     }
 
     // (open or change)
     pub(crate) fn update_doc(&mut self, doc: DocId, lang: Lang, text: RcStr) {
-        self.dirty_docs.insert(doc, (lang, text));
-        self.doc_analysis_map
-            .entry(doc)
-            .and_modify(|a| a.invalidate());
+        debug_assert!(self.dirty);
+
+        match lang {
+            Lang::HelpSource => {
+                // .hs ファイルの変更追跡は未実装
+                return;
+            }
+            Lang::Hsp3 => {}
+        }
+
+        let da = self.doc_analysis_map.entry(doc).or_default();
+        da.compute(doc, text);
     }
 
     pub(crate) fn close_doc(&mut self, doc: DocId) {
+        debug_assert!(self.dirty);
         self.doc_analysis_map.remove(&doc);
     }
 
     pub(crate) fn is_computed(&self) -> bool {
-        self.dirty_docs.is_empty()
+        !self.dirty
     }
 
     /// 未実行の解析処理があるなら行う
     fn compute(&mut self) {
-        if self.dirty_docs.is_empty() {
+        if !self.dirty {
             return;
         }
 
-        // invalidate:
-        {
-            self.active_docs.clear();
-            self.active_help_docs.clear();
-            self.help_docs.clear();
-            self.public_env.clear();
-            self.ns_env.clear();
-            self.doc_symbols_map.clear();
-            self.def_sites.clear();
-            self.use_sites.clear();
-            self.include_resolution.clear();
-            self.diagnostics.clear();
-        }
-
-        // compute:
-        let mut doc_analysis_map = take(&mut self.doc_analysis_map);
-        self.module_map.clear();
-
-        for (doc, (lang, text)) in self.dirty_docs.drain() {
-            match lang {
-                Lang::HelpSource => {
-                    // todo
-                    continue;
-                }
-                Lang::Hsp3 => {}
-            }
-
-            let tokens = crate::token::tokenize(doc, text.clone());
-            let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
-            let root = crate::parse::parse_root(p_tokens.to_owned());
-            let preproc = crate::analysis::preproc::analyze_preproc(doc, &root);
-
-            let da = doc_analysis_map.entry(doc).or_default();
-            da.set_syntax(text.clone(), p_tokens, root);
-            da.set_preproc(preproc);
-
+        for da in self.doc_analysis_map.values() {
             self.module_map
                 .extend(da.module_map.iter().map(|(&m, rc)| (m, rc.clone())));
         }
-
-        self.doc_analysis_map = doc_analysis_map;
 
         // NOTE: プロジェクトシステムの移行中
         {
@@ -178,6 +166,8 @@ impl WorkspaceAnalysis {
         }
 
         assert_eq!(self.diagnostics.len(), 0);
+
+        self.dirty = false;
     }
 
     pub(crate) fn get_analysis(&self) -> AnalysisRef<'_> {

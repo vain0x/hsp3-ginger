@@ -14,32 +14,29 @@ pub(crate) struct DocAnalysis {
     pub(crate) module_map: ModuleMap,
     pub(crate) deffunc_map: DefFuncMap,
     pub(crate) preproc_symbols: Vec<SymbolRc>,
-
     // 構文リント:
-    pub(crate) syntax_lint_done: bool,
-    pub(crate) syntax_lints: Vec<(SyntaxLint, Loc)>,
+    // pub(crate) syntax_lint_done: bool,
+    // pub(crate) syntax_lints: Vec<(SyntaxLint, Loc)>,
 }
 
 impl DocAnalysis {
-    pub(crate) fn invalidate(&mut self) {
-        self.text = RcStr::EMPTY;
-        self.tokens = [].into();
-        self.tree_opt = None;
-        self.includes.clear();
-        self.module_map.clear();
-        self.deffunc_map.clear();
-        self.preproc_symbols.clear();
-        self.syntax_lint_done = false;
-        self.syntax_lints.clear();
+    pub(crate) fn compute(&mut self, doc: DocId, text: RcStr) {
+        let tokens = crate::token::tokenize(doc, text.clone());
+        let p_tokens: RcSlice<_> = PToken::from_tokens(tokens.into()).into();
+        let root = crate::parse::parse_root(p_tokens.to_owned());
+        let preproc = crate::analysis::preproc::analyze_preproc(doc, &root);
+
+        self.set_syntax(text, p_tokens, root);
+        self.set_preproc(preproc);
     }
 
-    pub(crate) fn set_syntax(&mut self, text: RcStr, tokens: RcSlice<PToken>, tree: PRoot) {
+    fn set_syntax(&mut self, text: RcStr, tokens: RcSlice<PToken>, tree: PRoot) {
         self.text = text;
         self.tokens = tokens;
         self.tree_opt = Some(tree);
     }
 
-    pub(crate) fn set_preproc(&mut self, preproc: PreprocAnalysisResult) {
+    fn set_preproc(&mut self, preproc: PreprocAnalysisResult) {
         self.include_guard = preproc.include_guard;
         self.includes = preproc.includes;
         self.module_map = preproc.module_map;

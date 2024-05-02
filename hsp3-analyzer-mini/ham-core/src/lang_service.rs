@@ -85,7 +85,9 @@ impl LangService {
 
     #[cfg(test)]
     pub(crate) fn analyze_for_test(&mut self) -> (AnalysisRef<'_>, &Docs) {
-        self.process_changes();
+        if !self.is_computed() {
+            self.process_changes();
+        }
         (self.wa.get_analysis(), &self.docs)
     }
 
@@ -139,12 +141,10 @@ impl LangService {
 
     /// ドキュメントの変更を集積して、解析器の状態を更新する。
     fn process_changes(&mut self) {
-        self.apply_doc_changes();
-        self.wa.compute_analysis();
-        assert!(self.is_computed());
-    }
+        debug_assert!(!self.is_computed());
 
-    fn apply_doc_changes(&mut self) {
+        self.wa.invalidate();
+
         let mut doc_changes = vec![];
         self.docs.drain_doc_changes(&mut doc_changes);
 
@@ -153,7 +153,18 @@ impl LangService {
         //     _ => false,
         // });
 
+        // 同じドキュメントに対する変更をまとめる
+        let mut change_map = HashMap::new();
         for change in doc_changes.drain(..) {
+            let doc = match change {
+                DocChange::Opened { doc, .. }
+                | DocChange::Changed { doc, .. }
+                | DocChange::Closed { doc } => doc,
+            };
+            change_map.insert(doc, change);
+        }
+
+        for (_, change) in change_map.drain() {
             match change {
                 DocChange::Opened { doc, lang, origin }
                 | DocChange::Changed { doc, lang, origin } => {
@@ -183,6 +194,9 @@ impl LangService {
         //         ...
         //     }
         // }
+
+        self.wa.compute_analysis();
+        debug_assert!(self.is_computed());
     }
 
     fn get_ref(&mut self) -> LangServiceRef<'_> {
@@ -195,7 +209,9 @@ impl LangService {
 
     /// 未実行の解析処理があれば処理し、解析処理を行うための参照を作る
     pub(crate) fn compute_ref(&mut self) -> LangServiceRef<'_> {
-        self.process_changes();
+        if !self.is_computed() {
+            self.process_changes();
+        }
         self.get_ref()
     }
 
@@ -341,7 +357,9 @@ impl LangService {
             return vec![];
         }
 
-        self.process_changes();
+        if !self.is_computed() {
+            self.process_changes();
+        }
 
         let mut diagnostics = ide::diagnose::diagnose(
             &self.wa.compute_analysis(),
