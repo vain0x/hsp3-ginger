@@ -44,6 +44,7 @@ pub(crate) struct WorkspaceAnalysis {
 
 pub(crate) struct AnalysisRef<'a> {
     // input:
+    #[allow(unused)]
     doc_texts: &'a HashMap<DocId, (Lang, RcStr)>,
     pub(crate) common_docs: &'a HashMap<String, DocId>,
     hsphelp_info: &'a HspHelpInfo,
@@ -136,7 +137,7 @@ impl WorkspaceAnalysis {
             let preproc = crate::analysis::preproc::analyze_preproc(doc, &root);
 
             let da = doc_analysis_map.entry(doc).or_default();
-            da.set_syntax(p_tokens, root);
+            da.set_syntax(text.clone(), p_tokens, root);
             da.set_preproc(preproc);
 
             self.module_map
@@ -254,13 +255,9 @@ impl AnalysisRef<'_> {
     }
 
     pub(crate) fn get_syntax(&self, doc: DocId) -> Option<DocSyntax> {
-        let (_, text) = self
-            .doc_texts
-            .get(&doc)
-            .filter(|&&(lang, _)| lang == Lang::Hsp3)?;
         let da = self.doc_analysis_map.get(&doc)?;
         Some(DocSyntax {
-            text: text.clone(),
+            text: da.text.clone(),
             tokens: da.tokens.clone(),
             root: da.tree_opt.as_ref()?,
         })

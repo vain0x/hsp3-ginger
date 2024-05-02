@@ -2,6 +2,8 @@ use super::*;
 
 #[derive(Default)]
 pub(crate) struct DocAnalysis {
+    pub(crate) text: RcStr,
+
     // 構文:
     pub(crate) tokens: RcSlice<PToken>,
     pub(crate) tree_opt: Option<PRoot>,
@@ -20,6 +22,7 @@ pub(crate) struct DocAnalysis {
 
 impl DocAnalysis {
     pub(crate) fn invalidate(&mut self) {
+        self.text = RcStr::EMPTY;
         self.tokens = [].into();
         self.tree_opt = None;
         self.includes.clear();
@@ -30,7 +33,8 @@ impl DocAnalysis {
         self.syntax_lints.clear();
     }
 
-    pub(crate) fn set_syntax(&mut self, tokens: RcSlice<PToken>, tree: PRoot) {
+    pub(crate) fn set_syntax(&mut self, text: RcStr, tokens: RcSlice<PToken>, tree: PRoot) {
+        self.text = text;
         self.tokens = tokens;
         self.tree_opt = Some(tree);
     }
