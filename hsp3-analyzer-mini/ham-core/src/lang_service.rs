@@ -119,19 +119,6 @@ impl LangService {
         )
         .unwrap_or_default();
 
-        debug!("scan_manifest_files");
-        if let Some(root_dir) = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
-            project_model::scan::scan_manifest_files(&root_dir, |script_path| {
-                match self.docs.ensure_file_opened(&script_path) {
-                    Some(_) => {}
-                    None => {
-                        warn!("ファイルをopenできません。{:?}", script_path);
-                        return;
-                    }
-                };
-            });
-        }
-
         self.wa.initialize(WorkspaceHost {
             builtin_env: Rc::new(builtin_env),
             common_docs: Rc::new(common_docs),
