@@ -13,11 +13,9 @@ pub(crate) struct WorkspaceHost {
 #[derive(Default)]
 pub(crate) struct WorkspaceAnalysis {
     // state:
-    dirty_docs: HashSet<DocId>,
+    dirty_docs: HashMap<DocId, (Lang, RcStr)>,
 
     // input:
-    doc_texts: HashMap<DocId, (Lang, RcStr)>,
-
     common_docs: Rc<HashMap<String, DocId>>,
     hsphelp_info: Rc<HspHelpInfo>,
 
@@ -44,8 +42,6 @@ pub(crate) struct WorkspaceAnalysis {
 
 pub(crate) struct AnalysisRef<'a> {
     // input:
-    #[allow(unused)]
-    doc_texts: &'a HashMap<DocId, (Lang, RcStr)>,
     pub(crate) common_docs: &'a HashMap<String, DocId>,
     hsphelp_info: &'a HspHelpInfo,
 
@@ -75,17 +71,15 @@ impl WorkspaceAnalysis {
         self.public_env.builtin = builtin_env;
     }
 
+    // (open or change)
     pub(crate) fn update_doc(&mut self, doc: DocId, lang: Lang, text: RcStr) {
-        self.dirty_docs.insert(doc);
-        self.doc_texts.insert(doc, (lang, text));
+        self.dirty_docs.insert(doc, (lang, text));
         self.doc_analysis_map
             .entry(doc)
             .and_modify(|a| a.invalidate());
     }
 
     pub(crate) fn close_doc(&mut self, doc: DocId) {
-        self.dirty_docs.insert(doc);
-        self.doc_texts.remove(&doc);
         self.doc_analysis_map.remove(&doc);
     }
 
@@ -117,12 +111,7 @@ impl WorkspaceAnalysis {
         let mut doc_analysis_map = take(&mut self.doc_analysis_map);
         self.module_map.clear();
 
-        for doc in self.dirty_docs.drain() {
-            let (lang, text) = match self.doc_texts.get(&doc) {
-                Some(it) => it,
-                None => continue,
-            };
-
+        for (doc, (lang, text)) in self.dirty_docs.drain() {
             match lang {
                 Lang::HelpSource => {
                     // todo
@@ -194,7 +183,6 @@ impl WorkspaceAnalysis {
     pub(crate) fn get_analysis(&self) -> AnalysisRef<'_> {
         assert!(self.is_computed());
         AnalysisRef {
-            doc_texts: &self.doc_texts,
             common_docs: &self.common_docs,
             hsphelp_info: &self.hsphelp_info,
             active_docs: &self.active_docs,
