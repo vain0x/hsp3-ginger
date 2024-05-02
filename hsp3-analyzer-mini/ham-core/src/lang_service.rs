@@ -108,7 +108,6 @@ impl LangService {
     pub(super) fn did_initialize(&mut self) {
         let mut builtin_env = SymbolEnv::default();
         let mut common_docs = HashMap::new();
-        let mut entrypoints = vec![];
 
         search_common(&self.hsp3_root, &mut self.docs, &mut common_docs);
 
@@ -123,35 +122,20 @@ impl LangService {
         debug!("scan_manifest_files");
         if let Some(root_dir) = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
             project_model::scan::scan_manifest_files(&root_dir, |script_path| {
-                let doc = match self.docs.ensure_file_opened(&script_path) {
-                    Some(it) => it,
+                match self.docs.ensure_file_opened(&script_path) {
+                    Some(_) => {}
                     None => {
                         warn!("ファイルをopenできません。{:?}", script_path);
                         return;
                     }
                 };
-                entrypoints.push(doc);
             });
         }
-        trace!(
-            "entrypoints={:?}",
-            entrypoints
-                .iter()
-                .filter_map(|&doc| self.docs.get_uri(doc).and_then(|uri| uri.to_file_path()))
-                .collect::<Vec<_>>()
-        );
-
-        let entrypoints = if !entrypoints.is_empty() {
-            EntryPoints::Docs(entrypoints)
-        } else {
-            EntryPoints::NonCommon
-        };
 
         self.wa.initialize(WorkspaceHost {
             builtin_env: Rc::new(builtin_env),
             common_docs: Rc::new(common_docs),
             hsphelp_info: Rc::new(hsphelp_info),
-            entrypoints,
         });
 
         debug!("scan_script_files");

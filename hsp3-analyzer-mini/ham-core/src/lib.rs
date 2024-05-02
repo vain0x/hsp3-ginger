@@ -71,7 +71,7 @@ mod analysis {
         doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
-        project_analysis::{collect_symbol_defs, collect_symbol_uses, EntryPoints, IncludeGraph},
+        project_analysis::{collect_symbol_defs, collect_symbol_uses, IncludeGraph},
         sema_linter::{Diagnostic, SemaLinter},
         symbol::{
             module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,

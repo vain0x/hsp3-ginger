@@ -1,18 +1,5 @@
-use crate::lang_service::docs::resolve_included_name;
-
 use super::*;
-
-pub(crate) enum EntryPoints {
-    NonCommon,
-    #[allow(unused)]
-    Docs(Vec<DocId>),
-}
-
-impl Default for EntryPoints {
-    fn default() -> Self {
-        EntryPoints::NonCommon
-    }
-}
+use crate::lang_service::docs::resolve_included_name;
 
 #[derive(Default)]
 pub(crate) struct IncludeGraph {

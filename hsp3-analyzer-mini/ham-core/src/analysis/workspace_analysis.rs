@@ -8,7 +8,6 @@ pub(crate) struct WorkspaceHost {
     pub(crate) builtin_env: Rc<SymbolEnv>,
     pub(crate) common_docs: Rc<HashMap<String, DocId>>,
     pub(crate) hsphelp_info: Rc<HspHelpInfo>,
-    pub(crate) entrypoints: EntryPoints,
 }
 
 #[derive(Default)]
@@ -21,7 +20,6 @@ pub(crate) struct WorkspaceAnalysis {
 
     common_docs: Rc<HashMap<String, DocId>>,
     hsphelp_info: Rc<HspHelpInfo>,
-    entrypoints: EntryPoints,
 
     // computed:
     pub(super) active_docs: HashSet<DocId>,
@@ -68,12 +66,10 @@ impl WorkspaceAnalysis {
             common_docs,
             hsphelp_info,
             builtin_env,
-            entrypoints,
         } = host;
 
         self.common_docs = common_docs;
         self.hsphelp_info = hsphelp_info;
-        self.entrypoints = entrypoints;
 
         self.public_env.builtin = builtin_env;
     }
@@ -153,7 +149,6 @@ impl WorkspaceAnalysis {
         {
             compute_active_docs::compute_active_docs(
                 &self.doc_analysis_map,
-                &self.entrypoints,
                 &self.common_docs,
                 &self.hsphelp_info,
                 &mut self.active_docs,
