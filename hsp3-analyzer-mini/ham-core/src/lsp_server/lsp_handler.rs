@@ -5,17 +5,22 @@ use lsp_types::*;
 use std::io;
 
 pub(super) struct LspHandler<W: io::Write> {
+    config: LspConfig,
     sender: LspSender<W>,
     model: LangService,
 }
 
 impl<W: io::Write> LspHandler<W> {
-    pub(crate) fn new(sender: LspSender<W>, model: LangService) -> Self {
-        Self { sender, model }
+    pub(crate) fn new(config: LspConfig, sender: LspSender<W>, model: LangService) -> Self {
+        Self {
+            config,
+            sender,
+            model,
+        }
     }
 
     fn register_file_system_watcher(&mut self) {
-        if !self.model.watcher_enabled() {
+        if !self.config.watcher_enabled {
             return;
         }
 
@@ -58,8 +63,8 @@ impl<W: io::Write> LspHandler<W> {
 
         self.model.initialize(params.root_uri);
 
-        if watchable {
-            self.model.set_watchable(true);
+        if !watchable {
+            self.config.watcher_enabled = false;
         }
 
         InitializeResult {

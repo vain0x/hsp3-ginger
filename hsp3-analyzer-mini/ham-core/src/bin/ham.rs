@@ -28,7 +28,7 @@ fn get_help() -> String {
         lsp
             LSPサーバーとして起動する (標準入出力でメッセージを送受信する)
             (HSPインストールディレクトリの指定が必須)
-            ENV: HAM_LINT=1   リントを有効化する
+            環境変数はtopics.mdを参照
 
         parse [FILES...]
 

@@ -1,6 +1,7 @@
-use super::{LspHandler, LspReceiver, LspSender};
+use super::{LspConfig, LspHandler, LspReceiver, LspSender};
 use crate::lang_service::{LangService, LangServiceOptions};
 use std::{
+    env,
     io::{stdin, stdout},
     path::PathBuf,
 };
@@ -32,15 +33,16 @@ pub(crate) fn init_log() {
     WriteLogger::init(log_filter, Config::default(), file).expect("init log");
 }
 
-fn get_options_from_env() -> LangServiceOptions {
-    LangServiceOptions {
-        lint_enabled: std::env::var("HAM_LINT").map_or(true, |s| !s.is_empty()),
-        watcher_enabled: true,
-    }
-}
-
 pub fn start_lsp_server(hsp3_root: PathBuf) {
     init_log();
+
+    let lsp_config = LspConfig {
+        watcher_enabled: env::var("HAM_WATCHER_ENABLED").map_or(true, |s| s == "1"),
+    };
+
+    let options = LangServiceOptions {
+        lint_enabled: env::var("HAM_LINT").map_or(true, |s| s == "1"),
+    };
 
     let stdin = stdin();
     let stdin = stdin.lock();
@@ -48,7 +50,7 @@ pub fn start_lsp_server(hsp3_root: PathBuf) {
     let stdout = stdout();
     let stdout = stdout.lock();
     let sender = LspSender::new(stdout);
-    let lang_service = LangService::new(hsp3_root, get_options_from_env());
-    let handler = LspHandler::new(sender, lang_service);
+    let lang_service = LangService::new(hsp3_root, options);
+    let handler = LspHandler::new(lsp_config, sender, lang_service);
     handler.main(receiver);
 }

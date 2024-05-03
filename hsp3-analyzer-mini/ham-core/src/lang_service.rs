@@ -21,7 +21,6 @@ use lsp_types::*;
 
 pub(crate) struct LangServiceOptions {
     pub(crate) lint_enabled: bool,
-    pub(crate) watcher_enabled: bool,
 }
 
 impl LangServiceOptions {
@@ -29,17 +28,13 @@ impl LangServiceOptions {
     pub(crate) fn minimal() -> Self {
         Self {
             lint_enabled: false,
-            watcher_enabled: false,
         }
     }
 }
 
 impl Default for LangServiceOptions {
     fn default() -> Self {
-        Self {
-            lint_enabled: true,
-            watcher_enabled: true,
-        }
+        Self { lint_enabled: true }
     }
 }
 
@@ -89,16 +84,6 @@ impl LangService {
             self.process_changes();
         }
         (self.wa.get_analysis(), &self.docs)
-    }
-
-    pub(super) fn watcher_enabled(&self) -> bool {
-        self.options.watcher_enabled
-    }
-
-    pub(super) fn set_watchable(&mut self, watchable: bool) {
-        if self.options.watcher_enabled {
-            self.options.watcher_enabled = watchable;
-        }
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {

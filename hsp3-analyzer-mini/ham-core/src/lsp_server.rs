@@ -1,4 +1,5 @@
 mod init_config;
+pub(super) mod lsp_config;
 pub(super) mod lsp_handler;
 pub(super) mod lsp_main;
 pub(super) mod lsp_receiver;
@@ -7,6 +8,7 @@ pub(super) mod lsp_sender;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+pub(self) use lsp_config::LspConfig;
 pub(self) use lsp_handler::LspHandler;
 pub(self) use lsp_receiver::LspReceiver;
 pub(self) use lsp_sender::LspSender;
