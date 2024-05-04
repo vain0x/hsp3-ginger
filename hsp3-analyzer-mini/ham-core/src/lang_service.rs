@@ -1,3 +1,4 @@
+pub(crate) mod doc_interner;
 pub(crate) mod docs;
 mod search_common;
 pub(crate) mod search_hsphelp;
@@ -13,7 +14,8 @@ use crate::{
     ide::{self, diagnose::DiagnosticsCache},
     lang::Lang,
     lang_service::{
-        docs::DocChangeOrigin, search_common::search_common, search_hsphelp::search_hsphelp,
+        doc_interner::DocInterner, docs::DocChangeOrigin, search_common::search_common,
+        search_hsphelp::search_hsphelp,
     },
     utils::read_file::read_file,
 };

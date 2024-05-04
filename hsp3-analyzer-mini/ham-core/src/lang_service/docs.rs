@@ -39,12 +39,7 @@ pub(crate) enum DocChangeOrigin {
 ///     - これは同じIDを振る。ファイルの内容は無視する。
 #[derive(Default)]
 pub(crate) struct Docs {
-    /// 最後に振ったID
-    last_doc: usize,
-
-    // ドキュメントの情報:
-    doc_to_uri: HashMap<DocId, CanonicalUri>,
-    uri_to_doc: HashMap<CanonicalUri, DocId>,
+    interner: DocInterner,
     doc_versions: HashMap<DocId, TextDocumentVersion>,
 
     /// エディタで開かれているドキュメント
@@ -58,30 +53,12 @@ pub(crate) struct Docs {
 }
 
 impl Docs {
-    pub(crate) fn fresh_doc(&mut self) -> DocId {
-        self.last_doc += 1;
-        self.last_doc
-    }
-
-    /// URIに対応するDocIdを探す。なければ作り、trueを返す。
-    fn touch_uri(&mut self, uri: CanonicalUri) -> (bool, DocId) {
-        match self.uri_to_doc.get(&uri) {
-            Some(&doc) => (false, doc),
-            None => {
-                let doc = self.fresh_doc();
-                self.doc_to_uri.insert(doc, uri.clone());
-                self.uri_to_doc.insert(uri, doc);
-                (true, doc)
-            }
-        }
-    }
-
     pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
-        self.uri_to_doc.get(uri).cloned()
+        self.interner.get_doc(uri)
     }
 
     pub(crate) fn get_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
-        self.doc_to_uri.get(&doc)
+        self.interner.get_uri(doc)
     }
 
     pub(crate) fn get_version(&self, doc: DocId) -> Option<TextDocumentVersion> {
@@ -116,8 +93,7 @@ impl Docs {
     }
 
     fn do_close_doc(&mut self, doc: DocId, uri: &CanonicalUri) {
-        self.doc_to_uri.remove(&doc);
-        self.uri_to_doc.remove(&uri);
+        self.interner.remove(doc, uri);
         self.doc_versions.remove(&doc);
         self.doc_changes.push(DocChange::Closed { doc });
     }
@@ -131,7 +107,7 @@ impl Docs {
             text.len()
         );
 
-        let (created, doc) = self.touch_uri(uri);
+        let (created, doc) = self.interner.intern(&uri);
         if created {
             self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         } else {
@@ -150,7 +126,7 @@ impl Docs {
             text.len()
         );
 
-        let (created, doc) = self.touch_uri(uri);
+        let (created, doc) = self.interner.intern(&uri);
         if created {
             self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         } else {
@@ -164,8 +140,8 @@ impl Docs {
         #[cfg(trace_docs)]
         trace!("クライアントでファイルが閉じられました ({:?})", uri);
 
-        let doc = match self.uri_to_doc.get(&uri) {
-            Some(&doc) => doc,
+        let doc = match self.interner.get_doc(&uri) {
+            Some(doc) => doc,
             None => return,
         };
 
@@ -177,7 +153,7 @@ impl Docs {
     }
 
     fn do_change_file(&mut self, uri: CanonicalUri, path: &Path) -> Option<DocId> {
-        let (created, doc) = self.touch_uri(uri);
+        let (created, doc) = self.interner.intern(&uri);
 
         let open_in_editor = !created && self.editor_docs.contains(&doc);
         if open_in_editor {
@@ -209,8 +185,8 @@ impl Docs {
     }
 
     pub(crate) fn close_file_by_uri(&mut self, uri: CanonicalUri) {
-        let doc = match self.uri_to_doc.get(&uri) {
-            Some(&doc) => doc,
+        let doc = match self.interner.get_doc(&uri) {
+            Some(doc) => doc,
             None => return,
         };
 
