@@ -38,16 +38,19 @@ impl CanonicalUri {
     }
 
     pub(crate) fn from_url(url: &lsp_types::Url) -> Self {
-        let uri = match url
-            .to_file_path()
-            .ok()
-            .and_then(|file_path| file_path.canonicalize().ok())
-            .and_then(|canonical_path| lsp_types::Url::from_file_path(canonical_path).ok())
-        {
-            Some(uri) => uri,
-            None => url.to_owned(),
-        };
-        CanonicalUri { uri }
+        // `file` スキームで絶対パス指定の場合は、ファイルパスの正規化処理を行う。
+        if url.scheme() == "file" {
+            if let Ok(path) = url.to_file_path() {
+                if path.is_absolute() {
+                    if let Some(uri) = Self::from_abs_path(&path) {
+                        return uri;
+                    }
+                }
+            }
+        }
+
+        // 正規形か分からないが、そのまま使う。
+        CanonicalUri { uri: url.clone() }
     }
 
     pub(crate) fn into_url(self) -> lsp_types::Url {
