@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     ide::{loc_to_range, to_lsp_range},
-    lang_service::docs::Docs,
+    lang_service::{doc_interner::DocInterner, docs::Docs},
 };
 use lsp_types::{Diagnostic, DiagnosticSeverity, Url};
 
@@ -13,6 +13,7 @@ pub(crate) struct DiagnosticsCache {
 
 fn filter_diagnostics(
     diagnostics: &mut Vec<(Url, Option<i32>, Vec<Diagnostic>)>,
+    doc_interner: &DocInterner,
     docs: &Docs,
     cache: &mut DiagnosticsCache,
 ) {
@@ -46,8 +47,8 @@ fn filter_diagnostics(
 
     // diagnosticsのなくなったドキュメントからdiagnosticsをクリアする。
     diagnostics.extend(map.drain().map(|(uri, (version, _))| {
-        let version = docs
-            .find_by_uri(&CanonicalUri::from_url(&uri))
+        let version = doc_interner
+            .get_doc(&CanonicalUri::from_url(&uri))
             .and_then(|doc| docs.get_version(doc))
             .or(version);
 
@@ -60,6 +61,7 @@ fn filter_diagnostics(
 
 pub(crate) fn diagnose(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     docs: &Docs,
     cache: &mut DiagnosticsCache,
 ) -> Vec<(Url, Option<i32>, Vec<Diagnostic>)> {
@@ -93,7 +95,7 @@ pub(crate) fn diagnose(
 
     let mut doc_diagnostics = vec![];
     for (doc, diagnostics) in map {
-        let uri = match docs.get_uri(doc) {
+        let uri = match doc_interner.get_uri(doc) {
             Some(it) => it.clone().into_url(),
             None => continue,
         };
@@ -102,7 +104,7 @@ pub(crate) fn diagnose(
         doc_diagnostics.push((uri, version, diagnostics));
     }
 
-    filter_diagnostics(&mut doc_diagnostics, docs, cache);
+    filter_diagnostics(&mut doc_diagnostics, doc_interner, docs, cache);
     doc_diagnostics
 }
 

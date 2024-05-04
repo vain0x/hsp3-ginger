@@ -46,6 +46,7 @@ pub(super) struct LangService {
     hsp3_root: PathBuf,
     root_uri_opt: Option<CanonicalUri>,
     options: LangServiceOptions,
+    doc_interner: DocInterner,
     docs: Docs,
     diagnostics_cache: DiagnosticsCache,
 }
@@ -53,6 +54,7 @@ pub(super) struct LangService {
 /// `LangService` の解析処理を完了した状態への参照
 pub(super) struct LangServiceRef<'a> {
     wa: AnalysisRef<'a>,
+    doc_interner: &'a DocInterner,
     docs: &'a Docs,
 }
 
@@ -81,11 +83,11 @@ impl LangService {
     }
 
     #[cfg(test)]
-    pub(crate) fn analyze_for_test(&mut self) -> (AnalysisRef<'_>, &Docs) {
+    pub(crate) fn analyze_for_test(&mut self) -> (AnalysisRef<'_>, &DocInterner, &Docs) {
         if !self.is_computed() {
             self.process_changes();
         }
-        (self.wa.get_analysis(), &self.docs)
+        (self.wa.get_analysis(), &self.doc_interner, &self.docs)
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
@@ -98,11 +100,17 @@ impl LangService {
         let mut builtin_env = SymbolEnv::default();
         let mut common_docs = HashMap::new();
 
-        search_common(&self.hsp3_root, &mut self.docs, &mut common_docs);
+        search_common(
+            &self.hsp3_root,
+            &mut self.doc_interner,
+            &mut self.docs,
+            &mut common_docs,
+        );
 
         let hsphelp_info = search_hsphelp(
             &self.hsp3_root,
             &common_docs,
+            &mut self.doc_interner,
             &mut self.docs,
             &mut builtin_env,
         )
@@ -117,7 +125,10 @@ impl LangService {
         debug!("scan_script_files");
         if let Some(root_dir) = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
             project_model::scan::scan_script_files(&root_dir, |script_path| {
-                self.docs.change_file(&script_path);
+                if let Some(uri) = CanonicalUri::from_abs_path(&script_path) {
+                    let (_, doc) = self.doc_interner.intern(&uri);
+                    self.docs.change_file(doc, &script_path);
+                }
             });
         }
     }
@@ -190,6 +201,7 @@ impl LangService {
         assert!(self.is_computed());
         LangServiceRef {
             wa: self.wa.get_analysis(),
+            doc_interner: &self.doc_interner,
             docs: &self.docs,
         }
     }
@@ -205,33 +217,49 @@ impl LangService {
     pub(super) fn shutdown(&mut self) {}
 
     pub(super) fn open_doc(&mut self, uri: Url, version: i32, text: String) {
-        let uri = CanonicalUri::from_url(&uri);
-        self.docs.open_doc_in_editor(uri, version, text.into());
+        let c_uri = CanonicalUri::from_url(&uri);
+        let (_, doc) = self.doc_interner.intern(&c_uri);
+        self.docs.open_doc_in_editor(doc, version, text.into());
     }
 
     pub(super) fn change_doc(&mut self, uri: Url, version: i32, text: String) {
-        let uri = CanonicalUri::from_url(&uri);
-        self.docs.change_doc_in_editor(uri, version, text.into());
+        let c_uri = CanonicalUri::from_url(&uri);
+        let (_, doc) = self.doc_interner.intern(&c_uri);
+        self.docs.change_doc_in_editor(doc, version, text.into());
     }
 
     pub(super) fn close_doc(&mut self, uri: Url) {
-        let uri = CanonicalUri::from_url(&uri);
-        self.docs.close_doc_in_editor(uri);
+        let c_uri = CanonicalUri::from_url(&uri);
+        if let Some(doc) = self.doc_interner.get_doc(&c_uri) {
+            if self.docs.close_doc_in_editor(doc) {
+                self.doc_interner.remove(doc, &c_uri);
+            }
+        }
     }
 
-    pub(super) fn on_file_created(&mut self, uri: Url) {
-        let uri = CanonicalUri::from_url(&uri);
-        self.docs.change_file_by_uri(uri);
+    pub(super) fn on_file_created(&mut self, url: Url) {
+        let c_uri = CanonicalUri::from_url(&url);
+        let (_, doc) = self.doc_interner.intern(&c_uri);
+        if let Some(path) = c_uri.to_file_path() {
+            self.docs.change_file(doc, &path);
+        }
     }
 
     pub(super) fn on_file_changed(&mut self, uri: Url) {
-        let uri = CanonicalUri::from_url(&uri);
-        self.docs.change_file_by_uri(uri);
+        let c_uri = CanonicalUri::from_url(&uri);
+        let (_, doc) = self.doc_interner.intern(&c_uri);
+        if let Some(path) = c_uri.to_file_path() {
+            self.docs.change_file(doc, &path);
+        }
     }
 
     pub(super) fn on_file_deleted(&mut self, uri: Url) {
-        let uri = CanonicalUri::from_url(&uri);
-        self.docs.close_file_by_uri(uri);
+        let c_uri = CanonicalUri::from_url(&uri);
+        if let Some(doc) = self.doc_interner.get_doc(&c_uri) {
+            if self.docs.close_file(doc) {
+                self.doc_interner.remove(doc, &c_uri);
+            }
+        }
     }
 }
 
@@ -244,12 +272,22 @@ impl<'a> LangServiceRef<'a> {
     ) -> Vec<CodeAction> {
         let mut actions = vec![];
         actions.extend(
-            ide::code_actions::flip_comma::flip_comma(&self.wa, &uri, range, &self.docs)
-                .unwrap_or_default(),
+            ide::code_actions::flip_comma::flip_comma(
+                &self.wa,
+                self.doc_interner,
+                self.docs,
+                &uri,
+                range,
+            )
+            .unwrap_or_default(),
         );
         actions.extend(
             ide::code_actions::generate_include_guard::generate_include_guard(
-                &self.wa, &uri, range, &self.docs,
+                &self.wa,
+                self.doc_interner,
+                self.docs,
+                &uri,
+                range,
             )
             .unwrap_or_default(),
         );
@@ -257,7 +295,7 @@ impl<'a> LangServiceRef<'a> {
     }
 
     pub(super) fn completion(&self, uri: Url, position: Position) -> CompletionList {
-        ide::completion::completion(&self.wa, uri, position, &self.docs)
+        ide::completion::completion(&self.wa, self.doc_interner, uri, position)
             .unwrap_or_else(ide::completion::incomplete_completion_list)
     }
 
@@ -265,15 +303,15 @@ impl<'a> LangServiceRef<'a> {
         &self,
         completion_item: CompletionItem,
     ) -> Option<CompletionItem> {
-        ide::completion::completion_resolve(&self.wa, completion_item, &self.docs)
+        ide::completion::completion_resolve(&self.wa, self.doc_interner, completion_item)
     }
 
     pub(crate) fn formatting(&self, uri: Url) -> Option<Vec<TextEdit>> {
-        ide::formatting::formatting(&self.wa, uri, &self.docs)
+        ide::formatting::formatting(&self.wa, self.doc_interner, uri)
     }
 
     pub(super) fn definitions(&self, uri: Url, position: Position) -> Vec<Location> {
-        ide::definitions::definitions(&self.wa, self.docs, uri, position).unwrap_or(vec![])
+        ide::definitions::definitions(&self.wa, self.doc_interner, uri, position).unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
@@ -281,16 +319,16 @@ impl<'a> LangServiceRef<'a> {
         uri: Url,
         position: Position,
     ) -> Vec<DocumentHighlight> {
-        ide::document_highlight::document_highlight(&self.wa, uri, position, &self.docs)
+        ide::document_highlight::document_highlight(&self.wa, self.doc_interner, uri, position)
             .unwrap_or(vec![])
     }
 
     pub(super) fn document_symbol(&self, uri: Url) -> Option<DocumentSymbolResponse> {
-        ide::document_symbol::symbol(&self.wa, uri, &self.docs)
+        ide::document_symbol::symbol(&self.wa, self.doc_interner, uri)
     }
 
     pub(super) fn hover(&self, uri: Url, position: Position) -> Option<Hover> {
-        ide::hover::hover(&self.wa, uri, position, &self.docs)
+        ide::hover::hover(&self.wa, self.doc_interner, uri, position)
     }
 
     pub(super) fn references(
@@ -299,8 +337,14 @@ impl<'a> LangServiceRef<'a> {
         position: Position,
         include_definition: bool,
     ) -> Vec<Location> {
-        ide::references::references(&self.wa, self.docs, uri, position, include_definition)
-            .unwrap_or(vec![])
+        ide::references::references(
+            &self.wa,
+            self.doc_interner,
+            uri,
+            position,
+            include_definition,
+        )
+        .unwrap_or(vec![])
     }
 
     pub(super) fn prepare_rename(
@@ -308,7 +352,7 @@ impl<'a> LangServiceRef<'a> {
         uri: Url,
         position: Position,
     ) -> Option<PrepareRenameResponse> {
-        ide::rename::prepare_rename(&self.wa, &self.docs, uri, position)
+        ide::rename::prepare_rename(&self.wa, self.doc_interner, uri, position)
     }
 
     pub(super) fn rename(
@@ -317,11 +361,18 @@ impl<'a> LangServiceRef<'a> {
         position: Position,
         new_name: String,
     ) -> Option<WorkspaceEdit> {
-        ide::rename::rename(&self.wa, &self.docs, uri, position, new_name)
+        ide::rename::rename(
+            &self.wa,
+            self.doc_interner,
+            self.docs,
+            uri,
+            position,
+            new_name,
+        )
     }
 
     pub(super) fn semantic_tokens(&self, uri: Url) -> lsp_types::SemanticTokens {
-        let tokens = ide::semantic_tokens::full(&self.wa, uri, &self.docs).unwrap_or(vec![]);
+        let tokens = ide::semantic_tokens::full(&self.wa, self.doc_interner, uri).unwrap_or(vec![]);
         SemanticTokens {
             data: tokens,
             result_id: None,
@@ -329,11 +380,11 @@ impl<'a> LangServiceRef<'a> {
     }
 
     pub(super) fn signature_help(&self, uri: Url, position: Position) -> Option<SignatureHelp> {
-        ide::signature_help::signature_help(&self.wa, uri, position, &self.docs)
+        ide::signature_help::signature_help(&self.wa, self.doc_interner, uri, position)
     }
 
     pub(super) fn workspace_symbol(&self, query: String) -> Vec<SymbolInformation> {
-        ide::workspace_symbol::symbol(&self.wa, &query, &self.docs)
+        ide::workspace_symbol::symbol(&self.wa, self.doc_interner, &query)
     }
 }
 
@@ -350,6 +401,7 @@ impl LangService {
 
         let mut diagnostics = ide::diagnose::diagnose(
             &self.wa.compute_analysis(),
+            &self.doc_interner,
             &self.docs,
             &mut self.diagnostics_cache,
         );
@@ -376,17 +428,18 @@ impl LangService {
 /// ドキュメントの管理機能を提供するもの
 ///
 /// (`LangService` がドキュメントDBの役割を持つことを示している)
+#[allow(unused)]
 pub(crate) trait DocDb {
-    fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri>;
+    // fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri>;
     fn find_doc_by_uri(&self, uri: &CanonicalUri) -> Option<DocId>;
 }
 
 impl DocDb for LangService {
-    fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
-        self.docs.get_uri(doc)
-    }
+    // fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
+    //     self.doc_interner.get_uri(doc)
+    // }
 
     fn find_doc_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
-        self.docs.find_by_uri(uri)
+        self.doc_interner.get_doc(uri)
     }
 }

@@ -31,10 +31,10 @@ fn to_semantic_token_kind(symbol: &SymbolRc) -> Option<(u32, u32)> {
 
 pub(crate) fn full(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     uri: Url,
-    docs: &Docs,
 ) -> Option<Vec<lsp_types::SemanticToken>> {
-    let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
+    let doc = doc_interner.get_doc(&CanonicalUri::from_url(&uri))?;
 
     let mut symbols = vec![];
     collect_symbol_occurrences_in_doc(wa, doc, &mut symbols);
@@ -49,7 +49,7 @@ pub(crate) fn full(
             None => continue,
         };
 
-        let location = loc_to_location(loc, docs)?;
+        let location = loc_to_location(doc_interner, loc)?;
 
         let Position {
             line: y1,

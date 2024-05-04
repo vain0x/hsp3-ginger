@@ -10,9 +10,12 @@ pub(crate) struct IncludeGraph {
 
 impl IncludeGraph {
     #[allow(unused)]
-    pub(crate) fn generate(wa: &AnalysisRef<'_>, docs: &lang_service::docs::Docs) -> Self {
+    pub(crate) fn generate(
+        wa: &AnalysisRef<'_>,
+        doc_interner: &lang_service::doc_interner::DocInterner,
+    ) -> Self {
         let mut it = Self::default();
-        generate_include_graph(wa, docs, &mut it);
+        generate_include_graph(wa, doc_interner, &mut it);
         it
     }
 }
@@ -21,23 +24,24 @@ impl IncludeGraph {
 #[allow(unused)]
 fn generate_include_graph(
     wa: &AnalysisRef<'_>,
-    docs: &lang_service::docs::Docs,
+    doc_interner: &lang_service::doc_interner::DocInterner,
+    // docs: &lang_service::docs::Docs,
     include_graph: &mut IncludeGraph,
 ) {
-    let get_name = |doc: DocId| match docs
-        .get_uri(doc)
-        .and_then(|uri| uri.to_file_path())
-        .and_then(|path| {
-            path.components()
-                .last()
-                .map(|x| x.as_os_str().to_string_lossy().to_string())
-        }) {
-        Some(it) => format!("{}:{}", doc, it),
-        None => format!("{}", doc),
-    };
+    // let get_name = |doc: DocId| match wa
+    //     .get_uri(doc)
+    //     .and_then(|uri| uri.to_file_path())
+    //     .and_then(|path| {
+    //         path.components()
+    //             .last()
+    //             .map(|x| x.as_os_str().to_string_lossy().to_string())
+    //     }) {
+    //     Some(it) => format!("{}:{}", doc, it),
+    //     None => format!("{}", doc),
+    // };
 
     for (&src_doc, da) in wa.doc_analysis_map {
-        let src_name = get_name(src_doc);
+        // let src_name = get_name(src_doc);
         // eprintln!("  >{}:{} ({})", src_doc, src_name, da.includes.len());
 
         for (included_name, l) in &da.includes {
@@ -52,15 +56,15 @@ fn generate_include_graph(
             //         continue;
             //     }
             // };
-            let included_doc_opt = resolve_included_name(docs, included_name, src_doc)
+            let included_doc_opt = resolve_included_name(doc_interner, included_name, src_doc)
                 .or_else(|| wa.common_docs.get(included_name.as_str()).cloned());
-            debug!(
-                "include {}:{} {:?} -> {:?}",
-                src_name,
-                l.start(),
-                included_name,
-                included_doc_opt
-            );
+            // debug!(
+            //     "include {}:{} {:?} -> {:?}",
+            //     src_name,
+            //     l.start(),
+            //     included_name,
+            //     included_doc_opt
+            // );
 
             if let Some(included_doc) = included_doc_opt {
                 include_graph
@@ -322,10 +326,10 @@ mod tests {
 "#,
         );
 
-        let (wa, docs) = ls.analyze_for_test();
+        let (wa, doc_interner, _docs) = ls.analyze_for_test();
         let wa = &wa;
         let mut include_graph = IncludeGraph::default();
-        generate_include_graph(wa, docs, &mut include_graph);
+        generate_include_graph(wa, doc_interner, &mut include_graph);
 
         let def_only = CollectSymbolQuery {
             def_site: true,

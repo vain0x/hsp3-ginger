@@ -2,7 +2,6 @@ use super::*;
 use crate::{
     analysis::{HspSymbolKind, Scope, SymbolRc},
     ide::from_document_position,
-    lang_service::docs::Docs,
     parse::p_param_ty::PParamCategory,
 };
 use lsp_types::{CompletionItem, CompletionItemKind, CompletionList, Documentation, Position, Url};
@@ -107,13 +106,13 @@ pub(crate) fn incomplete_completion_list() -> CompletionList {
 
 fn do_completion(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     uri: &Url,
     position: Position,
-    docs: &Docs,
 ) -> Option<CompletionList> {
     let mut items = vec![];
 
-    let (doc, pos) = from_document_position(uri, position, docs)?;
+    let (doc, pos) = from_document_position(doc_interner, uri, position)?;
 
     if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
         return None;
@@ -174,11 +173,11 @@ struct CompletionData {
 
 pub(crate) fn completion(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     uri: Url,
     position: Position,
-    docs: &Docs,
 ) -> Option<CompletionList> {
-    let mut completion_list = do_completion(wa, &uri, position, docs)?;
+    let mut completion_list = do_completion(wa, doc_interner, &uri, position)?;
 
     for item in &mut completion_list.items {
         if item.documentation.is_none() && item.data.is_none() {
@@ -204,8 +203,8 @@ pub(crate) fn completion(
 
 pub(crate) fn completion_resolve(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     mut resolved_item: CompletionItem,
-    docs: &Docs,
 ) -> Option<CompletionItem> {
     let data: CompletionData = match resolved_item
         .data
@@ -227,7 +226,7 @@ pub(crate) fn completion_resolve(
         data_opt,
     } = data;
 
-    let list = do_completion(wa, &uri, position, docs)?;
+    let list = do_completion(wa, doc_interner, &uri, position)?;
     let item = list
         .items
         .into_iter()

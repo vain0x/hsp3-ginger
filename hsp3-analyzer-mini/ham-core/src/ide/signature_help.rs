@@ -92,11 +92,11 @@ impl PVisitor for V {
 
 pub(crate) fn signature_help(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     uri: Url,
     position: Position,
-    docs: &Docs,
 ) -> Option<SignatureHelp> {
-    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
 
     if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
         return None;

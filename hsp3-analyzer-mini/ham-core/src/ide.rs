@@ -26,7 +26,10 @@ pub(crate) mod code_actions {
 use super::*;
 use crate::{
     analysis::*,
-    lang_service::docs::{Docs, NO_VERSION},
+    lang_service::{
+        doc_interner::DocInterner,
+        docs::{Docs, NO_VERSION},
+    },
     source::*,
     token::TokenKind,
 };
@@ -58,15 +61,19 @@ fn loc_to_range(loc: Loc) -> lsp_types::Range {
     to_lsp_range(loc.range)
 }
 
-fn loc_to_location(loc: Loc, docs: &Docs) -> Option<Location> {
-    let uri = docs.get_uri(loc.doc)?.clone().into_url();
+fn loc_to_location(doc_interner: &DocInterner, loc: Loc) -> Option<Location> {
+    let uri = doc_interner.get_uri(loc.doc)?.clone().into_url();
     let range = loc_to_range(loc);
     Some(Location { uri, range })
 }
 
-fn from_document_position(uri: &Url, position: Position, docs: &Docs) -> Option<(DocId, Pos16)> {
+fn from_document_position(
+    doc_interner: &DocInterner,
+    uri: &Url,
+    position: Position,
+) -> Option<(DocId, Pos16)> {
     let uri = CanonicalUri::from_url(uri);
-    let doc = docs.find_by_uri(&uri)?;
+    let doc = doc_interner.get_doc(&uri)?;
 
     let pos = {
         let row = position.line as u32;

@@ -35,10 +35,10 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
 
 pub(crate) fn symbol(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     uri: Url,
-    docs: &Docs,
 ) -> Option<DocumentSymbolResponse> {
-    let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
+    let doc = doc_interner.get_doc(&CanonicalUri::from_url(&uri))?;
 
     let mut symbols = vec![];
     collect_doc_symbols(wa, doc, &mut symbols);
@@ -53,7 +53,7 @@ pub(crate) fn symbol(
         .filter_map(|(symbol, loc)| {
             let name = symbol.name();
             let kind = to_lsp_symbol_kind(symbol.kind)?;
-            let location = loc_to_location(loc, docs)?;
+            let location = loc_to_location(doc_interner, loc)?;
 
             Some(new_lsp_symbol_information(name.to_string(), kind, location))
         })

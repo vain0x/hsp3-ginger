@@ -3,6 +3,7 @@ use crate::source::DocId;
 
 pub(crate) fn search_common(
     hsp3_root: &Path,
+    doc_interner: &mut DocInterner,
     docs: &mut Docs,
     common_docs: &mut HashMap<String, DocId>,
 ) {
@@ -35,7 +36,8 @@ pub(crate) fn search_common(
                 .to_string_lossy()
                 .replace("\\", "/");
 
-            let doc = docs.ensure_file_opened(&path)?;
+            let (_, doc) = doc_interner.intern(&CanonicalUri::from_abs_path(&path)?);
+            docs.ensure_file_opened(doc, &path)?;
             // trace!("common/{} => doc={}", relative, doc);
             common_docs.insert(relative, doc);
             None

@@ -8,11 +8,12 @@ use lsp_types::{
 
 pub(crate) fn generate_include_guard(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
+    docs: &Docs,
     uri: &Url,
     range: Range,
-    docs: &Docs,
 ) -> Option<Vec<CodeAction>> {
-    let (doc, pos) = from_document_position(&uri, range.start, &docs)?;
+    let (doc, pos) = from_document_position(&doc_interner, &uri, range.start)?;
     let version = docs.get_version(doc);
 
     let DocSyntax { text, tokens, .. } = wa.get_syntax(doc)?;
@@ -28,7 +29,7 @@ pub(crate) fn generate_include_guard(
 
     // ファイル名からシンボルを生成する。
     let name = {
-        let path = docs.get_uri(doc)?.clone().into_url().to_file_path().ok()?;
+        let path = doc_interner.get_uri(doc)?.clone().to_file_path()?;
         let name = path.file_name()?.to_str()?;
         name.replace(".", "_") + "_included"
     };

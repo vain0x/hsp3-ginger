@@ -93,6 +93,7 @@ fn convert_symbol(hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem) {
 pub(crate) fn search_hsphelp(
     hsp3_root: &Path,
     common_docs: &HashMap<String, DocId>,
+    doc_interner: &mut DocInterner,
     docs: &mut Docs,
     builtin_env: &mut SymbolEnv,
 ) -> Option<HspHelpInfo> {
@@ -139,7 +140,8 @@ pub(crate) fn search_hsphelp(
                 return None;
             }
 
-            let hs_doc = docs.ensure_file_opened(&full_path)?;
+            let (_, hs_doc) = doc_interner.intern(&CanonicalUri::from_abs_path(&full_path)?);
+            docs.ensure_file_opened(hs_doc, &full_path)?;
 
             let builtin = is_builtin(&stem);
             trace!("{}.hs builtin={:?}", stem, builtin);

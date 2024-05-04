@@ -5,11 +5,11 @@ use lsp_types::{
 
 pub(crate) fn hover(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     uri: Url,
     position: Position,
-    docs: &Docs,
 ) -> Option<Hover> {
-    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
 
     let (contents, loc) = (|| -> Option<_> {
         let (symbol, symbol_loc) = wa.locate_symbol(doc, pos)?;

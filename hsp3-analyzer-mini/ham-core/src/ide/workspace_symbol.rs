@@ -29,7 +29,11 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
     Some(it)
 }
 
-pub(crate) fn symbol(wa: &AnalysisRef<'_>, query: &str, docs: &Docs) -> Vec<SymbolInformation> {
+pub(crate) fn symbol(
+    wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
+    query: &str,
+) -> Vec<SymbolInformation> {
     let mut symbols = vec![];
     collect_workspace_symbols(wa, query, &mut symbols);
 
@@ -39,7 +43,7 @@ pub(crate) fn symbol(wa: &AnalysisRef<'_>, query: &str, docs: &Docs) -> Vec<Symb
         .filter_map(|(symbol, loc)| {
             let name = symbol.name();
             let kind = to_lsp_symbol_kind(symbol.kind)?;
-            let location = loc_to_location(loc, docs)?;
+            let location = loc_to_location(doc_interner, loc)?;
 
             Some(new_lsp_symbol_information(name.to_string(), kind, location))
         })

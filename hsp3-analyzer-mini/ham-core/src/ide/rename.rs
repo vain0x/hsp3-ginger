@@ -6,11 +6,11 @@ use lsp_types::{
 
 pub(crate) fn prepare_rename(
     wa: &AnalysisRef<'_>,
-    docs: &Docs,
+    doc_interner: &DocInterner,
     uri: Url,
     position: Position,
 ) -> Option<PrepareRenameResponse> {
-    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(&doc_interner, &uri, position)?;
 
     // FIXME: カーソル直下に識別子があって、それの定義がワークスペース内のファイル (commonやhsphelpでない) にあったときだけSomeを返す。
 
@@ -21,6 +21,7 @@ pub(crate) fn prepare_rename(
 
 pub(crate) fn rename(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     docs: &Docs,
     uri: Url,
     position: Position,
@@ -28,10 +29,10 @@ pub(crate) fn rename(
 ) -> Option<WorkspaceEdit> {
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
-        let (doc, pos) = from_document_position(&uri, position, docs)?;
+        let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
         let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
-        let include_graph = IncludeGraph::generate(wa, docs);
+        let include_graph = IncludeGraph::generate(wa, doc_interner);
         let mut locs = vec![];
         collect_symbol_defs(wa, &include_graph, doc, &symbol, &mut locs);
         collect_symbol_uses(wa, &include_graph, doc, &symbol, &mut locs);
@@ -51,7 +52,7 @@ pub(crate) fn rename(
     let changes = {
         let mut edits = vec![];
         for loc in locs {
-            let location = match loc_to_location(loc, docs) {
+            let location = match loc_to_location(doc_interner, loc) {
                 Some(location) => location,
                 None => continue,
             };

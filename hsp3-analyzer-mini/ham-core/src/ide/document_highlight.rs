@@ -1,14 +1,14 @@
 use super::*;
-use crate::{ide::from_document_position, lang_service::docs::Docs};
+use crate::ide::from_document_position;
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Url};
 
 pub(crate) fn document_highlight(
     wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
     uri: Url,
     position: Position,
-    docs: &Docs,
 ) -> Option<Vec<DocumentHighlight>> {
-    let (doc, pos) = from_document_position(&uri, position, docs)?;
+    let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
     let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
     let mut highlights = vec![];

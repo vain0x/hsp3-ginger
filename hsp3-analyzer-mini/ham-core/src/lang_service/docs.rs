@@ -39,7 +39,6 @@ pub(crate) enum DocChangeOrigin {
 ///     - これは同じIDを振る。ファイルの内容は無視する。
 #[derive(Default)]
 pub(crate) struct Docs {
-    interner: DocInterner,
     doc_versions: HashMap<DocId, TextDocumentVersion>,
 
     /// エディタで開かれているドキュメント
@@ -53,14 +52,6 @@ pub(crate) struct Docs {
 }
 
 impl Docs {
-    pub(crate) fn find_by_uri(&self, uri: &CanonicalUri) -> Option<DocId> {
-        self.interner.get_doc(uri)
-    }
-
-    pub(crate) fn get_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
-        self.interner.get_uri(doc)
-    }
-
     pub(crate) fn get_version(&self, doc: DocId) -> Option<TextDocumentVersion> {
         self.doc_versions.get(&doc).copied()
     }
@@ -92,13 +83,12 @@ impl Docs {
             .push(DocChange::Changed { doc, lang, origin });
     }
 
-    fn do_close_doc(&mut self, doc: DocId, uri: &CanonicalUri) {
-        self.interner.remove(doc, uri);
+    fn do_close_doc(&mut self, doc: DocId) {
         self.doc_versions.remove(&doc);
         self.doc_changes.push(DocChange::Closed { doc });
     }
 
-    pub(crate) fn open_doc_in_editor(&mut self, uri: CanonicalUri, version: i32, text: RcStr) {
+    pub(crate) fn open_doc_in_editor(&mut self, doc: DocId, version: i32, text: RcStr) {
         #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが開かれました ({:?} version={}, len={})",
@@ -107,17 +97,12 @@ impl Docs {
             text.len()
         );
 
-        let (created, doc) = self.interner.intern(&uri);
-        if created {
-            self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
-        } else {
-            self.do_change_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
-        }
-
+        assert!(!self.editor_docs.contains(&doc));
+        self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         self.editor_docs.insert(doc);
     }
 
-    pub(crate) fn change_doc_in_editor(&mut self, uri: CanonicalUri, version: i32, text: RcStr) {
+    pub(crate) fn change_doc_in_editor(&mut self, doc: DocId, version: i32, text: RcStr) {
         #[cfg(trace_docs)]
         trace!(
             "クライアントでファイルが変更されました ({:?} version={}, len={})",
@@ -126,36 +111,28 @@ impl Docs {
             text.len()
         );
 
-        let (created, doc) = self.interner.intern(&uri);
-        if created {
-            self.do_open_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
-        } else {
-            self.do_change_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
-        }
-
+        assert!(self.editor_docs.contains(&doc));
+        self.do_change_doc(doc, version, Lang::Hsp3, DocChangeOrigin::Editor(text));
         self.editor_docs.insert(doc);
     }
 
-    pub(crate) fn close_doc_in_editor(&mut self, uri: CanonicalUri) {
+    pub(crate) fn close_doc_in_editor(&mut self, doc: DocId) -> bool {
         #[cfg(trace_docs)]
         trace!("クライアントでファイルが閉じられました ({:?})", uri);
 
-        let doc = match self.interner.get_doc(&uri) {
-            Some(doc) => doc,
-            None => return,
-        };
-
+        assert!(self.editor_docs.contains(&doc));
         self.editor_docs.remove(&doc);
 
         if !self.file_docs.contains(&doc) {
-            self.do_close_doc(doc, &uri);
+            self.do_close_doc(doc);
+            true
+        } else {
+            false
         }
     }
 
-    fn do_change_file(&mut self, uri: CanonicalUri, path: &Path) -> Option<DocId> {
-        let (created, doc) = self.interner.intern(&uri);
-
-        let open_in_editor = !created && self.editor_docs.contains(&doc);
+    pub(crate) fn change_file(&mut self, doc: DocId, path: &Path) -> Option<DocId> {
+        let open_in_editor = self.editor_docs.contains(&doc);
         if open_in_editor {
             #[cfg(trace_docs)]
             trace!("ファイルは開かれているのでロードされません。");
@@ -174,32 +151,20 @@ impl Docs {
         Some(doc)
     }
 
-    pub(crate) fn change_file_by_uri(&mut self, uri: CanonicalUri) -> Option<DocId> {
-        let abs_path = uri.to_file_path()?;
-        self.do_change_file(uri, &abs_path)
-    }
-
-    pub(crate) fn change_file(&mut self, abs_path: &Path) -> Option<DocId> {
-        let uri = CanonicalUri::from_abs_path(abs_path)?;
-        self.do_change_file(uri, &abs_path)
-    }
-
-    pub(crate) fn close_file_by_uri(&mut self, uri: CanonicalUri) {
-        let doc = match self.interner.get_doc(&uri) {
-            Some(doc) => doc,
-            None => return,
-        };
-
+    pub(crate) fn close_file(&mut self, doc: DocId) -> bool {
         self.file_docs.remove(&doc);
 
         if !self.editor_docs.contains(&doc) {
-            self.do_close_doc(doc, &uri);
+            self.do_close_doc(doc);
+            true
+        } else {
+            false
         }
     }
 
     /// ファイルとDocIdの対応付けを行う。
-    pub(crate) fn ensure_file_opened(&mut self, abs_path: &Path) -> Option<DocId> {
-        self.change_file(abs_path)
+    pub(crate) fn ensure_file_opened(&mut self, doc: DocId, abs_path: &Path) -> Option<DocId> {
+        self.change_file(doc, abs_path)
     }
 }
 
@@ -209,7 +174,7 @@ impl Docs {
 ///     そのincludeされるファイルへの `DocId` があれば返す
 /// - この関数では `common` やその他のパスが通ったディレクトリは探索されない
 pub(crate) fn resolve_included_name(
-    docs: &Docs,
+    doc_interner: &DocInterner,
     included_name: &str,
     base_doc: DocId,
 ) -> Option<DocId> {
@@ -224,13 +189,16 @@ pub(crate) fn resolve_included_name(
     // absolute path?
     if i_path.is_absolute() {
         if let Some(u) = CanonicalUri::from_abs_path(&i_path) {
-            if let Some(d) = docs.find_by_uri(&u) {
+            if let Some(d) = doc_interner.get_doc(&u) {
                 return Some(d);
             }
         }
     }
 
-    let src_file = match docs.get_uri(base_doc).and_then(|uri| uri.to_file_path()) {
+    let src_file = match doc_interner
+        .get_uri(base_doc)
+        .and_then(|uri| uri.to_file_path())
+    {
         Some(it) => it,
         None => {
             trace!("base_doc isn't open: {}", base_doc);
@@ -242,7 +210,7 @@ pub(crate) fn resolve_included_name(
     let resolved_path = src_dir.join(i_path);
     let resolved_uri = CanonicalUri::from_abs_path(&resolved_path)?;
     // debug!("resolved_uri = {:?}", resolved_uri.to_file_path());
-    docs.find_by_uri(&resolved_uri)
+    doc_interner.get_doc(&resolved_uri)
 }
 
 // ===============================================
@@ -258,35 +226,43 @@ mod tests {
         dummy_path().join(p)
     }
 
+    fn f(doc_interner: &mut DocInterner, docs: &mut Docs, s: &str) -> DocId {
+        let path = p(s);
+        let (_, doc) = doc_interner.intern(&CanonicalUri::from_abs_path(&path).unwrap());
+        docs.ensure_file_opened(doc, &path);
+        doc
+    }
+
     #[test]
     fn test_resolve_included_name() {
+        let mut di = DocInterner::default();
         let mut docs = Docs::default();
-        let a = docs.ensure_file_opened(&p("a.hsp")).unwrap();
-        let b = docs.ensure_file_opened(&p("b.hsp")).unwrap();
-        let c = docs.ensure_file_opened(&p("x/c.hsp")).unwrap();
-        let d = docs.ensure_file_opened(&p("x/d.hsp")).unwrap();
-        let e = docs.ensure_file_opened(&p("y/e.hsp")).unwrap();
+        let a = f(&mut di, &mut docs, "a.hsp");
+        let b = f(&mut di, &mut docs, "b.hsp");
+        let c = f(&mut di, &mut docs, "x/c.hsp");
+        let d = f(&mut di, &mut docs, "x/d.hsp");
+        let e = f(&mut di, &mut docs, "y/e.hsp");
 
         // aから兄弟・子孫に位置するファイルを参照できること
-        assert_eq!(resolve_included_name(&docs, "b.hsp", a), Some(b));
-        assert_eq!(resolve_included_name(&docs, "./b.hsp", a), Some(b));
-        assert_eq!(resolve_included_name(&docs, "x/c.hsp", a), Some(c));
+        assert_eq!(resolve_included_name(&di, "b.hsp", a), Some(b));
+        assert_eq!(resolve_included_name(&di, "./b.hsp", a), Some(b));
+        assert_eq!(resolve_included_name(&di, "x/c.hsp", a), Some(c));
 
         // c (入れ子のディレクトリに含まれるファイル) から相対パスを使って参照できること
-        assert_eq!(resolve_included_name(&docs, "d.hsp", c), Some(d));
-        assert_eq!(resolve_included_name(&docs, "../a.hsp", c), Some(a));
-        assert_eq!(resolve_included_name(&docs, "../y/e.hsp", c), Some(e));
+        assert_eq!(resolve_included_name(&di, "d.hsp", c), Some(d));
+        assert_eq!(resolve_included_name(&di, "../a.hsp", c), Some(a));
+        assert_eq!(resolve_included_name(&di, "../y/e.hsp", c), Some(e));
 
         // 存在しないファイルは解決されないこと
-        assert_eq!(resolve_included_name(&docs, "c.hsp", a), None);
+        assert_eq!(resolve_included_name(&di, "c.hsp", a), None);
 
         // 妙なケース: aからa自身への参照
-        assert_eq!(resolve_included_name(&docs, "a.hsp", a), Some(a));
-        assert_eq!(resolve_included_name(&docs, "./a.hsp", a), Some(a));
+        assert_eq!(resolve_included_name(&di, "a.hsp", a), Some(a));
+        assert_eq!(resolve_included_name(&di, "./a.hsp", a), Some(a));
 
         // 不正なinclude名の例
-        assert_eq!(resolve_included_name(&docs, "", a), None);
-        assert_eq!(resolve_included_name(&docs, "*", a), None);
-        assert_eq!(resolve_included_name(&docs, "/a.hsp", a), None);
+        assert_eq!(resolve_included_name(&di, "", a), None);
+        assert_eq!(resolve_included_name(&di, "*", a), None);
+        assert_eq!(resolve_included_name(&di, "/a.hsp", a), None);
     }
 }

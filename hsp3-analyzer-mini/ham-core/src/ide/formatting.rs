@@ -3,7 +3,7 @@
 //! 字下げや空白を調整する。
 
 use super::*;
-use crate::{ide::to_lsp_range, lang_service::docs::Docs, parse::*};
+use crate::{ide::to_lsp_range, parse::*};
 use lsp_types::{TextEdit, Url};
 
 fn index_range(range: Range) -> std::ops::Range<usize> {
@@ -322,8 +322,12 @@ impl PVisitor for V {
     }
 }
 
-pub(crate) fn formatting(wa: &AnalysisRef<'_>, uri: Url, docs: &Docs) -> Option<Vec<TextEdit>> {
-    let doc = docs.find_by_uri(&CanonicalUri::from_url(&uri))?;
+pub(crate) fn formatting(
+    wa: &AnalysisRef<'_>,
+    doc_interner: &DocInterner,
+    uri: Url,
+) -> Option<Vec<TextEdit>> {
+    let doc = doc_interner.get_doc(&CanonicalUri::from_url(&uri))?;
     let DocSyntax { text, tokens, root } = wa.get_syntax(doc)?;
 
     let mut ctx = V {
