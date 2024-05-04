@@ -70,7 +70,7 @@ impl LangService {
             // no_exist/hsp3
             hsp3_root: root.clone().join("hsp3"),
             // no_exist/ws
-            root_uri_opt: Some(CanonicalUri::from_file_path(&root.join("ws")).unwrap()),
+            root_uri_opt: Some(CanonicalUri::from_abs_path(&root.join("ws")).unwrap()),
             options: LangServiceOptions::minimal(),
             ..Default::default()
         };

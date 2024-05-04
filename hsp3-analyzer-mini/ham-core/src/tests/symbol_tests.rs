@@ -16,7 +16,7 @@ enum DefOrUse {
 }
 
 fn path_to_uri(path: PathBuf) -> Url {
-    CanonicalUri::from_file_path(&path).unwrap().into_url()
+    CanonicalUri::from_abs_path(&path).unwrap().into_url()
 }
 
 // 仕組み:
@@ -511,10 +511,11 @@ fn formatting_tests() {
 
 #[test]
 fn formatting_blank_test() {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../tests/formatting");
     let text = include_str!["../../../tests/formatting/blank.hsp"];
     let expected = expect_file!["../../../tests/formatting/blank.expected.hsp"];
 
-    let uri = CanonicalUri::from_file_path(&PathBuf::from("blank.hsp"))
+    let uri = CanonicalUri::from_abs_path(&dir.join("blank.hsp"))
         .unwrap()
         .into_url();
 

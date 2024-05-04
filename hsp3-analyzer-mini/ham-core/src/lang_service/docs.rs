@@ -199,13 +199,13 @@ impl Docs {
     }
 
     pub(crate) fn change_file_by_uri(&mut self, uri: CanonicalUri) -> Option<DocId> {
-        let path = uri.to_file_path()?;
-        self.do_change_file(uri, &path)
+        let abs_path = uri.to_file_path()?;
+        self.do_change_file(uri, &abs_path)
     }
 
-    pub(crate) fn change_file(&mut self, path: &Path) -> Option<DocId> {
-        let uri = CanonicalUri::from_file_path(path)?;
-        self.do_change_file(uri, &path)
+    pub(crate) fn change_file(&mut self, abs_path: &Path) -> Option<DocId> {
+        let uri = CanonicalUri::from_abs_path(abs_path)?;
+        self.do_change_file(uri, &abs_path)
     }
 
     pub(crate) fn close_file_by_uri(&mut self, uri: CanonicalUri) {
@@ -222,8 +222,8 @@ impl Docs {
     }
 
     /// ファイルとDocIdの対応付けを行う。
-    pub(crate) fn ensure_file_opened(&mut self, path: &Path) -> Option<DocId> {
-        self.change_file(path)
+    pub(crate) fn ensure_file_opened(&mut self, abs_path: &Path) -> Option<DocId> {
+        self.change_file(abs_path)
     }
 }
 
@@ -247,7 +247,7 @@ pub(crate) fn resolve_included_name(
 
     // absolute path?
     if i_path.is_absolute() {
-        if let Some(u) = CanonicalUri::from_file_path(&i_path) {
+        if let Some(u) = CanonicalUri::from_abs_path(&i_path) {
             if let Some(d) = docs.find_by_uri(&u) {
                 return Some(d);
             }
@@ -264,7 +264,7 @@ pub(crate) fn resolve_included_name(
     let src_dir = src_file.parent()?;
 
     let resolved_path = src_dir.join(i_path);
-    let resolved_uri = CanonicalUri::from_file_path(&resolved_path)?;
+    let resolved_uri = CanonicalUri::from_abs_path(&resolved_path)?;
     // debug!("resolved_uri = {:?}", resolved_uri.to_file_path());
     docs.find_by_uri(&resolved_uri)
 }
@@ -284,16 +284,12 @@ mod tests {
 
     #[test]
     fn test_resolve_included_name() {
-        // note: 相対パスを使ったincludeの解決がテスト中にうまくいかない
-        //       CanonicalUri の中でファイルパスを正規化(canonicalize)が失敗するせい
-        //       (パスの指す先にファイルがないと動作しないため)
-
         let mut docs = Docs::default();
         let a = docs.ensure_file_opened(&p("a.hsp")).unwrap();
         let b = docs.ensure_file_opened(&p("b.hsp")).unwrap();
         let c = docs.ensure_file_opened(&p("x/c.hsp")).unwrap();
         let d = docs.ensure_file_opened(&p("x/d.hsp")).unwrap();
-        docs.ensure_file_opened(&p("y/e.hsp")).unwrap();
+        let e = docs.ensure_file_opened(&p("y/e.hsp")).unwrap();
 
         // aから兄弟・子孫に位置するファイルを参照できること
         assert_eq!(resolve_included_name(&docs, "b.hsp", a), Some(b));
@@ -302,19 +298,18 @@ mod tests {
 
         // c (入れ子のディレクトリに含まれるファイル) から相対パスを使って参照できること
         assert_eq!(resolve_included_name(&docs, "d.hsp", c), Some(d));
-        // assert_eq!(resolve_included_name(&docs, "../a.hsp", c), Some(a));
-        // assert_eq!(resolve_included_name(&docs, "../y/e.hsp", c), Some(e));
+        assert_eq!(resolve_included_name(&docs, "../a.hsp", c), Some(a));
+        assert_eq!(resolve_included_name(&docs, "../y/e.hsp", c), Some(e));
 
         // 存在しないファイルは解決されないこと
         assert_eq!(resolve_included_name(&docs, "c.hsp", a), None);
 
         // 妙なケース: aからa自身への参照
         assert_eq!(resolve_included_name(&docs, "a.hsp", a), Some(a));
-        // assert_eq!(resolve_included_name(&docs, "../a.hsp", a), Some(a));
+        assert_eq!(resolve_included_name(&docs, "./a.hsp", a), Some(a));
 
         // 不正なinclude名の例
         assert_eq!(resolve_included_name(&docs, "", a), None);
-        assert_eq!(resolve_included_name(&docs, ".", a), None);
         assert_eq!(resolve_included_name(&docs, "*", a), None);
         assert_eq!(resolve_included_name(&docs, "/a.hsp", a), None);
     }

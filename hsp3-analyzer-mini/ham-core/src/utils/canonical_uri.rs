@@ -1,74 +1,64 @@
-use lsp_types::Url;
-use std::{
-    env::current_dir,
-    path::{Path, PathBuf},
-};
+use normalize_path::NormalizePath;
+use std::path::{Path, PathBuf};
 
-// 正規化処理を行った後の uniform resource identifier (URI)
-//
-// 正規化について:
-// `a/../b` と `b` のように、等価だが異なる表現を統一的な表現に揃える。
-// (シンボリックリンクの展開なども行う。)
-//
-// ファイルパスの参照先が存在しない場合、
-//
-// 正規化されていない URL をマップのキーに使ってしまうと、
-// 単一のファイルに対して複数のデータが登録できてしまい、不具合の原因になる。
+/// 正規化済みのURI
+///
+/// **正規化** について:
+/// `a/../b` と `b` のように、等価だが異なる表現を統一的な表現に揃える。
+/// (シンボリックリンクの展開なども行う。)
+///
+/// (理由):
+/// 正規化されていない URL をマップのキーに使ってしまうと、
+/// 単一のファイルに対して複数のデータを登録できてしまい、不具合の原因になる。
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(crate) struct CanonicalUri {
-    uri: Url,
+    uri: lsp_types::Url,
 }
 
 impl CanonicalUri {
-    pub(crate) fn from_file_path(path: &Path) -> Option<Self> {
-        let to_uri = |path: &Path| {
-            Url::from_file_path(path)
-                .ok()
-                .map(|uri| CanonicalUri { uri })
-        };
+    /// 絶対パス → URI に変換する
+    pub(crate) fn from_abs_path(abs_path: &Path) -> Option<Self> {
+        assert!(abs_path.is_absolute(), "absolute path only");
 
         // canonicalize に成功するなら、これを正規形と信じて使う。
-        if let Ok(canonical_path) = path.canonicalize() {
-            return to_uri(&canonical_path);
-        }
-
-        // 絶対パスでなければ、カレントディレクトリと繋ぐ。
-        // 念のため再び canonicalize を試してから、絶対パスを URI にする。
-        if !path.is_absolute() {
-            if let Some(path) = current_dir().ok().map(|current_dir| current_dir.join(path)) {
-                if let Ok(canonical_path) = path.canonicalize() {
-                    return to_uri(&canonical_path);
-                }
-
-                return to_uri(&path);
+        if let Ok(c_path) = abs_path.canonicalize() {
+            if let Ok(uri) = lsp_types::Url::from_file_path(c_path) {
+                return Some(CanonicalUri { uri });
             }
         }
 
-        // canonicalize できない絶対パスというのはよく分からないが、
-        // 例えばファイルパスを取得した直後にファイルが削除された場合などに発生しうる。
-        // (存在しないファイルパスは canonicalize に失敗するはず。)
-        // 正規形ではないかもしれないが、そのまま URI として使う。
-        to_uri(path)
+        // ファイルが存在しない場合などに canonicalize は失敗する。
+        // 中間の `..` などの余分なパスだけ除去してURIとして使う。
+        let n_path = NormalizePath::normalize(abs_path);
+        if let Ok(uri) = lsp_types::Url::from_file_path(n_path) {
+            return Some(CanonicalUri { uri });
+        }
+
+        None
     }
 
-    pub(crate) fn from_url(uri: &Url) -> Self {
-        let uri = match uri
+    pub(crate) fn from_url(url: &lsp_types::Url) -> Self {
+        let uri = match url
             .to_file_path()
             .ok()
             .and_then(|file_path| file_path.canonicalize().ok())
-            .and_then(|canonical_path| Url::from_file_path(canonical_path).ok())
+            .and_then(|canonical_path| lsp_types::Url::from_file_path(canonical_path).ok())
         {
             Some(uri) => uri,
-            None => uri.to_owned(),
+            None => url.to_owned(),
         };
         CanonicalUri { uri }
     }
 
-    pub(crate) fn into_url(self) -> Url {
+    pub(crate) fn into_url(self) -> lsp_types::Url {
         self.uri
     }
 
     pub(crate) fn to_file_path(&self) -> Option<PathBuf> {
-        self.uri.to_file_path().ok()
+        if self.uri.scheme() == "file" {
+            self.uri.to_file_path().ok()
+        } else {
+            None
+        }
     }
 }
