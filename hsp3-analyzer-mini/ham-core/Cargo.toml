@@ -34,6 +34,11 @@ text-position-rs = { version = "0.3.0", git = "https://github.com/vain0x/text-po
 # (only for ham command)
 rowan = "0.15.15"
 
+# ファイルパスを正規化するもの
+# https://docs.rs/crate/normalize-path
+# (-> https://github.com/cargo-bins/cargo-binstall/blob/main/crates/normalize-path/src/lib.rs)
+normalize-path = "0.2.1"
+
 [dev-dependencies]
 # ロガー (テスト用) <https://github.com/rust-cli/env_logger>
 env_logger = { version = "0.11.3" }
