@@ -91,19 +91,19 @@ impl PVisitor for V {
 }
 
 pub(crate) fn signature_help(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: Url,
     position: Position,
 ) -> Option<SignatureHelp> {
     let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
 
-    if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
+    if an.in_str_or_comment(doc, pos).unwrap_or(true) {
         return None;
     }
 
-    let db = SignatureHelpDb::generate(wa, doc);
-    let syntax = wa.get_syntax(doc)?;
+    let db = SignatureHelpDb::generate(an, doc);
+    let syntax = an.get_syntax(doc)?;
 
     let ctx = {
         let mut v = V { db, pos, out: None };
@@ -207,9 +207,9 @@ f 1, ""
             "#
             .into(),
         );
-        let ls = an.compute_ref();
+        let an = an.compute_ref();
 
-        let opt = ls.signature_help(
+        let opt = an.signature_help(
             main_uri.clone(),
             Position {
                 line: 1,
@@ -225,7 +225,7 @@ f 1, ""
         };
         assert_eq!((label, active), ("f int a, str b".into(), 0));
 
-        let opt = ls.signature_help(
+        let opt = an.signature_help(
             main_uri.clone(),
             Position {
                 line: 2,
@@ -241,7 +241,7 @@ f 1, ""
         };
         assert_eq!((label, active), ("f int a, str b".into(), 1));
 
-        let opt = ls.signature_help(
+        let opt = an.signature_help(
             main_uri,
             Position {
                 line: 1,
@@ -269,9 +269,9 @@ f 1, ""
 
         let main_uri = dummy_url("main.hsp");
         an.open_doc(main_uri.clone(), NO_VERSION, r#"mes f(1, "")"#.into());
-        let ls = an.compute_ref();
+        let an = an.compute_ref();
 
-        let opt = ls.signature_help(
+        let opt = an.signature_help(
             main_uri.clone(),
             Position {
                 line: 0,
@@ -287,7 +287,7 @@ f 1, ""
         };
         assert_eq!((label, active), ("f(int a, str b)".into(), 0));
 
-        let opt = ls.signature_help(
+        let opt = an.signature_help(
             main_uri.clone(),
             Position {
                 line: 0,
@@ -303,7 +303,7 @@ f 1, ""
         };
         assert_eq!((label, active), ("f(int a, str b)".into(), 1));
 
-        let opt = ls.signature_help(
+        let opt = an.signature_help(
             main_uri,
             Position {
                 line: 0,

@@ -4,7 +4,7 @@ use lsp_types::{
 };
 
 pub(crate) fn hover(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: Url,
     position: Position,
@@ -12,7 +12,7 @@ pub(crate) fn hover(
     let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
 
     let (contents, loc) = (|| -> Option<_> {
-        let (symbol, symbol_loc) = wa.locate_symbol(doc, pos)?;
+        let (symbol, symbol_loc) = an.locate_symbol(doc, pos)?;
         let (name, kind, details) = get_symbol_details(&symbol)?;
 
         let mut contents = vec![];
@@ -27,12 +27,12 @@ pub(crate) fn hover(
         Some((contents, symbol_loc))
     })()
     .or_else(|| {
-        let (name, loc) = wa.get_ident_at(doc, pos)?;
-        let tokens = wa.get_syntax(doc)?.tokens;
+        let (name, loc) = an.get_ident_at(doc, pos)?;
+        let tokens = an.get_syntax(doc)?.tokens;
 
         let mut completion_items = vec![];
         if in_preproc(pos, &tokens) {
-            collect_preproc_completion_items(wa, &mut completion_items);
+            collect_preproc_completion_items(an, &mut completion_items);
         }
 
         let item = completion_items
@@ -53,7 +53,7 @@ pub(crate) fn hover(
         Some((contents, loc))
     })
     .or_else(|| {
-        if let Some(loc) = wa.on_include_guard(doc, pos) {
+        if let Some(loc) = an.on_include_guard(doc, pos) {
             Some((
                 vec![plain_text_to_marked_string(
                     "インクルードガード".to_string(),
@@ -97,7 +97,7 @@ fn documentation_to_marked_string(d: Documentation) -> MarkedString {
 mod tests {
     use self::ide::lsp::from_proto;
     use super::*;
-    use crate::{ide::lsp::to_proto, analyzer::Analyzer, lsp_server::NO_VERSION};
+    use crate::{analyzer::Analyzer, ide::lsp::to_proto, lsp_server::NO_VERSION};
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> Url {
@@ -186,28 +186,28 @@ mod tests {
     mes f(42) + 1
 "#;
         an.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
-        let ls = an.compute_ref();
+        let an = an.compute_ref();
 
         let mut w = String::new();
 
         w += "On `f` def:\n";
         format_response(
             &mut w,
-            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 2, 10)))
+            an.hover(main_uri.clone(), to_proto::pos(pos_at(src, 2, 10)))
                 .as_ref(),
         );
 
         w += "\n\nOn `a` def (param of f):\n";
         format_response(
             &mut w,
-            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 2, 16)))
+            an.hover(main_uri.clone(), to_proto::pos(pos_at(src, 2, 16)))
                 .as_ref(),
         );
 
         w += "\n\nOn `f` use:\n";
         format_response(
             &mut w,
-            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 6, 8)))
+            an.hover(main_uri.clone(), to_proto::pos(pos_at(src, 6, 8)))
                 .as_ref(),
         );
 
@@ -223,14 +223,14 @@ mod tests {
 #define ctype hiword(%1) (((%1) >> 16) & 0xFFFF)
 "#;
         an.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
-        let ls = an.compute_ref();
+        let an = an.compute_ref();
 
         let mut w = String::new();
 
         w += "On `<|>ctype`:\n";
         format_response(
             &mut w,
-            ls.hover(main_uri.clone(), to_proto::pos(pos_at(src, 1, 8)))
+            an.hover(main_uri.clone(), to_proto::pos(pos_at(src, 1, 8)))
                 .as_ref(),
         );
 

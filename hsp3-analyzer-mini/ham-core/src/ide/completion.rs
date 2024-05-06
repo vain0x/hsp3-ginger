@@ -11,14 +11,14 @@ use std::collections::HashSet;
 
 /// `hsphelp` を参照して入力補完候補を列挙する (プリプロセッサ関連は除く)
 fn collect_hsphelp_completion_items(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     completion_items: &mut Vec<lsp_types::CompletionItem>,
 ) {
     completion_items.extend(
-        wa.hsphelp_info()
+        an.hsphelp_info()
             .doc_symbols
             .iter()
-            .filter(|(&doc, _)| wa.is_active_help_doc(doc))
+            .filter(|(&doc, _)| an.is_active_help_doc(doc))
             .flat_map(|(_, symbols)| symbols.iter().filter(|s| !s.label.starts_with("#")))
             .cloned(),
     );
@@ -105,7 +105,7 @@ pub(crate) fn incomplete_completion_list() -> CompletionList {
 }
 
 fn do_completion(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: &Url,
     position: Position,
@@ -114,18 +114,18 @@ fn do_completion(
 
     let (doc, pos) = from_document_position(doc_interner, uri, position)?;
 
-    if wa.in_str_or_comment(doc, pos).unwrap_or(true) {
+    if an.in_str_or_comment(doc, pos).unwrap_or(true) {
         return None;
     }
 
-    if wa.in_preproc(doc, pos).unwrap_or(false) {
-        collect_preproc_completion_items(wa, &mut items);
+    if an.in_preproc(doc, pos).unwrap_or(false) {
+        collect_preproc_completion_items(an, &mut items);
         return Some(new_completion_list(items));
     }
 
     {
         let mut symbols = vec![];
-        collect_symbols_in_scope(wa, doc, pos, &mut symbols);
+        collect_symbols_in_scope(an, doc, pos, &mut symbols);
 
         for symbol in symbols {
             // `hsphelp` に記載されているシンボルは除く
@@ -137,7 +137,7 @@ fn do_completion(
         }
     }
 
-    collect_hsphelp_completion_items(wa, &mut items);
+    collect_hsphelp_completion_items(an, &mut items);
 
     // HACK: 不要な候補を削除する。(__hspdef__ はスクリプトの記述的にインクルードガードとみなされないので有効なシンボルとして登録されてしまう。)
     if let Some(i) = items.iter().position(|item| item.label == "__hspdef__") {
@@ -172,12 +172,12 @@ struct CompletionData {
 }
 
 pub(crate) fn completion(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: Url,
     position: Position,
 ) -> Option<CompletionList> {
-    let mut completion_list = do_completion(wa, doc_interner, &uri, position)?;
+    let mut completion_list = do_completion(an, doc_interner, &uri, position)?;
 
     for item in &mut completion_list.items {
         if item.documentation.is_none() && item.data.is_none() {
@@ -202,7 +202,7 @@ pub(crate) fn completion(
 }
 
 pub(crate) fn completion_resolve(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     mut resolved_item: CompletionItem,
 ) -> Option<CompletionItem> {
@@ -226,7 +226,7 @@ pub(crate) fn completion_resolve(
         data_opt,
     } = data;
 
-    let list = do_completion(wa, doc_interner, &uri, position)?;
+    let list = do_completion(an, doc_interner, &uri, position)?;
     let item = list
         .items
         .into_iter()

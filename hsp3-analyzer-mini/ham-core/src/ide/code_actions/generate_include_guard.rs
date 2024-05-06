@@ -7,7 +7,7 @@ use lsp_types::{
 };
 
 pub(crate) fn generate_include_guard(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     docs: &Docs,
     uri: &Url,
@@ -16,13 +16,13 @@ pub(crate) fn generate_include_guard(
     let (doc, pos) = from_document_position(&doc_interner, &uri, range.start)?;
     let version = docs.get_version(doc);
 
-    let DocSyntax { text, tokens, .. } = wa.get_syntax(doc)?;
+    let DocSyntax { text, tokens, .. } = an.get_syntax(doc)?;
 
     // カーソルが行頭にあって、最初のトークン以前にあって、文字列やコメントの外であって、インクルードガードがまだないとき。
     let ok = pos.column == 0
         && pos <= tokens.first()?.body_pos16()
-        && !wa.in_str_or_comment(doc, pos).unwrap_or(true)
-        && !wa.has_include_guard(doc);
+        && !an.in_str_or_comment(doc, pos).unwrap_or(true)
+        && !an.has_include_guard(doc);
     if !ok {
         return None;
     }

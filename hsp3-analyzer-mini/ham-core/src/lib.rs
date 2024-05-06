@@ -4,10 +4,10 @@ extern crate log;
 pub mod c_api;
 pub mod subcommands;
 
+mod analyzer;
 mod help_source;
 mod ide;
 mod lang;
-mod analyzer;
 mod lsp_server;
 
 #[cfg(test)]
@@ -71,7 +71,7 @@ mod analysis {
         analysis_ref::{
             collect_doc_symbols, collect_highlights, collect_preproc_completion_items,
             collect_symbol_occurrences, collect_symbol_occurrences_in_doc,
-            collect_symbols_in_scope, collect_workspace_symbols, find_include_target, AnalysisRef,
+            collect_symbols_in_scope, collect_workspace_symbols, find_include_target,
             CollectSymbolOptions, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
         },
         doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},

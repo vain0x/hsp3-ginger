@@ -6,7 +6,7 @@ use lsp_types::{
 };
 
 pub(crate) fn prepare_rename(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: Url,
     position: Position,
@@ -15,13 +15,13 @@ pub(crate) fn prepare_rename(
 
     // FIXME: カーソル直下に識別子があって、それの定義がワークスペース内のファイル (commonやhsphelpでない) にあったときだけSomeを返す。
 
-    let (_, loc) = wa.locate_symbol(doc, pos)?;
+    let (_, loc) = an.locate_symbol(doc, pos)?;
     let range = loc_to_range(loc);
     Some(PrepareRenameResponse::Range(range))
 }
 
 pub(crate) fn rename(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     docs: &Docs,
     uri: Url,
@@ -31,11 +31,11 @@ pub(crate) fn rename(
     // カーソルの下にある識別子と同一のシンボルの出現箇所 (定義箇所および使用箇所) を列挙する。
     let locs = {
         let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
-        let (symbol, _) = wa.locate_symbol(doc, pos)?;
+        let (symbol, _) = an.locate_symbol(doc, pos)?;
 
         let mut locs = vec![];
         collect_symbol_occurrences(
-            wa,
+            an,
             CollectSymbolOptions {
                 include_def: true,
                 include_use: true,

@@ -30,12 +30,12 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
 }
 
 pub(crate) fn symbol(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     query: &str,
 ) -> Vec<SymbolInformation> {
     let mut symbols = vec![];
-    collect_workspace_symbols(wa, query, &mut symbols);
+    collect_workspace_symbols(an, query, &mut symbols);
 
     symbols
         .into_iter()

@@ -34,14 +34,14 @@ fn to_lsp_symbol_kind(kind: HspSymbolKind) -> Option<lsp_types::SymbolKind> {
 }
 
 pub(crate) fn symbol(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: Url,
 ) -> Option<DocumentSymbolResponse> {
     let doc = doc_interner.get_doc(&CanonicalUri::from_url(&uri))?;
 
     let mut symbols = vec![];
-    collect_doc_symbols(wa, doc, &mut symbols);
+    collect_doc_symbols(an, doc, &mut symbols);
 
     // 空のシンボルを除去する (名前が空のシンボルがどこかで登録されている(?))
     symbols.retain(|(s, _)| !s.name().is_empty());

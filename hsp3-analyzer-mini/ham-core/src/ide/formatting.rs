@@ -323,12 +323,12 @@ impl PVisitor for V {
 }
 
 pub(crate) fn formatting(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: Url,
 ) -> Option<Vec<TextEdit>> {
     let doc = doc_interner.get_doc(&CanonicalUri::from_url(&uri))?;
-    let DocSyntax { text, tokens, root } = wa.get_syntax(doc)?;
+    let DocSyntax { text, tokens, root } = an.get_syntax(doc)?;
 
     let mut ctx = V {
         ground_depth: 1,

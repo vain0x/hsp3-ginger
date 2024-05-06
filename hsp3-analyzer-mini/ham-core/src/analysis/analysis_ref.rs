@@ -1,25 +1,11 @@
 use super::*;
+use crate::analyzer::AnalyzerRef;
 
 pub(crate) type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
 
-pub(crate) struct AnalysisRef<'a> {
-    // input:
-    pub(crate) common_docs: &'a HashMap<String, DocId>,
-    pub(crate) hsphelp_info: &'a HspHelpInfo,
-
-    // computed:
-    pub(crate) doc_analysis_map: &'a DocAnalysisMap,
-
-    pub(crate) active_docs: &'a HashSet<DocId>,
-    pub(crate) active_help_docs: &'a HashSet<DocId>,
-    pub(crate) def_sites: &'a [(SymbolRc, Loc)],
-    pub(crate) use_sites: &'a [(SymbolRc, Loc)],
-    pub(crate) doc_symbols_map: &'a HashMap<DocId, Vec<SymbolRc>>,
-}
-
-impl AnalysisRef<'_> {
+impl AnalyzerRef<'_> {
     pub(crate) fn hsphelp_info(&self) -> &HspHelpInfo {
-        &self.hsphelp_info
+        &self.owner.hsphelp_info
     }
 
     pub(crate) fn is_active_doc(&self, doc: DocId) -> bool {
@@ -95,9 +81,9 @@ impl AnalysisRef<'_> {
             .cloned()
     }
 
-    pub(crate) fn diagnose(&self, diagnostics: &mut Vec<(String, Loc)>) {
-        self.diagnose_precisely(diagnostics);
-    }
+    // pub(crate) fn diagnose(&self, diagnostics: &mut Vec<(String, Loc)>) {
+    //     self.diagnose_precisely(diagnostics);
+    // }
 
     pub(crate) fn diagnose_syntax_lints(&self, lints: &mut Vec<(SyntaxLint, Loc)>) {
         for (&doc, da) in self.doc_analysis_map.iter() {
@@ -121,7 +107,7 @@ impl AnalysisRef<'_> {
         }
     }
 
-    fn diagnose_precisely(&self, diagnostics: &mut Vec<(String, Loc)>) {
+    pub(crate) fn diagnose_precisely(&self, diagnostics: &mut Vec<(String, Loc)>) {
         // diagnose:
 
         let use_site_map = self
@@ -173,8 +159,8 @@ pub(crate) struct SignatureHelpDb {
 }
 
 impl SignatureHelpDb {
-    pub(crate) fn generate(wa: &AnalysisRef<'_>, doc: DocId) -> Self {
-        let use_site_map = wa
+    pub(crate) fn generate(an: &AnalyzerRef<'_>, doc: DocId) -> Self {
+        let use_site_map = an
             .use_sites
             .iter()
             .filter_map(|&(ref symbol, loc)| {
@@ -197,7 +183,7 @@ impl SignatureHelpDb {
 // (hover, completionの2か所で使われている。ここではシンボルを生成して、completion側でCompletionItemに変換するべき)
 /// プリプロセッサ命令やプリプロセッサ関連のキーワードを入力補完候補として列挙する
 pub(crate) fn collect_preproc_completion_items(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     completion_items: &mut Vec<lsp_types::CompletionItem>,
 ) {
     for (keyword, detail) in &[
@@ -222,10 +208,10 @@ pub(crate) fn collect_preproc_completion_items(
     }
 
     completion_items.extend(
-        wa.hsphelp_info()
+        an.hsphelp_info()
             .doc_symbols
             .iter()
-            .filter(|(&doc, _)| wa.is_active_help_doc(doc))
+            .filter(|(&doc, _)| an.is_active_help_doc(doc))
             .flat_map(|(_, symbols)| symbols.iter().filter(|s| s.label.starts_with("#")))
             .cloned(),
     );
@@ -233,21 +219,21 @@ pub(crate) fn collect_preproc_completion_items(
 
 /// 指定位置のスコープに属するシンボルを列挙する (入力補完用)
 pub(crate) fn collect_symbols_in_scope(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc: DocId,
     pos: Pos16,
     out_symbols: &mut Vec<SymbolRc>,
 ) {
-    let scope = match wa.doc_analysis_map.get(&doc) {
+    let scope = match an.doc_analysis_map.get(&doc) {
         Some(da) => resolve_scope_at(da, pos),
         None => return,
     };
 
-    let doc_symbols = wa
+    let doc_symbols = an
         .doc_symbols_map
         .iter()
         .filter_map(|(&d, symbols)| {
-            if d == doc || wa.is_active_doc(d) {
+            if d == doc || an.is_active_doc(d) {
                 Some((d, symbols.as_slice()))
             } else {
                 None
@@ -292,16 +278,16 @@ pub(crate) fn collect_symbols_in_scope(
 }
 
 pub(crate) fn collect_doc_symbols(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc: DocId,
     symbols: &mut Vec<(SymbolRc, Loc)>,
 ) {
-    let doc_symbols = match wa.doc_symbols_map.get(&doc) {
+    let doc_symbols = match an.doc_symbols_map.get(&doc) {
         Some(it) => it,
         None => return,
     };
 
-    let def_site_map = wa
+    let def_site_map = an
         .def_sites
         .iter()
         .filter(|(_, loc)| loc.doc == doc)
@@ -328,18 +314,18 @@ pub(crate) enum DefOrUse {
 /// - 出現箇所が複数ある場合、位置が前にあるものから順に呼び出しが行われる。
 ///     同じ位置に対して複数回の呼び出しが行われることはない
 pub(crate) fn collect_highlights(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc: DocId,
     symbol: &SymbolRc,
     mut on_site: impl FnMut(DefOrUse, Loc),
 ) {
     let mut sites: Vec<(Loc, DefOrUse)> = vec![];
-    for (s, loc) in wa.def_sites {
+    for (s, loc) in an.def_sites {
         if loc.doc == doc && s == symbol {
             sites.push((*loc, DefOrUse::Def));
         }
     }
-    for (s, loc) in wa.use_sites {
+    for (s, loc) in an.use_sites {
         if loc.doc == doc && s == symbol {
             sites.push((*loc, DefOrUse::Use));
         }
@@ -357,11 +343,11 @@ pub(crate) fn collect_highlights(
 /// 指定したドキュメント内のすべてのシンボルの出現箇所 (定義・使用両方) を列挙する
 /// (セマンティックトークン用)
 pub(crate) fn collect_symbol_occurrences_in_doc<'a>(
-    wa: &AnalysisRef<'a>,
+    an: &AnalyzerRef<'a>,
     doc: DocId,
     symbols: &mut Vec<(&'a SymbolRc, Loc)>,
 ) {
-    for (symbol, loc) in wa.def_sites.iter().chain(wa.use_sites) {
+    for (symbol, loc) in an.def_sites.iter().chain(an.use_sites) {
         if loc.doc == doc {
             symbols.push((symbol, *loc));
         }
@@ -375,20 +361,20 @@ pub(crate) struct CollectSymbolOptions {
 
 /// 指定したシンボルの定義箇所・使用箇所を列挙する (順不同、重複あり)
 pub(crate) fn collect_symbol_occurrences(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     options: CollectSymbolOptions,
     symbol: &SymbolRc,
     locs: &mut Vec<Loc>,
 ) {
     if options.include_def {
-        for (s, loc) in wa.def_sites {
+        for (s, loc) in an.def_sites {
             if *s == *symbol {
                 locs.push(*loc);
             }
         }
     }
     if options.include_use {
-        for (s, loc) in wa.use_sites {
+        for (s, loc) in an.use_sites {
             if *s == *symbol {
                 locs.push(*loc);
             }
@@ -397,21 +383,21 @@ pub(crate) fn collect_symbol_occurrences(
 }
 
 pub(crate) fn collect_workspace_symbols(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     query: &str,
     symbols: &mut Vec<(SymbolRc, Loc)>,
 ) {
     let name_filter = query.trim().to_ascii_lowercase();
 
-    let map = wa
+    let map = an
         .def_sites
         .iter()
         .filter(|(symbol, _)| symbol.name.contains(&name_filter))
         .map(|(symbol, loc)| (symbol.clone(), *loc))
         .collect::<HashMap<_, _>>();
 
-    for (&doc, doc_symbols) in wa.doc_symbols_map.iter() {
-        if !wa.active_docs.contains(&doc) {
+    for (&doc, doc_symbols) in an.doc_symbols_map.iter() {
+        if !an.active_docs.contains(&doc) {
             continue;
         }
 
@@ -432,10 +418,10 @@ pub(crate) fn collect_workspace_symbols(
 
 /// 指定した位置に `#include` があるなら、その参照先のドキュメントを取得する
 #[allow(unused)]
-pub(crate) fn find_include_target(wa: &AnalysisRef<'_>, doc: DocId, pos: Pos16) -> Option<DocId> {
+pub(crate) fn find_include_target(an: &AnalyzerRef<'_>, doc: DocId, pos: Pos16) -> Option<DocId> {
     // FIXME: 再実装
     // (include_resolutionが機能停止中のため無効化)
-    // let (_, dest_doc) = *wa
+    // let (_, dest_doc) = *an
     //     .include_resolution
     //     .iter()
     //     .find(|&(loc, _)| loc.is_touched(doc, pos))?;

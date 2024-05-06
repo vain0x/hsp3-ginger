@@ -48,8 +48,8 @@ pub(super) struct Analyzer {
     options: AnalyzerOptions,
 
     // 状態 (ファイルスキャンの結果):
-    common_docs: HashMap<String, DocId>,
-    hsphelp_info: HspHelpInfo,
+    pub(crate) common_docs: HashMap<String, DocId>,
+    pub(crate) hsphelp_info: HspHelpInfo,
 
     // 状態 (ドキュメント):
     doc_interner: DocInterner,
@@ -79,10 +79,20 @@ pub(super) struct Analyzer {
 
 /// `Analyzer` の解析処理を完了した状態への参照
 pub(super) struct AnalyzerRef<'a> {
-    wa: AnalysisRef<'a>,
+    pub(crate) owner: &'a Analyzer,
+
+    // state:
     doc_interner: &'a DocInterner,
     docs: &'a Docs,
-    owner: &'a Analyzer,
+
+    // computed:
+    pub(crate) doc_analysis_map: &'a DocAnalysisMap,
+
+    pub(crate) active_docs: &'a HashSet<DocId>,
+    pub(crate) active_help_docs: &'a HashSet<DocId>,
+    pub(crate) def_sites: &'a [(SymbolRc, Loc)],
+    pub(crate) use_sites: &'a [(SymbolRc, Loc)],
+    pub(crate) doc_symbols_map: &'a HashMap<DocId, Vec<SymbolRc>>,
 }
 
 impl Analyzer {
@@ -97,7 +107,7 @@ impl Analyzer {
     #[cfg(test)]
     pub(crate) fn new_standalone() -> Self {
         let root = crate::test_utils::dummy_path();
-        let ls = Self {
+        let an = Self {
             // no_exist/hsp3
             hsp3_root: root.clone().join("hsp3"),
             // no_exist/ws
@@ -111,29 +121,7 @@ impl Analyzer {
         // self.hsphelp_info = hsphelp_info;
         // self.public_env.builtin = builtin_env;
 
-        ls
-    }
-
-    #[cfg(test)]
-    pub(crate) fn analyze_for_test(&mut self) -> (AnalysisRef<'_>, &DocInterner, &Docs) {
-        if !self.is_computed() {
-            self.process_changes();
-        }
-        (self.get_analysis(), &self.doc_interner, &self.docs)
-    }
-
-    fn get_analysis(&self) -> AnalysisRef<'_> {
-        assert!(self.is_computed());
-        AnalysisRef {
-            common_docs: &self.common_docs,
-            hsphelp_info: &self.hsphelp_info,
-            active_docs: &self.active_docs,
-            active_help_docs: &self.active_help_docs,
-            doc_symbols_map: &self.doc_symbols_map,
-            def_sites: &self.def_sites,
-            use_sites: &self.use_sites,
-            doc_analysis_map: &self.doc_analysis_map,
-        }
+        an
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
@@ -310,9 +298,14 @@ impl Analyzer {
         assert!(self.is_computed());
         AnalyzerRef {
             owner: self,
-            wa: self.get_analysis(),
             doc_interner: &self.doc_interner,
             docs: &self.docs,
+            active_docs: &self.active_docs,
+            active_help_docs: &self.active_help_docs,
+            doc_symbols_map: &self.doc_symbols_map,
+            def_sites: &self.def_sites,
+            use_sites: &self.use_sites,
+            doc_analysis_map: &self.doc_analysis_map,
         }
     }
 
@@ -374,9 +367,8 @@ impl Analyzer {
 }
 
 impl<'a> AnalyzerRef<'a> {
-    #[cfg(test)]
-    pub(crate) fn get_analysis_ref(&self) -> &AnalysisRef<'_> {
-        &self.wa
+    pub(crate) fn get_doc_interner(&self) -> &DocInterner {
+        self.doc_interner
     }
 
     pub(super) fn code_action(
@@ -388,7 +380,7 @@ impl<'a> AnalyzerRef<'a> {
         let mut actions = vec![];
         actions.extend(
             ide::code_actions::flip_comma::flip_comma(
-                &self.wa,
+                self,
                 self.doc_interner,
                 self.docs,
                 &uri,
@@ -398,7 +390,7 @@ impl<'a> AnalyzerRef<'a> {
         );
         actions.extend(
             ide::code_actions::generate_include_guard::generate_include_guard(
-                &self.wa,
+                self,
                 self.doc_interner,
                 self.docs,
                 &uri,
@@ -410,7 +402,7 @@ impl<'a> AnalyzerRef<'a> {
     }
 
     pub(super) fn completion(&self, uri: Url, position: Position) -> CompletionList {
-        ide::completion::completion(&self.wa, self.doc_interner, uri, position)
+        ide::completion::completion(self, self.doc_interner, uri, position)
             .unwrap_or_else(ide::completion::incomplete_completion_list)
     }
 
@@ -418,15 +410,15 @@ impl<'a> AnalyzerRef<'a> {
         &self,
         completion_item: CompletionItem,
     ) -> Option<CompletionItem> {
-        ide::completion::completion_resolve(&self.wa, self.doc_interner, completion_item)
+        ide::completion::completion_resolve(self, self.doc_interner, completion_item)
     }
 
     pub(crate) fn formatting(&self, uri: Url) -> Option<Vec<TextEdit>> {
-        ide::formatting::formatting(&self.wa, self.doc_interner, uri)
+        ide::formatting::formatting(self, self.doc_interner, uri)
     }
 
     pub(super) fn definitions(&self, uri: Url, position: Position) -> Vec<Location> {
-        ide::definitions::definitions(&self.wa, self.doc_interner, uri, position).unwrap_or(vec![])
+        ide::definitions::definitions(self, self.doc_interner, uri, position).unwrap_or(vec![])
     }
 
     pub(super) fn document_highlight(
@@ -434,16 +426,16 @@ impl<'a> AnalyzerRef<'a> {
         uri: Url,
         position: Position,
     ) -> Vec<DocumentHighlight> {
-        ide::document_highlight::document_highlight(&self.wa, self.doc_interner, uri, position)
+        ide::document_highlight::document_highlight(self, self.doc_interner, uri, position)
             .unwrap_or(vec![])
     }
 
     pub(super) fn document_symbol(&self, uri: Url) -> Option<DocumentSymbolResponse> {
-        ide::document_symbol::symbol(&self.wa, self.doc_interner, uri)
+        ide::document_symbol::symbol(self, self.doc_interner, uri)
     }
 
     pub(super) fn hover(&self, uri: Url, position: Position) -> Option<Hover> {
-        ide::hover::hover(&self.wa, self.doc_interner, uri, position)
+        ide::hover::hover(self, self.doc_interner, uri, position)
     }
 
     pub(super) fn references(
@@ -452,14 +444,8 @@ impl<'a> AnalyzerRef<'a> {
         position: Position,
         include_definition: bool,
     ) -> Vec<Location> {
-        ide::references::references(
-            &self.wa,
-            self.doc_interner,
-            uri,
-            position,
-            include_definition,
-        )
-        .unwrap_or(vec![])
+        ide::references::references(self, self.doc_interner, uri, position, include_definition)
+            .unwrap_or(vec![])
     }
 
     pub(super) fn prepare_rename(
@@ -467,7 +453,7 @@ impl<'a> AnalyzerRef<'a> {
         uri: Url,
         position: Position,
     ) -> Option<PrepareRenameResponse> {
-        ide::rename::prepare_rename(&self.wa, self.doc_interner, uri, position)
+        ide::rename::prepare_rename(self, self.doc_interner, uri, position)
     }
 
     pub(super) fn rename(
@@ -476,18 +462,11 @@ impl<'a> AnalyzerRef<'a> {
         position: Position,
         new_name: String,
     ) -> Option<WorkspaceEdit> {
-        ide::rename::rename(
-            &self.wa,
-            self.doc_interner,
-            self.docs,
-            uri,
-            position,
-            new_name,
-        )
+        ide::rename::rename(self, self.doc_interner, self.docs, uri, position, new_name)
     }
 
     pub(super) fn semantic_tokens(&self, uri: Url) -> lsp_types::SemanticTokens {
-        let tokens = ide::semantic_tokens::full(&self.wa, self.doc_interner, uri).unwrap_or(vec![]);
+        let tokens = ide::semantic_tokens::full(self, self.doc_interner, uri).unwrap_or(vec![]);
         SemanticTokens {
             data: tokens,
             result_id: None,
@@ -495,11 +474,11 @@ impl<'a> AnalyzerRef<'a> {
     }
 
     pub(super) fn signature_help(&self, uri: Url, position: Position) -> Option<SignatureHelp> {
-        ide::signature_help::signature_help(&self.wa, self.doc_interner, uri, position)
+        ide::signature_help::signature_help(self, self.doc_interner, uri, position)
     }
 
     pub(super) fn workspace_symbol(&self, query: String) -> Vec<SymbolInformation> {
-        ide::workspace_symbol::symbol(&self.wa, self.doc_interner, &query)
+        ide::workspace_symbol::symbol(self, self.doc_interner, &query)
     }
 
     pub(super) fn diagnose(&self) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
@@ -508,7 +487,7 @@ impl<'a> AnalyzerRef<'a> {
         }
 
         let mut diagnostics = ide::diagnose::diagnose(
-            &self.wa,
+            self,
             &self.doc_interner,
             &self.docs,
             &mut self.owner.diagnostics_cache.borrow_mut(),

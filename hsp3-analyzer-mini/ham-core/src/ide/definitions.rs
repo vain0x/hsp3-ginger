@@ -4,14 +4,14 @@ use lsp_types::{Location, Position, Url};
 
 // (順不同、重複あり)
 fn goto_symbol_definition(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc: DocId,
     pos: Pos16,
     locs: &mut Vec<Loc>,
 ) -> Option<()> {
-    let (symbol, _) = wa.locate_symbol(doc, pos)?;
+    let (symbol, _) = an.locate_symbol(doc, pos)?;
     collect_symbol_occurrences(
-        wa,
+        an,
         CollectSymbolOptions {
             include_def: true,
             include_use: false,
@@ -23,18 +23,18 @@ fn goto_symbol_definition(
 }
 
 fn goto_include_target(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc: DocId,
     pos: Pos16,
     locs: &mut Vec<Loc>,
 ) -> Option<()> {
-    let dest_doc = find_include_target(wa, doc, pos)?;
+    let dest_doc = find_include_target(an, doc, pos)?;
     locs.push(Loc::from_doc(dest_doc));
     Some(())
 }
 
 pub(crate) fn definitions(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     uri: Url,
     position: Position,
@@ -42,8 +42,8 @@ pub(crate) fn definitions(
     let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
     let mut locs = vec![];
 
-    let ok = goto_symbol_definition(wa, doc, pos, &mut locs).is_some()
-        || goto_include_target(wa, doc, pos, &mut locs).is_some();
+    let ok = goto_symbol_definition(an, doc, pos, &mut locs).is_some()
+        || goto_include_target(an, doc, pos, &mut locs).is_some();
     if !ok {
         debug_assert_eq!(locs.len(), 0);
         return None;

@@ -79,7 +79,7 @@ fn symbols_tests() {
         an.open_doc(uri, 1, text);
     }
 
-    let ls = an.compute_ref();
+    let an = an.compute_ref();
 
     const EXCLUDE_DEFINITION: bool = false;
 
@@ -91,8 +91,8 @@ fn symbols_tests() {
         let column = line.find(&word).unwrap();
 
         let pos = Position::new(row as u32, column as u32);
-        let def_sites = ls.definitions(uri.clone(), pos);
-        let use_sites = ls.references(uri.clone(), pos, EXCLUDE_DEFINITION);
+        let def_sites = an.definitions(uri.clone(), pos);
+        let use_sites = an.references(uri.clone(), pos, EXCLUDE_DEFINITION);
 
         let mut actual = def_sites
             .into_iter()
@@ -200,7 +200,7 @@ fn namespace_tests() {
             an.open_doc(uri, NO_VERSION, text);
         }
 
-        let ls = an.compute_ref();
+        let an = an.compute_ref();
 
         assert!(!word_map.is_empty(), "^def/^useがみつかるはず");
 
@@ -209,8 +209,8 @@ fn namespace_tests() {
 
             const EXCLUDE_DEFINITION: bool = false;
             let pos = Position::new(pos.row as u32, pos.column as u32);
-            let def_sites = ls.definitions(uri.clone(), pos);
-            let use_sites = ls.references(uri.clone(), pos, EXCLUDE_DEFINITION);
+            let def_sites = an.definitions(uri.clone(), pos);
+            let use_sites = an.references(uri.clone(), pos, EXCLUDE_DEFINITION);
 
             let mut actual = def_sites
                 .into_iter()
@@ -314,11 +314,10 @@ mod ref_tests {
             .find_doc_by_uri(&CanonicalUri::from_url(&dummy_url("a.hsp")))
             .unwrap();
 
-        let ls = an.compute_ref();
+        let an = an.compute_ref();
 
         for (name, pos) in cursors {
-            let actual = ls
-                .get_analysis_ref()
+            let actual = an
                 .locate_symbol(doc, pos.into())
                 .map(|(symbol, _)| symbol.name());
             assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);
@@ -354,11 +353,10 @@ mod ref_tests {
             .find_doc_by_uri(&CanonicalUri::from_url(&dummy_url("a.hsp")))
             .unwrap();
 
-        let ls = an.compute_ref();
+        let an = an.compute_ref();
 
         for (name, pos) in cursors {
-            let actual = ls
-                .get_analysis_ref()
+            let actual = an
                 .locate_symbol(doc, pos.into())
                 .map(|(symbol, _)| symbol.name());
             assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);

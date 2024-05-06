@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    ide::{loc_to_range, to_lsp_range},
     analyzer::{doc_interner::DocInterner, docs::Docs},
+    ide::{loc_to_range, to_lsp_range},
 };
 use lsp_types::{Diagnostic, DiagnosticSeverity, Url};
 
@@ -60,16 +60,16 @@ fn filter_diagnostics(
 }
 
 pub(crate) fn diagnose(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     docs: &Docs,
     cache: &mut DiagnosticsCache,
 ) -> Vec<(Url, Option<i32>, Vec<Diagnostic>)> {
     let mut dd = vec![];
-    wa.diagnose(&mut dd);
+    an.diagnose_precisely(&mut dd);
 
     let mut lints = vec![];
-    wa.diagnose_syntax_lints(&mut lints);
+    an.diagnose_syntax_lints(&mut lints);
 
     let mut map: HashMap<DocId, Vec<Diagnostic>> = HashMap::new();
     for (message, loc) in dd {

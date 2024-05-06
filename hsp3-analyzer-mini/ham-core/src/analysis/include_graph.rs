@@ -1,7 +1,7 @@
 // いまのところ未使用
 
 use super::*;
-use crate::analyzer::docs::resolve_included_name;
+use crate::analyzer::{doc_interner::DocInterner, docs::resolve_included_name, AnalyzerRef};
 
 #[allow(unused)]
 #[derive(Default)]
@@ -13,12 +13,9 @@ pub(crate) struct IncludeGraph {
 
 impl IncludeGraph {
     #[allow(unused)]
-    pub(crate) fn generate(
-        wa: &AnalysisRef<'_>,
-        doc_interner: &analyzer::doc_interner::DocInterner,
-    ) -> Self {
+    pub(crate) fn generate(an: &AnalyzerRef<'_>, doc_interner: &DocInterner) -> Self {
         let mut it = Self::default();
-        generate_include_graph(wa, doc_interner, &mut it);
+        generate_include_graph(an, doc_interner, &mut it);
         it
     }
 }
@@ -26,11 +23,11 @@ impl IncludeGraph {
 /// ファイル間の `include` の関係を表す有向グラフを構築する
 #[allow(unused)]
 fn generate_include_graph(
-    wa: &AnalysisRef<'_>,
-    doc_interner: &analyzer::doc_interner::DocInterner,
+    an: &AnalyzerRef<'_>,
+    doc_interner: &DocInterner,
     include_graph: &mut IncludeGraph,
 ) {
-    // let get_name = |doc: DocId| match wa
+    // let get_name = |doc: DocId| match an
     //     .get_uri(doc)
     //     .and_then(|uri| uri.to_file_path())
     //     .and_then(|path| {
@@ -42,13 +39,13 @@ fn generate_include_graph(
     //     None => format!("{}", doc),
     // };
 
-    for (&src_doc, da) in wa.doc_analysis_map {
+    for (&src_doc, da) in an.doc_analysis_map {
         // let src_name = get_name(src_doc);
         // eprintln!("  >{}:{} ({})", src_doc, src_name, da.includes.len());
 
         for (included_name, l) in &da.includes {
             // TODO: includeの解決
-            // let included_doc = match wa.project_docs.find(included_name, Some(src_doc)) {
+            // let included_doc = match an.project_docs.find(included_name, Some(src_doc)) {
             //     Some(it) => it,
             //     None => {
             //         debug!(
@@ -59,7 +56,7 @@ fn generate_include_graph(
             //     }
             // };
             let included_doc_opt = resolve_included_name(doc_interner, included_name, src_doc)
-                .or_else(|| wa.common_docs.get(included_name.as_str()).cloned());
+                .or_else(|| an.owner.common_docs.get(included_name.as_str()).cloned());
             // debug!(
             //     "include {}:{} {:?} -> {:?}",
             //     src_name,
@@ -129,7 +126,7 @@ impl Default for CollectSymbolQuery {
 ///  使用側も後方参照が可能なので同様に扱う)
 #[allow(unused)]
 pub(crate) fn collect_symbols2(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     include_graph: &IncludeGraph,
     doc: DocId,
     query: CollectSymbolQuery,
@@ -178,14 +175,14 @@ pub(crate) fn collect_symbols2(
     let is_reachable = |doc: DocId| reachable.contains(&doc);
 
     if query.def_site {
-        for (symbol, loc) in wa.def_sites {
+        for (symbol, loc) in an.def_sites {
             if is_reachable(loc.doc) {
                 symbols.push((symbol.clone(), *loc));
             }
         }
     }
     if query.use_site {
-        for (symbol, loc) in wa.use_sites {
+        for (symbol, loc) in an.use_sites {
             if is_reachable(loc.doc) || symbol.builtin {
                 symbols.push((symbol.clone(), *loc));
             }
@@ -196,7 +193,7 @@ pub(crate) fn collect_symbols2(
 #[cfg(skip)]
 #[allow(unused)]
 pub(crate) fn collect_symbol_defs(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     include_graph: &IncludeGraph,
     doc: DocId,
     symbol: &SymbolRc,
@@ -207,7 +204,7 @@ pub(crate) fn collect_symbol_defs(
         use_site: false,
     };
     let mut symbols = vec![];
-    collect_symbols2(wa, &include_graph, doc, query, &mut symbols);
+    collect_symbols2(an, &include_graph, doc, query, &mut symbols);
     for (s, loc) in symbols {
         if s == *symbol {
             locs.push(loc);
@@ -217,7 +214,7 @@ pub(crate) fn collect_symbol_defs(
 
 #[cfg(skip)]
 pub(crate) fn collect_symbol_uses(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     include_graph: &IncludeGraph,
     doc: DocId,
     symbol: &SymbolRc,
@@ -228,7 +225,7 @@ pub(crate) fn collect_symbol_uses(
         use_site: true,
     };
     let mut symbols = vec![];
-    collect_symbols2(wa, &include_graph, doc, query, &mut symbols);
+    collect_symbols2(an, &include_graph, doc, query, &mut symbols);
     for (s, loc) in symbols {
         if s == *symbol {
             locs.push(loc);
@@ -334,10 +331,12 @@ mod tests {
 "#,
         );
 
-        let (wa, doc_interner, _docs) = an.analyze_for_test();
-        let wa = &wa;
+        let an = an.compute_ref();
+        let an = &an;
+        let doc_interner = an.get_doc_interner();
+
         let mut include_graph = IncludeGraph::default();
-        generate_include_graph(wa, doc_interner, &mut include_graph);
+        generate_include_graph(an, doc_interner, &mut include_graph);
 
         let def_only = CollectSymbolQuery {
             def_site: true,
@@ -348,20 +347,20 @@ mod tests {
         // mod_x基準で定義箇所を列挙する:
         // 下流であるmain, mod_x_testsの両方がみえる
         let mut symbols = vec![];
-        collect_symbols2(wa, &include_graph, mx.0, def_only.clone(), &mut symbols);
+        collect_symbols2(an, &include_graph, mx.0, def_only.clone(), &mut symbols);
         assert_eq!(format_symbols(&symbols), "a, app_main, b, f, test_main");
         symbols.clear();
 
         // main基準で定義箇所を列挙する: mod_xにある命令fがみえる
         let mut symbols = vec![];
-        collect_symbols2(wa, &include_graph, main.0, def_only.clone(), &mut symbols);
+        collect_symbols2(an, &include_graph, main.0, def_only.clone(), &mut symbols);
         assert_eq!(format_symbols(&symbols), "a, app_main, b, f");
         symbols.clear();
 
         // mod_x_tests基準で定義箇所を列挙する
         let mut symbols = vec![];
         collect_symbols2(
-            wa,
+            an,
             &include_graph,
             mx_tests.0,
             def_only.clone(),
@@ -374,7 +373,7 @@ mod tests {
         // 到達可能関係がないため、ほかのドキュメントのシンボルはみえない
         let mut symbols = vec![];
         collect_symbols2(
-            wa,
+            an,
             &include_graph,
             isolation.0,
             def_only.clone(),

@@ -63,7 +63,7 @@ impl PVisitor for V {
 }
 
 pub(crate) fn flip_comma(
-    wa: &AnalysisRef<'_>,
+    an: &AnalyzerRef<'_>,
     doc_interner: &DocInterner,
     docs: &Docs,
     uri: &Url,
@@ -72,7 +72,7 @@ pub(crate) fn flip_comma(
     let (doc, pos) = from_document_position(doc_interner, uri, range.start)?;
     let version = docs.get_version(doc);
 
-    let DocSyntax { text, tokens, root } = wa.get_syntax(doc)?;
+    let DocSyntax { text, tokens, root } = an.get_syntax(doc)?;
 
     // 補完位置に隣接しているカンマをみつける。
     let (comma_index, comma) = {
