@@ -301,7 +301,7 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn diagnose(&mut self) {
-        let diagnostics = self.model.diagnose();
+        let diagnostics = self.model.compute_ref().diagnose();
 
         for (uri, version, diagnostics) in diagnostics {
             self.sender.send_notification(

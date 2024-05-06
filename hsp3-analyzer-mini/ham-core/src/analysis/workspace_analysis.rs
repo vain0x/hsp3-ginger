@@ -2,187 +2,19 @@ use super::*;
 
 pub(crate) type DocAnalysisMap = HashMap<DocId, DocAnalysis>;
 
-/// ワークスペースの外側のデータ
-#[derive(Default)]
-pub(crate) struct WorkspaceHost {
-    pub(crate) builtin_env: Rc<SymbolEnv>,
-    pub(crate) common_docs: Rc<HashMap<String, DocId>>,
-    pub(crate) hsphelp_info: Rc<HspHelpInfo>,
-}
-
-#[derive(Default)]
-pub(crate) struct WorkspaceAnalysis {
-    // input:
-    common_docs: Rc<HashMap<String, DocId>>,
-    hsphelp_info: Rc<HspHelpInfo>,
-
-    // state:
-    dirty: bool,
-
-    // computed:
-    pub(super) active_docs: HashSet<DocId>,
-    pub(super) active_help_docs: HashSet<DocId>,
-    pub(super) help_docs: HashMap<DocId, DocId>,
-
-    pub(super) public_env: PublicEnv,
-    pub(super) ns_env: HashMap<RcStr, SymbolEnv>,
-    pub(super) doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
-    pub(crate) def_sites: Vec<(SymbolRc, Loc)>,
-    pub(crate) use_sites: Vec<(SymbolRc, Loc)>,
-
-    /// (loc, doc): locにあるincludeがdocに解決されたことを表す。
-    pub(super) include_resolution: Vec<(Loc, DocId)>,
-
-    // すべてのドキュメントの解析結果を使って構築される情報:
-    pub(crate) doc_analysis_map: DocAnalysisMap,
-    module_map: ModuleMap,
-}
-
 pub(crate) struct AnalysisRef<'a> {
     // input:
     pub(crate) common_docs: &'a HashMap<String, DocId>,
-    hsphelp_info: &'a HspHelpInfo,
+    pub(crate) hsphelp_info: &'a HspHelpInfo,
 
     // computed:
-    pub(super) active_docs: &'a HashSet<DocId>,
-    pub(super) active_help_docs: &'a HashSet<DocId>,
+    pub(crate) doc_analysis_map: &'a DocAnalysisMap,
 
-    pub(super) doc_symbols_map: &'a HashMap<DocId, Vec<SymbolRc>>,
-    pub(super) def_sites: &'a [(SymbolRc, Loc)],
-    pub(super) use_sites: &'a [(SymbolRc, Loc)],
-
-    // すべてのドキュメントの解析結果を使って構築される情報:
-    pub(super) doc_analysis_map: &'a DocAnalysisMap,
-}
-
-impl WorkspaceAnalysis {
-    pub(crate) fn initialize(&mut self, host: WorkspaceHost) {
-        let WorkspaceHost {
-            common_docs,
-            hsphelp_info,
-            builtin_env,
-        } = host;
-
-        self.common_docs = common_docs;
-        self.hsphelp_info = hsphelp_info;
-
-        self.public_env.builtin = builtin_env;
-        self.dirty = true;
-    }
-
-    pub(crate) fn invalidate(&mut self) {
-        self.dirty = true;
-        self.active_docs.clear();
-        self.active_help_docs.clear();
-        self.help_docs.clear();
-        self.public_env.clear();
-        self.ns_env.clear();
-        self.doc_symbols_map.clear();
-        self.def_sites.clear();
-        self.use_sites.clear();
-        self.include_resolution.clear();
-        self.module_map.clear();
-    }
-
-    // (open or change)
-    pub(crate) fn update_doc(&mut self, doc: DocId, lang: Lang, text: RcStr) {
-        debug_assert!(self.dirty);
-
-        match lang {
-            Lang::HelpSource => {
-                // .hs ファイルの変更追跡は未実装
-                return;
-            }
-            Lang::Hsp3 => {}
-        }
-
-        let da = self.doc_analysis_map.entry(doc).or_default();
-        da.compute(doc, text);
-    }
-
-    pub(crate) fn close_doc(&mut self, doc: DocId) {
-        debug_assert!(self.dirty);
-        self.doc_analysis_map.remove(&doc);
-    }
-
-    pub(crate) fn is_computed(&self) -> bool {
-        !self.dirty
-    }
-
-    /// 未実行の解析処理があるなら行う
-    fn compute(&mut self) {
-        if !self.dirty {
-            return;
-        }
-
-        for da in self.doc_analysis_map.values() {
-            self.module_map
-                .extend(da.module_map.iter().map(|(&m, rc)| (m, rc.clone())));
-        }
-
-        // NOTE: プロジェクトシステムの移行中
-        {
-            compute_active_docs::compute_active_docs(
-                &self.doc_analysis_map,
-                &self.common_docs,
-                &self.hsphelp_info,
-                &mut self.active_docs,
-                &mut self.active_help_docs,
-                &mut self.help_docs,
-                &mut self.include_resolution,
-            );
-
-            compute_symbols::compute_symbols(
-                &self.hsphelp_info,
-                &self.active_docs,
-                &self.help_docs,
-                &self.doc_analysis_map,
-                &self.module_map,
-                &mut self.public_env,
-                &mut self.ns_env,
-                &mut self.doc_symbols_map,
-                &mut self.def_sites,
-                &mut self.use_sites,
-            );
-        }
-
-        // デバッグ用: 集計を出す。
-        {
-            let total_symbol_count = self
-                .doc_symbols_map
-                .values()
-                .map(|symbols| symbols.len())
-                .sum::<usize>();
-            trace!(
-                "computed: active_docs={} def_sites={} use_sites={} symbols={}",
-                self.active_docs.len(),
-                self.def_sites.len(),
-                self.use_sites.len(),
-                total_symbol_count
-            );
-        }
-
-        self.dirty = false;
-    }
-
-    pub(crate) fn get_analysis(&self) -> AnalysisRef<'_> {
-        assert!(self.is_computed());
-        AnalysisRef {
-            common_docs: &self.common_docs,
-            hsphelp_info: &self.hsphelp_info,
-            active_docs: &self.active_docs,
-            active_help_docs: &self.active_help_docs,
-            doc_symbols_map: &self.doc_symbols_map,
-            def_sites: &self.def_sites,
-            use_sites: &self.use_sites,
-            doc_analysis_map: &self.doc_analysis_map,
-        }
-    }
-
-    pub(crate) fn compute_analysis(&mut self) -> AnalysisRef<'_> {
-        self.compute();
-        self.get_analysis()
-    }
+    pub(crate) active_docs: &'a HashSet<DocId>,
+    pub(crate) active_help_docs: &'a HashSet<DocId>,
+    pub(crate) def_sites: &'a [(SymbolRc, Loc)],
+    pub(crate) use_sites: &'a [(SymbolRc, Loc)],
+    pub(crate) doc_symbols_map: &'a HashMap<DocId, Vec<SymbolRc>>,
 }
 
 impl AnalysisRef<'_> {

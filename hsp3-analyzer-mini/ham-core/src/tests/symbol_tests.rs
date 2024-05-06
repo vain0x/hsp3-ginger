@@ -257,11 +257,17 @@ fn namespace_tests() {
 
 mod ref_tests {
     use crate::{
-        analysis::*,
-        lang::Lang,
-        source::{DocId, Pos},
+        lang_service::{DocDb, LangService},
+        lsp_server::NO_VERSION,
+        source::Pos,
+        tests::CanonicalUri,
     };
     use std::collections::HashMap;
+
+    fn dummy_url(s: &str) -> lsp_types::Url {
+        let workspace_dir = crate::test_utils::dummy_path().join("ws");
+        lsp_types::Url::from_file_path(&workspace_dir.join(s)).unwrap()
+    }
 
     /// `<|x|>` のようなマーカーを含む文字列を受け取る。間に挟まれている x の部分をマーカーの名前と呼ぶ。
     /// マーカーを取り除いた文字列 text と、text の中でマーカーが指している位置のリストを返す。
@@ -294,10 +300,8 @@ mod ref_tests {
 
     #[test]
     fn test_locate_static_var_def() {
-        let mut wa = WorkspaceAnalysis::default();
-        wa.initialize(WorkspaceHost::default());
+        let mut ls = LangService::new_standalone();
 
-        let doc: DocId = 1;
         let text = r#"
             <|A|>foo = 1
         "#;
@@ -306,12 +310,16 @@ mod ref_tests {
             .collect::<HashMap<_, _>>();
         let (text, cursors) = parse_cursor_string(text);
 
-        wa.update_doc(doc, Lang::Hsp3, text.into());
+        ls.open_doc(dummy_url("a.hsp"), NO_VERSION, text.into());
+        let doc = ls
+            .find_doc_by_uri(&CanonicalUri::from_url(&dummy_url("a.hsp")))
+            .unwrap();
 
-        let wa = &wa.compute_analysis();
+        let ls = ls.compute_ref();
 
         for (name, pos) in cursors {
-            let actual = wa
+            let actual = ls
+                .get_analysis_ref()
                 .locate_symbol(doc, pos.into())
                 .map(|(symbol, _)| symbol.name());
             assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);
@@ -320,10 +328,8 @@ mod ref_tests {
 
     #[test]
     fn test_it_works() {
-        let mut wa = WorkspaceAnalysis::default();
-        wa.initialize(WorkspaceHost::default());
+        let mut ls = LangService::new_standalone();
 
-        let doc: DocId = 1;
         let text = r#"
             #module
             #deffunc <|A|>hello
@@ -344,12 +350,16 @@ mod ref_tests {
         .collect::<HashMap<_, _>>();
         let (text, cursors) = parse_cursor_string(text);
 
-        wa.update_doc(doc, Lang::Hsp3, text.into());
+        ls.open_doc(dummy_url("a.hsp"), NO_VERSION, text.into());
+        let doc = ls
+            .find_doc_by_uri(&CanonicalUri::from_url(&dummy_url("a.hsp")))
+            .unwrap();
 
-        let wa = &wa.compute_analysis();
+        let ls = ls.compute_ref();
 
         for (name, pos) in cursors {
-            let actual = wa
+            let actual = ls
+                .get_analysis_ref()
                 .locate_symbol(doc, pos.into())
                 .map(|(symbol, _)| symbol.name());
             assert_eq!(actual.as_deref(), expected_map[name], "name={}", name);

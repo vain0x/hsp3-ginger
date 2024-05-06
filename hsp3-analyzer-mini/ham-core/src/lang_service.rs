@@ -15,9 +15,9 @@ use crate::{
         doc_interner::DocInterner,
         docs::Docs,
         search_common::search_common,
-        search_hsphelp::search_hsphelp,
+        search_hsphelp::{search_hsphelp, HspHelpInfo},
     },
-    source::DocId,
+    source::{DocId, Loc},
     utils::read_file::read_file,
 };
 use lsp_types::*;
@@ -43,13 +43,39 @@ impl Default for LangServiceOptions {
 
 #[derive(Default)]
 pub(super) struct LangService {
-    wa: WorkspaceAnalysis,
+    // 入力 (起動時):
     hsp3_root: PathBuf,
     root_uri_opt: Option<CanonicalUri>,
     options: LangServiceOptions,
+
+    // 状態 (ファイルスキャンの結果):
+    common_docs: Rc<HashMap<String, DocId>>,
+    hsphelp_info: Rc<HspHelpInfo>,
+
+    // 状態 (ドキュメント):
     doc_interner: DocInterner,
     docs: Docs,
-    diagnostics_cache: DiagnosticsCache,
+
+    // 状態 (ドキュメントごとの解析処理の計算結果):
+    doc_analysis_map: DocAnalysisMap,
+
+    // 状態 (ドキュメント全体の解析処理の計算結果):
+    active_docs: HashSet<DocId>,
+    active_help_docs: HashSet<DocId>,
+    help_docs: HashMap<DocId, DocId>,
+    /// (loc, doc): locにあるincludeがdocに解決されたことを表す (FIXME: 再実装)
+    include_resolution: Vec<(Loc, DocId)>,
+    public_env: PublicEnv,
+    ns_env: HashMap<RcStr, SymbolEnv>,
+    def_sites: Vec<(SymbolRc, Loc)>,
+    use_sites: Vec<(SymbolRc, Loc)>,
+
+    // 状態 (上記の計算結果をさらに加工したもの):
+    doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
+    module_map: ModuleMap,
+
+    // 状態 (計算結果の差分を生成するため):
+    diagnostics_cache: RefCell<DiagnosticsCache>,
 }
 
 /// `LangService` の解析処理を完了した状態への参照
@@ -57,6 +83,7 @@ pub(super) struct LangServiceRef<'a> {
     wa: AnalysisRef<'a>,
     doc_interner: &'a DocInterner,
     docs: &'a Docs,
+    owner: &'a LangService,
 }
 
 impl LangService {
@@ -71,7 +98,7 @@ impl LangService {
     #[cfg(test)]
     pub(crate) fn new_standalone() -> Self {
         let root = crate::test_utils::dummy_path();
-        let mut ls = Self {
+        let ls = Self {
             // no_exist/hsp3
             hsp3_root: root.clone().join("hsp3"),
             // no_exist/ws
@@ -79,7 +106,12 @@ impl LangService {
             options: LangServiceOptions::minimal(),
             ..Default::default()
         };
-        ls.wa.initialize(WorkspaceHost::default());
+
+        // 既定値を使う:
+        // self.common_docs = common_docs;
+        // self.hsphelp_info = hsphelp_info;
+        // self.public_env.builtin = builtin_env;
+
         ls
     }
 
@@ -88,7 +120,21 @@ impl LangService {
         if !self.is_computed() {
             self.process_changes();
         }
-        (self.wa.get_analysis(), &self.doc_interner, &self.docs)
+        (self.get_analysis(), &self.doc_interner, &self.docs)
+    }
+
+    fn get_analysis(&self) -> AnalysisRef<'_> {
+        assert!(self.is_computed());
+        AnalysisRef {
+            common_docs: &self.common_docs,
+            hsphelp_info: &self.hsphelp_info,
+            active_docs: &self.active_docs,
+            active_help_docs: &self.active_help_docs,
+            doc_symbols_map: &self.doc_symbols_map,
+            def_sites: &self.def_sites,
+            use_sites: &self.use_sites,
+            doc_analysis_map: &self.doc_analysis_map,
+        }
     }
 
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
@@ -117,11 +163,9 @@ impl LangService {
         )
         .unwrap_or_default();
 
-        self.wa.initialize(WorkspaceHost {
-            builtin_env: Rc::new(builtin_env),
-            common_docs: Rc::new(common_docs),
-            hsphelp_info: Rc::new(hsphelp_info),
-        });
+        self.public_env.builtin = Rc::new(builtin_env);
+        self.common_docs = Rc::new(common_docs);
+        self.hsphelp_info = Rc::new(hsphelp_info);
 
         debug!("scan_script_files");
         if let Some(root_dir) = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
@@ -135,14 +179,12 @@ impl LangService {
     }
 
     fn is_computed(&self) -> bool {
-        !self.docs.has_changes() && self.wa.is_computed()
+        !self.docs.has_changes()
     }
 
     /// ドキュメントの変更を集積して、解析器の状態を更新する。
     fn process_changes(&mut self) {
         debug_assert!(!self.is_computed());
-
-        self.wa.invalidate();
 
         let mut doc_changes = vec![];
         self.docs.drain_doc_changes(&mut doc_changes);
@@ -163,6 +205,9 @@ impl LangService {
             change_map.insert(doc, change);
         }
 
+        // ドキュメントごとの変更を適用する
+        // (開かれた・変更されたドキュメントに対して再解析を行い、
+        //  閉じられたドキュメントに関するデータを削除する)
         for (_, change) in change_map.drain() {
             match change {
                 DocChange::Opened { doc, lang, origin }
@@ -179,10 +224,17 @@ impl LangService {
                         }
                     };
 
-                    self.wa.update_doc(doc, lang, text);
+                    match lang {
+                        // .hs ファイルの変更追跡は未実装
+                        Lang::HelpSource => continue,
+                        Lang::Hsp3 => {}
+                    }
+
+                    let da = self.doc_analysis_map.entry(doc).or_default();
+                    da.compute(doc, text);
                 }
                 DocChange::Closed { doc } => {
-                    self.wa.close_doc(doc);
+                    self.doc_analysis_map.remove(&doc);
                 }
             }
         }
@@ -194,14 +246,72 @@ impl LangService {
         //     }
         // }
 
-        self.wa.compute_analysis();
+        // ドキュメント全体に対する解析処理を再実行する
+        {
+            self.active_docs.clear();
+            self.active_help_docs.clear();
+            self.help_docs.clear();
+            self.include_resolution.clear();
+            self.public_env.clear();
+            self.ns_env.clear();
+            self.doc_symbols_map.clear();
+            self.def_sites.clear();
+            self.use_sites.clear();
+            self.module_map.clear();
+
+            for da in self.doc_analysis_map.values() {
+                self.module_map
+                    .extend(da.module_map.iter().map(|(&m, rc)| (m, rc.clone())));
+            }
+
+            compute_active_docs::compute_active_docs(
+                &self.doc_analysis_map,
+                &self.common_docs,
+                &self.hsphelp_info,
+                &mut self.active_docs,
+                &mut self.active_help_docs,
+                &mut self.help_docs,
+                &mut self.include_resolution,
+            );
+
+            compute_symbols::compute_symbols(
+                &self.hsphelp_info,
+                &self.active_docs,
+                &self.help_docs,
+                &self.doc_analysis_map,
+                &self.module_map,
+                &mut self.public_env,
+                &mut self.ns_env,
+                &mut self.doc_symbols_map,
+                &mut self.def_sites,
+                &mut self.use_sites,
+            );
+
+            // デバッグ用: 集計を出す。
+            {
+                let total_symbol_count = self
+                    .doc_symbols_map
+                    .values()
+                    .map(|symbols| symbols.len())
+                    .sum::<usize>();
+                trace!(
+                    "computed: active_docs={} def_sites={} use_sites={} symbols={}",
+                    self.active_docs.len(),
+                    self.def_sites.len(),
+                    self.use_sites.len(),
+                    total_symbol_count
+                );
+            }
+        }
+
         debug_assert!(self.is_computed());
     }
 
-    fn get_ref(&mut self) -> LangServiceRef<'_> {
+    fn get_ref(&self) -> LangServiceRef<'_> {
         assert!(self.is_computed());
         LangServiceRef {
-            wa: self.wa.get_analysis(),
+            owner: self,
+            wa: self.get_analysis(),
             doc_interner: &self.doc_interner,
             docs: &self.docs,
         }
@@ -265,6 +375,11 @@ impl LangService {
 }
 
 impl<'a> LangServiceRef<'a> {
+    #[cfg(test)]
+    pub(crate) fn get_analysis_ref(&self) -> &AnalysisRef<'_> {
+        &self.wa
+    }
+
     pub(super) fn code_action(
         &self,
         uri: Url,
@@ -387,31 +502,24 @@ impl<'a> LangServiceRef<'a> {
     pub(super) fn workspace_symbol(&self, query: String) -> Vec<SymbolInformation> {
         ide::workspace_symbol::symbol(&self.wa, self.doc_interner, &query)
     }
-}
 
-// TODO: implブロックを統合する
-impl LangService {
-    pub(super) fn diagnose(&mut self) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
-        if !self.options.lint_enabled {
+    pub(super) fn diagnose(&self) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
+        if !self.owner.options.lint_enabled {
             return vec![];
         }
 
-        if !self.is_computed() {
-            self.process_changes();
-        }
-
         let mut diagnostics = ide::diagnose::diagnose(
-            &self.wa.compute_analysis(),
+            &self.wa,
             &self.doc_interner,
             &self.docs,
-            &mut self.diagnostics_cache,
+            &mut self.owner.diagnostics_cache.borrow_mut(),
         );
 
         // hsp3のファイルにdiagnosticsを出さない。
         diagnostics.retain(|(uri, _, _)| {
             let ok = uri
                 .to_file_path()
-                .map_or(true, |path| !path.starts_with(&self.hsp3_root));
+                .map_or(true, |path| !path.starts_with(&self.owner.hsp3_root));
 
             if !ok {
                 trace!(

@@ -55,8 +55,8 @@ mod analysis {
     use super::*;
 
     mod comment;
-    mod compute_active_docs;
-    mod compute_symbols;
+    pub(crate) mod compute_active_docs;
+    pub(crate) mod compute_symbols;
     mod doc_analysis;
     mod include_graph;
     mod name_system;
@@ -82,13 +82,11 @@ mod analysis {
         workspace_analysis::{
             collect_doc_symbols, collect_highlights, collect_preproc_completion_items,
             collect_symbol_occurrences_in_doc, collect_symbols_in_scope, collect_workspace_symbols,
-            find_include_target, AnalysisRef, DefOrUse, DocSyntax, SignatureHelpDb,
-            WorkspaceAnalysis, WorkspaceHost,
+            find_include_target, AnalysisRef, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
         },
     };
 
     use crate::{
-        lang::Lang,
         lang_service::search_hsphelp::HspHelpInfo,
         parse::{PRoot, PToken},
         source::*,
