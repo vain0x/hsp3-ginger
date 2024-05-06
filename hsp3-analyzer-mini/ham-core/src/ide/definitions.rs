@@ -59,3 +59,67 @@ pub(crate) fn definitions(
             .collect(),
     )
 }
+
+// ===============================================
+
+#[cfg(test)]
+mod tests {
+    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION, test_utils::set_test_logger};
+    use expect_test::expect;
+    use std::fmt::Write as _;
+
+    fn dummy_url(s: &str) -> lsp_types::Url {
+        let workspace_dir = crate::test_utils::dummy_path().join("ws");
+        lsp_types::Url::from_file_path(&workspace_dir.join(s)).unwrap()
+    }
+
+    fn format_loc(w: &mut String, l: &lsp_types::Location) {
+        let start = l.range.start;
+        write!(w, "{}:{}", start.line + 1, start.character + 1).unwrap();
+    }
+
+    fn format_response(w: &mut String, res: &[lsp_types::Location]) {
+        for l in res {
+            format_loc(w, l);
+            *w += "\n";
+        }
+    }
+
+    #[test]
+    fn test_include() {
+        set_test_logger();
+        let mut an = Analyzer::new_standalone();
+
+        let main_url = dummy_url("main.hsp");
+        an.open_doc(
+            main_url.clone(),
+            NO_VERSION,
+            r#"
+#include "a.hsp"
+#include "b.hsp"
+"#
+            .into(),
+        );
+        an.open_doc(dummy_url("a.hsp"), NO_VERSION, "".into());
+        let an = an.compute_ref();
+
+        let mut formatted = String::new();
+        formatted += "[a.hsp]\n";
+        format_response(
+            &mut formatted,
+            &an.definitions(main_url.clone(), lsp_types::Position::new(1, 1)),
+        );
+
+        formatted += "[b.hsp]\n";
+        format_response(
+            &mut formatted,
+            &an.definitions(main_url, lsp_types::Position::new(2, 1)),
+        );
+
+        expect![[r#"
+            [a.hsp]
+            1:1
+            [b.hsp]
+        "#]].assert_eq(&formatted);
+    }
+}

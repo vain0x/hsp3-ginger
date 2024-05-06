@@ -15,7 +15,6 @@ pub(crate) fn compute_active_docs(
     active_docs: &mut HashSet<DocId>,
     active_help_docs: &mut HashSet<DocId>,
     help_docs: &mut HashMap<DocId, DocId>,
-    #[allow(unused)] include_resolution: &mut Vec<(Loc, DocId)>,
 ) {
     // common以外にあるすべてのファイルと、
     // それらのファイルからincludeされているcommonのファイルはアクティブとする

@@ -249,6 +249,7 @@ pub(crate) struct SymbolData {
     pub(crate) ns_opt: Option<RcStr>,
     leader_opt: Option<PToken>,
     /// 標準命令か
+    #[allow(unused)]
     pub(crate) builtin: bool,
 
     details_opt: Option<SymbolDetails>,

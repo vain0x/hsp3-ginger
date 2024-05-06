@@ -177,7 +177,7 @@ mod tests {
     use crate::{analyzer::Analyzer, lsp_server::NO_VERSION};
 
     fn dummy_url(s: &str) -> Url {
-        let workspace_dir = crate::test_utils::dummy_path().join("ws").join(s);
+        let workspace_dir = crate::test_utils::dummy_path().join("ws");
         Url::from_file_path(&workspace_dir.join(s)).unwrap()
     }
 

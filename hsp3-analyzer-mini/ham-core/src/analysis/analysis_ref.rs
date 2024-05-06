@@ -273,15 +273,11 @@ pub(crate) fn collect_workspace_symbols(
 }
 
 /// 指定した位置に `#include` があるなら、その参照先のドキュメントを取得する
-#[allow(unused)]
 pub(crate) fn find_include_target(an: &AnalyzerRef<'_>, doc: DocId, pos: Pos16) -> Option<DocId> {
-    // FIXME: 再実装
-    // (include_resolutionが機能停止中のため無効化)
-    // let (_, dest_doc) = *an
-    //     .include_resolution
-    //     .iter()
-    //     .find(|&(loc, _)| loc.is_touched(doc, pos))?;
+    let (_, dest_doc) = *an
+        .include_resolution
+        .iter()
+        .find(|&(loc, _)| loc.is_touched(doc, pos))?;
 
-    // Some(dest_doc)
-    None
+    Some(dest_doc)
 }

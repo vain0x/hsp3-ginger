@@ -57,9 +57,9 @@ mod analysis {
     mod analysis_ref;
     mod comment;
     pub(crate) mod compute_active_docs;
+    pub(crate) mod compute_includes;
     pub(crate) mod compute_symbols;
     pub(crate) mod doc_analysis;
-    mod include_graph;
     mod name_system;
     mod preproc;
     pub(crate) mod sema_linter;

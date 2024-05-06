@@ -73,6 +73,7 @@ pub(super) struct AnalyzerRef<'a> {
 
     pub(crate) active_docs: &'a HashSet<DocId>,
     pub(crate) active_help_docs: &'a HashSet<DocId>,
+    pub(crate) include_resolution: &'a [(Loc, DocId)],
     pub(crate) def_sites: &'a [(SymbolRc, Loc)],
     pub(crate) use_sites: &'a [(SymbolRc, Loc)],
     pub(crate) doc_symbols_map: &'a HashMap<DocId, Vec<SymbolRc>>,
@@ -224,9 +225,9 @@ impl Analyzer {
             self.include_resolution.clear();
             self.public_env.clear();
             self.ns_env.clear();
-            self.doc_symbols_map.clear();
             self.def_sites.clear();
             self.use_sites.clear();
+            self.doc_symbols_map.clear();
             self.module_map.clear();
 
             for da in self.doc_analysis_map.values() {
@@ -241,6 +242,12 @@ impl Analyzer {
                 &mut self.active_docs,
                 &mut self.active_help_docs,
                 &mut self.help_docs,
+            );
+
+            compute_includes::compute_includes(
+                &self.doc_interner,
+                &self.doc_analysis_map,
+                &self.common_docs,
                 &mut self.include_resolution,
             );
 
@@ -283,12 +290,13 @@ impl Analyzer {
             owner: self,
             doc_interner: &self.doc_interner,
             docs: &self.docs,
+            doc_analysis_map: &self.doc_analysis_map,
             active_docs: &self.active_docs,
             active_help_docs: &self.active_help_docs,
-            doc_symbols_map: &self.doc_symbols_map,
+            include_resolution: &self.include_resolution,
             def_sites: &self.def_sites,
             use_sites: &self.use_sites,
-            doc_analysis_map: &self.doc_analysis_map,
+            doc_symbols_map: &self.doc_symbols_map,
         }
     }
 
@@ -351,10 +359,12 @@ impl Analyzer {
 
 impl<'a> AnalyzerRef<'a> {
     #[cfg(test)]
+    #[allow(unused)]
     pub(crate) fn get_doc_interner(&self) -> &DocInterner {
         self.doc_interner
     }
 
+    #[allow(unused)]
     pub(crate) fn common_docs(&self) -> &HashMap<String, DocId> {
         &self.owner.common_docs
     }
