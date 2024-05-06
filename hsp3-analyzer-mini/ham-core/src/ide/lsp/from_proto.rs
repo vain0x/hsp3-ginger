@@ -3,9 +3,9 @@
 use crate::source;
 use lsp_types as lsp;
 
-// pub(crate) fn doc(ls: &LangService, uri: &lsp::Url) -> Option<source::DocId> {
+// pub(crate) fn doc(an: &Analyzer, uri: &lsp::Url) -> Option<source::DocId> {
 //     let uri = CanonicalUri::from_url(uri);
-//     DocDb::find_doc_by_uri(ls, &uri)
+//     DocDb::find_doc_by_uri(an, &uri)
 // }
 
 #[allow(unused)]
@@ -16,9 +16,9 @@ pub(crate) fn pos16(position: lsp::Position) -> source::Pos16 {
 }
 
 // pub(crate) fn doc_pos(
-//     ls: &LangService,
+//     an: &Analyzer,
 //     url: &lsp::Url,
 //     position: lsp::Position,
 // ) -> Option<(source::DocId, source::Pos16)> {
-//     Some((doc(ls, url)?, pos16(position)))
+//     Some((doc(an, url)?, pos16(position)))
 // }

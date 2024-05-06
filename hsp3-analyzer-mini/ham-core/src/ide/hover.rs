@@ -97,7 +97,7 @@ fn documentation_to_marked_string(d: Documentation) -> MarkedString {
 mod tests {
     use self::ide::lsp::from_proto;
     use super::*;
-    use crate::{ide::lsp::to_proto, lang_service::LangService, lsp_server::NO_VERSION};
+    use crate::{ide::lsp::to_proto, analyzer::Analyzer, lsp_server::NO_VERSION};
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> Url {
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn symbol_test() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         let main_uri = dummy_url("main.hsp");
         let src = r#"
@@ -185,8 +185,8 @@ mod tests {
 
     mes f(42) + 1
 "#;
-        ls.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
-        let ls = ls.compute_ref();
+        an.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
+        let ls = an.compute_ref();
 
         let mut w = String::new();
 
@@ -216,14 +216,14 @@ mod tests {
 
     #[test]
     fn preproc_test() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         let main_uri = dummy_url("main.hsp");
         let src = r#"
 #define ctype hiword(%1) (((%1) >> 16) & 0xFFFF)
 "#;
-        ls.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
-        let ls = ls.compute_ref();
+        an.open_doc(main_uri.clone(), NO_VERSION, src.to_string());
+        let ls = an.compute_ref();
 
         let mut w = String::new();
 

@@ -174,7 +174,7 @@ pub(crate) fn signature_help(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{lang_service::LangService, lsp_server::NO_VERSION};
+    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION};
 
     fn dummy_url(s: &str) -> Url {
         let workspace_dir = crate::test_utils::dummy_path().join("ws").join(s);
@@ -183,9 +183,9 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
-        ls.open_doc(
+        an.open_doc(
             dummy_url("mod_signature_help.hsp"),
             NO_VERSION,
             r#"
@@ -198,7 +198,7 @@ mod tests {
         );
 
         let main_uri = dummy_url("main.hsp");
-        ls.open_doc(
+        an.open_doc(
             main_uri.clone(),
             NO_VERSION,
             r#"
@@ -207,7 +207,7 @@ f 1, ""
             "#
             .into(),
         );
-        let ls = ls.compute_ref();
+        let ls = an.compute_ref();
 
         let opt = ls.signature_help(
             main_uri.clone(),
@@ -253,9 +253,9 @@ f 1, ""
 
     #[test]
     fn call_test() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
-        ls.open_doc(
+        an.open_doc(
             dummy_url("mod_signature_help.hsp"),
             NO_VERSION,
             r#"
@@ -268,8 +268,8 @@ f 1, ""
         );
 
         let main_uri = dummy_url("main.hsp");
-        ls.open_doc(main_uri.clone(), NO_VERSION, r#"mes f(1, "")"#.into());
-        let ls = ls.compute_ref();
+        an.open_doc(main_uri.clone(), NO_VERSION, r#"mes f(1, "")"#.into());
+        let ls = an.compute_ref();
 
         let opt = ls.signature_help(
             main_uri.clone(),

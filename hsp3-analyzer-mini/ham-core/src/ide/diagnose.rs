@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
     ide::{loc_to_range, to_lsp_range},
-    lang_service::{doc_interner::DocInterner, docs::Docs},
+    analyzer::{doc_interner::DocInterner, docs::Docs},
 };
 use lsp_types::{Diagnostic, DiagnosticSeverity, Url};
 

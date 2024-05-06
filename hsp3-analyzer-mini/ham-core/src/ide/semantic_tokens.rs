@@ -85,7 +85,7 @@ pub(crate) fn full(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{lang_service::LangService, lsp_server::NO_VERSION};
+    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION};
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> Url {
@@ -95,10 +95,10 @@ mod tests {
 
     #[test]
     fn tokens_test() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         let main_uri = dummy_url("semantic_tokens.hsp");
-        ls.open_doc(
+        an.open_doc(
             main_uri.clone(),
             NO_VERSION,
             r#"
@@ -118,7 +118,7 @@ mod tests {
             .into(),
         );
 
-        let tokens = ls.compute_ref().semantic_tokens(main_uri);
+        let tokens = an.compute_ref().semantic_tokens(main_uri);
         let mut sb = String::new();
         let mut y = 1;
         let mut x = 1;

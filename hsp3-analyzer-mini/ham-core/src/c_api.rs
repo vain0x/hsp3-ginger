@@ -1,7 +1,7 @@
 //! C言語や HSP3 などから利用するための関数群
 
 use super::*;
-use crate::lang_service::{LangService, LangServiceOptions};
+use crate::analyzer::{Analyzer, AnalyzerOptions};
 use lsp_types::{HoverContents, MarkedString, Position, Url};
 use std::{os::raw::c_char, ptr::null_mut, slice, str};
 
@@ -9,7 +9,7 @@ const TRUE: i32 = 1;
 const FALSE: i32 = 0;
 
 pub struct HamInstance {
-    lang_service: LangService,
+    analyzer: Analyzer,
 }
 
 unsafe fn str_from_raw_parts(data: *const c_char, len: i32) -> Option<&'static str> {
@@ -96,10 +96,10 @@ pub unsafe extern "C" fn ham_create(
     };
 
     let mut instance = HamInstance {
-        lang_service: LangService::new(hsp3_root, LangServiceOptions::default()),
+        analyzer: Analyzer::new(hsp3_root, AnalyzerOptions::default()),
     };
 
-    instance.lang_service.did_initialize();
+    instance.analyzer.did_initialize();
 
     // Rust の所有権ルールから外して、ネイティブポインタに変換する。ham_destroy で破棄してもらう。
     Box::into_raw(Box::new(instance))
@@ -112,7 +112,7 @@ pub unsafe extern "C" fn ham_destroy(instance: *mut HamInstance) -> i32 {
     }
 
     let mut instance = Box::from_raw(instance);
-    instance.lang_service.shutdown();
+    instance.analyzer.shutdown();
 
     drop(instance);
     TRUE
@@ -141,7 +141,7 @@ pub unsafe extern "C" fn ham_doc_did_open(
         None => return FALSE,
     };
 
-    (*instance).lang_service.open_doc(uri, version, text);
+    (*instance).analyzer.open_doc(uri, version, text);
     TRUE
 }
 
@@ -168,7 +168,7 @@ pub unsafe extern "C" fn ham_doc_did_change(
         None => return FALSE,
     };
 
-    (*instance).lang_service.change_doc(uri, version, text);
+    (*instance).analyzer.change_doc(uri, version, text);
     TRUE
 }
 
@@ -187,7 +187,7 @@ pub unsafe extern "C" fn ham_doc_did_close(
         None => return FALSE,
     };
 
-    (*instance).lang_service.close_doc(uri);
+    (*instance).analyzer.close_doc(uri);
     TRUE
 }
 
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn ham_hover(
         None => return FALSE,
     };
 
-    let contents = match (*instance).lang_service.compute_ref().hover(uri, position) {
+    let contents = match (*instance).analyzer.compute_ref().hover(uri, position) {
         Some(hover) => match hover.contents {
             HoverContents::Scalar(scalar) => marked_string_to_string(scalar),
             HoverContents::Array(contents) => contents

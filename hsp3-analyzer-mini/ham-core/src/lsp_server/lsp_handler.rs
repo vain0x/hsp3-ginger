@@ -1,5 +1,5 @@
 use super::*;
-use crate::lang_service::LangService;
+use crate::analyzer::Analyzer;
 use lsp_types::request::Request;
 use lsp_types::*;
 use std::io;
@@ -7,15 +7,15 @@ use std::io;
 pub(super) struct LspHandler<W: io::Write> {
     config: LspConfig,
     sender: LspSender<W>,
-    model: LangService,
+    analyzer: Analyzer,
 }
 
 impl<W: io::Write> LspHandler<W> {
-    pub(crate) fn new(config: LspConfig, sender: LspSender<W>, model: LangService) -> Self {
+    pub(crate) fn new(config: LspConfig, sender: LspSender<W>, analyzer: Analyzer) -> Self {
         Self {
             config,
             sender,
-            model,
+            analyzer,
         }
     }
 
@@ -61,7 +61,7 @@ impl<W: io::Write> LspHandler<W> {
             .and_then(|x| x.dynamic_registration)
             .unwrap_or(false);
 
-        self.model.initialize(params.root_uri);
+        self.analyzer.initialize(params.root_uri);
 
         if !watchable {
             self.config.watcher_enabled = false;
@@ -138,12 +138,12 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn did_initialize(&mut self) {
-        self.model.did_initialize();
+        self.analyzer.did_initialize();
         self.register_file_system_watcher();
     }
 
     fn shutdown(&mut self) {
-        self.model.shutdown();
+        self.analyzer.shutdown();
     }
 
     fn did_exit(&mut self, _json: &str) {
@@ -152,7 +152,7 @@ impl<W: io::Write> LspHandler<W> {
 
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
-        self.model.open_doc(doc.uri, doc.version, doc.text);
+        self.analyzer.open_doc(doc.uri, doc.version, doc.text);
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
@@ -164,21 +164,23 @@ impl<W: io::Write> LspHandler<W> {
         let doc = params.text_document;
         let version = doc.version;
 
-        self.model.change_doc(doc.uri, version, text);
+        self.analyzer.change_doc(doc.uri, version, text);
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
-        self.model.close_doc(params.text_document.uri);
+        self.analyzer.close_doc(params.text_document.uri);
     }
 
     fn text_document_code_action(&mut self, params: CodeActionParams) -> Vec<CodeAction> {
-        self.model
-            .compute_ref()
-            .code_action(params.text_document.uri, params.range, params.context)
+        self.analyzer.compute_ref().code_action(
+            params.text_document.uri,
+            params.range,
+            params.context,
+        )
     }
 
     fn text_document_completion(&mut self, params: CompletionParams) -> CompletionList {
-        self.model.compute_ref().completion(
+        self.analyzer.compute_ref().completion(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
         )
@@ -188,14 +190,14 @@ impl<W: io::Write> LspHandler<W> {
         &mut self,
         params: CompletionItem,
     ) -> Option<CompletionItem> {
-        self.model.compute_ref().completion_resolve(params)
+        self.analyzer.compute_ref().completion_resolve(params)
     }
 
     fn text_document_formatting(
         &mut self,
         params: DocumentFormattingParams,
     ) -> Option<Vec<TextEdit>> {
-        self.model
+        self.analyzer
             .compute_ref()
             .formatting(params.text_document.uri)
     }
@@ -205,7 +207,7 @@ impl<W: io::Write> LspHandler<W> {
         params: TextDocumentPositionParams,
     ) -> lsp_types::GotoDefinitionResponse {
         let definitions = self
-            .model
+            .analyzer
             .compute_ref()
             .definitions(params.text_document.uri, params.position);
 
@@ -220,7 +222,7 @@ impl<W: io::Write> LspHandler<W> {
         &mut self,
         params: TextDocumentPositionParams,
     ) -> Vec<lsp_types::DocumentHighlight> {
-        self.model
+        self.analyzer
             .compute_ref()
             .document_highlight(params.text_document.uri, params.position)
     }
@@ -229,13 +231,13 @@ impl<W: io::Write> LspHandler<W> {
         &mut self,
         params: DocumentSymbolParams,
     ) -> Option<lsp_types::DocumentSymbolResponse> {
-        self.model
+        self.analyzer
             .compute_ref()
             .document_symbol(params.text_document.uri)
     }
 
     fn text_document_hover(&mut self, params: TextDocumentPositionParams) -> Option<Hover> {
-        self.model
+        self.analyzer
             .compute_ref()
             .hover(params.text_document.uri, params.position)
     }
@@ -244,13 +246,13 @@ impl<W: io::Write> LspHandler<W> {
         &mut self,
         params: TextDocumentPositionParams,
     ) -> Option<PrepareRenameResponse> {
-        self.model
+        self.analyzer
             .compute_ref()
             .prepare_rename(params.text_document.uri, params.position)
     }
 
     fn text_document_references(&mut self, params: ReferenceParams) -> Vec<Location> {
-        self.model.compute_ref().references(
+        self.analyzer.compute_ref().references(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
             params.context.include_declaration,
@@ -258,7 +260,7 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn text_document_rename(&mut self, params: RenameParams) -> Option<WorkspaceEdit> {
-        self.model.compute_ref().rename(
+        self.analyzer.compute_ref().rename(
             params.text_document_position.text_document.uri,
             params.text_document_position.position,
             params.new_name,
@@ -270,7 +272,7 @@ impl<W: io::Write> LspHandler<W> {
         params: SemanticTokensParams,
     ) -> SemanticTokensResult {
         let uri = params.text_document.uri;
-        SemanticTokensResult::Tokens(self.model.compute_ref().semantic_tokens(uri))
+        SemanticTokensResult::Tokens(self.analyzer.compute_ref().semantic_tokens(uri))
     }
 
     fn text_document_signature_help(
@@ -282,26 +284,26 @@ impl<W: io::Write> LspHandler<W> {
             (p.text_document.uri, p.position)
         };
 
-        self.model.compute_ref().signature_help(uri, position)
+        self.analyzer.compute_ref().signature_help(uri, position)
     }
 
     fn workspace_did_change_watched_files(&mut self, params: DidChangeWatchedFilesParams) {
         for param in params.changes {
             match param.typ {
-                FileChangeType::CREATED => self.model.on_file_created(param.uri),
-                FileChangeType::CHANGED => self.model.on_file_changed(param.uri),
-                FileChangeType::DELETED => self.model.on_file_deleted(param.uri),
+                FileChangeType::CREATED => self.analyzer.on_file_created(param.uri),
+                FileChangeType::CHANGED => self.analyzer.on_file_changed(param.uri),
+                FileChangeType::DELETED => self.analyzer.on_file_deleted(param.uri),
                 _ => continue,
             }
         }
     }
 
     fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
-        self.model.compute_ref().workspace_symbol(params.query)
+        self.analyzer.compute_ref().workspace_symbol(params.query)
     }
 
     fn diagnose(&mut self) {
-        let diagnostics = self.model.compute_ref().diagnose();
+        let diagnostics = self.analyzer.compute_ref().diagnose();
 
         for (uri, version, diagnostics) in diagnostics {
             self.sender.send_notification(

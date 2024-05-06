@@ -7,7 +7,7 @@ pub mod subcommands;
 mod help_source;
 mod ide;
 mod lang;
-mod lang_service;
+mod analyzer;
 mod lsp_server;
 
 #[cfg(test)]
@@ -87,7 +87,7 @@ mod analysis {
     };
 
     use crate::{
-        lang_service::search_hsphelp::HspHelpInfo,
+        analyzer::search_hsphelp::HspHelpInfo,
         parse::{PRoot, PToken},
         source::*,
         token::{TokenData, TokenKind},

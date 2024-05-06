@@ -1,7 +1,7 @@
 // いまのところ未使用
 
 use super::*;
-use crate::lang_service::docs::resolve_included_name;
+use crate::analyzer::docs::resolve_included_name;
 
 #[allow(unused)]
 #[derive(Default)]
@@ -15,7 +15,7 @@ impl IncludeGraph {
     #[allow(unused)]
     pub(crate) fn generate(
         wa: &AnalysisRef<'_>,
-        doc_interner: &lang_service::doc_interner::DocInterner,
+        doc_interner: &analyzer::doc_interner::DocInterner,
     ) -> Self {
         let mut it = Self::default();
         generate_include_graph(wa, doc_interner, &mut it);
@@ -27,8 +27,7 @@ impl IncludeGraph {
 #[allow(unused)]
 fn generate_include_graph(
     wa: &AnalysisRef<'_>,
-    doc_interner: &lang_service::doc_interner::DocInterner,
-    // docs: &lang_service::docs::Docs,
+    doc_interner: &analyzer::doc_interner::DocInterner,
     include_graph: &mut IncludeGraph,
 ) {
     // let get_name = |doc: DocId| match wa
@@ -241,7 +240,7 @@ pub(crate) fn collect_symbol_uses(
 mod tests {
     use super::*;
     use crate::{
-        lang_service::{DocDb, LangService},
+        analyzer::{Analyzer, DocDb},
         lsp_server::NO_VERSION,
     };
     use lsp_types::Url;
@@ -251,7 +250,7 @@ mod tests {
         Url::from_file_path(&workspace_dir.join(s)).unwrap()
     }
 
-    fn add_doc(ls: &mut LangService, name: &str, text: &str) -> (DocId, CanonicalUri) {
+    fn add_doc(ls: &mut Analyzer, name: &str, text: &str) -> (DocId, CanonicalUri) {
         let url = dummy_url(name);
         let uri = CanonicalUri::from_url(&url);
         ls.open_doc(url, NO_VERSION, text.to_string());
@@ -267,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_reachable() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         // 次のような依存関係がある:
         //      main -> mod_x
@@ -281,7 +280,7 @@ mod tests {
         // main を基準とするとき `test_main` はみえない
 
         let mx = add_doc(
-            &mut ls,
+            &mut an,
             "mod_x.hsp",
             r#"
 #module
@@ -292,7 +291,7 @@ mod tests {
         );
 
         let mx_tests = add_doc(
-            &mut ls,
+            &mut an,
             "mod_x_tests.hsp",
             r#"
 #include "mod_x.hsp"
@@ -308,7 +307,7 @@ mod tests {
         );
 
         let main = add_doc(
-            &mut ls,
+            &mut an,
             "main.hsp",
             r#"
 #include "mod_x.hsp"
@@ -324,7 +323,7 @@ mod tests {
         );
 
         let isolation = add_doc(
-            &mut ls,
+            &mut an,
             "isolation.hsp",
             r#"
 #module
@@ -335,7 +334,7 @@ mod tests {
 "#,
         );
 
-        let (wa, doc_interner, _docs) = ls.analyze_for_test();
+        let (wa, doc_interner, _docs) = an.analyze_for_test();
         let wa = &wa;
         let mut include_graph = IncludeGraph::default();
         generate_include_graph(wa, doc_interner, &mut include_graph);

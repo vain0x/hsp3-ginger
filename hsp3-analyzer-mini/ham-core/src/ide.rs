@@ -26,7 +26,7 @@ pub(crate) mod code_actions {
 use super::*;
 use crate::{
     analysis::*,
-    lang_service::{doc_interner::DocInterner, docs::Docs},
+    analyzer::{doc_interner::DocInterner, docs::Docs},
     source::*,
     token::TokenKind,
 };

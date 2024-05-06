@@ -1,5 +1,5 @@
 use super::{LspConfig, LspHandler, LspReceiver, LspSender};
-use crate::lang_service::{LangService, LangServiceOptions};
+use crate::analyzer::{Analyzer, AnalyzerOptions};
 use std::{
     env,
     io::{stdin, stdout},
@@ -40,7 +40,7 @@ pub fn start_lsp_server(hsp3_root: PathBuf) {
         watcher_enabled: env::var("HAM_WATCHER_ENABLED").map_or(true, |s| s == "1"),
     };
 
-    let options = LangServiceOptions {
+    let options = AnalyzerOptions {
         lint_enabled: env::var("HAM_LINT").map_or(true, |s| s == "1"),
     };
 
@@ -50,7 +50,7 @@ pub fn start_lsp_server(hsp3_root: PathBuf) {
     let stdout = stdout();
     let stdout = stdout.lock();
     let sender = LspSender::new(stdout);
-    let lang_service = LangService::new(hsp3_root, options);
-    let handler = LspHandler::new(lsp_config, sender, lang_service);
+    let analyzer = Analyzer::new(hsp3_root, options);
+    let handler = LspHandler::new(lsp_config, sender, analyzer);
     handler.main(receiver);
 }

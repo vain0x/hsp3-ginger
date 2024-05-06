@@ -65,7 +65,7 @@ pub(crate) fn symbol(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{lang_service::LangService, lsp_server::NO_VERSION};
+    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION};
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> Url {
@@ -102,10 +102,10 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         let main_uri = dummy_url("main.hsp");
-        ls.open_doc(
+        an.open_doc(
             main_uri.clone(),
             NO_VERSION,
             r#"
@@ -123,7 +123,7 @@ mod tests {
             "#
             .into(),
         );
-        let res = ls.compute_ref().document_symbol(main_uri).unwrap();
+        let res = an.compute_ref().document_symbol(main_uri).unwrap();
         let mut formatted = String::new();
         format_response(&mut formatted, &res);
         // FIXME: my_labelが重複している

@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::{
-    lang_service::LangService,
+    analyzer::Analyzer,
     lsp_server::NO_VERSION,
     source::{DocId, Pos, Pos16},
     token::tokenize,
@@ -27,8 +27,7 @@ fn path_to_uri(path: PathBuf) -> Url {
 fn symbols_tests() {
     let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests");
 
-    let mut ls = LangService::new_standalone();
-    ls.initialize(Some(Url::from_directory_path(tests_dir.clone()).unwrap()));
+    let mut an = Analyzer::new_standalone();
 
     let mut texts = HashMap::new();
 
@@ -77,10 +76,10 @@ fn symbols_tests() {
         }
 
         texts.insert(uri.clone(), lines);
-        ls.open_doc(uri, 1, text);
+        an.open_doc(uri, 1, text);
     }
 
-    let ls = ls.compute_ref();
+    let ls = an.compute_ref();
 
     const EXCLUDE_DEFINITION: bool = false;
 
@@ -155,7 +154,7 @@ fn namespace_tests() {
         &["symbols/namespace_deffunc_local.hsp"],
         &["symbols/namespace_deffunc_qualified.hsp"],
     ] {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         // 各ファイルの内容を行ごとに分割したもの。
         let mut lines_map: HashMap<Url, Vec<String>> = HashMap::new();
@@ -198,10 +197,10 @@ fn namespace_tests() {
             }
 
             lines_map.insert(uri.clone(), lines);
-            ls.open_doc(uri, NO_VERSION, text);
+            an.open_doc(uri, NO_VERSION, text);
         }
 
-        let ls = ls.compute_ref();
+        let ls = an.compute_ref();
 
         assert!(!word_map.is_empty(), "^def/^useがみつかるはず");
 
@@ -257,7 +256,7 @@ fn namespace_tests() {
 
 mod ref_tests {
     use crate::{
-        lang_service::{DocDb, LangService},
+        analyzer::{Analyzer, DocDb},
         lsp_server::NO_VERSION,
         source::Pos,
         tests::CanonicalUri,
@@ -300,7 +299,7 @@ mod ref_tests {
 
     #[test]
     fn test_locate_static_var_def() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         let text = r#"
             <|A|>foo = 1
@@ -310,12 +309,12 @@ mod ref_tests {
             .collect::<HashMap<_, _>>();
         let (text, cursors) = parse_cursor_string(text);
 
-        ls.open_doc(dummy_url("a.hsp"), NO_VERSION, text.into());
-        let doc = ls
+        an.open_doc(dummy_url("a.hsp"), NO_VERSION, text.into());
+        let doc = an
             .find_doc_by_uri(&CanonicalUri::from_url(&dummy_url("a.hsp")))
             .unwrap();
 
-        let ls = ls.compute_ref();
+        let ls = an.compute_ref();
 
         for (name, pos) in cursors {
             let actual = ls
@@ -328,7 +327,7 @@ mod ref_tests {
 
     #[test]
     fn test_it_works() {
-        let mut ls = LangService::new_standalone();
+        let mut an = Analyzer::new_standalone();
 
         let text = r#"
             #module
@@ -350,12 +349,12 @@ mod ref_tests {
         .collect::<HashMap<_, _>>();
         let (text, cursors) = parse_cursor_string(text);
 
-        ls.open_doc(dummy_url("a.hsp"), NO_VERSION, text.into());
-        let doc = ls
+        an.open_doc(dummy_url("a.hsp"), NO_VERSION, text.into());
+        let doc = an
             .find_doc_by_uri(&CanonicalUri::from_url(&dummy_url("a.hsp")))
             .unwrap();
 
-        let ls = ls.compute_ref();
+        let ls = an.compute_ref();
 
         for (name, pos) in cursors {
             let actual = ls
@@ -474,9 +473,9 @@ fn formatting_tests() {
         assert_ne!(expected.len(), 0);
 
         let formatted = {
-            let mut ls = LangService::new_standalone();
-            ls.open_doc(uri.clone(), NO_VERSION, text.to_string());
-            let edits = ls
+            let mut an = Analyzer::new_standalone();
+            an.open_doc(uri.clone(), NO_VERSION, text.to_string());
+            let edits = an
                 .compute_ref()
                 .formatting(uri.clone())
                 .expect("formatting");
@@ -531,9 +530,9 @@ fn formatting_blank_test() {
         .into_url();
 
     let actual = {
-        let mut ls = LangService::new_standalone();
-        ls.open_doc(uri.clone(), NO_VERSION, text.to_string());
-        let edits = ls.compute_ref().formatting(uri).expect("formatting");
+        let mut an = Analyzer::new_standalone();
+        an.open_doc(uri.clone(), NO_VERSION, text.to_string());
+        let edits = an.compute_ref().formatting(uri).expect("formatting");
         apply_edits(&text, edits)
     };
 

@@ -7,26 +7,26 @@ pub(crate) mod search_hsphelp;
 use super::*;
 use crate::{
     analysis::*,
-    help_source::HsSymbol,
-    ide::{self, diagnose::DiagnosticsCache},
-    lang::Lang,
-    lang_service::{
+    analyzer::{
         doc_change::{DocChange, DocChangeOrigin},
         doc_interner::DocInterner,
         docs::Docs,
         search_common::search_common,
         search_hsphelp::{search_hsphelp, HspHelpInfo},
     },
+    help_source::HsSymbol,
+    ide::{self, diagnose::DiagnosticsCache},
+    lang::Lang,
     source::{DocId, Loc},
     utils::read_file::read_file,
 };
 use lsp_types::*;
 
-pub(crate) struct LangServiceOptions {
+pub(crate) struct AnalyzerOptions {
     pub(crate) lint_enabled: bool,
 }
 
-impl LangServiceOptions {
+impl AnalyzerOptions {
     #[cfg(test)]
     pub(crate) fn minimal() -> Self {
         Self {
@@ -35,18 +35,18 @@ impl LangServiceOptions {
     }
 }
 
-impl Default for LangServiceOptions {
+impl Default for AnalyzerOptions {
     fn default() -> Self {
         Self { lint_enabled: true }
     }
 }
 
 #[derive(Default)]
-pub(super) struct LangService {
+pub(super) struct Analyzer {
     // 入力 (起動時):
     hsp3_root: PathBuf,
     root_uri_opt: Option<CanonicalUri>,
-    options: LangServiceOptions,
+    options: AnalyzerOptions,
 
     // 状態 (ファイルスキャンの結果):
     common_docs: HashMap<String, DocId>,
@@ -78,16 +78,16 @@ pub(super) struct LangService {
     diagnostics_cache: RefCell<DiagnosticsCache>,
 }
 
-/// `LangService` の解析処理を完了した状態への参照
-pub(super) struct LangServiceRef<'a> {
+/// `Analyzer` の解析処理を完了した状態への参照
+pub(super) struct AnalyzerRef<'a> {
     wa: AnalysisRef<'a>,
     doc_interner: &'a DocInterner,
     docs: &'a Docs,
-    owner: &'a LangService,
+    owner: &'a Analyzer,
 }
 
-impl LangService {
-    pub(super) fn new(hsp3_root: PathBuf, options: LangServiceOptions) -> Self {
+impl Analyzer {
+    pub(super) fn new(hsp3_root: PathBuf, options: AnalyzerOptions) -> Self {
         Self {
             hsp3_root,
             options,
@@ -103,7 +103,7 @@ impl LangService {
             hsp3_root: root.clone().join("hsp3"),
             // no_exist/ws
             root_uri_opt: Some(CanonicalUri::from_abs_path(&root.join("ws")).unwrap()),
-            options: LangServiceOptions::minimal(),
+            options: AnalyzerOptions::minimal(),
             ..Default::default()
         };
 
@@ -307,9 +307,9 @@ impl LangService {
         debug_assert!(self.is_computed());
     }
 
-    fn get_ref(&self) -> LangServiceRef<'_> {
+    fn get_ref(&self) -> AnalyzerRef<'_> {
         assert!(self.is_computed());
-        LangServiceRef {
+        AnalyzerRef {
             owner: self,
             wa: self.get_analysis(),
             doc_interner: &self.doc_interner,
@@ -318,7 +318,7 @@ impl LangService {
     }
 
     /// 未実行の解析処理があれば処理し、解析処理を行うための参照を作る
-    pub(crate) fn compute_ref(&mut self) -> LangServiceRef<'_> {
+    pub(crate) fn compute_ref(&mut self) -> AnalyzerRef<'_> {
         if !self.is_computed() {
             self.process_changes();
         }
@@ -374,7 +374,7 @@ impl LangService {
     }
 }
 
-impl<'a> LangServiceRef<'a> {
+impl<'a> AnalyzerRef<'a> {
     #[cfg(test)]
     pub(crate) fn get_analysis_ref(&self) -> &AnalysisRef<'_> {
         &self.wa
@@ -536,14 +536,14 @@ impl<'a> LangServiceRef<'a> {
 
 /// ドキュメントの管理機能を提供するもの
 ///
-/// (`LangService` がドキュメントDBの役割を持つことを示している)
+/// (`Analyzer` がドキュメントDBの役割を持つことを示している)
 #[allow(unused)]
 pub(crate) trait DocDb {
     // fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri>;
     fn find_doc_by_uri(&self, uri: &CanonicalUri) -> Option<DocId>;
 }
 
-impl DocDb for LangService {
+impl DocDb for Analyzer {
     // fn get_doc_uri(&self, doc: DocId) -> Option<&CanonicalUri> {
     //     self.doc_interner.get_uri(doc)
     // }

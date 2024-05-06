@@ -3,8 +3,8 @@
 use crate::source;
 use lsp_types as lsp;
 
-// pub(crate) fn url(ls: &LangService, doc: DocId) -> Option<lsp::Url> {
-//     Some(DocDb::get_doc_uri(ls, doc)?.clone().into_url())
+// pub(crate) fn url(an: &Analyzer, doc: DocId) -> Option<lsp::Url> {
+//     Some(DocDb::get_doc_uri(an, doc)?.clone().into_url())
 // }
 
 #[allow(unused)]
@@ -17,8 +17,8 @@ pub(crate) fn range(range: source::Range) -> lsp::Range {
     lsp::Range::new(pos(range.start()), pos(range.end()))
 }
 
-// pub(crate) fn location(ls: &LangService, loc: source::Loc) -> Option<lsp::Location> {
-//     let url = url(ls, loc.doc)?;
+// pub(crate) fn location(an: &Analyzer, loc: source::Loc) -> Option<lsp::Location> {
+//     let url = url(an, loc.doc)?;
 //     let range = range(loc.range);
 //     Some(lsp::Location::new(url, range))
 // }
