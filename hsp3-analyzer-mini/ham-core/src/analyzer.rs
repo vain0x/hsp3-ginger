@@ -2,6 +2,7 @@ pub(crate) mod doc_change;
 pub(crate) mod doc_interner;
 pub(crate) mod docs;
 mod file_scan;
+pub(crate) mod options;
 pub(crate) mod search_hsphelp;
 
 use super::*;
@@ -11,6 +12,7 @@ use crate::{
         doc_change::{DocChange, DocChangeOrigin},
         doc_interner::DocInterner,
         docs::Docs,
+        options::AnalyzerOptions,
         search_hsphelp::{search_hsphelp, HspHelpInfo},
     },
     help_source::HsSymbol,
@@ -20,25 +22,6 @@ use crate::{
     utils::read_file::read_file,
 };
 use lsp_types::*;
-
-pub(crate) struct AnalyzerOptions {
-    pub(crate) lint_enabled: bool,
-}
-
-impl AnalyzerOptions {
-    #[cfg(test)]
-    pub(crate) fn minimal() -> Self {
-        Self {
-            lint_enabled: false,
-        }
-    }
-}
-
-impl Default for AnalyzerOptions {
-    fn default() -> Self {
-        Self { lint_enabled: true }
-    }
-}
 
 #[derive(Default)]
 pub(super) struct Analyzer {

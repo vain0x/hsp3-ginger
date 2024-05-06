@@ -1,5 +1,5 @@
 use super::{LspConfig, LspHandler, LspReceiver, LspSender};
-use crate::analyzer::{Analyzer, AnalyzerOptions};
+use crate::analyzer::{options::AnalyzerOptions, Analyzer};
 use std::{
     env,
     io::{stdin, stdout},
