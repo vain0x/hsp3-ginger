@@ -49,8 +49,8 @@ pub(super) struct LangService {
     options: LangServiceOptions,
 
     // 状態 (ファイルスキャンの結果):
-    common_docs: Rc<HashMap<String, DocId>>,
-    hsphelp_info: Rc<HspHelpInfo>,
+    common_docs: HashMap<String, DocId>,
+    hsphelp_info: HspHelpInfo,
 
     // 状態 (ドキュメント):
     doc_interner: DocInterner,
@@ -163,9 +163,9 @@ impl LangService {
         )
         .unwrap_or_default();
 
-        self.public_env.builtin = Rc::new(builtin_env);
-        self.common_docs = Rc::new(common_docs);
-        self.hsphelp_info = Rc::new(hsphelp_info);
+        self.public_env.builtin = builtin_env;
+        self.common_docs = common_docs;
+        self.hsphelp_info = hsphelp_info;
 
         debug!("scan_script_files");
         if let Some(root_dir) = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
