@@ -52,6 +52,7 @@ fn convert_symbol(hs_symbol: HsSymbol) -> (SymbolRc, CompletionItem) {
             desc: description.clone().map(RcStr::from),
             docs: documentation.clone(),
         },
+        builtin,
         signature_opt,
     }
     .into_symbol();

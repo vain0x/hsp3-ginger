@@ -184,7 +184,7 @@ pub(crate) fn collect_symbols2(
     }
     if query.use_site {
         for (symbol, loc) in wa.use_sites {
-            if is_reachable(loc.doc) {
+            if is_reachable(loc.doc) || symbol.builtin {
                 symbols.push((symbol.clone(), *loc));
             }
         }

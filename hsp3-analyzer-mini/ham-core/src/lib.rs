@@ -58,9 +58,9 @@ mod analysis {
     mod compute_active_docs;
     mod compute_symbols;
     mod doc_analysis;
+    mod include_graph;
     mod name_system;
     mod preproc;
-    mod project_analysis;
     mod sema_linter;
     mod symbol;
     mod syntax_linter;
@@ -69,9 +69,9 @@ mod analysis {
 
     pub(crate) use self::{
         doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},
+        include_graph::{collect_symbol_defs, collect_symbol_uses, IncludeGraph},
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
-        project_analysis::{collect_symbol_defs, collect_symbol_uses, IncludeGraph},
         sema_linter::{Diagnostic, SemaLinter},
         symbol::{
             module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,
