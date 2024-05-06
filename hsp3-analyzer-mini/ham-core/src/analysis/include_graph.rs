@@ -56,7 +56,7 @@ fn generate_include_graph(
             //     }
             // };
             let included_doc_opt = resolve_included_name(doc_interner, included_name, src_doc)
-                .or_else(|| an.owner.common_docs.get(included_name.as_str()).cloned());
+                .or_else(|| an.common_docs().get(included_name.as_str()).cloned());
             // debug!(
             //     "include {}:{} {:?} -> {:?}",
             //     src_name,

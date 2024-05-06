@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Default)]
 pub(crate) struct DocAnalysis {
+    pub(crate) doc_opt: Option<DocId>,
     pub(crate) text: RcStr,
 
     // 構文:
@@ -26,6 +27,7 @@ impl DocAnalysis {
         let root = crate::parse::parse_root(p_tokens.to_owned());
         let preproc = crate::analysis::preproc::analyze_preproc(doc, &root);
 
+        self.doc_opt = Some(doc);
         self.set_syntax(text, p_tokens, root);
         self.set_preproc(preproc);
     }
@@ -81,6 +83,36 @@ pub(crate) fn in_preproc(pos: Pos16, tokens: &[PToken]) -> bool {
             _ => i -= 1,
         }
     }
+}
+
+pub(crate) fn on_include_guard(da: &DocAnalysis, pos: Pos16) -> Option<Loc> {
+    let doc = da.doc_opt.unwrap();
+
+    Some(
+        da.include_guard
+            .as_ref()
+            .filter(|g| g.loc.is_touched(doc, pos))?
+            .loc,
+    )
+}
+
+pub(crate) fn get_ident_at(da: &DocAnalysis, pos: Pos16) -> Option<(RcStr, Loc)> {
+    let tokens = &da.tokens;
+    let token = match tokens.binary_search_by_key(&pos, |t| t.body_pos16()) {
+        Ok(i) => tokens[i].body.as_ref(),
+        Err(i) => tokens
+            .iter()
+            .skip(i.saturating_sub(1))
+            .take(3)
+            .find_map(|t| {
+                if t.body.kind == TokenKind::Ident && range_is_touched(&t.body.loc.range, pos) {
+                    Some(t.body.as_ref())
+                } else {
+                    None
+                }
+            })?,
+    };
+    Some((token.text.clone(), token.loc))
 }
 
 pub(crate) fn resolve_scope_at(da: &DocAnalysis, pos: Pos16) -> LocalScope {

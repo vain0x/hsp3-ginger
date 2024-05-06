@@ -31,7 +31,7 @@ pub(crate) fn hover(
         let tokens = an.get_syntax(doc)?.tokens;
 
         let mut completion_items = vec![];
-        if in_preproc(pos, &tokens) {
+        if doc_analysis::in_preproc(pos, &tokens) {
             collect_preproc_completion_items(an, &mut completion_items);
         }
 

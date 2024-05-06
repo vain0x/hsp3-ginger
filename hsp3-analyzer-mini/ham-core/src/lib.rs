@@ -58,13 +58,13 @@ mod analysis {
     mod comment;
     pub(crate) mod compute_active_docs;
     pub(crate) mod compute_symbols;
-    mod doc_analysis;
+    pub(crate) mod doc_analysis;
     mod include_graph;
     mod name_system;
     mod preproc;
-    mod sema_linter;
+    pub(crate) mod sema_linter;
     mod symbol;
-    mod syntax_linter;
+    pub(crate) mod syntax_linter;
     mod var;
 
     pub(crate) use self::{
@@ -74,7 +74,7 @@ mod analysis {
             collect_symbols_in_scope, collect_workspace_symbols, find_include_target,
             CollectSymbolOptions, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
         },
-        doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},
+        doc_analysis::DocAnalysis,
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
         sema_linter::{Diagnostic, SemaLinter},

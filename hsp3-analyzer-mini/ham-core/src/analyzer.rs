@@ -18,7 +18,7 @@ use crate::{
     help_source::HsSymbol,
     ide::{self, diagnose::DiagnosticsCache},
     lang::Lang,
-    source::{DocId, Loc},
+    source::{DocId, Loc, Pos16},
     utils::read_file::read_file,
 };
 use lsp_types::*;
@@ -350,8 +350,70 @@ impl Analyzer {
 }
 
 impl<'a> AnalyzerRef<'a> {
+    #[cfg(test)]
     pub(crate) fn get_doc_interner(&self) -> &DocInterner {
         self.doc_interner
+    }
+
+    pub(crate) fn common_docs(&self) -> &HashMap<String, DocId> {
+        &self.owner.common_docs
+    }
+
+    pub(crate) fn hsphelp_info(&self) -> &HspHelpInfo {
+        &self.owner.hsphelp_info
+    }
+
+    pub(crate) fn is_active_doc(&self, doc: DocId) -> bool {
+        debug_assert!(!self.active_help_docs.contains(&doc));
+        self.active_docs.contains(&doc)
+    }
+
+    pub(crate) fn is_active_help_doc(&self, doc: DocId) -> bool {
+        debug_assert!(!self.active_docs.contains(&doc));
+        self.active_help_docs.contains(&doc)
+    }
+
+    pub(crate) fn in_preproc(&self, doc: DocId, pos: Pos16) -> Option<bool> {
+        let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
+        Some(doc_analysis::in_preproc(pos, tokens))
+    }
+
+    pub(crate) fn in_str_or_comment(&self, doc: DocId, pos: Pos16) -> Option<bool> {
+        let tokens = &self.doc_analysis_map.get(&doc)?.tokens;
+        Some(doc_analysis::in_str_or_comment(pos, tokens))
+    }
+
+    pub(crate) fn has_include_guard(&self, doc: DocId) -> bool {
+        self.doc_analysis_map
+            .get(&doc)
+            .map_or(false, |da| da.include_guard.is_some())
+    }
+
+    pub(crate) fn on_include_guard(&self, doc: DocId, pos: Pos16) -> Option<Loc> {
+        let da = self.doc_analysis_map.get(&doc)?;
+        doc_analysis::on_include_guard(da, pos)
+    }
+
+    pub(crate) fn get_syntax(&self, doc: DocId) -> Option<DocSyntax> {
+        let da = self.doc_analysis_map.get(&doc)?;
+        Some(DocSyntax {
+            text: da.text.clone(),
+            tokens: da.tokens.clone(),
+            root: da.tree_opt.as_ref()?,
+        })
+    }
+
+    pub(crate) fn get_ident_at(&self, doc: DocId, pos: Pos16) -> Option<(RcStr, Loc)> {
+        let da = &self.doc_analysis_map.get(&doc)?;
+        doc_analysis::get_ident_at(da, pos)
+    }
+
+    pub(crate) fn locate_symbol(&self, doc: DocId, pos: Pos16) -> Option<(SymbolRc, Loc)> {
+        self.def_sites
+            .iter()
+            .chain(self.use_sites)
+            .find(|&(_, loc)| loc.is_touched(doc, pos))
+            .cloned()
     }
 
     pub(super) fn code_action(
@@ -469,29 +531,13 @@ impl<'a> AnalyzerRef<'a> {
             return vec![];
         }
 
-        let mut diagnostics = ide::diagnose::diagnose(
+        ide::diagnose::diagnose(
             self,
+            &self.owner.hsp3_root,
             &self.doc_interner,
             &self.docs,
             &mut self.owner.diagnostics_cache.borrow_mut(),
-        );
-
-        // hsp3のファイルにdiagnosticsを出さない。
-        diagnostics.retain(|(uri, _, _)| {
-            let ok = uri
-                .to_file_path()
-                .map_or(true, |path| !path.starts_with(&self.owner.hsp3_root));
-
-            if !ok {
-                trace!(
-                    "ファイルはhsp3_rootにあるので {:?} への診断は無視されます。",
-                    uri
-                );
-            }
-
-            ok
-        });
-        diagnostics
+        )
     }
 }
 
