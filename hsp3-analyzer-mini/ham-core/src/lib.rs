@@ -69,7 +69,6 @@ mod analysis {
 
     pub(crate) use self::{
         doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},
-        include_graph::{collect_symbol_defs, collect_symbol_uses, IncludeGraph},
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
         sema_linter::{Diagnostic, SemaLinter},
@@ -81,8 +80,9 @@ mod analysis {
         syntax_linter::SyntaxLint,
         workspace_analysis::{
             collect_doc_symbols, collect_highlights, collect_preproc_completion_items,
-            collect_symbol_occurrences_in_doc, collect_symbols_in_scope, collect_workspace_symbols,
-            find_include_target, AnalysisRef, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
+            collect_symbol_occurrences, collect_symbol_occurrences_in_doc,
+            collect_symbols_in_scope, collect_workspace_symbols, find_include_target, AnalysisRef,
+            CollectSymbolOptions, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
         },
     };
 

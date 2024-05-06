@@ -368,6 +368,34 @@ pub(crate) fn collect_symbol_occurrences_in_doc<'a>(
     }
 }
 
+pub(crate) struct CollectSymbolOptions {
+    pub(crate) include_def: bool,
+    pub(crate) include_use: bool,
+}
+
+/// 指定したシンボルの定義箇所・使用箇所を列挙する (順不同、重複あり)
+pub(crate) fn collect_symbol_occurrences(
+    wa: &AnalysisRef<'_>,
+    options: CollectSymbolOptions,
+    symbol: &SymbolRc,
+    locs: &mut Vec<Loc>,
+) {
+    if options.include_def {
+        for (s, loc) in wa.def_sites {
+            if *s == *symbol {
+                locs.push(*loc);
+            }
+        }
+    }
+    if options.include_use {
+        for (s, loc) in wa.use_sites {
+            if *s == *symbol {
+                locs.push(*loc);
+            }
+        }
+    }
+}
+
 pub(crate) fn collect_workspace_symbols(
     wa: &AnalysisRef<'_>,
     query: &str,

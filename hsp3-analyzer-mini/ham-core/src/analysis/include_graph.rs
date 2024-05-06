@@ -1,6 +1,9 @@
+// いまのところ未使用
+
 use super::*;
 use crate::lang_service::docs::resolve_included_name;
 
+#[allow(unused)]
 #[derive(Default)]
 pub(crate) struct IncludeGraph {
     edges: HashMap<DocId, Vec<DocId>>,
@@ -191,6 +194,8 @@ pub(crate) fn collect_symbols2(
     }
 }
 
+#[cfg(skip)]
+#[allow(unused)]
 pub(crate) fn collect_symbol_defs(
     wa: &AnalysisRef<'_>,
     include_graph: &IncludeGraph,
@@ -211,6 +216,7 @@ pub(crate) fn collect_symbol_defs(
     }
 }
 
+#[cfg(skip)]
 pub(crate) fn collect_symbol_uses(
     wa: &AnalysisRef<'_>,
     include_graph: &IncludeGraph,

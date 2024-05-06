@@ -33,16 +33,22 @@ pub(crate) fn rename(
         let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
         let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
-        let include_graph = IncludeGraph::generate(wa, doc_interner);
         let mut locs = vec![];
-        collect_symbol_defs(wa, &include_graph, doc, &symbol, &mut locs);
-        collect_symbol_uses(wa, &include_graph, doc, &symbol, &mut locs);
+        collect_symbol_occurrences(
+            wa,
+            CollectSymbolOptions {
+                include_def: true,
+                include_use: true,
+            },
+            &symbol,
+            &mut locs,
+        );
         if locs.is_empty() {
             return None;
         }
 
-        // 1つの出現が定義と使用の両方にカウントされることもあるので、重複を削除する。
-        // (重複した変更をレスポンスに含めると名前の変更に失敗する。)
+        // ソートして重複を取り除く
+        // (重複した変更をレスポンスに含めると名前の変更に失敗する)
         locs.sort();
         locs.dedup();
 

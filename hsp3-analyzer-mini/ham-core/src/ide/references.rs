@@ -10,12 +10,20 @@ pub(crate) fn references(
     let (doc, pos) = from_document_position(doc_interner, &uri, position)?;
     let (symbol, _) = wa.locate_symbol(doc, pos)?;
 
-    let include_graph = IncludeGraph::generate(wa, doc_interner);
     let mut locs = vec![];
-    if include_definition {
-        collect_symbol_defs(wa, &include_graph, doc, &symbol, &mut locs);
-    }
-    collect_symbol_uses(wa, &include_graph, doc, &symbol, &mut locs);
+    collect_symbol_occurrences(
+        wa,
+        CollectSymbolOptions {
+            include_def: include_definition,
+            include_use: true,
+        },
+        &symbol,
+        &mut locs,
+    );
+
+    // ソートして重複を取り除く
+    locs.sort();
+    locs.dedup();
 
     Some(
         locs.into_iter()
