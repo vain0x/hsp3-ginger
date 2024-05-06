@@ -13,6 +13,14 @@ pub(self) use lsp_handler::LspHandler;
 pub(self) use lsp_receiver::LspReceiver;
 pub(self) use lsp_sender::LspSender;
 
+/// テキストドキュメントのバージョン番号
+///
+/// (エディタ上で編集されるたびに変わる番号。
+///  いつの状態のテキストドキュメントを指しているかを明確にするためのもの)
+pub(crate) type TextDocumentVersion = i32;
+
+pub(crate) const NO_VERSION: TextDocumentVersion = 1;
+
 #[derive(Serialize, Deserialize)]
 pub(super) struct LspRequest<Params> {
     pub(crate) jsonrpc: String,

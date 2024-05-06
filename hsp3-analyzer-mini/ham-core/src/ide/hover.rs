@@ -97,10 +97,7 @@ fn documentation_to_marked_string(d: Documentation) -> MarkedString {
 mod tests {
     use self::ide::lsp::from_proto;
     use super::*;
-    use crate::{
-        ide::lsp::to_proto,
-        lang_service::{docs::NO_VERSION, LangService},
-    };
+    use crate::{ide::lsp::to_proto, lang_service::LangService, lsp_server::NO_VERSION};
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> Url {

@@ -1,12 +1,9 @@
+pub(crate) mod doc_change;
 pub(crate) mod doc_interner;
 pub(crate) mod docs;
 mod search_common;
 pub(crate) mod search_hsphelp;
 
-use self::{
-    docs::{DocChange, Docs},
-    source::DocId,
-};
 use super::*;
 use crate::{
     analysis::*,
@@ -14,9 +11,13 @@ use crate::{
     ide::{self, diagnose::DiagnosticsCache},
     lang::Lang,
     lang_service::{
-        doc_interner::DocInterner, docs::DocChangeOrigin, search_common::search_common,
+        doc_change::{DocChange, DocChangeOrigin},
+        doc_interner::DocInterner,
+        docs::Docs,
+        search_common::search_common,
         search_hsphelp::search_hsphelp,
     },
+    source::DocId,
     utils::read_file::read_file,
 };
 use lsp_types::*;

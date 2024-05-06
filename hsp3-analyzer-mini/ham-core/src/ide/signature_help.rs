@@ -174,7 +174,7 @@ pub(crate) fn signature_help(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lang_service::{docs::NO_VERSION, LangService};
+    use crate::{lang_service::LangService, lsp_server::NO_VERSION};
 
     fn dummy_url(s: &str) -> Url {
         let workspace_dir = crate::test_utils::dummy_path().join("ws").join(s);

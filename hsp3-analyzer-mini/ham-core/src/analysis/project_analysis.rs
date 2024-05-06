@@ -234,7 +234,10 @@ pub(crate) fn collect_symbol_uses(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lang_service::{docs::NO_VERSION, DocDb, LangService};
+    use crate::{
+        lang_service::{DocDb, LangService},
+        lsp_server::NO_VERSION,
+    };
     use lsp_types::Url;
 
     fn dummy_url(s: &str) -> Url {

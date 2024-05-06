@@ -1,33 +1,8 @@
 use super::*;
-use crate::source::DocId;
-
-/// テキストドキュメントのバージョン番号
-/// (エディタ上で編集されるたびに変わる番号。
-///  いつの状態のテキストドキュメントを指しているかを明確にするためのもの。)
-type TextDocumentVersion = i32;
-
-pub(crate) const NO_VERSION: TextDocumentVersion = 1;
-
-pub(crate) enum DocChange {
-    Opened {
-        doc: DocId,
-        lang: Lang,
-        origin: DocChangeOrigin,
-    },
-    Changed {
-        doc: DocId,
-        lang: Lang,
-        origin: DocChangeOrigin,
-    },
-    Closed {
-        doc: DocId,
-    },
-}
-
-pub(crate) enum DocChangeOrigin {
-    Editor(RcStr),
-    Path(PathBuf),
-}
+use crate::{
+    lsp_server::{TextDocumentVersion, NO_VERSION},
+    source::DocId,
+};
 
 /// テキストドキュメントを管理するもの。
 ///

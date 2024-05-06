@@ -1,4 +1,5 @@
 use super::*;
+use crate::lsp_server::NO_VERSION;
 use lsp_types::{
     DocumentChanges, OneOf, OptionalVersionedTextDocumentIdentifier, Position,
     PrepareRenameResponse, TextDocumentEdit, TextEdit, Url, WorkspaceEdit,

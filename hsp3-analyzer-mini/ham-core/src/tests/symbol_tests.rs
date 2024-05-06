@@ -2,7 +2,8 @@
 
 use super::*;
 use crate::{
-    lang_service::{docs::NO_VERSION, LangService},
+    lang_service::LangService,
+    lsp_server::NO_VERSION,
     source::{DocId, Pos, Pos16},
     token::tokenize,
 };
