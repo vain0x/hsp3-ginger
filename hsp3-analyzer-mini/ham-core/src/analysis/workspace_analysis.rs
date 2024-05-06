@@ -33,8 +33,6 @@ pub(crate) struct WorkspaceAnalysis {
     /// (loc, doc): locにあるincludeがdocに解決されたことを表す。
     pub(super) include_resolution: Vec<(Loc, DocId)>,
 
-    pub(super) diagnostics: Vec<(String, Loc)>,
-
     // すべてのドキュメントの解析結果を使って構築される情報:
     pub(crate) doc_analysis_map: DocAnalysisMap,
     module_map: ModuleMap,
@@ -83,7 +81,6 @@ impl WorkspaceAnalysis {
         self.def_sites.clear();
         self.use_sites.clear();
         self.include_resolution.clear();
-        self.diagnostics.clear();
         self.module_map.clear();
     }
 
@@ -164,8 +161,6 @@ impl WorkspaceAnalysis {
                 total_symbol_count
             );
         }
-
-        assert_eq!(self.diagnostics.len(), 0);
 
         self.dirty = false;
     }
