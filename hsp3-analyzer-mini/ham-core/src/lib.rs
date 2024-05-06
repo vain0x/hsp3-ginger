@@ -128,13 +128,6 @@ mod parse {
     };
 }
 
-mod project_model {
-    //! プロジェクトモデル
-    // (ディレクトリ内のファイル間の関係について扱うモジュール)
-
-    pub(crate) mod scan;
-}
-
 mod source {
     //! ソースファイルの位置情報など
 

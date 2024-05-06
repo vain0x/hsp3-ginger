@@ -1,7 +1,7 @@
 pub(crate) mod doc_change;
 pub(crate) mod doc_interner;
 pub(crate) mod docs;
-mod search_common;
+mod file_scan;
 pub(crate) mod search_hsphelp;
 
 use super::*;
@@ -11,7 +11,6 @@ use crate::{
         doc_change::{DocChange, DocChangeOrigin},
         doc_interner::DocInterner,
         docs::Docs,
-        search_common::search_common,
         search_hsphelp::{search_hsphelp, HspHelpInfo},
     },
     help_source::HsSymbol,
@@ -147,7 +146,7 @@ impl Analyzer {
         let mut builtin_env = SymbolEnv::default();
         let mut common_docs = HashMap::new();
 
-        search_common(
+        file_scan::scan_common(
             &self.hsp3_root,
             &mut self.doc_interner,
             &mut self.docs,
@@ -169,7 +168,7 @@ impl Analyzer {
 
         debug!("scan_script_files");
         if let Some(root_dir) = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
-            project_model::scan::scan_script_files(&root_dir, |script_path| {
+            file_scan::scan_script_files(&root_dir, |script_path| {
                 if let Some(uri) = CanonicalUri::from_abs_path(&script_path) {
                     let (_, doc) = self.doc_interner.intern(&uri);
                     self.docs.change_file(doc, &script_path);
