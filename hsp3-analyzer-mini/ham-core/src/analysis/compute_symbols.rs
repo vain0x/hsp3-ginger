@@ -1,4 +1,3 @@
-use self::workspace_analysis::DocAnalysisMap;
 use super::*;
 
 pub(crate) fn compute_symbols(

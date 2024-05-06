@@ -54,6 +54,7 @@ use std::{
 mod analysis {
     use super::*;
 
+    mod analysis_ref;
     mod comment;
     pub(crate) mod compute_active_docs;
     pub(crate) mod compute_symbols;
@@ -65,9 +66,14 @@ mod analysis {
     mod symbol;
     mod syntax_linter;
     mod var;
-    mod workspace_analysis;
 
     pub(crate) use self::{
+        analysis_ref::{
+            collect_doc_symbols, collect_highlights, collect_preproc_completion_items,
+            collect_symbol_occurrences, collect_symbol_occurrences_in_doc,
+            collect_symbols_in_scope, collect_workspace_symbols, find_include_target, AnalysisRef,
+            CollectSymbolOptions, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
+        },
         doc_analysis::{in_preproc, in_str_or_comment, resolve_scope_at, DocAnalysis},
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
@@ -78,12 +84,6 @@ mod analysis {
         },
         symbol::{DefInfo, HspSymbolKind, SymbolDetails, SymbolRc},
         syntax_linter::SyntaxLint,
-        workspace_analysis::{
-            collect_doc_symbols, collect_highlights, collect_preproc_completion_items,
-            collect_symbol_occurrences, collect_symbol_occurrences_in_doc,
-            collect_symbols_in_scope, collect_workspace_symbols, find_include_target, AnalysisRef,
-            CollectSymbolOptions, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
-        },
     };
 
     use crate::{
