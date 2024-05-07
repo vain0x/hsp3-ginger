@@ -7,5 +7,5 @@ pub(crate) fn set_test_logger() {
         .is_test(true)
         .filter_level(log::LevelFilter::Trace)
         .try_init()
-        .unwrap();
+        .ok();
 }

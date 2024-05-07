@@ -106,6 +106,37 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
     }
 }
 
+fn on_label(label: &PLabel, is_def: bool, ctx: &mut Ctx) {
+    let name = match &label.name_opt {
+        Some(it) => it,
+        None => return,
+    };
+
+    match resolve_implicit_symbol(
+        &name.body.text,
+        &ctx.scope,
+        &ctx.public_env,
+        &ctx.ns_env,
+        &ctx.local_env,
+        &ctx.module_map,
+    ) {
+        Some(symbol) if symbol.kind == HspSymbolKind::Label => {
+            if is_def {
+                ctx.public_def_sites.push((symbol, name.body.loc));
+            } else {
+                ctx.public_use_sites.push((symbol, name.body.loc));
+            }
+        }
+        Some(_) => {
+            // ラベルでない同名のシンボルが定義済み
+            return;
+        }
+        None => {
+            add_symbol(HspSymbolKind::Label, name, is_def, ctx);
+        }
+    }
+}
+
 fn on_compound_def(compound: &PCompound, ctx: &mut Ctx) {
     match compound {
         PCompound::Name(name) => on_symbol_def(name, ctx),
@@ -149,10 +180,8 @@ fn on_compound_use(compound: &PCompound, ctx: &mut Ctx) {
 fn on_expr(expr: &PExpr, ctx: &mut Ctx) {
     match expr {
         PExpr::Literal(_) => {}
-        PExpr::Label(PLabel { star: _, name_opt }) => {
-            if let Some(name) = name_opt {
-                on_symbol_use(name, false, ctx);
-            }
+        PExpr::Label(label) => {
+            on_label(label, USE_SITE, ctx);
         }
         PExpr::Compound(compound) => on_compound_use(compound, ctx),
         PExpr::Paren(PParenExpr { body_opt, .. }) => on_expr_opt(body_opt.as_deref(), ctx),
@@ -182,10 +211,8 @@ fn on_args(args: &[PArg], ctx: &mut Ctx) {
 
 fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
-        PStmt::Label(PLabel { name_opt, .. }) => {
-            if let Some(name) = name_opt {
-                add_symbol(HspSymbolKind::Label, name, DEF_SITE, ctx);
-            }
+        PStmt::Label(label) => {
+            on_label(label, DEF_SITE, ctx);
         }
         PStmt::Assign(PAssignStmt {
             left,

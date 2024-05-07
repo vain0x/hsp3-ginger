@@ -66,6 +66,7 @@ pub(crate) fn symbol(
 mod tests {
     use super::*;
     use crate::{analyzer::Analyzer, lsp_server::NO_VERSION};
+    use expect_test::expect;
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> Url {
@@ -119,6 +120,7 @@ mod tests {
 *my_label
     s1 = 0
     f 1, 2
+    goto *my_label
     return
             "#
             .into(),
@@ -126,7 +128,15 @@ mod tests {
         let res = an.compute_ref().document_symbol(main_uri).unwrap();
         let mut formatted = String::new();
         format_response(&mut formatted, &res);
-        // FIXME: my_labelが重複している
-        debug_assert_eq!(formatted, "main.hsp:2:9 m1 Module\nmain.hsp:3:10 f Function\nmain.hsp:3:16 a Constant\nmain.hsp:3:23 b Constant\nmain.hsp:9:2 my_label Constant\nmain.hsp:9:2 my_label Constant\nmain.hsp:10:5 s1 Variable\n");
+
+        expect![[r#"
+            main.hsp:2:9 m1 Module
+            main.hsp:3:10 f Function
+            main.hsp:3:16 a Constant
+            main.hsp:3:23 b Constant
+            main.hsp:9:2 my_label Constant
+            main.hsp:10:5 s1 Variable
+        "#]]
+        .assert_eq(&formatted);
     }
 }
