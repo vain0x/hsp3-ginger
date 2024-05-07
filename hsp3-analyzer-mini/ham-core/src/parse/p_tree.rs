@@ -42,6 +42,17 @@ pub(crate) struct PLabel {
     pub(crate) name_opt: Option<PToken>,
 }
 
+impl PLabel {
+    pub(crate) fn star_name(&self) -> Option<(RcStr, Loc)> {
+        let Some(name) = &self.name_opt else {
+            return None;
+        };
+        let loc = self.star.body.loc.unite(&name.body.loc);
+        let name = RcStr::from(format!("*{}", &name.body.text));
+        Some((name, loc))
+    }
+}
+
 impl Debug for PLabel {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "*")?;

@@ -130,8 +130,8 @@ mod tests {
             other.hsp:4:5
             other.hsp:5:5
             [*foo@m1]
-            main.hsp:9:2
-            main.hsp:10:12
+            main.hsp:9:1
+            main.hsp:10:11
         "#]]
         .assert_eq(&formatted);
     }

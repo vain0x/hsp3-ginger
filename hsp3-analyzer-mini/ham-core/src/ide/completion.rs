@@ -57,6 +57,11 @@ fn to_completion_symbol_kind(kind: HspSymbolKind) -> CompletionItemKind {
 }
 
 fn to_lsp_completion_item(symbol: &SymbolRc) -> CompletionItem {
+    let name = if symbol.kind == HspSymbolKind::Label && symbol.name.starts_with('*') {
+        &symbol.name[1..]
+    } else {
+        &symbol.name
+    };
     let details = symbol.compute_details();
     let detail = details.desc.map(|s| s.to_string());
     let documentation = if details.docs.is_empty() {
@@ -82,7 +87,7 @@ fn to_lsp_completion_item(symbol: &SymbolRc) -> CompletionItem {
 
     CompletionItem {
         kind: Some(to_completion_symbol_kind(symbol.kind)),
-        label: symbol.name.to_string(),
+        label: name.to_string(),
         detail,
         documentation,
         sort_text,
@@ -234,4 +239,72 @@ pub(crate) fn completion_resolve(
     resolved_item.documentation = item.documentation;
     resolved_item.data = data_opt;
     Some(resolved_item)
+}
+
+// ===============================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION};
+    use expect_test::expect;
+    use std::fmt::Write as _;
+
+    fn dummy_url(s: &str) -> lsp_types::Url {
+        let workspace_dir = crate::test_utils::dummy_path().join("ws");
+        lsp_types::Url::from_file_path(&workspace_dir.join(s)).unwrap()
+    }
+
+    fn format_ci(w: &mut String, res: &lsp_types::CompletionItem) {
+        write!(
+            w,
+            "{} {:?}",
+            res.label,
+            res.kind.unwrap_or(CompletionItemKind::TEXT)
+        )
+        .unwrap();
+
+        if let Some(f) = &res.filter_text {
+            write!(w, " filter:{:?}", f).unwrap();
+        }
+    }
+
+    fn format_response(w: &mut String, mut res: lsp_types::CompletionList) {
+        res.items.sort_by(|l, r| l.sort_text.cmp(&r.sort_text));
+
+        for item in &res.items {
+            format_ci(w, item);
+            *w += "\n";
+        }
+    }
+
+    #[test]
+    fn test() {
+        let mut an = Analyzer::new_standalone();
+
+        let main_url = dummy_url("main.hsp");
+        an.open_doc(
+            main_url.clone(),
+            NO_VERSION,
+            r#"
+#define f(%1) :
+*foo
+    f * ; <|>
+"#
+            .into(),
+        );
+
+        let mut formatted = String::new();
+        // `f *<|>`
+        let res = an
+            .compute_ref()
+            .completion(main_url.clone(), Position::new(3, 7));
+        format_response(&mut formatted, res);
+
+        expect![[r#"
+            foo Value
+            f Value
+        "#]]
+        .assert_eq(&formatted);
+    }
 }

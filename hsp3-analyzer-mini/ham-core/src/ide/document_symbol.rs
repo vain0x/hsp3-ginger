@@ -134,7 +134,7 @@ mod tests {
             main.hsp:3:10 f Function
             main.hsp:3:16 a Constant
             main.hsp:3:23 b Constant
-            main.hsp:9:2 my_label Constant
+            main.hsp:9:1 *my_label Constant
             main.hsp:10:5 s1 Variable
         "#]]
         .assert_eq(&formatted);
