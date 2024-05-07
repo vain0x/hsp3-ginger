@@ -95,6 +95,7 @@ EXAMPLE:
 ### LSPサーバーの環境変数による設定
 
 - `HAM_LINT` (既定値 `1`): `1` なら、リントを有効化する
+- `HAM_DOCUMENT_SYMBOL_ENABLED` (既定値 `1`): `1` なら、`documentSymbol` 機能を有効化する (既定値 `1`)
 - `HAM_WATCHER_ENABLED` (既定値 `1`): `1` なら、ファイルウォッチャーを有効化する (既定値 `1`)
 
 ## テスト

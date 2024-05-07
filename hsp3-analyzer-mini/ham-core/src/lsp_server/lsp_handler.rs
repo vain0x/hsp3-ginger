@@ -49,11 +49,6 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
-        let init_config = params
-            .initialization_options
-            .and_then(|options| serde_json::from_value::<init_config::InitConfig>(options).ok())
-            .unwrap_or_default();
-
         let watchable = params
             .capabilities
             .workspace
@@ -85,7 +80,7 @@ impl<W: io::Write> LspHandler<W> {
                 definition_provider: Some(OneOf::Left(true)),
                 document_formatting_provider: Some(OneOf::Left(true)),
                 document_highlight_provider: Some(OneOf::Left(true)),
-                document_symbol_provider: if init_config.document_symbol.enabled {
+                document_symbol_provider: if self.config.document_symbol_enabled {
                     Some(OneOf::Left(true))
                 } else {
                     None

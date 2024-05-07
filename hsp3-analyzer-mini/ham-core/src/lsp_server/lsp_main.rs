@@ -37,6 +37,7 @@ pub fn start_lsp_server(hsp3_root: PathBuf) {
     init_log();
 
     let lsp_config = LspConfig {
+        document_symbol_enabled: env::var("HAM_DOCUMENT_SYMBOL_ENABLED").map_or(true, |s| s == "1"),
         watcher_enabled: env::var("HAM_WATCHER_ENABLED").map_or(true, |s| s == "1"),
     };
 

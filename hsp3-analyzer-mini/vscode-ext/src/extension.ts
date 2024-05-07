@@ -64,11 +64,11 @@ const getHsp3Root = () => {
     || DEFAULT_DIR
 }
 
-const lintIsEnabled = () =>
-  workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("lint-enabled") ?? true
-
-const documentSymbolEnabled = () =>
+const isDocumentSymbolEnabled = () =>
   workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("documentSymbol.enabled") === true
+
+const isLintEnabled = () =>
+  workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("lint-enabled") ?? true
 
 // -----------------------------------------------
 // LSPクライアント
@@ -76,14 +76,14 @@ const documentSymbolEnabled = () =>
 
 const newLspClient = (lspBin: string): LanguageClient => {
   const hsp3Root = getHsp3Root()
-  const lintEnabled = lintIsEnabled()
 
   const serverOptions: ServerOptions = {
     command: lspBin,
     args: ["--hsp", hsp3Root, "lsp"],
     options: {
       env: {
-        "HAM_LINT": lintEnabled ? "1" : "",
+        "HAM_DOCUMENT_SYMBOL_ENABLED": isDocumentSymbolEnabled() ? "1" : "0",
+        "HAM_LINT": isLintEnabled() ? "1" : "0",
       }
     }
   }
@@ -95,9 +95,6 @@ const newLspClient = (lspBin: string): LanguageClient => {
     synchronize: {
       // `workspace/didChangeWatchedFiles` のための監視対象
       fileEvents: workspace.createFileSystemWatcher("**/*.hsp"),
-    },
-    initializationOptions: {
-      documentSymbol: { enabled: documentSymbolEnabled() },
     },
   }
 

@@ -1,4 +1,3 @@
-mod init_config;
 pub(super) mod lsp_config;
 pub(super) mod lsp_handler;
 pub(super) mod lsp_main;
