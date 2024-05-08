@@ -1,7 +1,7 @@
 use super::*;
 use crate::analyzer::Analyzer;
-use lsp_types::request::Request;
 use lsp_types::*;
+use request::Request;
 use std::io;
 
 pub(super) struct LspHandler<W: io::Write> {
@@ -38,7 +38,7 @@ impl<W: io::Write> LspHandler<W> {
                                 kind: Some(
                                     WatchKind::Create | WatchKind::Change | WatchKind::Delete,
                                 ),
-                                glob_pattern: "**/*.hsp".into(),
+                                glob_pattern: GlobPattern::from("**/*.hsp".to_string()),
                             }],
                         })
                         .unwrap(),
@@ -369,7 +369,7 @@ impl<W: io::Write> LspHandler<W> {
                 self.text_document_did_close(msg.params);
                 self.diagnose();
             }
-            lsp_types::request::CodeActionRequest::METHOD => {
+            request::CodeActionRequest::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CodeActionParams>>(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_code_action(msg.params);
@@ -381,7 +381,7 @@ impl<W: io::Write> LspHandler<W> {
                 let response = self.text_document_completion(msg.params);
                 self.sender.send_response(msg_id, response);
             }
-            lsp_types::request::ResolveCompletionItem::METHOD => {
+            request::ResolveCompletionItem::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CompletionItem>>(json).unwrap();
                 match self.text_document_completion_resolve(msg.params) {
                     Some(response) => self.sender.send_response(msg.id, response),
@@ -392,7 +392,7 @@ impl<W: io::Write> LspHandler<W> {
                     ),
                 }
             }
-            lsp_types::request::Formatting::METHOD => {
+            request::Formatting::METHOD => {
                 let msg =
                     serde_json::from_str::<LspRequest<DocumentFormattingParams>>(json).unwrap();
                 let msg_id = msg.id;
@@ -463,7 +463,7 @@ impl<W: io::Write> LspHandler<W> {
                 self.workspace_did_change_watched_files(msg.params);
                 self.diagnose();
             }
-            request::WorkspaceSymbol::METHOD => {
+            request::WorkspaceSymbolRequest::METHOD => {
                 let msg: LspRequest<WorkspaceSymbolParams> =
                     serde_json::from_str(json).expect("workspace/symbol msg");
                 let response = self.workspace_symbol(msg.params);

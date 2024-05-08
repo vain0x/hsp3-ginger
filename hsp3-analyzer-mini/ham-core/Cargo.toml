@@ -16,7 +16,7 @@ encoding = "0.2.33"
 glob = "0.3.0"
 
 # <https://github.com/gluon-lang/lsp-types>
-lsp-types = { version = "0.91.0" }
+lsp-types = { version = "0.95.1" }
 
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
