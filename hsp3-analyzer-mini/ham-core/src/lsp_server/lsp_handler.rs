@@ -1,13 +1,16 @@
 use super::*;
 use crate::analyzer::Analyzer;
-use lsp_types::*;
+use lsp_types::{notification::Notification, *};
 use request::Request;
-use std::io;
+use std::{io, mem};
 
 pub(super) struct LspHandler<W: io::Write> {
     config: LspConfig,
     sender: LspSender<W>,
     analyzer: Analyzer,
+
+    /// `true` なら次にドキュメントの解析処理後に `diagnostics` を生成して送信する
+    diagnostics_invalidated: bool,
 }
 
 impl<W: io::Write> LspHandler<W> {
@@ -16,6 +19,7 @@ impl<W: io::Write> LspHandler<W> {
             config,
             sender,
             analyzer,
+            diagnostics_invalidated: true,
         }
     }
 
@@ -72,6 +76,7 @@ impl<W: io::Write> LspHandler<W> {
                     TextDocumentSyncOptions {
                         open_close: Some(true),
                         change: Some(TextDocumentSyncKind::FULL),
+                        save: Some(TextDocumentSyncSaveOptions::Supported(true)),
                         ..TextDocumentSyncOptions::default()
                     },
                 )),
@@ -139,6 +144,7 @@ impl<W: io::Write> LspHandler<W> {
     fn did_initialize(&mut self) {
         self.analyzer.did_initialize();
         self.register_file_system_watcher();
+        self.publish_diagnostics();
     }
 
     fn shutdown(&mut self) {
@@ -152,6 +158,8 @@ impl<W: io::Write> LspHandler<W> {
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
         let doc = params.text_document;
         self.analyzer.open_doc(doc.uri, doc.version, doc.text);
+
+        self.diagnostics_invalidated = true;
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
@@ -164,10 +172,14 @@ impl<W: io::Write> LspHandler<W> {
         let version = doc.version;
 
         self.analyzer.change_doc(doc.uri, version, text);
+
+        self.diagnostics_invalidated = true;
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
         self.analyzer.close_doc(params.text_document.uri);
+
+        self.diagnostics_invalidated = true;
     }
 
     fn text_document_code_action(&mut self, params: CodeActionParams) -> Vec<CodeAction> {
@@ -295,13 +307,23 @@ impl<W: io::Write> LspHandler<W> {
                 _ => continue,
             }
         }
+
+        self.diagnostics_invalidated = true;
     }
 
     fn workspace_symbol(&mut self, params: WorkspaceSymbolParams) -> Vec<SymbolInformation> {
         self.analyzer.compute_ref().workspace_symbol(params.query)
     }
 
-    fn diagnose(&mut self) {
+    /// `diagnostics` の変更があれば再送信する
+    ///
+    /// (この関数は `initialized`, `didSave` または解析系リクエストの処理後に呼ばれる)
+    fn publish_diagnostics(&mut self) {
+        // この処理は起動後に1回、およびドキュメントの変更のたびに1回だけ行う
+        if !mem::replace(&mut self.diagnostics_invalidated, false) {
+            return;
+        }
+
         let diagnostics = self.analyzer.compute_ref().diagnose();
 
         for (uri, version, diagnostics) in diagnostics {
@@ -341,7 +363,6 @@ impl<W: io::Write> LspHandler<W> {
             }
             "initialized" => {
                 self.did_initialize();
-                self.diagnose();
             }
             "shutdown" => {
                 let msg = serde_json::from_str::<LspRequest<()>>(json).unwrap();
@@ -355,31 +376,37 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspNotification<DidOpenTextDocumentParams> =
                     serde_json::from_str(&json).expect("didOpen msg");
                 self.text_document_did_open(msg.params);
-                self.diagnose();
             }
             "textDocument/didChange" => {
                 let msg: LspNotification<DidChangeTextDocumentParams> =
                     serde_json::from_str(&json).expect("didChange msg");
                 self.text_document_did_change(msg.params);
-                self.diagnose();
+            }
+            // "textDocument/didSave"
+            notification::DidSaveTextDocument::METHOD => {
+                // let msg = serde_json::from_str::<LspNotification<DidSaveTextDocumentParams>>(json).unwrap();
+                self.publish_diagnostics();
             }
             "textDocument/didClose" => {
                 let msg = serde_json::from_str::<LspNotification<DidCloseTextDocumentParams>>(json)
                     .unwrap();
                 self.text_document_did_close(msg.params);
-                self.diagnose();
             }
             request::CodeActionRequest::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CodeActionParams>>(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_code_action(msg.params);
                 self.sender.send_response(msg_id, response);
+
+                self.publish_diagnostics();
             }
             "textDocument/completion" => {
                 let msg = serde_json::from_str::<LspRequest<CompletionParams>>(json).unwrap();
                 let msg_id = msg.id;
                 let response = self.text_document_completion(msg.params);
                 self.sender.send_response(msg_id, response);
+
+                self.publish_diagnostics();
             }
             request::ResolveCompletionItem::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CompletionItem>>(json).unwrap();
@@ -391,6 +418,8 @@ impl<W: io::Write> LspHandler<W> {
                         "Resolve completion failed.".into(),
                     ),
                 }
+
+                self.publish_diagnostics();
             }
             request::Formatting::METHOD => {
                 let msg =
@@ -412,11 +441,15 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_highlight(msg.params);
                 self.sender.send_response(msg_id, response);
+
+                self.publish_diagnostics();
             }
             request::DocumentSymbolRequest::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<DocumentSymbolParams>>(json).unwrap();
                 let response = self.text_document_symbol(msg.params);
                 self.sender.send_response(msg.id, response);
+
+                self.publish_diagnostics();
             }
             "textDocument/hover" => {
                 let msg: LspRequest<TextDocumentPositionParams> =
@@ -424,6 +457,8 @@ impl<W: io::Write> LspHandler<W> {
                 let msg_id = msg.id;
                 let response = self.text_document_hover(msg.params);
                 self.sender.send_response(msg_id, response);
+
+                self.publish_diagnostics();
             }
             request::PrepareRenameRequest::METHOD => {
                 let msg: LspRequest<TextDocumentPositionParams> =
@@ -461,7 +496,6 @@ impl<W: io::Write> LspHandler<W> {
                 let msg: LspNotification<DidChangeWatchedFilesParams> =
                     serde_json::from_str(json).expect("workspace/didChangeWatchedFiles msg");
                 self.workspace_did_change_watched_files(msg.params);
-                self.diagnose();
             }
             request::WorkspaceSymbolRequest::METHOD => {
                 let msg: LspRequest<WorkspaceSymbolParams> =
