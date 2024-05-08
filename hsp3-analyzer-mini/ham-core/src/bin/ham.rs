@@ -7,7 +7,7 @@
 // ```
 
 use ham_core::{
-    start_lsp_server,
+    run_lsp_server,
     subcommands::{self, format_comments::format_comments},
 };
 use std::{
@@ -157,7 +157,7 @@ fn main() {
                 panic!("ERROR: Unrecognized argument: {arg:?}");
             }
 
-            start_lsp_server(hsp3_root);
+            run_lsp_server(hsp3_root);
             return;
         }
         "parse" => {

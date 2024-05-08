@@ -33,7 +33,7 @@ pub(crate) fn init_log() {
     WriteLogger::init(log_filter, Config::default(), file).expect("init log");
 }
 
-pub fn start_lsp_server(hsp3_root: PathBuf) {
+pub fn run_lsp_server(hsp3_root: PathBuf) {
     init_log();
 
     let lsp_config = LspConfig {
@@ -47,11 +47,17 @@ pub fn start_lsp_server(hsp3_root: PathBuf) {
 
     let stdin = stdin();
     let stdin = stdin.lock();
-    let receiver = LspReceiver::new(stdin);
+    let mut receiver = LspReceiver::new(stdin);
     let stdout = stdout();
     let stdout = stdout.lock();
     let sender = LspSender::new(stdout);
     let analyzer = Analyzer::new(hsp3_root, options);
-    let handler = LspHandler::new(lsp_config, sender, analyzer);
-    handler.main(receiver);
+    let mut handler = LspHandler::new(lsp_config, sender, analyzer);
+
+    // メインループ
+    while !handler.exited {
+        receiver.read_next(|json| {
+            handler.handle_message(json);
+        });
+    }
 }

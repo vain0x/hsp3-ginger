@@ -1,7 +1,7 @@
 use super::*;
 use crate::analyzer::Analyzer;
-use lsp_types::{notification::Notification, *};
-use request::Request;
+use lsp_types::*;
+use lsp_types::{notification::Notification, request::Request};
 use std::{io, mem};
 
 pub(super) struct LspHandler<W: io::Write> {
@@ -11,6 +11,8 @@ pub(super) struct LspHandler<W: io::Write> {
 
     /// `true` なら次にドキュメントの解析処理後に `diagnostics` を生成して送信する
     diagnostics_invalidated: bool,
+
+    pub(crate) exited: bool,
 }
 
 impl<W: io::Write> LspHandler<W> {
@@ -20,6 +22,7 @@ impl<W: io::Write> LspHandler<W> {
             sender,
             analyzer,
             diagnostics_invalidated: true,
+            exited: false,
         }
     }
 
@@ -149,10 +152,6 @@ impl<W: io::Write> LspHandler<W> {
 
     fn shutdown(&mut self) {
         self.analyzer.shutdown();
-    }
-
-    fn did_exit(&mut self, _json: &str) {
-        std::process::exit(0)
     }
 
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
@@ -338,7 +337,7 @@ impl<W: io::Write> LspHandler<W> {
         }
     }
 
-    fn did_receive(&mut self, json: &str) {
+    pub(crate) fn handle_message(&mut self, json: &str) {
         let msg = serde_json::from_str::<LspMessageOpaque>(json).unwrap();
 
         let method = match msg.method {
@@ -370,7 +369,7 @@ impl<W: io::Write> LspHandler<W> {
                 self.sender.send_response(msg.id, ());
             }
             "exit" => {
-                self.did_exit(json);
+                self.exited = true;
             }
             "textDocument/didOpen" => {
                 let msg: LspNotification<DidOpenTextDocumentParams> =
@@ -513,12 +512,6 @@ impl<W: io::Write> LspHandler<W> {
                 error::METHOD_NOT_FOUND,
                 "未実装のメソッドを無視します。",
             ),
-        }
-    }
-
-    pub(crate) fn main(mut self, mut receiver: LspReceiver<impl io::Read>) {
-        loop {
-            receiver.read_next(|json| self.did_receive(json));
         }
     }
 }
