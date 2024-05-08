@@ -56,7 +56,11 @@ impl<W: io::Write> LspHandler<W> {
             .and_then(|x| x.dynamic_registration)
             .unwrap_or(false);
 
-        self.analyzer.initialize(params.root_uri);
+        if let Some(folders) = params.workspace_folders {
+            for folder in folders {
+                self.analyzer.add_workspace_folder(folder);
+            }
+        }
 
         if !watchable {
             self.config.watcher_enabled = false;

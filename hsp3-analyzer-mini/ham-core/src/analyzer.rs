@@ -27,7 +27,7 @@ use lsp_types::*;
 pub(super) struct Analyzer {
     // 入力 (起動時):
     hsp3_root: PathBuf,
-    root_uri_opt: Option<CanonicalUri>,
+    workspace_folders: Vec<CanonicalUri>,
     options: AnalyzerOptions,
 
     // 状態 (ファイルスキャンの結果):
@@ -95,7 +95,7 @@ impl Analyzer {
             // no_exist/hsp3
             hsp3_root: root.clone().join("hsp3"),
             // no_exist/ws
-            root_uri_opt: Some(CanonicalUri::from_abs_path(&root.join("ws")).unwrap()),
+            workspace_folders: vec![CanonicalUri::from_abs_path(&root.join("ws")).unwrap()],
             options: AnalyzerOptions::minimal(),
             ..Default::default()
         };
@@ -114,10 +114,9 @@ impl Analyzer {
         &mut self.options
     }
 
-    pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
-        if let Some(uri) = root_uri_opt {
-            self.root_uri_opt = Some(CanonicalUri::from_url(&uri));
-        }
+    pub(super) fn add_workspace_folder(&mut self, folder: lsp_types::WorkspaceFolder) {
+        self.workspace_folders
+            .push(CanonicalUri::from_url(&folder.uri));
     }
 
     pub(super) fn did_initialize(&mut self) {
@@ -145,8 +144,9 @@ impl Analyzer {
         self.hsphelp_info = hsphelp_info;
 
         debug!("scan_script_files");
-        if let Some(root_dir) = self.root_uri_opt.as_ref().and_then(|x| x.to_file_path()) {
-            file_scan::scan_script_files(&root_dir, |script_path| {
+        for w_uri in &self.workspace_folders {
+            let workspace_dir = w_uri.to_file_path().unwrap();
+            file_scan::scan_script_files(&workspace_dir, |script_path| {
                 if let Some(uri) = CanonicalUri::from_abs_path(&script_path) {
                     let (_, doc) = self.doc_interner.intern(&uri);
                     self.docs.change_file(doc, &script_path);
@@ -165,11 +165,6 @@ impl Analyzer {
 
         let mut doc_changes = vec![];
         self.docs.drain_doc_changes(&mut doc_changes);
-
-        // let opened_or_closed = doc_changes.iter().any(|change| match change {
-        //     DocChange::Opened { .. } | DocChange::Closed { .. } => true,
-        //     _ => false,
-        // });
 
         // 同じドキュメントに対する変更をまとめる
         let mut change_map = HashMap::new();
@@ -215,13 +210,6 @@ impl Analyzer {
                 }
             }
         }
-
-        // invalidate include graph
-        // if opened_or_closed {
-        //     if let Some(root_uri) = &self.root_uri_opt {
-        //         ...
-        //     }
-        // }
 
         // ドキュメント全体に対する解析処理を再実行する
         {
