@@ -108,6 +108,12 @@ impl Analyzer {
         an
     }
 
+    #[cfg(test)]
+    #[allow(unused)]
+    pub(crate) fn get_options_mut(&mut self) -> &mut AnalyzerOptions {
+        &mut self.options
+    }
+
     pub(super) fn initialize(&mut self, root_uri_opt: Option<Url>) {
         if let Some(uri) = root_uri_opt {
             self.root_uri_opt = Some(CanonicalUri::from_url(&uri));

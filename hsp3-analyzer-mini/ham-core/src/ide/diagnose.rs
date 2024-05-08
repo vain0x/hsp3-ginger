@@ -197,3 +197,88 @@ pub(crate) fn diagnose(
 fn source() -> Option<String> {
     Some(env!("CARGO_PKG_NAME").to_string())
 }
+
+// ===============================================
+
+#[cfg(test)]
+mod tests {
+    use crate::{analyzer::Analyzer, ide::lsp::from_proto, lsp_server::NO_VERSION};
+    use expect_test::expect;
+    use std::fmt::Write as _;
+
+    fn dummy_url(s: &str) -> lsp_types::Url {
+        let workspace_dir = crate::test_utils::dummy_path().join("ws");
+        lsp_types::Url::from_file_path(&workspace_dir.join(s)).unwrap()
+    }
+
+    fn format_diagnostics(w: &mut String, diagnostics: &[lsp_types::Diagnostic]) {
+        for d in diagnostics {
+            let start = from_proto::pos16(d.range.start);
+            write!(
+                w,
+                "  {:?} {:?} {:?}\n",
+                start,
+                d.severity.unwrap(),
+                d.message
+            )
+            .unwrap();
+        }
+    }
+
+    fn format_response(
+        w: &mut String,
+        res: &[(lsp_types::Url, Option<i32>, Vec<lsp_types::Diagnostic>)],
+    ) {
+        for (url, version_opt, diagnostics) in res {
+            write!(
+                w,
+                "file: {:?}@{} ({})\n",
+                url.to_file_path().unwrap().file_name().unwrap(),
+                version_opt.unwrap_or(0),
+                diagnostics.len()
+            )
+            .unwrap();
+            format_diagnostics(w, diagnostics);
+            *w += "\n";
+        }
+    }
+
+    #[test]
+    fn test_sema_linter() {
+        let mut an = Analyzer::new_standalone();
+        an.get_options_mut().lint_enabled = true;
+
+        let main_url = dummy_url("main.hsp");
+        an.open_doc(
+            main_url.clone(),
+            NO_VERSION,
+            r#"
+repeat
+    return
+loop
+"#
+            .into(),
+        );
+
+        an.open_doc(dummy_url("ok.hsp"), NO_VERSION, "; all green\n".into());
+
+        let an = an.compute_ref();
+
+        let mut formatted = String::new();
+        formatted += "[1]\n";
+        format_response(&mut formatted, &an.diagnose());
+
+        // 2回目は同じメッセージは出力されない
+        formatted += "[2]\n";
+        format_response(&mut formatted, &an.diagnose());
+
+        expect![[r#"
+            [1]
+            file: "main.hsp"@1 (1)
+              3:5 Warning "repeatループの中ではreturnできません。"
+
+            [2]
+        "#]]
+        .assert_eq(&formatted);
+    }
+}
