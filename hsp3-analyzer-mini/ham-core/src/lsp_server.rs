@@ -20,10 +20,33 @@ pub(crate) type TextDocumentVersion = i32;
 
 pub(crate) const NO_VERSION: TextDocumentVersion = 1;
 
+/// サーバーからクライアントに送るメッセージ
+pub(super) enum Outgoing<T> {
+    Request {
+        id: Value,
+        method: String,
+        params: T,
+    },
+    Notification {
+        method: String,
+        params: T,
+    },
+    Response {
+        id: Value,
+        result: T,
+    },
+    Error {
+        id: Option<Value>,
+        code: i64,
+        msg: String,
+        data: T,
+    },
+}
+
 #[derive(Serialize, Deserialize)]
 pub(super) struct LspRequest<Params> {
     pub(crate) jsonrpc: String,
-    pub(crate) id: i64,
+    pub(crate) id: Value,
     pub(crate) method: String,
     pub(crate) params: Params,
 }
@@ -31,23 +54,23 @@ pub(super) struct LspRequest<Params> {
 #[derive(Serialize, Deserialize)]
 pub(super) struct LspResponse<Result> {
     pub(crate) jsonrpc: String,
-    pub(crate) id: i64,
+    pub(crate) id: Value,
     pub(crate) result: Result,
 }
 
 #[derive(Serialize, Deserialize)]
-pub(super) struct LspErrorResponse {
+pub(super) struct LspErrorResponse<Data> {
     pub(crate) jsonrpc: String,
     pub(crate) id: Value,
-    pub(crate) error: LspError,
+    pub(crate) error: LspError<Data>,
 }
 
 /// <https://microsoft.github.io/language-server-protocol/specifications/specification-current/#responseMessage>
 #[derive(Serialize, Deserialize)]
-pub(super) struct LspError {
+pub(super) struct LspError<Data> {
     pub(crate) code: i64,
     pub(crate) msg: String,
-    // pub(crate) data: Value,
+    pub(crate) data: Data,
 }
 
 #[derive(Serialize, Deserialize)]

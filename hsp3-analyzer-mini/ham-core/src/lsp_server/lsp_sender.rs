@@ -1,4 +1,4 @@
-use super::{LspError, LspErrorResponse, LspNotification, LspRequest, LspResponse};
+use super::{LspError, LspErrorResponse, LspNotification, LspRequest, LspResponse, Outgoing};
 use serde_json::Value;
 use std::io::{self, Write as _};
 
@@ -36,14 +36,32 @@ impl<W: io::Write> LspSender<W> {
         );
     }
 
-    pub(crate) fn send_request<P: serde::Serialize>(&mut self, id: i64, method: &str, params: P) {
+    pub(crate) fn send<R: serde::Serialize>(&mut self, outgoing: Outgoing<R>) {
+        match outgoing {
+            Outgoing::Request { id, method, params } => {
+                self.send_request(id, method, params)
+            }
+            Outgoing::Notification { method, params } => {
+                self.send_notification(method, params)
+            }
+            Outgoing::Response { id, result } => self.send_response(id, result),
+            Outgoing::Error {
+                id,
+                code,
+                msg,
+                data,
+            } => self.send_error_code(id, code, msg, data),
+        }
+    }
+
+    fn send_request<P: serde::Serialize>(&mut self, id: Value, method: String, params: P) {
         let mut buf = Vec::new();
         serde_json::to_writer(
             &mut buf,
             &LspRequest::<P> {
                 jsonrpc: "2.0".to_string(),
                 id,
-                method: method.to_string(),
+                method,
                 params,
             },
         )
@@ -52,13 +70,13 @@ impl<W: io::Write> LspSender<W> {
         self.do_send(&buf);
     }
 
-    pub(crate) fn send_notification<P: serde::Serialize>(&mut self, method: &str, params: P) {
+    fn send_notification<P: serde::Serialize>(&mut self, method: String, params: P) {
         let mut buf = Vec::new();
         serde_json::to_writer(
             &mut buf,
             &LspNotification::<P> {
                 jsonrpc: "2.0".to_string(),
-                method: method.to_string(),
+                method,
                 params,
             },
         )
@@ -67,7 +85,7 @@ impl<W: io::Write> LspSender<W> {
         self.do_send(&buf);
     }
 
-    pub(crate) fn send_response<R: serde::Serialize>(&mut self, id: i64, result: R) {
+    fn send_response<R: serde::Serialize>(&mut self, id: Value, result: R) {
         let mut buf = Vec::new();
         serde_json::to_writer(
             &mut buf,
@@ -82,7 +100,13 @@ impl<W: io::Write> LspSender<W> {
         self.do_send(&buf);
     }
 
-    pub(crate) fn send_error_code(&mut self, id: Option<Value>, code: i64, msg: &str) {
+    fn send_error_code<R: serde::Serialize>(
+        &mut self,
+        id: Option<Value>,
+        code: i64,
+        msg: String,
+        data: R,
+    ) {
         let mut buf = Vec::new();
 
         serde_json::to_writer(
@@ -90,11 +114,7 @@ impl<W: io::Write> LspSender<W> {
             &LspErrorResponse {
                 jsonrpc: "2.0".to_string(),
                 id: id.unwrap_or(Value::Null),
-                error: LspError {
-                    code,
-                    msg: msg.to_string(),
-                    // data: Value::Null,
-                },
+                error: LspError { code, msg, data },
             },
         )
         .unwrap();
