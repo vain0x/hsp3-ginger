@@ -354,15 +354,18 @@ impl<W: io::Write> LspHandler<W> {
         };
 
         match method.as_str() {
-            "initialize" => {
+            // "initialize"
+            request::Initialize::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<InitializeParams>>(json).unwrap();
                 let result = self.initialize(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
-            "initialized" => {
+            // "initialized"
+            notification::Initialized::METHOD => {
                 self.did_initialize();
             }
-            "shutdown" => {
+            // "shutdown"
+            request::Shutdown::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<()>>(json).unwrap();
                 self.shutdown();
                 self.sender.send(Outgoing::Response {
@@ -370,15 +373,18 @@ impl<W: io::Write> LspHandler<W> {
                     result: (),
                 });
             }
-            "exit" => {
+            // "exit"
+            notification::Exit::METHOD => {
                 self.exited = true;
             }
-            "textDocument/didOpen" => {
+            // "textDocument/didOpen"
+            notification::DidOpenTextDocument::METHOD => {
                 let msg: LspNotification<DidOpenTextDocumentParams> =
                     serde_json::from_str(&json).expect("didOpen msg");
                 self.text_document_did_open(msg.params);
             }
-            "textDocument/didChange" => {
+            // "textDocument/didChange"
+            notification::DidChangeTextDocument::METHOD => {
                 let msg: LspNotification<DidChangeTextDocumentParams> =
                     serde_json::from_str(&json).expect("didChange msg");
                 self.text_document_did_change(msg.params);
@@ -388,11 +394,13 @@ impl<W: io::Write> LspHandler<W> {
                 // let msg = serde_json::from_str::<LspNotification<DidSaveTextDocumentParams>>(json).unwrap();
                 self.publish_diagnostics();
             }
-            "textDocument/didClose" => {
+            // "textDocument/didClose"
+            notification::DidCloseTextDocument::METHOD => {
                 let msg = serde_json::from_str::<LspNotification<DidCloseTextDocumentParams>>(json)
                     .unwrap();
                 self.text_document_did_close(msg.params);
             }
+            // "textDocument/codeAction"
             request::CodeActionRequest::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CodeActionParams>>(json).unwrap();
                 let result = self.text_document_code_action(msg.params);
@@ -400,13 +408,15 @@ impl<W: io::Write> LspHandler<W> {
 
                 self.publish_diagnostics();
             }
-            "textDocument/completion" => {
+            // "textDocument/completion"
+            request::Completion::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CompletionParams>>(json).unwrap();
                 let result = self.text_document_completion(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
 
                 self.publish_diagnostics();
             }
+            // "completionItem/resolve"
             request::ResolveCompletionItem::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<CompletionItem>>(json).unwrap();
                 match self.text_document_completion_resolve(msg.params) {
@@ -421,19 +431,22 @@ impl<W: io::Write> LspHandler<W> {
 
                 self.publish_diagnostics();
             }
+            // "textDocument/formatting"
             request::Formatting::METHOD => {
                 let msg =
                     serde_json::from_str::<LspRequest<DocumentFormattingParams>>(json).unwrap();
                 let result = self.text_document_formatting(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
-            "textDocument/definition" => {
+            // "textDocument/definition"
+            request::GotoDefinition::METHOD => {
                 let msg =
                     serde_json::from_str::<LspRequest<TextDocumentPositionParams>>(json).unwrap();
                 let result = self.text_document_definition(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
-            "textDocument/documentHighlight" => {
+            // "textDocument/documentHighlight"
+            request::DocumentHighlightRequest::METHOD => {
                 let msg =
                     serde_json::from_str::<LspRequest<TextDocumentPositionParams>>(json).unwrap();
                 let result = self.text_document_highlight(msg.params);
@@ -441,6 +454,7 @@ impl<W: io::Write> LspHandler<W> {
 
                 self.publish_diagnostics();
             }
+            // "textDocument/documentSymbol"
             request::DocumentSymbolRequest::METHOD => {
                 let msg = serde_json::from_str::<LspRequest<DocumentSymbolParams>>(json).unwrap();
                 let result = self.text_document_symbol(msg.params);
@@ -448,7 +462,8 @@ impl<W: io::Write> LspHandler<W> {
 
                 self.publish_diagnostics();
             }
-            "textDocument/hover" => {
+            // "textDocument/hover"
+            request::HoverRequest::METHOD => {
                 let msg: LspRequest<TextDocumentPositionParams> =
                     serde_json::from_str(json).unwrap();
                 let result = self.text_document_hover(msg.params);
@@ -456,22 +471,26 @@ impl<W: io::Write> LspHandler<W> {
 
                 self.publish_diagnostics();
             }
+            // "textDocument/prepareRename"
             request::PrepareRenameRequest::METHOD => {
                 let msg: LspRequest<TextDocumentPositionParams> =
                     serde_json::from_str(json).unwrap();
                 let result = self.text_document_prepare_rename(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
-            "textDocument/references" => {
+            // "textDocument/references"
+            request::References::METHOD => {
                 let msg: LspRequest<ReferenceParams> = serde_json::from_str(json).unwrap();
                 let result = self.text_document_references(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
+            // "textDocument/rename"
             request::Rename::METHOD => {
                 let msg: LspRequest<RenameParams> = serde_json::from_str(json).unwrap();
                 let result = self.text_document_rename(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
+            // "textDocument/semanticTokens/full"
             request::SemanticTokensFullRequest::METHOD => {
                 let msg: LspRequest<SemanticTokensParams> =
                     serde_json::from_str(json).expect("semantic tokens full msg");
@@ -479,16 +498,19 @@ impl<W: io::Write> LspHandler<W> {
                     self.text_document_semantic_tokens_full(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
+            // "textDocument/signatureHelp"
             request::SignatureHelpRequest::METHOD => {
                 let msg: LspRequest<SignatureHelpParams> = serde_json::from_str(json).unwrap();
                 let result = self.text_document_signature_help(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
-            "workspace/didChangeWatchedFiles" => {
+            // "workspace/didChangeWatchedFiles"
+            notification::DidChangeWatchedFiles::METHOD => {
                 let msg: LspNotification<DidChangeWatchedFilesParams> =
                     serde_json::from_str(json).expect("workspace/didChangeWatchedFiles msg");
                 self.workspace_did_change_watched_files(msg.params);
             }
+            // "workspace/symbol"
             request::WorkspaceSymbolRequest::METHOD => {
                 let msg: LspRequest<WorkspaceSymbolParams> =
                     serde_json::from_str(json).expect("workspace/symbol msg");
