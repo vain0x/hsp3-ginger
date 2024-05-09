@@ -517,15 +517,19 @@ impl<W: io::Write> LspHandler<W> {
                 let result = self.workspace_symbol(msg.params);
                 self.sender.send(Outgoing::Response { id: msg.id, result });
             }
-            "$/cancelRequest" => {
-                self.sender.send(Outgoing::Error {
-                    id: msg.id,
-                    code: error::METHOD_NOT_FOUND,
-                    msg: "キャンセルは未実装です。".to_string(),
-                    data: (),
-                });
-            }
+            // キャンセルは未実装なので無視する
+            // "$/cancelRequest" => {
+            //     let msg: LspNotification<lsp_types::CancelParams> =
+            //         serde_json::from_str(json).expect("$/cancelRequest");
+            //     trace!("Cancel ignored");
+            // }
             _ => {
+                // "$/" で始まるメソッド名の通知は暗黙に無視してよい
+                if method.starts_with("$/") && msg.id.is_none() {
+                    trace!("Notification ignored: {:?}", method);
+                    return;
+                }
+
                 self.sender.send(Outgoing::Error {
                     id: msg.id,
                     code: error::METHOD_NOT_FOUND,
