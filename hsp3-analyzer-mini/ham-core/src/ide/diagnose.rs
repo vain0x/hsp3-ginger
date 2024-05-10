@@ -3,8 +3,9 @@ use crate::{
     analysis,
     analyzer::{doc_interner::DocInterner, docs::Docs},
     ide::{loc_to_range, to_lsp_range},
+    lsp_server::TextDocumentVersion,
 };
-use lsp_types::{DiagnosticSeverity, Url};
+use lsp_types::DiagnosticSeverity;
 
 // -----------------------------------------------
 // Computation
@@ -73,15 +74,13 @@ pub(crate) fn diagnose_precisely(an: &AnalyzerRef<'_>, diagnostics: &mut Vec<(St
 
 #[derive(Default)]
 pub(crate) struct DiagnosticsCache {
-    map1: HashMap<Url, (Option<i32>, String)>,
-    map2: HashMap<Url, (Option<i32>, String)>,
+    map1: HashMap<Url, String>,
+    map2: HashMap<Url, String>,
 }
 
-fn filter_diagnostics(
-    diagnostics: &mut Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)>,
-    doc_interner: &DocInterner,
-    docs: &Docs,
+pub(crate) fn filter_diagnostics(
     cache: &mut DiagnosticsCache,
+    diagnostics: &mut Vec<(Url, Option<TextDocumentVersion>, Vec<lsp_types::Diagnostic>)>,
 ) {
     let mut map = take(&mut cache.map1);
     let mut backup = take(&mut cache.map2);
@@ -90,7 +89,7 @@ fn filter_diagnostics(
         new.sort_by_key(|d| (d.range.start, d.range.end));
     }
 
-    diagnostics.retain(|&(ref uri, version, ref new)| {
+    diagnostics.retain(|&(ref uri, _v, ref new)| {
         let old_opt = map.remove(&uri);
         let new_opt = if !new.is_empty() {
             serde_json::to_string(&new).ok()
@@ -99,27 +98,20 @@ fn filter_diagnostics(
         };
 
         let retain = match (&old_opt, &new_opt) {
-            (Some((_, old)), Some(new)) => old != new,
+            (Some(old), Some(new)) => old != new,
             (Some(_), None) | (None, Some(_)) => true,
             (None, None) => false,
         };
 
         if let Some(new) = new_opt {
-            backup.insert(uri.clone(), (version, new));
+            backup.insert(uri.clone(), new);
         }
 
         retain
     });
 
     // diagnosticsのなくなったドキュメントからdiagnosticsをクリアする。
-    diagnostics.extend(map.drain().map(|(uri, (version, _))| {
-        let version = doc_interner
-            .get_doc(&CanonicalUri::from_url(&uri))
-            .and_then(|doc| docs.get_version(doc))
-            .or(version);
-
-        (uri, version, vec![])
-    }));
+    diagnostics.extend(map.drain().map(|(uri, _)| (uri, None, vec![])));
 
     cache.map1 = backup;
     cache.map2 = map;
@@ -132,7 +124,6 @@ pub(crate) fn diagnose(
     hsp3_root: &Path,
     doc_interner: &DocInterner,
     docs: &Docs,
-    cache: &mut DiagnosticsCache,
 ) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
     let mut dd = vec![];
     diagnose_precisely(an, &mut dd);
@@ -172,8 +163,6 @@ pub(crate) fn diagnose(
 
         doc_diagnostics.push((uri, version, diagnostics));
     }
-
-    filter_diagnostics(&mut doc_diagnostics, doc_interner, docs, cache);
 
     // hsp3のファイルにdiagnosticsを出さない。
     doc_diagnostics.retain(|(uri, _, _)| {
@@ -265,19 +254,12 @@ loop
         let an = an.compute_ref();
 
         let mut formatted = String::new();
-        formatted += "[1]\n";
-        format_response(&mut formatted, &an.diagnose());
-
-        // 2回目は同じメッセージは出力されない
-        formatted += "[2]\n";
         format_response(&mut formatted, &an.diagnose());
 
         expect![[r#"
-            [1]
             file: "main.hsp"@1 (1)
               3:5 Warning "repeatループの中ではreturnできません。"
 
-            [2]
         "#]]
         .assert_eq(&formatted);
     }

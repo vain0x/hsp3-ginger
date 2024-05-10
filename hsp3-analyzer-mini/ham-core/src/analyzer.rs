@@ -16,7 +16,7 @@ use crate::{
         search_hsphelp::{search_hsphelp, HspHelpInfo},
     },
     help_source::HsSymbol,
-    ide::{self, diagnose::DiagnosticsCache},
+    ide,
     lang::Lang,
     source::{DocId, Loc, Pos16},
     utils::read_file::read_file,
@@ -55,9 +55,6 @@ pub(super) struct Analyzer {
     // 状態 (上記の計算結果をさらに加工したもの):
     doc_symbols_map: HashMap<DocId, Vec<SymbolRc>>,
     module_map: ModuleMap,
-
-    // 状態 (計算結果の差分を生成するため):
-    diagnostics_cache: RefCell<DiagnosticsCache>,
 }
 
 /// `Analyzer` の解析処理を完了した状態への参照
@@ -535,13 +532,7 @@ impl<'a> AnalyzerRef<'a> {
             return vec![];
         }
 
-        ide::diagnose::diagnose(
-            self,
-            &self.owner.hsp3_root,
-            &self.doc_interner,
-            &self.docs,
-            &mut self.owner.diagnostics_cache.borrow_mut(),
-        )
+        ide::diagnose::diagnose(self, &self.owner.hsp3_root, &self.doc_interner, &self.docs)
     }
 }
 

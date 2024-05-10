@@ -45,7 +45,7 @@ use std::{
     hash::{Hash, Hasher},
     io, iter,
     marker::PhantomData,
-    mem::{replace, take},
+    mem::{self, replace, take},
     ops::Deref,
     path::{self, Path, PathBuf},
     rc::Rc,

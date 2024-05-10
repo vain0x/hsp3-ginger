@@ -1,5 +1,8 @@
 use super::*;
-use crate::analyzer::Analyzer;
+use crate::{
+    analyzer::Analyzer,
+    ide::diagnose::{filter_diagnostics, DiagnosticsCache},
+};
 use lsp_types::*;
 use lsp_types::{notification::Notification, request::Request};
 use std::{io, mem};
@@ -9,10 +12,11 @@ pub(super) struct LspHandler<W: io::Write> {
     sender: LspSender<W>,
     analyzer: Analyzer,
 
+    pub(crate) exited: bool,
+
     /// `true` なら次にドキュメントの解析処理後に `diagnostics` を生成して送信する
     diagnostics_invalidated: bool,
-
-    pub(crate) exited: bool,
+    diagnostics_cache: DiagnosticsCache,
 }
 
 impl<W: io::Write> LspHandler<W> {
@@ -21,8 +25,9 @@ impl<W: io::Write> LspHandler<W> {
             config,
             sender,
             analyzer,
-            diagnostics_invalidated: true,
             exited: false,
+            diagnostics_invalidated: true,
+            diagnostics_cache: DiagnosticsCache::default(),
         }
     }
 
@@ -55,7 +60,7 @@ impl<W: io::Write> LspHandler<W> {
         });
     }
 
-    fn initialize<'a>(&'a mut self, params: InitializeParams) -> InitializeResult {
+    fn initialize(&mut self, params: InitializeParams) -> InitializeResult {
         let watchable = params
             .capabilities
             .workspace
@@ -155,29 +160,28 @@ impl<W: io::Write> LspHandler<W> {
     }
 
     fn text_document_did_open(&mut self, params: DidOpenTextDocumentParams) {
-        let doc = params.text_document;
-        self.analyzer.open_doc(doc.uri, doc.version, doc.text);
+        let d = params.text_document;
+        self.analyzer.open_doc(d.uri, d.version, d.text);
 
         self.diagnostics_invalidated = true;
     }
 
     fn text_document_did_change(&mut self, params: DidChangeTextDocumentParams) {
+        let d = params.text_document;
+
         let text = (params.content_changes.into_iter())
             .next()
             .map(|c| c.text)
             .unwrap_or("".to_string());
 
-        let doc = params.text_document;
-        let version = doc.version;
-
-        self.analyzer.change_doc(doc.uri, version, text);
-
+        self.analyzer.change_doc(d.uri, d.version, text);
         self.diagnostics_invalidated = true;
     }
 
     fn text_document_did_close(&mut self, params: DidCloseTextDocumentParams) {
-        self.analyzer.close_doc(params.text_document.uri);
+        let d = params.text_document;
 
+        self.analyzer.close_doc(d.uri);
         self.diagnostics_invalidated = true;
     }
 
@@ -323,7 +327,12 @@ impl<W: io::Write> LspHandler<W> {
             return;
         }
 
-        let diagnostics = self.analyzer.compute_ref().diagnose();
+        let mut diagnostics = self.analyzer.compute_ref().diagnose();
+
+        filter_diagnostics(
+            &mut self.diagnostics_cache,
+            &mut diagnostics,
+        );
 
         for (uri, version, diagnostics) in diagnostics {
             self.sender.send(Outgoing::Notification {
