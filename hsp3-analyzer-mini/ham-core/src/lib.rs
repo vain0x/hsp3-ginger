@@ -28,6 +28,7 @@ pub(crate) mod test_utils {
     pub(crate) use self::test_setup::set_test_logger;
 }
 
+// pub use crate::lsp_server::lsp_main_v2::run_lsp_server;
 pub use crate::lsp_server::lsp_main::run_lsp_server;
 
 /// 多くのモジュールからインポートされるシンボル:

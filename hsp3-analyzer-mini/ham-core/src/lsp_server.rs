@@ -1,6 +1,7 @@
 pub(super) mod lsp_config;
 pub(super) mod lsp_handler;
 pub(super) mod lsp_main;
+pub(super) mod lsp_main_v2;
 pub(super) mod lsp_receiver;
 pub(super) mod lsp_sender;
 
