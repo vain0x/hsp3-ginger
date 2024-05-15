@@ -34,6 +34,11 @@ text-position-rs = { version = "0.3.0", git = "https://github.com/vain0x/text-po
 # (only for ham command)
 rowan = "0.15.15"
 
+# LSPサーバーの基礎部分
+# https://docs.rs/crate/lsp-server
+# (-> https://github.com/rust-lang/rust-analyzer/tree/master/lib/lsp-server)
+lsp-server = "0.7.6"
+
 # ファイルパスを正規化するもの
 # https://docs.rs/crate/normalize-path
 # (-> https://github.com/cargo-bins/cargo-binstall/blob/main/crates/normalize-path/src/lib.rs)
