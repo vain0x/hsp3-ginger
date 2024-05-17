@@ -2,7 +2,7 @@ use super::*;
 use crate::{
     analyzer::{options::AnalyzerOptions, Analyzer},
     ide::diagnose::{filter_diagnostics, DiagnosticsCache},
-    lsp_server::lsp_main_v2::lsp_log::init_log,
+    lsp_server::lsp_main::lsp_log::init_log,
 };
 use lsp_server::{Connection, ExtractError, Message, RequestId, Response};
 use lsp_types::{
@@ -14,14 +14,13 @@ use lsp_types::{
 use serde::Serialize;
 use std::{env, mem, path::PathBuf};
 
-#[allow(unused)]
 pub fn run_lsp_server(hsp3_root: PathBuf) {
     init_log();
 
-    trace!("run_lsp_server(v2), hsp3_root={:?}", hsp3_root);
+    trace!("run_lsp_server, hsp3_root={:?}", hsp3_root);
 
     // 環境変数から設定をロードする:
-    let mut lsp_config = LspConfig {
+    let lsp_config = LspConfig {
         document_symbol_enabled: env::var("HAM_DOCUMENT_SYMBOL_ENABLED").map_or(true, |s| s == "1"),
         watcher_enabled: env::var("HAM_WATCHER_ENABLED").map_or(true, |s| s == "1"),
     };

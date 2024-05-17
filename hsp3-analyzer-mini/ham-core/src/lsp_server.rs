@@ -1,6 +1,6 @@
 pub(super) mod lsp_config;
 pub(crate) mod lsp_log;
-pub(super) mod lsp_main_v2;
+pub(super) mod lsp_main;
 
 pub(self) use lsp_config::LspConfig;
 
