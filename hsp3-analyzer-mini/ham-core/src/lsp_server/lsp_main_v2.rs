@@ -2,7 +2,7 @@ use super::*;
 use crate::{
     analyzer::{options::AnalyzerOptions, Analyzer},
     ide::diagnose::{filter_diagnostics, DiagnosticsCache},
-    lsp_server::{lsp_main::init_log, lsp_main_v2::functions::generate_server_capabilities},
+    lsp_server::lsp_main_v2::lsp_log::init_log,
 };
 use lsp_server::{Connection, ExtractError, Message, RequestId, Response};
 use lsp_types::{
@@ -11,6 +11,7 @@ use lsp_types::{
     request::{self, Request as _},
     OneOf,
 };
+use serde::Serialize;
 use std::{env, mem, path::PathBuf};
 
 #[allow(unused)]
@@ -38,7 +39,7 @@ pub fn run_lsp_server(hsp3_root: PathBuf) {
     // LSPサーバーの初期化処理を行う
     // (`cx.initialize` によって "initialized" 通知が来るまで通信が進み、"initialize" リクエストのパラメータが返される)
     let server_capabilities =
-        serde_json::to_value(generate_server_capabilities(&lsp_config)).unwrap();
+        serde_json::to_value(functions::generate_server_capabilities(&lsp_config)).unwrap();
 
     let init_params = match cx.initialize(server_capabilities) {
         Ok(value) => serde_json::from_value::<lsp_types::InitializeParams>(value).unwrap(),
@@ -105,7 +106,7 @@ pub fn run_lsp_server(hsp3_root: PathBuf) {
     }
 
     io_threads.join().unwrap();
-    info!("graceful exit");
+    trace!("Exiting gracefully");
 }
 
 // -----------------------------------------------
@@ -292,7 +293,7 @@ fn dispatch_request(
             cx.sender
                 .send(Message::Response(Response::new_err(
                     req.id,
-                    error::METHOD_NOT_FOUND as i32,
+                    -32601,
                     "Method Not Found".to_string(),
                 )))
                 .unwrap();

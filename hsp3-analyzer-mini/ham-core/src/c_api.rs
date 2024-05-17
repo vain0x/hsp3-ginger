@@ -81,7 +81,7 @@ fn marked_string_to_string(it: MarkedString) -> String {
 #[no_mangle]
 pub extern "C" fn ham_init() {
     // FIXME: ログレベルなどを設定可能にする。(logmes に吐きたい。)
-    crate::lsp_server::lsp_main::init_log();
+    crate::lsp_server::lsp_log::init_log();
 }
 
 // FIXME: オプションを設定できるようにする。
