@@ -27,6 +27,9 @@ impl DocInterner {
                 let doc = self.last_doc;
                 self.doc_to_uri.insert(doc, uri.clone());
                 self.uri_to_doc.insert(uri.clone(), doc);
+
+                debug!("doc_intern doc:{} {:?}", doc, uri);
+
                 (true, doc)
             }
         }

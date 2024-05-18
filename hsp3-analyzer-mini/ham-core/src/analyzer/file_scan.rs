@@ -9,7 +9,8 @@ pub(super) fn scan_common(
     docs: &mut Docs,
     common_docs: &mut HashMap<String, DocId>,
 ) {
-    // trace!("commonディレクトリにあるファイルを開きます。");
+    debug!("scan_common");
+
     let common_dir = hsp3_root.join("common");
 
     let patterns = match common_dir.to_str() {
@@ -40,7 +41,7 @@ pub(super) fn scan_common(
 
             let (_, doc) = doc_interner.intern(&CanonicalUri::from_abs_path(&path)?);
             docs.ensure_file_opened(doc, &path)?;
-            // trace!("common/{} => doc={}", relative, doc);
+            // debug!("common/{} => doc={}", relative, doc);
             common_docs.insert(relative, doc);
             None
         })();

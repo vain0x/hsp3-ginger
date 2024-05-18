@@ -17,15 +17,14 @@ pub(crate) fn compute_includes(
     };
 
     for (&src_doc, da) in doc_analysis_map {
-        // trace!("doc src={}, includes({})", get_name(src_doc), da.includes.len());
-
         for (included_name, loc) in &da.includes {
             let included_doc_opt =
                 docs::resolve_included_name(doc_interner, included_name, src_doc)
                     .or_else(|| common_docs.get(included_name.as_str()).cloned());
 
-            trace!(
-                "include({}:{}) {:?} -> {:?}",
+            debug!(
+                "include(doc:{} {}:{}) {:?} -> {:?}",
+                src_doc,
                 get_name(src_doc),
                 loc.start(),
                 included_name,

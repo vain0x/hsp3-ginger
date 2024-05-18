@@ -1,7 +1,8 @@
 use super::{range_is_touched, DocId, Pos, Pos16, Range};
+use std::fmt::{self, Debug};
 
 /// Location. テキストドキュメント上の範囲
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Loc {
     pub(crate) doc: DocId,
     pub(crate) range: Range,
@@ -74,5 +75,11 @@ impl Loc {
             doc: self.doc,
             range: self.range.join(other.range),
         }
+    }
+}
+
+impl Debug for Loc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Loc({}:{:?})", self.doc, self.range)
     }
 }

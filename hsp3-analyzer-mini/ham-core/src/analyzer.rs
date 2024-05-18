@@ -262,7 +262,7 @@ impl Analyzer {
                     .values()
                     .map(|symbols| symbols.len())
                     .sum::<usize>();
-                trace!(
+                debug!(
                     "computed: active_docs={} def_sites={} use_sites={} symbols={}",
                     self.active_docs.len(),
                     self.def_sites.len(),

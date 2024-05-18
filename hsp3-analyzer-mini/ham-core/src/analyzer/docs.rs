@@ -156,7 +156,7 @@ pub(crate) fn resolve_included_name(
     let i_path = match PathBuf::try_from(included_name) {
         Ok(it) => it,
         Err(_) => {
-            trace!("{:?} isn't a path", included_name);
+            debug!("{:?} isn't a path", included_name);
             return None;
         }
     };
@@ -176,7 +176,7 @@ pub(crate) fn resolve_included_name(
     {
         Some(it) => it,
         None => {
-            trace!("base_doc isn't open: {}", base_doc);
+            debug!("base_doc isn't open: {}", base_doc);
             return None;
         }
     };

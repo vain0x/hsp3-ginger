@@ -43,7 +43,7 @@ pub(crate) fn compute_active_docs(
 
     // hsphelp
     {
-        trace!("active_help_docs.len={}", active_help_docs.len());
+        debug!("active_help_docs.len={}", active_help_docs.len());
         active_help_docs.extend(hsphelp_info.builtin_docs.iter().cloned());
 
         for (&common_doc, &hs_doc) in &hsphelp_info.linked_docs {

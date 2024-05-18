@@ -17,7 +17,7 @@ use std::{env, mem, path::PathBuf};
 pub fn run_lsp_server(hsp3_root: PathBuf) {
     init_log();
 
-    trace!("run_lsp_server, hsp3_root={:?}", hsp3_root);
+    debug!("run_lsp_server, hsp3_root={:?}", hsp3_root);
 
     // 環境変数から設定をロードする:
     let lsp_config = LspConfig {
@@ -72,12 +72,12 @@ pub fn run_lsp_server(hsp3_root: PathBuf) {
     an.did_initialize();
 
     // メインループ:
-    trace!("Starting main loop");
+    debug!("Starting main loop");
 
     for msg in &cx.receiver {
         match msg {
             Message::Request(req) => {
-                trace!("got request: {req:?}");
+                // debug!("got request: {req:?}");
 
                 // "shutdown" リクエストなら `true` になる。
                 // ("exit" 通知が来るまで通信が行われる)
@@ -89,11 +89,11 @@ pub fn run_lsp_server(hsp3_root: PathBuf) {
                 continue;
             }
             Message::Response(resp) => {
-                trace!("got response: {resp:?}");
+                debug!("got response: {resp:?} (ignored)");
                 continue;
             }
             Message::Notification(nn) => {
-                trace!("got notification: {nn:?}");
+                // debug!("got notification: {nn:?}");
 
                 // `handle_shutdown` によって処理されるため
                 debug_assert!(nn.method != notification::Exit::METHOD);
@@ -105,7 +105,7 @@ pub fn run_lsp_server(hsp3_root: PathBuf) {
     }
 
     io_threads.join().unwrap();
-    trace!("Exiting gracefully");
+    debug!("Exiting gracefully");
 }
 
 // -----------------------------------------------
@@ -366,10 +366,10 @@ fn dispatch_notification(
         }
         _ if nn.method.starts_with("$/") => {
             // "$/" で始まるメソッド名の通知は暗黙に無視してよい
-            trace!("Notification ignored: {:?}", nn.method);
+            debug!("Notification ignored: {:?}", nn.method);
         }
         _ => {
-            trace!("Notification supported ({})", nn.method);
+            debug!("Notification supported ({})", nn.method);
         }
     }
 }

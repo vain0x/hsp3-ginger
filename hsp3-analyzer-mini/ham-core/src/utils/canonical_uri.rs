@@ -1,5 +1,8 @@
 use normalize_path::NormalizePath;
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::{self, Debug},
+    path::{Path, PathBuf},
+};
 
 /// 正規化済みのURI
 ///
@@ -10,7 +13,7 @@ use std::path::{Path, PathBuf};
 /// (理由):
 /// 正規化されていない URL をマップのキーに使ってしまうと、
 /// 単一のファイルに対して複数のデータを登録できてしまい、不具合の原因になる。
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct CanonicalUri {
     uri: lsp_types::Url,
 }
@@ -63,5 +66,11 @@ impl CanonicalUri {
         } else {
             None
         }
+    }
+}
+
+impl Debug for CanonicalUri {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.uri)
     }
 }

@@ -98,7 +98,7 @@ pub(crate) fn search_hsphelp(
     docs: &mut Docs,
     builtin_env: &mut SymbolEnv,
 ) -> Option<HspHelpInfo> {
-    // info!("hsphelpディレクトリにあるhsファイルを開きます。");
+    debug!("search_hsphelp");
 
     let hsphelp_dir = hsp3_root.join("hsphelp");
 
@@ -145,7 +145,7 @@ pub(crate) fn search_hsphelp(
             docs.ensure_file_opened(hs_doc, &full_path)?;
 
             let builtin = is_builtin(&stem);
-            trace!("{}.hs builtin={:?}", stem, builtin);
+            debug!("{}.hs builtin={:?}", stem, builtin);
             if builtin {
                 info.builtin_docs.push(hs_doc);
             }
@@ -170,7 +170,7 @@ pub(crate) fn search_hsphelp(
             // 同名のcommonのファイルとリンクする。
             for name in [format!("{}.as", stem), format!("{}.hsp", stem)].iter() {
                 if let Some(&common_doc) = common_docs.get(name.as_str()) {
-                    trace!("link {}.hs => {}", stem, name);
+                    debug!("link {}.hs => {}", stem, name);
                     info.linked_docs.insert(common_doc, hs_doc);
                 }
             }

@@ -171,10 +171,7 @@ pub(crate) fn diagnose(
             .map_or(true, |path| !path.starts_with(&hsp3_root));
 
         if !ok {
-            trace!(
-                "ファイルはhsp3_rootにあるので {:?} への診断は無視されます。",
-                uri
-            );
+            debug!("Diagnostics ignored {:?}", uri);
         }
 
         ok
