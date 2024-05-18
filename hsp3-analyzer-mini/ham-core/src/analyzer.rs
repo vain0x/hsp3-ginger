@@ -2,7 +2,6 @@ pub(crate) mod doc_change;
 pub(crate) mod doc_interner;
 pub(crate) mod docs;
 mod file_scan;
-pub(crate) mod options;
 pub(crate) mod search_hsphelp;
 
 use super::*;
@@ -12,7 +11,6 @@ use crate::{
         doc_change::{DocChange, DocChangeOrigin},
         doc_interner::DocInterner,
         docs::Docs,
-        options::AnalyzerOptions,
         search_hsphelp::{search_hsphelp, HspHelpInfo},
     },
     help_source::HsSymbol,
@@ -28,7 +26,6 @@ pub(super) struct Analyzer {
     // 入力 (起動時):
     hsp3_root: PathBuf,
     workspace_folders: Vec<CanonicalUri>,
-    options: AnalyzerOptions,
 
     // 状態 (ファイルスキャンの結果):
     pub(crate) common_docs: HashMap<String, DocId>,
@@ -77,10 +74,9 @@ pub(super) struct AnalyzerRef<'a> {
 }
 
 impl Analyzer {
-    pub(super) fn new(hsp3_root: PathBuf, options: AnalyzerOptions) -> Self {
+    pub(super) fn new(hsp3_root: PathBuf) -> Self {
         Self {
             hsp3_root,
-            options,
             ..Default::default()
         }
     }
@@ -93,7 +89,6 @@ impl Analyzer {
             hsp3_root: root.clone().join("hsp3"),
             // no_exist/ws
             workspace_folders: vec![CanonicalUri::from_abs_path(&root.join("ws")).unwrap()],
-            options: AnalyzerOptions::minimal(),
             ..Default::default()
         };
 
@@ -103,12 +98,6 @@ impl Analyzer {
         // self.public_env.builtin = builtin_env;
 
         an
-    }
-
-    #[cfg(test)]
-    #[allow(unused)]
-    pub(crate) fn get_options_mut(&mut self) -> &mut AnalyzerOptions {
-        &mut self.options
     }
 
     pub(super) fn add_workspace_folder(&mut self, folder: lsp_types::WorkspaceFolder) {
@@ -528,10 +517,6 @@ impl<'a> AnalyzerRef<'a> {
     }
 
     pub(super) fn diagnose(&self) -> Vec<(Url, Option<i32>, Vec<lsp_types::Diagnostic>)> {
-        if !self.owner.options.lint_enabled {
-            return vec![];
-        }
-
         ide::diagnose::diagnose(self, &self.owner.hsp3_root, &self.doc_interner, &self.docs)
     }
 }

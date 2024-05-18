@@ -1,7 +1,7 @@
 //! C言語や HSP3 などから利用するための関数群
 
 use super::*;
-use crate::analyzer::{options::AnalyzerOptions, Analyzer};
+use crate::analyzer::Analyzer;
 use lsp_types::{HoverContents, MarkedString, Position, Url};
 use std::{os::raw::c_char, ptr::null_mut, slice, str};
 
@@ -96,7 +96,7 @@ pub unsafe extern "C" fn ham_create(
     };
 
     let mut instance = HamInstance {
-        analyzer: Analyzer::new(hsp3_root, AnalyzerOptions::default()),
+        analyzer: Analyzer::new(hsp3_root),
     };
 
     instance.analyzer.did_initialize();

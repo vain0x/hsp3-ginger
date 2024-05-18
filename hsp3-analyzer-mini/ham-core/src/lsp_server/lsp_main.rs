@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    analyzer::{options::AnalyzerOptions, Analyzer},
+    analyzer::Analyzer,
     ide::diagnose::{filter_diagnostics, DiagnosticsCache},
     lsp_server::lsp_main::lsp_log::init_log,
 };
@@ -22,14 +22,12 @@ pub fn run_lsp_server(hsp3_root: PathBuf) {
     // 環境変数から設定をロードする:
     let lsp_config = LspConfig {
         document_symbol_enabled: env::var("HAM_DOCUMENT_SYMBOL_ENABLED").map_or(true, |s| s == "1"),
-        watcher_enabled: env::var("HAM_WATCHER_ENABLED").map_or(true, |s| s == "1"),
-    };
-    let options = AnalyzerOptions {
         lint_enabled: env::var("HAM_LINT").map_or(true, |s| s == "1"),
+        watcher_enabled: env::var("HAM_WATCHER_ENABLED").map_or(true, |s| s == "1"),
     };
 
     // サーバーが持つ状態:
-    let mut an = Analyzer::new(hsp3_root, options);
+    let mut an = Analyzer::new(hsp3_root);
     let mut state = State::default();
 
     // connection (クライアントとの通信手段) として標準入出力やスレッドの準備を行う
@@ -85,7 +83,7 @@ pub fn run_lsp_server(hsp3_root: PathBuf) {
                     break;
                 }
 
-                dispatch_request(&cx, &mut an, &mut state, req);
+                dispatch_request(&cx, &lsp_config, &mut an, &mut state, req);
                 continue;
             }
             Message::Response(resp) => {
@@ -121,6 +119,7 @@ struct State {
 /// リクエストを処理する
 fn dispatch_request(
     cx: &lsp_server::Connection,
+    lsp_config: &LspConfig,
     an: &mut Analyzer,
     state: &mut State,
     req: lsp_server::Request,
@@ -136,7 +135,7 @@ fn dispatch_request(
             );
             cx.sender.send(new_ok_response(id, result)).unwrap();
 
-            functions::publish_diagnostics(cx, an, state);
+            functions::publish_diagnostics(cx, lsp_config, an, state);
             return;
         }
         // "textDocument/completion"
@@ -148,7 +147,7 @@ fn dispatch_request(
             );
             cx.sender.send(new_ok_response(id, result)).unwrap();
 
-            functions::publish_diagnostics(cx, an, state);
+            functions::publish_diagnostics(cx, lsp_config, an, state);
             return;
         }
         // "completionItem/resolve"
@@ -170,7 +169,7 @@ fn dispatch_request(
                 }
             }
 
-            functions::publish_diagnostics(cx, an, state);
+            functions::publish_diagnostics(cx, lsp_config, an, state);
             return;
         }
         // "textDocument/definition"
@@ -201,7 +200,7 @@ fn dispatch_request(
                 .document_highlight(pp.text_document.uri, pp.position);
             cx.sender.send(new_ok_response(id, result)).unwrap();
 
-            functions::publish_diagnostics(cx, an, state);
+            functions::publish_diagnostics(cx, lsp_config, an, state);
             return;
         }
         // "textDocument/documentSymbol"
@@ -210,7 +209,7 @@ fn dispatch_request(
             let result = an.compute_ref().document_symbol(params.text_document.uri);
             cx.sender.send(new_ok_response(id, result)).unwrap();
 
-            functions::publish_diagnostics(cx, an, state);
+            functions::publish_diagnostics(cx, lsp_config, an, state);
             return;
         }
         // "textDocument/formatting"
@@ -227,7 +226,7 @@ fn dispatch_request(
             let result = an.compute_ref().hover(pp.text_document.uri, pp.position);
             cx.sender.send(new_ok_response(id, result)).unwrap();
 
-            functions::publish_diagnostics(cx, an, state);
+            functions::publish_diagnostics(cx, lsp_config, an, state);
             return;
         }
         // "textDocument/prepareRename"
@@ -474,9 +473,14 @@ mod functions {
     /// (この関数は `initialized`, `didSave` または解析系リクエストの処理後に呼ばれる)
     pub(super) fn publish_diagnostics(
         cx: &lsp_server::Connection,
+        lsp_config: &LspConfig,
         an: &mut Analyzer,
         state: &mut State,
     ) {
+        if !lsp_config.lint_enabled {
+            return;
+        }
+
         // この処理は起動後に1回、およびドキュメントの変更のたびに1回だけ行う
         if !mem::replace(&mut state.diagnostics_invalidated, false) {
             return;

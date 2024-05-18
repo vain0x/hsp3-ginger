@@ -232,7 +232,6 @@ mod tests {
     #[test]
     fn test_sema_linter() {
         let mut an = Analyzer::new_standalone();
-        an.get_options_mut().lint_enabled = true;
 
         let main_url = dummy_url("main.hsp");
         an.open_doc(
