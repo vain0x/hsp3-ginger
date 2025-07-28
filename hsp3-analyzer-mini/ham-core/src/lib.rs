@@ -83,6 +83,7 @@ mod analysis {
 mod parse {
     //! 構文木・構文解析
 
+    pub(crate) mod bp;
     pub(crate) mod p_const_ty;
     pub(crate) mod p_jump_modifier;
     pub(crate) mod p_op_kind;
