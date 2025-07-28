@@ -1,3 +1,5 @@
+use crate::parse::bp::Bp;
+
 use super::*;
 
 pub(crate) fn parse_label(px: &mut Px) -> Option<PLabel> {
@@ -105,14 +107,17 @@ fn parse_prefix_expr(px: &mut Px) -> Option<PExpr> {
     }
 }
 
-fn parse_infix_expr(px: &mut Px) -> Option<PExpr> {
-    let mut left = parse_prefix_expr(px)?;
+fn parse_infix_expr_with_bp(px: &mut Px, bp: Bp) -> Option<PExpr> {
+    if bp > Bp::MULDIV {
+        return parse_prefix_expr(px);
+    }
+
+    let mut left = parse_infix_expr_with_bp(px, bp.next())?;
 
     loop {
-        // 二項演算の優先順位はいまのところ無視する。
-        if px.next().is_infix_op() {
+        if px.next().is_infix_op() && Bp::from(px.next()) == bp {
             let infix = px.bump();
-            let right_opt = parse_prefix_expr(px).map(Box::new);
+            let right_opt = parse_infix_expr_with_bp(px, bp.next()).map(Box::new);
             left = PExpr::Infix(PInfixExpr {
                 left: Box::new(left),
                 infix,
@@ -126,6 +131,97 @@ fn parse_infix_expr(px: &mut Px) -> Option<PExpr> {
     Some(left)
 }
 
+fn parse_infix_expr(px: &mut Px) -> Option<PExpr> {
+    parse_infix_expr_with_bp(px, Bp::BOOL)
+}
+
 pub(crate) fn parse_expr(px: &mut Px) -> Option<PExpr> {
     parse_infix_expr(px)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        parse::{parse_context::Px, PExpr, PToken, PVisitor},
+        source::DocId,
+        token::{tokenize, TokenKind},
+        utils::{rc_slice::RcSlice, rc_str::RcStr},
+    };
+
+    struct V {
+        output: String,
+    }
+
+    impl PVisitor for V {
+        fn on_expr(&mut self, expr: &crate::parse::PExpr) {
+            if let PExpr::Infix(infix) = expr {
+                self.output += "(";
+                self.on_expr(&infix.left);
+                self.output += " ";
+                self.on_token(&infix.infix);
+                self.output += " ";
+                self.on_expr(&infix.right_opt.as_ref().unwrap());
+                self.output += ")";
+                return;
+            } else {
+                self.on_expr_default(expr);
+            }
+        }
+        fn on_token(&mut self, token: &PToken) {
+            self.output += token.body_text();
+        }
+    }
+
+    fn f(expected: &str, input: &str) {
+        let doc: DocId = 1;
+        let text = RcStr::from(input);
+
+        // tokenize
+        let tokens: RcSlice<_> = tokenize(doc, RcStr::clone(&text)).into();
+
+        // parse
+        let p_tokens = PToken::from_tokens(tokens);
+        let mut px = Px::new(p_tokens.to_owned());
+        let expr = super::parse_expr(&mut px).unwrap();
+        px.eat(TokenKind::Eos);
+        let _ = px.finish();
+
+        // print
+        let mut v = V {
+            output: String::new(),
+        };
+        PVisitor::on_expr(&mut v, &expr);
+        let actual = v.output;
+
+        assert_eq!(expected, &actual, "expr = {expr:?}");
+    }
+
+    #[test]
+    fn test_infix_all_operators() {
+        f("(((((_ & _) && _) ^ _) | _) || ((((((((_ ! _) != _) = _) == _) < _) <= _) > _) >= ((_ << _) >> ((_ - _) + (((_ * _) \\ _) / _)))))", "_&_&&_^_|_||_!_!=_=_==_<_<=_>_>=_<<_>>_-_+_*_\\_/_");
+    }
+
+    #[test]
+    fn test_infix_bool() {
+        // equal is stronger
+        f("(((a & b) | (c == 0)) ^ d)", "a & b | c == 0 ^ d");
+    }
+
+    #[test]
+    fn test_infix_compare() {
+        // shift is stronger
+        f("((a == b) & ((c << 1) != d))", "a == b & c << 1 != d");
+    }
+
+    #[test]
+    fn test_infix_addsub() {
+        // mul is stronger
+        f("((a + (b * 2)) - c)", "a + b * 2 - c");
+    }
+
+    #[test]
+    fn test_infix_muldiv() {
+        // prefix is stronger
+        f("((a * -b) / c)", "a * -b / c");
+    }
 }
