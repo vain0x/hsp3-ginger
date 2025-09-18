@@ -30,10 +30,10 @@
 	if stat : goto *fail
 
 	; Compile. `start.ax` will be created.
-	; 4: utf-8 input
-	cmpmode = 0 ;4
-	; 4: packfile, 32: utf-8 output
-	ppmode = 4 ;| 32
+	; 4: utf-8 output
+	cmpmode = 4
+	; 4: packfile, 32: utf-8 input
+	ppmode = 4 | 32
 	hsc_comp cmpmode, ppmode, 0
 	if stat : goto *fail
 

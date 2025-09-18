@@ -4,6 +4,7 @@
 
 #packopt name "ginger"
 #packopt orgpath 1
+#cmpopt utf8 1
 
 #include "ginger_core.hsp"
 
