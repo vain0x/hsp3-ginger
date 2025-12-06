@@ -13,7 +13,7 @@ VSCodeで次の拡張機能を探し、インストールしてください。
 
 ```json
 {
-    "hsp3-debug-window-adapter.hsp3-root": "C:/Program Files (x86)/hsp36"
+    "hsp3-debug-window-adapter.hsp3-root": "C:/hsp37"
 }
 ```
 
