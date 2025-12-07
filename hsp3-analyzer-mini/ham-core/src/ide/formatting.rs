@@ -109,11 +109,11 @@ impl V {
         self.tokens.item(i.saturating_sub(1))
     }
 
-    #[cfg(unused)]
+    #[allow(unused)]
     fn find_next_token(&self, token: &PToken) -> Option<RcItem<PToken>> {
         let i = self
             .tokens
-            .binary_search_by_key(token.body_pos(), PToken::body_pos)
+            .binary_search_by_key(&token.body_pos(), PToken::body_pos)
             .ok()?;
         self.tokens.item(i + 1)
     }

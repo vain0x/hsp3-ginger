@@ -57,18 +57,6 @@ impl<T> RcSlice<T> {
         }
     }
 
-    /// 長さ
-    #[cfg(unused)]
-    pub(crate) fn len(&self) -> usize {
-        match self.repr {
-            Repr::Empty => 0,
-            Repr::NonEmpty { start, end, .. } => {
-                debug_assert!(start < end);
-                end - start
-            }
-        }
-    }
-
     /// 要素のスライスを借用する。`as_ref` と同じ。
     pub(crate) fn as_slice(&self) -> &[T] {
         match self.repr {

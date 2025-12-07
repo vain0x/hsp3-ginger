@@ -38,12 +38,12 @@ impl Loc {
         self.range.end()
     }
 
-    #[cfg(unused)]
+    #[allow(unused)]
     pub(crate) fn start_row(&self) -> usize {
         self.range.start().row as usize
     }
 
-    #[cfg(unused)]
+    #[allow(unused)]
     pub(crate) fn end_row(&self) -> usize {
         self.range.end().row as usize
     }

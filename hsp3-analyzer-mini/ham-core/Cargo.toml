@@ -11,6 +11,8 @@ doctest = false
 # 時間のかかるテストを含めてすべてのテストを実行する (cargo test --feature)
 full_test = []
 
+trace_docs = []
+
 [dependencies]
 encoding = "0.2.33"
 glob = "0.3.0"

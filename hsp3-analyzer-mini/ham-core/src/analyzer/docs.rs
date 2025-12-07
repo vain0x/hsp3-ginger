@@ -64,7 +64,7 @@ impl Docs {
     }
 
     pub(crate) fn open_doc_in_editor(&mut self, doc: DocId, version: i32, text: RcStr) {
-        #[cfg(trace_docs)]
+        #[cfg(feature = "trace_docs")]
         trace!(
             "クライアントでファイルが開かれました ({:?} version={}, len={})",
             uri,
@@ -78,7 +78,7 @@ impl Docs {
     }
 
     pub(crate) fn change_doc_in_editor(&mut self, doc: DocId, version: i32, text: RcStr) {
-        #[cfg(trace_docs)]
+        #[cfg(feature = "trace_docs")]
         trace!(
             "クライアントでファイルが変更されました ({:?} version={}, len={})",
             uri,
@@ -92,7 +92,7 @@ impl Docs {
     }
 
     pub(crate) fn close_doc_in_editor(&mut self, doc: DocId) -> bool {
-        #[cfg(trace_docs)]
+        #[cfg(feature = "trace_docs")]
         trace!("クライアントでファイルが閉じられました ({:?})", uri);
 
         assert!(self.editor_docs.contains(&doc));
@@ -109,7 +109,7 @@ impl Docs {
     pub(crate) fn change_file(&mut self, doc: DocId, path: &Path) -> Option<DocId> {
         let open_in_editor = self.editor_docs.contains(&doc);
         if open_in_editor {
-            #[cfg(trace_docs)]
+            #[cfg(feature = "trace_docs")]
             trace!("ファイルは開かれているのでロードされません。");
             return Some(doc);
         }

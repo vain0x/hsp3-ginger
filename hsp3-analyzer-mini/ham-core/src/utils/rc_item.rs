@@ -24,12 +24,11 @@ impl<T> RcItem<T> {
     }
 }
 
-#[cfg(unused)]
-impl<T: Clone> RcItem<T> {
-    pub(crate) fn to_owned(&self) -> T {
-        self.as_ref().clone()
-    }
-}
+// impl<T: Clone> RcItem<T> {
+//     pub(crate) fn to_owned(&self) -> T {
+//         self.as_ref().clone()
+//     }
+// }
 
 impl<T> AsRef<T> for RcItem<T> {
     fn as_ref(&self) -> &T {

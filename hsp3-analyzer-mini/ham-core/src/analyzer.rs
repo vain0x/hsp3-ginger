@@ -384,7 +384,7 @@ impl<'a> AnalyzerRef<'a> {
         doc_analysis::on_include_guard(da, pos)
     }
 
-    pub(crate) fn get_syntax(&self, doc: DocId) -> Option<DocSyntax> {
+    pub(crate) fn get_syntax(&self, doc: DocId) -> Option<DocSyntax<'a>> {
         let da = self.doc_analysis_map.get(&doc)?;
         Some(DocSyntax {
             text: da.text.clone(),
