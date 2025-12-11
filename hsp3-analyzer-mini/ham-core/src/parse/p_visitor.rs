@@ -211,6 +211,13 @@ pub(crate) trait PVisitor {
             PStmt::Global(_) | PStmt::Include(_) => {
                 // FIXME: implement
             }
+            PStmt::Use(stmt) => {
+                self.on_token(&stmt.hash);
+                for (name, comma_opt) in &stmt.names {
+                    self.on_token(name);
+                    self.on_token_opt(comma_opt.as_ref());
+                }
+            }
             PStmt::UnknownPreProc(stmt) => {
                 self.on_token(&stmt.hash);
                 self.on_tokens(&stmt.tokens);

@@ -355,6 +355,9 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 }
             }
         }
+        PStmt::Use(_) => {
+            // TODO: ctx.includes に追加
+        }
         PStmt::UnknownPreProc(_) => {}
     }
 }

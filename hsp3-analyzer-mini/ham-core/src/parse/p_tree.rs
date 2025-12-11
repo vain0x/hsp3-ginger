@@ -580,6 +580,18 @@ pub(crate) struct PUnknownPreProcStmt {
     pub(crate) tokens: Vec<PToken>,
 }
 
+/// `#use` (>= HSP3.7)
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PUseStmt {
+    #[allow(unused)]
+    pub(crate) hash: PToken,
+    #[allow(unused)]
+    pub(crate) keyword: PToken,
+    // 識別子とカンマの並び
+    pub(crate) names: Vec<(PToken, Option<PToken>)>,
+}
+
 #[must_use]
 pub(crate) enum PStmt {
     Label(PLabel),
@@ -602,6 +614,7 @@ pub(crate) enum PStmt {
     Module(PModuleStmt),
     Global(PGlobalStmt),
     Include(PIncludeStmt),
+    Use(PUseStmt),
     UnknownPreProc(PUnknownPreProcStmt),
 }
 
@@ -626,6 +639,7 @@ impl Debug for PStmt {
             PStmt::Module(it) => Debug::fmt(it, f),
             PStmt::Global(it) => Debug::fmt(it, f),
             PStmt::Include(it) => Debug::fmt(it, f),
+            PStmt::Use(it) => Debug::fmt(it, f),
             PStmt::UnknownPreProc(it) => Debug::fmt(it, f),
         }
     }

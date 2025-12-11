@@ -327,6 +327,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         | PStmt::Cmd(_)
         | PStmt::Global(_)
         | PStmt::Include(_)
+        | PStmt::Use(_)
         | PStmt::UnknownPreProc(_) => {}
     }
 }

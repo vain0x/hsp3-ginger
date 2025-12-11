@@ -3,11 +3,11 @@ use super::{
     parse_context::Px,
     parse_expr::{parse_args, parse_expr},
     parse_stmt::parse_stmt,
+    token::TokenKind,
     PCmdStmt, PConstStmt, PConstTy, PDefFuncKind, PDefFuncStmt, PDefineStmt, PEnumStmt,
     PGlobalStmt, PIncludeKind, PIncludeStmt, PLibFuncStmt, PMacroParam, PModuleStmt, PParam,
-    PParamTy, PPrivacy, PRegCmdStmt, PStmt, PUnknownPreProcStmt, PUseLibStmt,
+    PParamTy, PPrivacy, PRegCmdStmt, PStmt, PUnknownPreProcStmt, PUseLibStmt, PUseStmt,
 };
-use crate::token::TokenKind;
 
 static DEFFUNC_LIKE_KEYWORDS: &[&str] = &[
     "deffunc", "defcfunc", "modfunc", "modcfunc", "modinit", "modterm",
@@ -432,6 +432,38 @@ fn parse_include_stmt(hash: PToken, kind: PIncludeKind, px: &mut Px) -> PInclude
     }
 }
 
+// UseStmt = hash:'#' keyword:'use' names:Names EOS
+// Names = (IDENT ','?)*
+fn parse_use_stmt(hash: PToken, px: &mut Px) -> PUseStmt {
+    let keyword = px.bump();
+
+    let mut names = vec![];
+    loop {
+        match px.next() {
+            TokenKind::Eof | TokenKind::Eos => break,
+            TokenKind::Ident => {
+                let name = px.bump();
+                let comma_opt = px.eat(TokenKind::Comma);
+                let comma_seen = comma_opt.is_some();
+
+                names.push((name, comma_opt));
+
+                if !comma_seen {
+                    break;
+                }
+            }
+            _ => px.skip(),
+        }
+    }
+    parse_end_of_preproc(px);
+
+    PUseStmt {
+        hash,
+        keyword,
+        names,
+    }
+}
+
 pub(crate) fn parse_preproc_stmt(px: &mut Px) -> Option<PStmt> {
     let hash = px.eat(TokenKind::Hash)?;
 
@@ -453,6 +485,7 @@ pub(crate) fn parse_preproc_stmt(px: &mut Px) -> Option<PStmt> {
         "global" => PStmt::Global(parse_global_stmt(hash, px)),
         "include" => PStmt::Include(parse_include_stmt(hash, PIncludeKind::Include, px)),
         "addition" => PStmt::Include(parse_include_stmt(hash, PIncludeKind::Addition, px)),
+        "use" => PStmt::Use(parse_use_stmt(hash, px)),
         _ => {
             let tokens = eat_arbitrary_tokens(px);
             PStmt::UnknownPreProc(PUnknownPreProcStmt { hash, tokens })
