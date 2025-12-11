@@ -35,5 +35,25 @@ pub(crate) fn compute_includes(
                 include_resolution.push((*loc, included_doc));
             }
         }
+
+        for (used_name, loc) in &da.uses {
+            let used_doc_opt = common_docs
+                .get(&format!("{}.as", used_name))
+                .or_else(|| common_docs.get(&format!("{}.hsp", used_name)))
+                .cloned();
+
+            debug!(
+                "use(doc:{} {}:{}) {:?} -> {:?}",
+                src_doc,
+                get_name(src_doc),
+                loc.start(),
+                used_name,
+                used_doc_opt
+            );
+
+            if let Some(included_doc) = used_doc_opt {
+                include_resolution.push((*loc, included_doc));
+            }
+        }
     }
 }

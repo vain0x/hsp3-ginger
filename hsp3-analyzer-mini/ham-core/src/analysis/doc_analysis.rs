@@ -12,6 +12,7 @@ pub(crate) struct DocAnalysis {
     // プリプロセス:
     pub(crate) include_guard: Option<IncludeGuard>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
+    pub(crate) uses: Vec<(String, Loc)>,
     pub(crate) module_map: ModuleMap,
     pub(crate) deffunc_map: DefFuncMap,
     pub(crate) preproc_symbols: Vec<SymbolRc>,
@@ -41,6 +42,7 @@ impl DocAnalysis {
     fn set_preproc(&mut self, preproc: PreprocAnalysisResult) {
         self.include_guard = preproc.include_guard;
         self.includes = preproc.includes;
+        self.uses = preproc.uses;
         self.module_map = preproc.module_map;
         self.deffunc_map = preproc.deffunc_map;
         self.preproc_symbols = preproc.symbols;

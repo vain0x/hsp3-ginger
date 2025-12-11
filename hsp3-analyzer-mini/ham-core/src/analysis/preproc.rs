@@ -47,6 +47,7 @@ struct Ctx {
     symbols: Vec<SymbolRc>,
     include_guard: Option<IncludeGuard>,
     includes: Vec<(RcStr, Loc)>,
+    uses: Vec<(String, Loc)>,
     scope: LocalScope,
     module_map: ModuleMap,
     deffunc_map: DefFuncMap,
@@ -355,8 +356,12 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 }
             }
         }
-        PStmt::Use(_) => {
-            // TODO: ctx.includes に追加
+        PStmt::Use(stmt) => {
+            for (name, _comma_opt) in &stmt.names {
+                let text = name.body_text().to_ascii_lowercase().to_string();
+                let loc = name.body.loc;
+                ctx.uses.push((text, loc));
+            }
         }
         PStmt::UnknownPreProc(_) => {}
     }
@@ -426,6 +431,7 @@ pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<SymbolRc>,
     pub(crate) include_guard: Option<IncludeGuard>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
+    pub(crate) uses: Vec<(String, Loc)>,
     pub(crate) module_map: ModuleMap,
     pub(crate) deffunc_map: HashMap<DefFuncKey, DefFuncData>,
 }
@@ -443,6 +449,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
         symbols,
         include_guard,
         includes,
+        uses,
         module_map,
         deffunc_map,
         ..
@@ -452,6 +459,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
         symbols,
         include_guard,
         includes,
+        uses,
         module_map,
         deffunc_map,
     }

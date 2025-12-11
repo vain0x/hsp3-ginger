@@ -64,13 +64,23 @@ pub(crate) fn definitions(
 
 #[cfg(test)]
 mod tests {
-    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION, test_utils::set_test_logger};
+    use crate::{
+        analyzer::{Analyzer, DocDb},
+        lsp_server::NO_VERSION,
+        test_utils::set_test_logger,
+        utils::canonical_uri::CanonicalUri,
+    };
     use expect_test::expect;
     use std::fmt::Write as _;
 
     fn dummy_url(s: &str) -> lsp_types::Url {
         let workspace_dir = crate::test_utils::dummy_path().join("ws");
         lsp_types::Url::from_file_path(&workspace_dir.join(s)).unwrap()
+    }
+
+    fn dummy_common_url(s: &str) -> lsp_types::Url {
+        let common_dir = crate::test_utils::dummy_path().join("hsp3").join("common");
+        lsp_types::Url::from_file_path(&common_dir.join(s)).unwrap()
     }
 
     fn format_loc(w: &mut String, l: &lsp_types::Location) {
@@ -120,6 +130,79 @@ mod tests {
             [a.hsp]
             1:1
             [b.hsp]
-        "#]].assert_eq(&formatted);
+        "#]]
+        .assert_eq(&formatted);
+    }
+
+    #[test]
+    fn test_use_preproc() {
+        set_test_logger();
+        let mut an = Analyzer::new_standalone();
+
+        // common 以下にダミーのファイルを生成する
+        let kernel32 = dummy_common_url("kernel32.as");
+        an.open_doc(kernel32.clone(), NO_VERSION, "".into());
+
+        an.common_docs.insert(
+            "kernel32.as".to_string(),
+            an.find_doc_by_uri(&CanonicalUri::from_url(&kernel32))
+                .unwrap(),
+        );
+
+        let d3m = dummy_common_url("d3m.hsp");
+        an.open_doc(d3m, NO_VERSION, "".into());
+
+        an.common_docs.insert(
+            "d3m.hsp".to_string(),
+            an.find_doc_by_uri(&CanonicalUri::from_url(&kernel32))
+                .unwrap(),
+        );
+
+        let main_url = dummy_url("main.hsp");
+        an.open_doc(
+            main_url.clone(),
+            NO_VERSION,
+            r#"
+#use kernel32, d3m, unknown
+"#
+            .into(),
+        );
+
+        let an = an.compute_ref();
+
+        let mut formatted = String::new();
+        formatted += "[kernel32]\n";
+        format_response(
+            &mut formatted,
+            &an.definitions(
+                main_url.clone(),
+                // <|>kernel32
+                lsp_types::Position::new(1, 5),
+            ),
+        );
+
+        formatted += "[d3m]\n";
+        format_response(
+            &mut formatted,
+            // , <|>d3m
+            &an.definitions(main_url.clone(), lsp_types::Position::new(1, 15)),
+        );
+
+        // unknown は存在しないのでレスポンスは空になる
+        formatted += "[unknown]\n";
+        format_response(
+            &mut formatted,
+            // , <|>unknown
+            &an.definitions(main_url, lsp_types::Position::new(1, 20)),
+        );
+
+        expect![[r#"
+            [kernel32]
+            1:1
+            [d3m]
+            1:1
+            [unknown]
+        "#]]
+        .assert_eq(&formatted);
     }
 }
