@@ -33,7 +33,11 @@ pub(crate) fn compute_active_docs(
             }
 
             for (used_name, _) in &da.uses {
-                let doc_opt = common_docs.get(used_name.as_str()).cloned();
+                let doc_opt = common_docs
+                    .get(&format!("{}.as", used_name))
+                    .or_else(|| common_docs.get(&format!("{}.hsp", used_name)))
+                    .cloned();
+
                 included_docs.extend(doc_opt);
             }
         }
