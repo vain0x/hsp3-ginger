@@ -65,7 +65,7 @@ pub(crate) fn symbol(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION};
+    use crate::{analyzer::Analyzer, lsp_server::NO_VERSION, test_utils::set_test_logger};
     use expect_test::expect;
     use std::fmt::Write as _;
 
@@ -136,6 +136,44 @@ mod tests {
             main.hsp:3:23 b Constant
             main.hsp:9:1 *my_label Constant
             main.hsp:10:5 s1 Variable
+        "#]]
+        .assert_eq(&formatted);
+    }
+
+    // #var 系命令
+    #[test]
+    fn test_var() {
+        set_test_logger();
+        let mut an = Analyzer::new_standalone();
+
+        let main_url = dummy_url("main.hsp");
+        an.open_doc(
+            main_url.clone(),
+            NO_VERSION,
+            r#"
+#var v1, 2
+#varlabel l1, l2
+#varstr s1, s2
+#vardouble d1, d2
+#varint i1, i2
+"#
+            .into(),
+        );
+
+        let res = an.compute_ref().document_symbol(main_url).unwrap();
+        let mut formatted = String::new();
+        format_response(&mut formatted, &res);
+
+        expect![[r#"
+            main.hsp:2:6 v1 Variable
+            main.hsp:3:11 l1 Variable
+            main.hsp:3:15 l2 Variable
+            main.hsp:4:9 s1 Variable
+            main.hsp:4:13 s2 Variable
+            main.hsp:5:12 d1 Variable
+            main.hsp:5:16 d2 Variable
+            main.hsp:6:9 i1 Variable
+            main.hsp:6:13 i2 Variable
         "#]]
         .assert_eq(&formatted);
     }

@@ -286,6 +286,11 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 on_stmt(stmt, ctx);
             }
         }
+        PStmt::Var(PVarStmt { names, .. }) => {
+            for (name, _) in names {
+                on_symbol_def(name, ctx);
+            }
+        }
         PStmt::DefFunc(PDefFuncStmt { stmts, .. }) => {
             let deffunc = DefFuncKey::new(ctx.doc, ctx.deffunc_len);
             ctx.deffunc_len += 1;
