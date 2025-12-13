@@ -1,15 +1,10 @@
-dist/*.js
-dist/*.js.map
-out/*.exe
-out/*.js
-out/*.js.map
-out/ham
+dist/
 ham.vsix
 
 
 
 # old
-out/ham-lsp-server-exe
+out/
 
 
 

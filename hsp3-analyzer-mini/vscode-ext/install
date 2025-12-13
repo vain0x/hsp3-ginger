@@ -11,10 +11,10 @@ then
 fi
 
 # 配布用ディレクトリに必要なファイルを入れる。
-cp ../target/release/ham ./out/ham
+cp ../target/release/ham ./dist/ham
 
 # 拡張機能をビルドする。
-npm run webpack-prod
+npm run build
 npm run vsce-package
 
 # ローカルにインストールする。

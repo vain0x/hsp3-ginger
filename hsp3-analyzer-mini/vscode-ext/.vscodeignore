@@ -1,7 +1,4 @@
 ~*
-
-
-
 hsptmp
 obj
 packfile
@@ -12,14 +9,13 @@ packfile
 .vscode
 .gitignore
 node_modules
-dist/.gitkeep
 dist/*.js.map
-out/.gitkeep
-out/*.js
-out/*.js.map
 src/
+esbuild.config.mjs
 tsconfig.json
-webpack.config.js
-
 install
 uninstall
+
+# no longer used
+webpack.config.js
+out/
