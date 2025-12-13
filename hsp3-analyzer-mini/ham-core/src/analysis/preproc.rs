@@ -175,6 +175,9 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 ctx.add_symbol(HspSymbolKind::Enum, hash, name, scope);
             }
         }
+        PStmt::Var(PVarStmt { .. }) => {
+            // TODO: implement
+        }
         PStmt::DefFunc(stmt) => {
             let PDefFuncStmt {
                 hash,

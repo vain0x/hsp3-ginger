@@ -319,6 +319,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         PStmt::Const(_)
         | PStmt::Define(_)
         | PStmt::Enum(_)
+        | PStmt::Var(_)
         | PStmt::UseLib(_)
         | PStmt::LibFunc(_)
         | PStmt::UseCom(_)

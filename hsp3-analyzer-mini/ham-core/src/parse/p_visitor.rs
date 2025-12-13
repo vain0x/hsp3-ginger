@@ -198,6 +198,14 @@ pub(crate) trait PVisitor {
             PStmt::Enum(_) => {
                 // FIXME: implement
             }
+            PStmt::Var(stmt) => {
+                self.on_token(&stmt.hash);
+                self.on_token(&stmt.keyword);
+                for (name, comma_opt) in &stmt.names {
+                    self.on_token(&name);
+                    self.on_token_opt(comma_opt.as_ref());
+                }
+            }
             PStmt::DefFunc(stmt) => self.on_deffunc_stmt(stmt),
             PStmt::UseLib(_)
             | PStmt::LibFunc(_)

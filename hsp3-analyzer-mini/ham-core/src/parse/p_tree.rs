@@ -441,6 +441,15 @@ impl Debug for PParam {
     }
 }
 
+/// `#var`, etc. (>= HSP3.7)
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PVarStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) names: Vec<(PToken, Option<PToken>)>,
+}
+
 /// `#deffunc`, etc.
 #[derive(Debug)]
 #[must_use]
@@ -602,6 +611,7 @@ pub(crate) enum PStmt {
     Const(PConstStmt),
     Define(PDefineStmt),
     Enum(PEnumStmt),
+    Var(PVarStmt),
     DefFunc(PDefFuncStmt),
     UseLib(PUseLibStmt),
     LibFunc(PLibFuncStmt),
@@ -629,6 +639,7 @@ impl Debug for PStmt {
             PStmt::Const(it) => Debug::fmt(it, f),
             PStmt::Define(it) => Debug::fmt(it, f),
             PStmt::Enum(it) => Debug::fmt(it, f),
+            PStmt::Var(it) => Debug::fmt(it, f),
             PStmt::DefFunc(it) => Debug::fmt(it, f),
             PStmt::UseLib(it) => Debug::fmt(it, f),
             PStmt::LibFunc(it) => Debug::fmt(it, f),
