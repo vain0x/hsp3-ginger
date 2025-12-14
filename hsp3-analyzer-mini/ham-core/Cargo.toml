@@ -1,6 +1,6 @@
 [package]
 name = "ham-core"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["vain0x <vainzerox@gmail.com>"]
 edition = "2021"
 
