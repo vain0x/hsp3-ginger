@@ -56,7 +56,7 @@ const getLspBin = (context: ExtensionContext) => {
 
 const getHsp3Root = () => {
   // 現在の最新版の既定のインストールディレクトリ
-  const DEFAULT_DIR = "C:/Program Files (x86)/hsp36"
+  const DEFAULT_DIR = "C:/hsp37"
 
   const config = workspace.getConfiguration("hsp3-analyzer-mini")
   return config.get<string>("hsp3-root")

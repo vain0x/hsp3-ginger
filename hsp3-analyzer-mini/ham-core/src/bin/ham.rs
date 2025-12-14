@@ -22,7 +22,7 @@ fn get_help() -> String {
 
     USAGE: ham [OPTIONS] [SUBCOMMAND]
 
-    EXAMPLE: ham --hsp "C:/hsp36" profile-parse
+    EXAMPLE: ham --hsp "C:/hsp37" profile-parse
 
     SUBCOMMANDS:
         lsp
@@ -75,7 +75,7 @@ static SUBCOMMANDS: &'static [&'static str] = &[
     "version",
 ];
 
-static ERROR_HSP3_ROOT_MISSING: &'static str = r#"HSPのインストールディレクトリを指定してください。(例: コマンドライン引数に --hsp "C:/hsp36" のように指定する、あるいは環境変数 HSP3_ROOT にパスを指定する)"#;
+static ERROR_HSP3_ROOT_MISSING: &'static str = r#"HSPのインストールディレクトリを指定してください。(例: コマンドライン引数に --hsp "C:/hsp37" のように指定する、あるいは環境変数 HSP3_ROOT にパスを指定する)"#;
 
 fn main() {
     let mut args = std::env::args();

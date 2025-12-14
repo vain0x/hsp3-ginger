@@ -14,7 +14,7 @@ HSP3 の静的解析ツールです。
 
 ```json
 {
-    "hsp3-analyzer-mini.hsp3-root": "C:/Program Files/hsp36"
+    "hsp3-analyzer-mini.hsp3-root": "C:/hsp37"
 }
 ```
 
