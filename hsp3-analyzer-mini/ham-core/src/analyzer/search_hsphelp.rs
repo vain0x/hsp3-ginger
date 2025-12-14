@@ -1,3 +1,5 @@
+//! hsphelp ディレクトリ内のファイル探索
+
 use super::*;
 use crate::{help_source::parse_for_symbols, source::DocId, utils::read_file::read_sjis_file};
 

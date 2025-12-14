@@ -1,3 +1,4 @@
+//! 構文木の定義
 use super::*;
 
 fn debug_fmt_opt<T: Debug>(
@@ -11,12 +12,14 @@ fn debug_fmt_opt<T: Debug>(
     }
 }
 
+/// `#include` または `#addition` のどちらか
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum PIncludeKind {
     Include,
     Addition,
 }
 
+/// `#deffunc` 系命令の種類
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum PDefFuncKind {
     DefFunc,
@@ -60,6 +63,7 @@ impl Debug for PLabel {
     }
 }
 
+/// Argument. 引数
 #[must_use]
 pub(crate) struct PArg {
     pub(crate) expr_opt: Option<PExpr>,
@@ -73,6 +77,7 @@ impl Debug for PArg {
     }
 }
 
+/// `.x` 形式の引数
 #[must_use]
 pub(crate) struct PDotArg {
     pub(crate) dot: PToken,
@@ -130,7 +135,8 @@ impl Debug for PNameParen {
 }
 
 /// 複合項
-/// (変数の参照、配列要素の参照、関数の呼び出し)
+///
+/// (変数の参照、配列要素の参照、関数の呼び出しを総称して、ここでは複合項と呼んでいる)
 #[must_use]
 pub(crate) enum PCompound {
     Name(PToken),
@@ -216,6 +222,7 @@ impl Debug for PInfixExpr {
     }
 }
 
+/// 式
 #[must_use]
 pub(crate) enum PExpr {
     Literal(PToken),
@@ -325,6 +332,7 @@ impl Debug for PBlock {
     }
 }
 
+/// if文
 #[must_use]
 pub(crate) struct PIfStmt {
     /// `if` キーワード
@@ -354,6 +362,7 @@ impl Debug for PIfStmt {
     }
 }
 
+/// `#const`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PConstStmt {
@@ -387,6 +396,7 @@ impl Debug for PMacroParam {
     }
 }
 
+/// `#define`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PDefineStmt {
@@ -401,6 +411,7 @@ pub(crate) struct PDefineStmt {
     pub(crate) tokens: Vec<PToken>,
 }
 
+/// `#enum`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PEnumStmt {
@@ -415,6 +426,7 @@ pub(crate) struct PEnumStmt {
     pub(crate) init_opt: Option<PExpr>,
 }
 
+/// `#deffunc` や `#func` のパラメータ
 #[must_use]
 pub(crate) struct PParam {
     pub(crate) param_ty_opt: Option<(PParamTy, PToken)>,
@@ -465,6 +477,7 @@ pub(crate) struct PDefFuncStmt {
     pub(crate) behind: Loc,
 }
 
+/// `#uselib`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PUseLibStmt {
@@ -496,6 +509,7 @@ pub(crate) struct PLibFuncStmt {
     pub(crate) params: Vec<PParam>,
 }
 
+/// `#usecom`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PUseComStmt {
@@ -508,6 +522,7 @@ pub(crate) struct PUseComStmt {
     pub(crate) args: Vec<PArg>,
 }
 
+/// `#comfunc`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PComFuncStmt {
@@ -522,6 +537,7 @@ pub(crate) struct PComFuncStmt {
     pub(crate) params: Vec<PParam>,
 }
 
+/// `#regcmd`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PRegCmdStmt {
@@ -562,6 +578,7 @@ pub(crate) struct PModuleStmt {
     pub(crate) behind: Loc,
 }
 
+/// `#global`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PGlobalStmt {
@@ -582,6 +599,7 @@ pub(crate) struct PIncludeStmt {
     pub(crate) file_path_opt: Option<PToken>,
 }
 
+/// 不明なプリプロセッサ命令 (行が `#` で始まり、特定のプリプロセッサ命令と解釈できなかった部分)
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PUnknownPreProcStmt {
@@ -601,6 +619,7 @@ pub(crate) struct PUseStmt {
     pub(crate) names: Vec<(PToken, Option<PToken>)>,
 }
 
+/// 文
 #[must_use]
 pub(crate) enum PStmt {
     Label(PLabel),
@@ -656,6 +675,7 @@ impl Debug for PStmt {
     }
 }
 
+/// 構文木のルート
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PRoot {

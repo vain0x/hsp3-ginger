@@ -1,3 +1,5 @@
+//! 名前変更
+
 use super::*;
 use crate::lsp_server::NO_VERSION;
 use lsp_types::{

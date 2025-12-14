@@ -1,5 +1,6 @@
 use super::*;
 
+/// ドキュメント単位の解析結果
 #[derive(Default)]
 pub(crate) struct DocAnalysis {
     pub(crate) doc_opt: Option<DocId>,

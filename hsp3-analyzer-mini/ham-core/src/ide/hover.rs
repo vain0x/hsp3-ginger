@@ -1,3 +1,5 @@
+//! ホバー
+
 use super::*;
 use lsp_types::{
     Documentation, Hover, HoverContents, MarkedString, MarkupContent, MarkupKind, Position, Url,

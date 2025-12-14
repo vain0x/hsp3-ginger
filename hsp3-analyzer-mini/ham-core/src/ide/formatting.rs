@@ -71,6 +71,7 @@ fn trailing_blank_range(token: &PToken) -> Range {
     Range::from(s..e)
 }
 
+/// フォーマッティングに必要な処理を行う構文木ビジター
 struct V {
     /// 地の文 (プリプロセッサ命令以外) の字下げ
     ground_depth: i32,

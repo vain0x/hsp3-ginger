@@ -1,3 +1,5 @@
+//! セマンティックハイライト
+
 use super::*;
 use crate::{analysis::*, parse::p_param_ty::PParamCategory};
 

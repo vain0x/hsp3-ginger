@@ -1,3 +1,5 @@
+//! ドキュメントのインターン化
+
 use super::CanonicalUri;
 use crate::source::DocId;
 use std::collections::HashMap;

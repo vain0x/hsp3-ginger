@@ -1,3 +1,5 @@
+//! 診断 (エラー表示)
+
 use super::*;
 use crate::{
     analysis,

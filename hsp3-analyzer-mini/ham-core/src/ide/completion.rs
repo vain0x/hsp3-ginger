@@ -1,3 +1,5 @@
+//! 入力補完
+
 use super::*;
 use crate::{
     analysis::{HspSymbolKind, Scope, SymbolRc},

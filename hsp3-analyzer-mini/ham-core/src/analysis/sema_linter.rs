@@ -1,8 +1,13 @@
+//! 意味論リント
+
 use super::*;
 use crate::parse::*;
 
+/// 診断の種類
 pub(crate) enum Diagnostic {
+    /// 定義が見つかりません
     Undefined,
+    /// 変数か配列要素が必要です
     VarRequired,
 }
 

@@ -9,12 +9,14 @@ pub(crate) struct Loc {
 }
 
 impl Loc {
+    /// ドキュメントの先頭を指す Loc を作る
     pub(crate) fn from_doc(doc: DocId) -> Self {
         Loc {
             doc,
             range: Range::empty(Pos::default()),
         }
     }
+
     pub(crate) fn new(doc: DocId, range: Range) -> Self {
         Loc { doc, range }
     }
@@ -30,10 +32,12 @@ impl Loc {
         Loc { range, ..self }
     }
 
+    /// 開始位置
     pub(crate) fn start(&self) -> Pos {
         self.range.start()
     }
 
+    /// 終了位置
     pub(crate) fn end(&self) -> Pos {
         self.range.end()
     }
@@ -48,6 +52,7 @@ impl Loc {
         self.range.end().row as usize
     }
 
+    /// 始端 (範囲の先頭を指す空の範囲に置き換え)
     pub(crate) fn ahead(&self) -> Loc {
         Loc {
             doc: self.doc,
@@ -55,6 +60,7 @@ impl Loc {
         }
     }
 
+    /// 終端 (範囲の末尾を指す空の範囲に置き換え)
     pub(crate) fn behind(&self) -> Loc {
         Loc {
             doc: self.doc,
@@ -62,10 +68,12 @@ impl Loc {
         }
     }
 
+    /// 指定位置を含むか
     pub(crate) fn is_touched(&self, doc: DocId, pos: Pos16) -> bool {
         self.doc == doc && range_is_touched(&self.range, pos)
     }
 
+    /// 範囲を併合する
     pub(crate) fn unite(&self, other: &Self) -> Loc {
         if self.doc != other.doc {
             return *self;

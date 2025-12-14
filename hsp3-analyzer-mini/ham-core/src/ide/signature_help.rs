@@ -1,3 +1,5 @@
+//! シグネチャヘルプ (パラメータリストの説明表示)
+
 use super::*;
 use crate::{analysis::*, parse::*, source::*};
 use lsp_types::{
@@ -11,6 +13,7 @@ pub(crate) struct SignatureHelpContext {
     pub(crate) ctype: bool,
 }
 
+/// シグネチャヘルプの生成に必要な処理を行う構文木ビジター
 struct V {
     db: SignatureHelpDb,
     pos: Pos16,

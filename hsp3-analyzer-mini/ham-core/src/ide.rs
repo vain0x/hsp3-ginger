@@ -1,3 +1,5 @@
+//! IDE機能
+
 pub(crate) mod completion;
 pub(crate) mod definitions;
 pub(crate) mod diagnose;

@@ -1,3 +1,5 @@
+//! ワークスペースシンボル (ワークスペース内のシンボル列挙)
+
 use super::*;
 use crate::analysis::*;
 use lsp_types::SymbolInformation;

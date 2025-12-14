@@ -26,6 +26,7 @@ impl PToken {
         Pos16::from(self.body.loc.start())
     }
 
+    /// このトークンの先頭の位置 (先行トリビアを含む)
     pub(crate) fn ahead(&self) -> Loc {
         match self.leading.first() {
             Some(first) => first.loc.ahead(),
@@ -41,6 +42,7 @@ impl PToken {
         }
     }
 
+    /// これに含まれるトークンを列挙
     pub(crate) fn iter<'a>(&'a self) -> impl Iterator<Item = &'a TokenData> + 'a {
         self.leading
             .iter()

@@ -1,3 +1,5 @@
+//! 定義へ移動
+
 use super::*;
 use crate::ide::from_document_position;
 use lsp_types::{Location, Position, Url};

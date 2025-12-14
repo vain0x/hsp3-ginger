@@ -1,3 +1,6 @@
+// IDE機能で使う関数が定義されている
+// note: もともと AnalysisRef 型の定義があったので analysis_ref というファイル名になっている
+
 use super::*;
 use crate::analyzer::AnalyzerRef;
 

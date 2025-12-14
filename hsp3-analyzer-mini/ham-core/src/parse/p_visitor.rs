@@ -1,5 +1,6 @@
 use super::*;
 
+/// 構文木のビジター
 pub(crate) trait PVisitor {
     fn on_token(&mut self, _token: &PToken) {}
 
@@ -288,6 +289,7 @@ impl PStmt {
     }
 }
 
+/// 構文木内の各ノードの範囲を計算するもの
 #[derive(Default)]
 struct VisitorForRange {
     first: Option<Range>,

@@ -1,6 +1,6 @@
 use crate::token::TokenKind;
 
-/// 結合力 (Binding power)
+/// Binding power. 結合力 (演算子の優先順位付けに使うもの)
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd)]
 pub(crate) struct Bp(i32);
 

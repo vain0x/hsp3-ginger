@@ -1,3 +1,5 @@
+//! ドキュメント管理
+
 use super::*;
 use crate::{
     lsp_server::{TextDocumentVersion, NO_VERSION},

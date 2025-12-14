@@ -21,6 +21,7 @@ use crate::{
 };
 use lsp_types::*;
 
+/// アナライザー
 #[derive(Default)]
 pub(super) struct Analyzer {
     // 入力 (起動時):

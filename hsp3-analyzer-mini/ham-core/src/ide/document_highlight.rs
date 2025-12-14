@@ -1,3 +1,5 @@
+//! ドキュメントハイライト
+
 use super::*;
 use crate::ide::from_document_position;
 use lsp_types::{DocumentHighlight, DocumentHighlightKind, Position, Url};

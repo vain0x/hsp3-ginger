@@ -1,3 +1,5 @@
+//! ドキュメントシンボル (ファイル内のシンボル列挙)
+
 use super::*;
 use crate::{analysis::*, parse::p_param_ty::PParamCategory};
 use lsp_types::DocumentSymbolResponse;
