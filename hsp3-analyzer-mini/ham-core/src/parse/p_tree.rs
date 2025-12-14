@@ -426,6 +426,15 @@ pub(crate) struct PEnumStmt {
     pub(crate) init_opt: Option<PExpr>,
 }
 
+/// `#var`, etc. (>= HSP3.7)
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PVarStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) names: Vec<(PToken, Option<PToken>)>,
+}
+
 /// `#deffunc` や `#func` のパラメータ
 #[must_use]
 pub(crate) struct PParam {
@@ -451,15 +460,6 @@ impl Debug for PParam {
 
         write!(f, "{}", if self.comma_opt.is_some() { "," } else { "?,?" })
     }
-}
-
-/// `#var`, etc. (>= HSP3.7)
-#[derive(Debug)]
-#[must_use]
-pub(crate) struct PVarStmt {
-    pub(crate) hash: PToken,
-    pub(crate) keyword: PToken,
-    pub(crate) names: Vec<(PToken, Option<PToken>)>,
 }
 
 /// `#deffunc`, etc.
@@ -599,14 +599,6 @@ pub(crate) struct PIncludeStmt {
     pub(crate) file_path_opt: Option<PToken>,
 }
 
-/// 不明なプリプロセッサ命令 (行が `#` で始まり、特定のプリプロセッサ命令と解釈できなかった部分)
-#[derive(Debug)]
-#[must_use]
-pub(crate) struct PUnknownPreProcStmt {
-    pub(crate) hash: PToken,
-    pub(crate) tokens: Vec<PToken>,
-}
-
 /// `#use` (>= HSP3.7)
 #[derive(Debug)]
 #[must_use]
@@ -617,6 +609,14 @@ pub(crate) struct PUseStmt {
     pub(crate) keyword: PToken,
     // 識別子とカンマの並び
     pub(crate) names: Vec<(PToken, Option<PToken>)>,
+}
+
+/// 不明なプリプロセッサ命令 (行が `#` で始まり、特定のプリプロセッサ命令と解釈できなかった部分)
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PUnknownPreProcStmt {
+    pub(crate) hash: PToken,
+    pub(crate) tokens: Vec<PToken>,
 }
 
 /// 文
