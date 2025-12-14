@@ -1,14 +1,28 @@
 [workspace]
 members = [
     "ham-core",
-    "ham-lsp-server-dll",
-    "ham-lsp-server-exe",
-    "ham-rewrite",
+    "ham-sdk",
 ]
+
 resolver = "2"
 
-[profile.release]
-# 以下の設定で実行ファイルが小さくなる。(リリースビルドのみ)
+# このセクションはデバッグビルドの設定を指定する
+# `debug`: デバッグ情報を限定的にして、実行ファイルを小さくするため
+# 参考: https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.dev]
+debug = "line-tables-only"
+
+# このセクションはデバッグビルドにおける依存パッケージのビルド設定を指定する
+# `debug`: デバッグ情報を限定的にして、実行ファイルを小さくするため
+# `opt-level`: デバッグビルドのサイズを小さくする最適化を行う。ビルド時間の短縮のため
+[profile.dev.package."*"]
+debug = "line-tables-only"
+opt-level = "s"
+
+# このセクションはリリースビルドの設定を指定する
+# `lto`, `panic` は実行ファイルを小さくするため
+# (`lto` はリンク時最適化を有効化し、`panic` はパニックハンドラーを簡易なものに変更している)
 # 参考: <https://github.com/johnthagen/min-sized-rust>
+[profile.release]
 lto = true
 panic = "abort"

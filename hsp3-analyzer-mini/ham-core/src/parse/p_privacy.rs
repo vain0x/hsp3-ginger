@@ -1,3 +1,4 @@
+/// プライバシー (`#define` などにつける global/local キーワード)
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum PPrivacy {
     Global,

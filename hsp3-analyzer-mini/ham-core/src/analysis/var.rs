@@ -1,4 +1,4 @@
-// 変数の定義・使用箇所の列挙。
+//! 変数の定義・使用箇所の列挙 (プリプロセッサ以外)
 
 use super::*;
 use crate::parse::*;
@@ -28,21 +28,23 @@ struct Ctx<'a> {
 const DEF_SITE: bool = true;
 const USE_SITE: bool = false;
 
-fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx) {
+fn add_symbol(
+    kind: HspSymbolKind,
+    token: &PToken,
+    name: RcStr,
+    loc: Loc,
+    is_def: bool,
+    ctx: &mut Ctx,
+) {
     let NameScopeNsTriple {
         basename,
         scope_opt,
         ns_opt,
-    } = resolve_name_scope_ns_for_def(
-        &name.body.text,
-        ImportMode::Local,
-        &ctx.scope,
-        ctx.module_map,
-    );
+    } = resolve_name_scope_ns_for_def(&name, ImportMode::Local, &ctx.scope, ctx.module_map);
 
     let symbol = DefInfo::Name {
         kind,
-        name: name.clone(),
+        name: token.clone(),
         basename: basename.clone(),
         scope_opt: scope_opt.clone(),
         ns_opt: ns_opt.clone(),
@@ -50,10 +52,10 @@ fn add_symbol(kind: HspSymbolKind, name: &PToken, def_site: bool, ctx: &mut Ctx)
     .into_symbol();
     ctx.symbols.push(symbol.clone());
 
-    if def_site {
-        ctx.public_def_sites.push((symbol.clone(), name.body.loc));
+    if is_def {
+        ctx.public_def_sites.push((symbol.clone(), loc));
     } else {
-        ctx.public_use_sites.push((symbol.clone(), name.body.loc));
+        ctx.public_use_sites.push((symbol.clone(), loc));
     }
 
     import_symbol_to_env(
@@ -79,7 +81,18 @@ fn on_symbol_def(name: &PToken, ctx: &mut Ctx) {
         Some(symbol) => {
             ctx.public_def_sites.push((symbol, name.body.loc));
         }
-        None => add_symbol(HspSymbolKind::StaticVar, name, DEF_SITE, ctx),
+        None => {
+            let name_text = name.body.text.clone();
+            let loc = name.body.loc.clone();
+            add_symbol(
+                HspSymbolKind::StaticVar,
+                name,
+                name_text,
+                loc,
+                DEF_SITE,
+                ctx,
+            );
+        }
     }
 }
 
@@ -101,7 +114,39 @@ fn on_symbol_use(name: &PToken, is_var: bool, ctx: &mut Ctx) {
             } else {
                 HspSymbolKind::Unresolved
             };
-            add_symbol(kind, name, USE_SITE, ctx);
+            let name_text = name.body.text.clone();
+            let loc = name.body.loc.clone();
+            add_symbol(kind, name, name_text, loc, USE_SITE, ctx);
+        }
+    }
+}
+
+fn on_label(label: &PLabel, is_def: bool, ctx: &mut Ctx) {
+    let (Some((name, loc)), Some(token)) = (label.star_name(), &label.name_opt) else {
+        return;
+    };
+
+    match resolve_implicit_symbol(
+        &name,
+        &ctx.scope,
+        &ctx.public_env,
+        &ctx.ns_env,
+        &ctx.local_env,
+        &ctx.module_map,
+    ) {
+        Some(symbol) if symbol.kind == HspSymbolKind::Label => {
+            if is_def {
+                ctx.public_def_sites.push((symbol, loc));
+            } else {
+                ctx.public_use_sites.push((symbol, loc));
+            }
+        }
+        Some(_) => {
+            // ラベルでない同名のシンボルが定義済み
+            return;
+        }
+        None => {
+            add_symbol(HspSymbolKind::Label, token, name, loc, is_def, ctx);
         }
     }
 }
@@ -149,10 +194,8 @@ fn on_compound_use(compound: &PCompound, ctx: &mut Ctx) {
 fn on_expr(expr: &PExpr, ctx: &mut Ctx) {
     match expr {
         PExpr::Literal(_) => {}
-        PExpr::Label(PLabel { star: _, name_opt }) => {
-            if let Some(name) = name_opt {
-                on_symbol_use(name, false, ctx);
-            }
+        PExpr::Label(label) => {
+            on_label(label, USE_SITE, ctx);
         }
         PExpr::Compound(compound) => on_compound_use(compound, ctx),
         PExpr::Paren(PParenExpr { body_opt, .. }) => on_expr_opt(body_opt.as_deref(), ctx),
@@ -182,10 +225,8 @@ fn on_args(args: &[PArg], ctx: &mut Ctx) {
 
 fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
-        PStmt::Label(PLabel { name_opt, .. }) => {
-            if let Some(name) = name_opt {
-                add_symbol(HspSymbolKind::Label, name, DEF_SITE, ctx);
-            }
+        PStmt::Label(label) => {
+            on_label(label, DEF_SITE, ctx);
         }
         PStmt::Assign(PAssignStmt {
             left,
@@ -245,6 +286,11 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 on_stmt(stmt, ctx);
             }
         }
+        PStmt::Var(PVarStmt { names, .. }) => {
+            for (name, _) in names {
+                on_symbol_def(name, ctx);
+            }
+        }
         PStmt::DefFunc(PDefFuncStmt { stmts, .. }) => {
             let deffunc = DefFuncKey::new(ctx.doc, ctx.deffunc_len);
             ctx.deffunc_len += 1;
@@ -286,6 +332,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
         | PStmt::Cmd(_)
         | PStmt::Global(_)
         | PStmt::Include(_)
+        | PStmt::Use(_)
         | PStmt::UnknownPreProc(_) => {}
     }
 }

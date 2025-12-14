@@ -12,14 +12,14 @@
             "linux": {
                 "env": {
                     "HSP3_ANALYZER_MINI_DEV": "1",
-                    "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham-lsp-server-exe",
+                    "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham",
                     "RUST_BACKTRACE": "1"
                 }
             },
             "windows": {
                 "env": {
                     "HSP3_ANALYZER_MINI_DEV": "1",
-                    "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham-lsp-server-exe.exe",
+                    "HSP3_ANALYZER_MINI_LSP_BIN": "../target/debug/ham.exe",
                     "RUST_BACKTRACE": "1"
                 }
             },

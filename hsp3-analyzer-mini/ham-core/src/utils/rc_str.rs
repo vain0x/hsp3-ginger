@@ -16,34 +16,30 @@ pub(crate) struct RcStr {
 #[derive(Clone)]
 enum Repr {
     Empty,
-    NonEmpty {
-        full_text: Rc<String>,
-        start: usize,
-        end: usize,
-    },
+    NonEmpty { full: Rc<str>, start: u32, end: u32 },
 }
 
 impl RcStr {
     pub(crate) const EMPTY: RcStr = RcStr { repr: Repr::Empty };
 
-    pub(crate) fn new(full_text: Rc<String>, start: usize, end: usize) -> Self {
-        assert!(full_text.is_char_boundary(start));
-        assert!(full_text.is_char_boundary(end));
+    pub(crate) fn new(full: Rc<str>, start: usize, end: usize) -> Self {
+        assert!(full.is_char_boundary(start));
+        assert!(full.is_char_boundary(end));
 
         // 文字境界の判定が配列の境界判定も兼ねているので、実行時に検査しなくてもいい。
         debug_assert!(start <= end);
-        debug_assert!(end <= full_text.len());
+        debug_assert!(end <= full.len());
 
         if start >= end {
             RcStr::EMPTY
         } else {
-            debug_assert!(start < full_text.len() && start < end);
+            debug_assert!(start < full.len() && start < end);
 
             RcStr {
                 repr: Repr::NonEmpty {
-                    full_text,
-                    start,
-                    end,
+                    full,
+                    start: start as u32,
+                    end: end as u32,
                 },
             }
         }
@@ -52,10 +48,7 @@ impl RcStr {
     pub(crate) fn len(&self) -> usize {
         match self.repr {
             Repr::Empty => 0,
-            Repr::NonEmpty { start, end, .. } => {
-                debug_assert!(start < end);
-                end - start
-            }
+            Repr::NonEmpty { start, end, .. } => (end - start) as usize,
         }
     }
 
@@ -63,10 +56,10 @@ impl RcStr {
         match self.repr {
             Repr::Empty => "",
             Repr::NonEmpty {
-                ref full_text,
+                ref full,
                 start,
                 end,
-            } => &full_text[start..end],
+            } => &full[start as usize..end as usize],
         }
     }
 
@@ -74,13 +67,13 @@ impl RcStr {
         match self.repr {
             Repr::Empty => Self::EMPTY,
             Repr::NonEmpty {
-                full_text: ref underlying,
+                ref full,
                 start: base_start,
                 end: base_end,
             } => {
-                let new_start = (base_start + start).min(base_end);
-                let new_end = (base_start + end).min(base_end);
-                RcStr::new(underlying.clone(), new_start, new_end)
+                let new_start = ((base_start as usize) + start).min(base_end as usize);
+                let new_end = ((base_start as usize) + end).min(base_end as usize);
+                RcStr::new(full.clone(), new_start, new_end)
             }
         }
     }
@@ -90,8 +83,8 @@ impl RcStr {
     }
 }
 
-impl From<Rc<String>> for RcStr {
-    fn from(it: Rc<String>) -> RcStr {
+impl From<Rc<str>> for RcStr {
+    fn from(it: Rc<str>) -> RcStr {
         let len = it.len();
         RcStr::new(it, 0, len)
     }
@@ -99,7 +92,7 @@ impl From<Rc<String>> for RcStr {
 
 impl From<String> for RcStr {
     fn from(it: String) -> RcStr {
-        RcStr::from(Rc::new(it))
+        RcStr::from(Rc::from(it.as_ref()))
     }
 }
 
@@ -108,7 +101,7 @@ impl<'a> From<&'a str> for RcStr {
         if it.is_empty() {
             RcStr::EMPTY
         } else {
-            RcStr::from(Rc::new(it.to_string()))
+            RcStr::from(Rc::from(it))
         }
     }
 }

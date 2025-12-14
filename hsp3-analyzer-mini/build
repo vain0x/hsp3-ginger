@@ -2,11 +2,11 @@
 
 set -eux
 
-# ビルドする。
-cargo build -p ham-core -p ham-lsp-server-exe
+# ビルドする
+cargo build --bin ham
 
-# DLL は32ビットでビルドする。
-cargo build -p ham-lsp-server-dll --target i686-pc-windows-msvc
+# DLLは32ビットでビルドする
+cargo build -p ham-sdk --target i686-pc-windows-msvc
 
 (
     cd vscode-ext

@@ -47,6 +47,7 @@ struct Ctx {
     symbols: Vec<SymbolRc>,
     include_guard: Option<IncludeGuard>,
     includes: Vec<(RcStr, Loc)>,
+    uses: Vec<(String, Loc)>,
     scope: LocalScope,
     module_map: ModuleMap,
     deffunc_map: DefFuncMap,
@@ -128,12 +129,7 @@ fn on_block(block: &PBlock, ctx: &mut Ctx) {
 
 fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
     match stmt {
-        PStmt::Label(PLabel { star, name_opt }) => {
-            if let Some(name) = name_opt {
-                ctx.add_symbol(HspSymbolKind::Label, star, name, ImportMode::Local);
-            }
-        }
-        PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
+        PStmt::Label(_) | PStmt::Assign(_) | PStmt::Command(_) | PStmt::Invoke(_) => {}
         PStmt::If(stmt) => {
             on_block(&stmt.body, ctx);
             on_block(&stmt.alt, ctx);
@@ -179,6 +175,7 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 ctx.add_symbol(HspSymbolKind::Enum, hash, name, scope);
             }
         }
+        PStmt::Var(_) => {}
         PStmt::DefFunc(stmt) => {
             let PDefFuncStmt {
                 hash,
@@ -360,6 +357,13 @@ fn on_stmt(stmt: &PStmt, ctx: &mut Ctx) {
                 }
             }
         }
+        PStmt::Use(stmt) => {
+            for (name, _comma_opt) in &stmt.names {
+                let text = name.body_text().to_ascii_lowercase().to_string();
+                let loc = name.body.loc;
+                ctx.uses.push((text, loc));
+            }
+        }
         PStmt::UnknownPreProc(_) => {}
     }
 }
@@ -428,6 +432,7 @@ pub(crate) struct PreprocAnalysisResult {
     pub(crate) symbols: Vec<SymbolRc>,
     pub(crate) include_guard: Option<IncludeGuard>,
     pub(crate) includes: Vec<(RcStr, Loc)>,
+    pub(crate) uses: Vec<(String, Loc)>,
     pub(crate) module_map: ModuleMap,
     pub(crate) deffunc_map: HashMap<DefFuncKey, DefFuncData>,
 }
@@ -445,6 +450,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
         symbols,
         include_guard,
         includes,
+        uses,
         module_map,
         deffunc_map,
         ..
@@ -454,6 +460,7 @@ pub(crate) fn analyze_preproc(doc: DocId, root: &PRoot) -> PreprocAnalysisResult
         symbols,
         include_guard,
         includes,
+        uses,
         module_map,
         deffunc_map,
     }

@@ -49,14 +49,14 @@ const getLspBin = (context: ExtensionContext) => {
 
   const relativePath = process.env.HSP3_ANALYZER_MINI_LSP_BIN
     || config.get("lsp-bin") as string | undefined
-    || "./out/ham-lsp-server-exe"
+    || "./dist/ham"
 
   return context.asAbsolutePath(relativePath)
 }
 
 const getHsp3Root = () => {
   // 現在の最新版の既定のインストールディレクトリ
-  const DEFAULT_DIR = "C:/Program Files (x86)/hsp36"
+  const DEFAULT_DIR = "C:/hsp37"
 
   const config = workspace.getConfiguration("hsp3-analyzer-mini")
   return config.get<string>("hsp3-root")
@@ -64,11 +64,11 @@ const getHsp3Root = () => {
     || DEFAULT_DIR
 }
 
-const lintIsEnabled = () =>
-  workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("lint-enabled") ?? true
-
-const documentSymbolEnabled = () =>
+const isDocumentSymbolEnabled = () =>
   workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("documentSymbol.enabled") === true
+
+const isLintEnabled = () =>
+  workspace.getConfiguration("hsp3-analyzer-mini").get<boolean>("lint-enabled") ?? true
 
 // -----------------------------------------------
 // LSPクライアント
@@ -76,14 +76,14 @@ const documentSymbolEnabled = () =>
 
 const newLspClient = (lspBin: string): LanguageClient => {
   const hsp3Root = getHsp3Root()
-  const lintEnabled = lintIsEnabled()
 
   const serverOptions: ServerOptions = {
     command: lspBin,
     args: ["--hsp", hsp3Root, "lsp"],
     options: {
       env: {
-        "HAM_LINT": lintEnabled ? "1" : "",
+        "HAM_DOCUMENT_SYMBOL_ENABLED": isDocumentSymbolEnabled() ? "1" : "0",
+        "HAM_LINT": isLintEnabled() ? "1" : "0",
       }
     }
   }
@@ -95,9 +95,6 @@ const newLspClient = (lspBin: string): LanguageClient => {
     synchronize: {
       // `workspace/didChangeWatchedFiles` のための監視対象
       fileEvents: workspace.createFileSystemWatcher("**/*.hsp"),
-    },
-    initializationOptions: {
-      documentSymbol: { enabled: documentSymbolEnabled() },
     },
   }
 
@@ -182,18 +179,35 @@ const dev = (context: ExtensionContext): void => {
   const doReload = async () => {
     // LSPクライアントが起動中なら停止させる。
     if (client.needsStop()) {
-      const stateChanged = waitClientStateChange()
-      await client.stop()
-      await stateChanged // 完全に停止するのを待つ。
+      try {
+        await Promise.all([
+          waitClientStateChange(), // 完全に停止するのを待つ
+          client.stop(),
+        ])
+      } catch (err) {
+        // (vscode-languageclient@9) `client.stop` が例外を投げることがあり、ここでキャッチする
+        // その際にエラー通知 ("Pending response rejected...") も出るが、それを非表示にする方法は分からなかった
+        // (ほかのメソッド呼び出しや、clientOptionsのerrorHandler, middleware(sendResponse)などで例外のキャッチを試した)
+        // ref: https://github.com/microsoft/vscode-languageserver-node/issues/1307
+        console.error("ham: stop:", err)
+        setTimeout(requestReload, 300)
+        return
+      }
     }
 
     await copyLspBin()
     startWatcher()
 
     // LSPクライアントを起動する。
-    const stateChanged = waitClientStateChange()
-    client.start()
-    await stateChanged
+    try {
+      await Promise.all([
+        waitClientStateChange(),
+        client.start(),
+      ])
+    } catch (err) {
+      console.error("ham: restart:", err)
+      return
+    }
   }
 
   let current: Promise<void> | null = null

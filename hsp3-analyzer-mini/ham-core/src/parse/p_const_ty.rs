@@ -1,3 +1,4 @@
+/// 定数タイプ (`#const` のタイプ指定)
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum PConstTy {
     Double,

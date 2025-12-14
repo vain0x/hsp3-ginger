@@ -2,6 +2,29 @@
 
 ([GitHub Releases](https://github.com/vain0x/hsp3-ginger/releases) も参照。)
 
+## [0.6.0] - 2025-12-15
+
+#### 追加
+
+- HSP3.7の新機能に対応しました
+    - `#var` 系命令 (`#varlabel`, `#varstr`, `#vardouble`, `#varint`)
+        - → 変数の定義箇所にカウントされる
+    - `#use`
+        - → 参照先のファイルが解析対象になる、定義へ移動がはたらく
+
+#### 修正
+
+- ラベルのシンボルが重複して定義される問題を修正しました ([#11](https://github.com/vain0x/hsp3-ginger/issues/11)) (※再修正)
+
+#### その他
+
+- \[内部\]
+    - LSPサーバーの基盤実装を lsp_server クレートへ変更
+    - VSCode 拡張機能のバンドラーを webpack → esbuild へ変更
+    - リファクタリング
+    - 開発者用のドキュメントを追加
+- \[実験\] `ham parse` サブコマンドを追加しました
+
 ## [0.5.1] - 2024-01-30
 
 #### 修正
@@ -20,7 +43,8 @@
 
 - 「VC++ランタイムライブラリ」をインストールしていない環境でも動作するように変更しました。([#10](https://github.com/vain0x/hsp3-ginger/issues/10))
     (HAMの実行ファイルにランタイムライブラリが静的リンクされるようになります。)
-- ラベルのシンボルが重複して定義される問題を修正しました。([#11](https://github.com/vain0x/hsp3-ginger/issues/11))
+- ~~ラベルのシンボルが重複して定義される問題を修正しました。([#11](https://github.com/vain0x/hsp3-ginger/issues/11))~~
+    - 追記: 0.5.2 で取り下げ
 
 ## [0.4.0] - 2021-11-01
 
@@ -44,16 +68,13 @@
 
 ## [0.3.0]
 
-
 → [merge](https://github.com/vain0x/hsp3-ginger/commit/d2788085d71c8d8fdf31e445a8e262c08e18fba8)
 
 # [0.2.1] - 2020-06-04
 
-
 → [merge](https://github.com/vain0x/hsp3-ginger/commit/a12e2e2d0871a6900ccea753d024317bc33692c7)
 
 ## [0.1.1] - 2019-11-29
-
 
 - 文字列リテラルの内容次第でクラッシュするバグを修正
 
@@ -65,6 +86,8 @@
 
 > [keep a changelog](https://keepachangelog.com/ja/)
 
+[0.6.0]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.6.0
+[0.5.2]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.5.2
 [0.5.1]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.5.1
 [0.5.0]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.5.0
 [0.4.0]: https://github.com/vain0x/hsp3-ginger/releases/tag/hsp3-analyzer-mini-v0.4.0

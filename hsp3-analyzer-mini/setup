@@ -9,5 +9,5 @@ rustup target add i686-pc-windows-msvc
 # 依存パッケージをインストールする。
 (
     cd vscode-ext
-    npm ci
+    npm ci --ignore-scripts
 )

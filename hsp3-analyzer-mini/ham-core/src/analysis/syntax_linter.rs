@@ -1,3 +1,5 @@
+//! 構文リント
+
 use super::*;
 use crate::parse::*;
 

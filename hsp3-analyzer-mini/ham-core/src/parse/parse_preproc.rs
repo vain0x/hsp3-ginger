@@ -3,15 +3,17 @@ use super::{
     parse_context::Px,
     parse_expr::{parse_args, parse_expr},
     parse_stmt::parse_stmt,
+    token::TokenKind,
     PCmdStmt, PConstStmt, PConstTy, PDefFuncKind, PDefFuncStmt, PDefineStmt, PEnumStmt,
     PGlobalStmt, PIncludeKind, PIncludeStmt, PLibFuncStmt, PMacroParam, PModuleStmt, PParam,
-    PParamTy, PPrivacy, PRegCmdStmt, PStmt, PUnknownPreProcStmt, PUseLibStmt,
+    PParamTy, PPrivacy, PRegCmdStmt, PStmt, PUnknownPreProcStmt, PUseLibStmt, PUseStmt, PVarStmt,
 };
-use crate::token::TokenKind;
 
 static DEFFUNC_LIKE_KEYWORDS: &[&str] = &[
     "deffunc", "defcfunc", "modfunc", "modcfunc", "modinit", "modterm",
 ];
+
+static VAR_LIKE_KEYWORDS: &[&str] = &["var", "vardouble", "varint", "varlabel", "varstr"];
 
 impl TokenKind {
     fn is_end_of_preproc(self) -> bool {
@@ -114,6 +116,37 @@ fn parse_enum_stmt(hash: PToken, px: &mut Px) -> PEnumStmt {
         name_opt,
         equal_opt,
         init_opt,
+    }
+}
+
+fn parse_var_stmt(hash: PToken, px: &mut Px) -> PVarStmt {
+    assert!(VAR_LIKE_KEYWORDS.contains(&px.next_token().body_text()));
+    let keyword = px.bump();
+
+    let mut names = vec![];
+    loop {
+        match px.next() {
+            TokenKind::Eof | TokenKind::Eos => break,
+            TokenKind::Ident => {
+                let name = px.bump();
+                let comma_opt = px.eat(TokenKind::Comma);
+                let comma_seen = comma_opt.is_some();
+
+                names.push((name, comma_opt));
+
+                if !comma_seen {
+                    break;
+                }
+            }
+            _ => px.skip(),
+        }
+    }
+    parse_end_of_preproc(px);
+
+    PVarStmt {
+        hash,
+        keyword,
+        names,
     }
 }
 
@@ -432,12 +465,47 @@ fn parse_include_stmt(hash: PToken, kind: PIncludeKind, px: &mut Px) -> PInclude
     }
 }
 
+// UseStmt = hash:'#' keyword:'use' names:Names EOS
+// Names = (IDENT ','?)*
+fn parse_use_stmt(hash: PToken, px: &mut Px) -> PUseStmt {
+    let keyword = px.bump();
+
+    let mut names = vec![];
+    loop {
+        match px.next() {
+            TokenKind::Eof | TokenKind::Eos => break,
+            TokenKind::Ident => {
+                let name = px.bump();
+                let comma_opt = px.eat(TokenKind::Comma);
+                let comma_seen = comma_opt.is_some();
+
+                names.push((name, comma_opt));
+
+                if !comma_seen {
+                    break;
+                }
+            }
+            _ => px.skip(),
+        }
+    }
+    parse_end_of_preproc(px);
+
+    PUseStmt {
+        hash,
+        keyword,
+        names,
+    }
+}
+
 pub(crate) fn parse_preproc_stmt(px: &mut Px) -> Option<PStmt> {
     let hash = px.eat(TokenKind::Hash)?;
 
     let stmt = match px.next_token().body_text() {
         "const" => PStmt::Const(parse_const_stmt(hash, px)),
         "enum" => PStmt::Enum(parse_enum_stmt(hash, px)),
+        "var" | "vardouble" | "varint" | "varlabel" | "varstr" => {
+            PStmt::Var(parse_var_stmt(hash, px))
+        }
         "define" => PStmt::Define(parse_define_stmt(hash, px)),
         "deffunc" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::DefFunc, px)),
         "defcfunc" => PStmt::DefFunc(parse_deffunc_like_stmt(hash, PDefFuncKind::DefCFunc, px)),
@@ -453,6 +521,7 @@ pub(crate) fn parse_preproc_stmt(px: &mut Px) -> Option<PStmt> {
         "global" => PStmt::Global(parse_global_stmt(hash, px)),
         "include" => PStmt::Include(parse_include_stmt(hash, PIncludeKind::Include, px)),
         "addition" => PStmt::Include(parse_include_stmt(hash, PIncludeKind::Addition, px)),
+        "use" => PStmt::Use(parse_use_stmt(hash, px)),
         _ => {
             let tokens = eat_arbitrary_tokens(px);
             PStmt::UnknownPreProc(PUnknownPreProcStmt { hash, tokens })

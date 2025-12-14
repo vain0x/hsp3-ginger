@@ -1,3 +1,4 @@
+//! 構文木の定義
 use super::*;
 
 fn debug_fmt_opt<T: Debug>(
@@ -11,12 +12,14 @@ fn debug_fmt_opt<T: Debug>(
     }
 }
 
+/// `#include` または `#addition` のどちらか
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum PIncludeKind {
     Include,
     Addition,
 }
 
+/// `#deffunc` 系命令の種類
 #[derive(Copy, Clone, Debug)]
 pub(crate) enum PDefFuncKind {
     DefFunc,
@@ -42,6 +45,17 @@ pub(crate) struct PLabel {
     pub(crate) name_opt: Option<PToken>,
 }
 
+impl PLabel {
+    pub(crate) fn star_name(&self) -> Option<(RcStr, Loc)> {
+        let Some(name) = &self.name_opt else {
+            return None;
+        };
+        let loc = self.star.body.loc.unite(&name.body.loc);
+        let name = RcStr::from(format!("*{}", &name.body.text));
+        Some((name, loc))
+    }
+}
+
 impl Debug for PLabel {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "*")?;
@@ -49,6 +63,7 @@ impl Debug for PLabel {
     }
 }
 
+/// Argument. 引数
 #[must_use]
 pub(crate) struct PArg {
     pub(crate) expr_opt: Option<PExpr>,
@@ -62,6 +77,7 @@ impl Debug for PArg {
     }
 }
 
+/// `.x` 形式の引数
 #[must_use]
 pub(crate) struct PDotArg {
     pub(crate) dot: PToken,
@@ -119,7 +135,8 @@ impl Debug for PNameParen {
 }
 
 /// 複合項
-/// (変数の参照、配列要素の参照、関数の呼び出し)
+///
+/// (変数の参照、配列要素の参照、関数の呼び出しを総称して、ここでは複合項と呼んでいる)
 #[must_use]
 pub(crate) enum PCompound {
     Name(PToken),
@@ -205,6 +222,7 @@ impl Debug for PInfixExpr {
     }
 }
 
+/// 式
 #[must_use]
 pub(crate) enum PExpr {
     Literal(PToken),
@@ -314,6 +332,7 @@ impl Debug for PBlock {
     }
 }
 
+/// if文
 #[must_use]
 pub(crate) struct PIfStmt {
     /// `if` キーワード
@@ -343,6 +362,7 @@ impl Debug for PIfStmt {
     }
 }
 
+/// `#const`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PConstStmt {
@@ -376,6 +396,7 @@ impl Debug for PMacroParam {
     }
 }
 
+/// `#define`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PDefineStmt {
@@ -390,6 +411,7 @@ pub(crate) struct PDefineStmt {
     pub(crate) tokens: Vec<PToken>,
 }
 
+/// `#enum`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PEnumStmt {
@@ -404,6 +426,16 @@ pub(crate) struct PEnumStmt {
     pub(crate) init_opt: Option<PExpr>,
 }
 
+/// `#var`, etc. (>= HSP3.7)
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PVarStmt {
+    pub(crate) hash: PToken,
+    pub(crate) keyword: PToken,
+    pub(crate) names: Vec<(PToken, Option<PToken>)>,
+}
+
+/// `#deffunc` や `#func` のパラメータ
 #[must_use]
 pub(crate) struct PParam {
     pub(crate) param_ty_opt: Option<(PParamTy, PToken)>,
@@ -445,6 +477,7 @@ pub(crate) struct PDefFuncStmt {
     pub(crate) behind: Loc,
 }
 
+/// `#uselib`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PUseLibStmt {
@@ -476,6 +509,7 @@ pub(crate) struct PLibFuncStmt {
     pub(crate) params: Vec<PParam>,
 }
 
+/// `#usecom`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PUseComStmt {
@@ -488,6 +522,7 @@ pub(crate) struct PUseComStmt {
     pub(crate) args: Vec<PArg>,
 }
 
+/// `#comfunc`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PComFuncStmt {
@@ -502,6 +537,7 @@ pub(crate) struct PComFuncStmt {
     pub(crate) params: Vec<PParam>,
 }
 
+/// `#regcmd`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PRegCmdStmt {
@@ -542,6 +578,7 @@ pub(crate) struct PModuleStmt {
     pub(crate) behind: Loc,
 }
 
+/// `#global`
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PGlobalStmt {
@@ -562,6 +599,19 @@ pub(crate) struct PIncludeStmt {
     pub(crate) file_path_opt: Option<PToken>,
 }
 
+/// `#use` (>= HSP3.7)
+#[derive(Debug)]
+#[must_use]
+pub(crate) struct PUseStmt {
+    #[allow(unused)]
+    pub(crate) hash: PToken,
+    #[allow(unused)]
+    pub(crate) keyword: PToken,
+    // 識別子とカンマの並び
+    pub(crate) names: Vec<(PToken, Option<PToken>)>,
+}
+
+/// 不明なプリプロセッサ命令 (行が `#` で始まり、特定のプリプロセッサ命令と解釈できなかった部分)
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PUnknownPreProcStmt {
@@ -569,6 +619,7 @@ pub(crate) struct PUnknownPreProcStmt {
     pub(crate) tokens: Vec<PToken>,
 }
 
+/// 文
 #[must_use]
 pub(crate) enum PStmt {
     Label(PLabel),
@@ -579,6 +630,7 @@ pub(crate) enum PStmt {
     Const(PConstStmt),
     Define(PDefineStmt),
     Enum(PEnumStmt),
+    Var(PVarStmt),
     DefFunc(PDefFuncStmt),
     UseLib(PUseLibStmt),
     LibFunc(PLibFuncStmt),
@@ -591,6 +643,7 @@ pub(crate) enum PStmt {
     Module(PModuleStmt),
     Global(PGlobalStmt),
     Include(PIncludeStmt),
+    Use(PUseStmt),
     UnknownPreProc(PUnknownPreProcStmt),
 }
 
@@ -605,6 +658,7 @@ impl Debug for PStmt {
             PStmt::Const(it) => Debug::fmt(it, f),
             PStmt::Define(it) => Debug::fmt(it, f),
             PStmt::Enum(it) => Debug::fmt(it, f),
+            PStmt::Var(it) => Debug::fmt(it, f),
             PStmt::DefFunc(it) => Debug::fmt(it, f),
             PStmt::UseLib(it) => Debug::fmt(it, f),
             PStmt::LibFunc(it) => Debug::fmt(it, f),
@@ -615,11 +669,13 @@ impl Debug for PStmt {
             PStmt::Module(it) => Debug::fmt(it, f),
             PStmt::Global(it) => Debug::fmt(it, f),
             PStmt::Include(it) => Debug::fmt(it, f),
+            PStmt::Use(it) => Debug::fmt(it, f),
             PStmt::UnknownPreProc(it) => Debug::fmt(it, f),
         }
     }
 }
 
+/// 構文木のルート
 #[derive(Debug)]
 #[must_use]
 pub(crate) struct PRoot {

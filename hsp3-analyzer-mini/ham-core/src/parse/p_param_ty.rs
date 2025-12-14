@@ -1,3 +1,6 @@
+/// Parameter type. パラメータタイプ
+///
+/// (`#deffunc` や `#func` で宣言されるパラメータのタイプ)
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum PParamTy {
     Str,
@@ -108,6 +111,9 @@ impl PParamTy {
         }
     }
 
+    /// 呼び出しに引数が必要か
+    ///
+    /// (特殊なパラメータは呼び出し時に引数の指定が必要ない)
     pub(crate) fn take_arg(self) -> bool {
         match self.category() {
             PParamCategory::ByValue | PParamCategory::ByRef => true,
@@ -115,11 +121,13 @@ impl PParamTy {
         }
     }
 
+    /// 参照渡し引数か
     pub(crate) fn is_by_ref(self) -> bool {
         self.category() == PParamCategory::ByRef
     }
 }
 
+/// パラメータの便宜上の分類 (コード記述を簡略化するためのもの)
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum PParamCategory {
     /// 値渡し。エイリアスは書き換え不可。

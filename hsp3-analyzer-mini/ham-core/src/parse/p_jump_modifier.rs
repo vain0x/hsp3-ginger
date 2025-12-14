@@ -1,4 +1,4 @@
-/// oncmd や button の直後の goto/gosub
+/// ジャンプ修飾子 (oncmd や button の直後の goto/gosub)
 #[derive(Clone, Copy)]
 pub(crate) enum PJumpModifier {
     Goto,

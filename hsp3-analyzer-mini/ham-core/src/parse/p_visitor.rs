@@ -1,5 +1,6 @@
 use super::*;
 
+/// 構文木のビジター
 pub(crate) trait PVisitor {
     fn on_token(&mut self, _token: &PToken) {}
 
@@ -198,6 +199,14 @@ pub(crate) trait PVisitor {
             PStmt::Enum(_) => {
                 // FIXME: implement
             }
+            PStmt::Var(stmt) => {
+                self.on_token(&stmt.hash);
+                self.on_token(&stmt.keyword);
+                for (name, comma_opt) in &stmt.names {
+                    self.on_token(&name);
+                    self.on_token_opt(comma_opt.as_ref());
+                }
+            }
             PStmt::DefFunc(stmt) => self.on_deffunc_stmt(stmt),
             PStmt::UseLib(_)
             | PStmt::LibFunc(_)
@@ -211,6 +220,13 @@ pub(crate) trait PVisitor {
             PStmt::Global(_) | PStmt::Include(_) => {
                 // FIXME: implement
             }
+            PStmt::Use(stmt) => {
+                self.on_token(&stmt.hash);
+                for (name, comma_opt) in &stmt.names {
+                    self.on_token(name);
+                    self.on_token_opt(comma_opt.as_ref());
+                }
+            }
             PStmt::UnknownPreProc(stmt) => {
                 self.on_token(&stmt.hash);
                 self.on_tokens(&stmt.tokens);
@@ -222,6 +238,7 @@ pub(crate) trait PVisitor {
         self.on_stmt_default(stmt);
     }
 
+    #[allow(unused)]
     fn on_stmt_opt(&mut self, stmt_opt: Option<&PStmt>) {
         if let Some(stmt) = stmt_opt {
             self.on_stmt(stmt);
@@ -272,6 +289,7 @@ impl PStmt {
     }
 }
 
+/// 構文木内の各ノードの範囲を計算するもの
 #[derive(Default)]
 struct VisitorForRange {
     first: Option<Range>,

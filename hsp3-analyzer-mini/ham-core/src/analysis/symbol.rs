@@ -157,6 +157,7 @@ pub(crate) enum DefInfo {
     HspHelp {
         name: RcStr,
         details: SymbolDetails,
+        builtin: bool,
         signature_opt: Option<Rc<SignatureData>>,
     },
     Preproc {
@@ -182,6 +183,7 @@ impl DefInfo {
             DefInfo::HspHelp {
                 name,
                 details,
+                builtin,
                 signature_opt,
             } => SymbolData {
                 kind: HspSymbolKind::Unknown,
@@ -190,6 +192,7 @@ impl DefInfo {
                 ns_opt: None,
                 leader_opt: None,
                 details_opt: Some(details),
+                builtin,
 
                 preproc_def_site_opt: None,
                 signature_opt: RefCell::new(signature_opt),
@@ -208,6 +211,7 @@ impl DefInfo {
                 scope_opt,
                 ns_opt,
                 leader_opt: Some(leader),
+                builtin: false,
 
                 details_opt: None,
                 preproc_def_site_opt: Some(loc),
@@ -226,6 +230,7 @@ impl DefInfo {
                 scope_opt,
                 ns_opt,
                 leader_opt: Some(name),
+                builtin: false,
 
                 details_opt: None,
                 preproc_def_site_opt: None,
@@ -243,6 +248,9 @@ pub(crate) struct SymbolData {
     pub(crate) scope_opt: Option<Scope>,
     pub(crate) ns_opt: Option<RcStr>,
     leader_opt: Option<PToken>,
+    /// 標準命令か
+    #[allow(unused)]
+    pub(crate) builtin: bool,
 
     details_opt: Option<SymbolDetails>,
     pub(crate) preproc_def_site_opt: Option<Loc>,

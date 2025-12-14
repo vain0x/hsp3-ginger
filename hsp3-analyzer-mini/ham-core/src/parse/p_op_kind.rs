@@ -1,6 +1,8 @@
 use crate::token::TokenKind;
 
-/// トークンを演算子として解釈するとき、どのような構文にパースされるか？
+/// 演算子の便宜上の分類 (コード記述を簡略化するためのもの)
+///
+/// トークンを演算子として解釈するとき、どのような構文にパースされるかを表す
 #[derive(PartialEq, Eq)]
 pub(crate) enum POpKind {
     /// 中置のみ
@@ -14,6 +16,7 @@ pub(crate) enum POpKind {
 }
 
 impl TokenKind {
+    /// トークンを演算子として分類
     pub(crate) fn to_op_kind(self) -> Option<POpKind> {
         let it = match self {
             TokenKind::Minus | TokenKind::Star => POpKind::PrefixOrInfixOrAssign,
@@ -50,6 +53,7 @@ impl TokenKind {
         Some(it)
     }
 
+    /// 中置演算子として解釈可能か
     pub(crate) fn is_infix_op(self) -> bool {
         match self.to_op_kind() {
             None | Some(POpKind::Assign) => false,
@@ -59,6 +63,7 @@ impl TokenKind {
         }
     }
 
+    /// 代入演算子として解釈可能か
     pub(crate) fn is_assign_op(self) -> bool {
         match self.to_op_kind() {
             None | Some(POpKind::Infix) => false,

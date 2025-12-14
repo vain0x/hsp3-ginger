@@ -2,17 +2,33 @@
 extern crate log;
 
 pub mod c_api;
+pub mod subcommands;
 
-mod assists;
+mod analyzer;
 mod help_source;
+mod ide;
 mod lang;
-mod lang_service;
 mod lsp_server;
-mod tests;
 
-use token::{tokenize, TokenKind};
+#[cfg(test)]
+mod tests {
+    use super::*;
+    mod parse_tests;
+    mod symbol_tests;
+    mod tokenize_tests;
+}
 
-pub use crate::lsp_server::lsp_main::start_lsp_server;
+#[cfg(test)]
+pub(crate) mod test_utils {
+    mod dummy_path;
+    mod test_setup;
+
+    pub(crate) use self::dummy_path::dummy_path;
+    #[allow(unused)]
+    pub(crate) use self::test_setup::set_test_logger;
+}
+
+pub use crate::lsp_server::lsp_main::run_lsp_server;
 
 /// 多くのモジュールからインポートされるシンボル:
 use crate::utils::{
@@ -29,7 +45,7 @@ use std::{
     hash::{Hash, Hasher},
     io, iter,
     marker::PhantomData,
-    mem::{replace, take},
+    mem::{self, replace, take},
     ops::Deref,
     path::{self, Path, PathBuf},
     rc::Rc,
@@ -38,42 +54,40 @@ use std::{
 mod analysis {
     use super::*;
 
+    mod analysis_ref;
     mod comment;
-    mod doc_analysis;
-    mod integrate;
+    pub(crate) mod compute_active_docs;
+    pub(crate) mod compute_includes;
+    pub(crate) mod compute_symbols;
+    pub(crate) mod doc_analysis;
     mod name_system;
     mod preproc;
-    mod project_analysis;
-    mod sema;
+    pub(crate) mod sema_linter;
     mod symbol;
-    mod syntax_linter;
+    pub(crate) mod syntax_linter;
     mod var;
-    mod workspace_analysis;
 
     pub(crate) use self::{
+        analysis_ref::{
+            collect_doc_symbols, collect_highlights, collect_preproc_completion_items,
+            collect_symbol_occurrences, collect_symbol_occurrences_in_doc,
+            collect_symbols_in_scope, collect_workspace_symbols, find_include_target,
+            CollectSymbolOptions, DefOrUse, DocAnalysisMap, DocSyntax, SignatureHelpDb,
+        },
         doc_analysis::DocAnalysis,
         name_system::*,
         preproc::{IncludeGuard, PreprocAnalysisResult, SignatureData},
-        project_analysis::{EntryPoints, ProjectAnalysis, ProjectAnalysisRef},
-        sema::{Diagnostic, Sema},
+        sema_linter::{Diagnostic, SemaLinter},
         symbol::{
             module_name_as_ident, DefFuncData, DefFuncKey, DefFuncMap, ModuleData, ModuleKey,
             ModuleMap, ModuleRc,
         },
         symbol::{DefInfo, HspSymbolKind, SymbolDetails, SymbolRc},
         syntax_linter::SyntaxLint,
-        workspace_analysis::{DocSyntax, WorkspaceAnalysis, WorkspaceHost},
-    };
-    pub(crate) use super::assists::{
-        completion::{
-            collect_symbols_as_completion_items, in_preproc, in_str_or_comment, ACompletionItem,
-        },
-        signature_help::{SignatureHelpContext, SignatureHelpHost},
     };
 
     use crate::{
-        lang::Lang,
-        lang_service::{docs::ProjectDocs, search_hsphelp::HspHelpInfo},
+        analyzer::search_hsphelp::HspHelpInfo,
         parse::{PRoot, PToken},
         source::*,
         token::{TokenData, TokenKind},
@@ -83,6 +97,7 @@ mod analysis {
 mod parse {
     //! 構文木・構文解析
 
+    pub(crate) mod bp;
     pub(crate) mod p_const_ty;
     pub(crate) mod p_jump_modifier;
     pub(crate) mod p_op_kind;
@@ -95,8 +110,6 @@ mod parse {
     pub(crate) mod parse_expr;
     pub(crate) mod parse_preproc;
     pub(crate) mod parse_stmt;
-
-    mod parse_tests;
 
     pub(crate) use p_const_ty::PConstTy;
     pub(crate) use p_jump_modifier::PJumpModifier;
@@ -141,7 +154,6 @@ mod token {
     mod token_kind;
     mod tokenize_context;
     mod tokenize_rules;
-    mod tokenize_tests;
 
     pub(crate) use token_data::TokenData;
     pub(crate) use token_kind::TokenKind;
@@ -157,75 +169,4 @@ mod utils {
     pub(crate) mod rc_slice;
     pub(crate) mod rc_str;
     pub(crate) mod read_file;
-}
-
-pub fn rewrite_fn(text: String) -> String {
-    let text_len = text.len();
-    let text = RcStr::from(text);
-    let tokens = tokenize(1, text.clone());
-
-    let mut output = String::with_capacity(text_len);
-    for token in tokens {
-        match token.kind {
-            TokenKind::Comment if token.text.starts_with("//") => {
-                assert!(!token.text.contains("\n"), "コメントは改行を含まないはず");
-                let slash = token.text.chars().take_while(|&c| c == '/').count();
-                let space = token.text[slash..]
-                    .chars()
-                    .take_while(|&c| c == ' ')
-                    .count();
-                let tab = token.text[slash..]
-                    .chars()
-                    .take_while(|&c| c == '\t')
-                    .count();
-                let rest = &token.text[slash + space.max(tab)..];
-
-                // "// ----..." みたいなやつ(境界線)
-                if slash == 2 && space == 1 && rest.len() >= 10 && rest.chars().all(|c| c == '-') {
-                    output += "; -";
-                    output += rest;
-                    continue;
-                }
-                if slash == 2 && space == 1 && rest.len() >= 10 && rest.chars().all(|c| c == '=') {
-                    output += "; =";
-                    output += rest;
-                    continue;
-                }
-
-                let mut n = slash + space;
-
-                if slash == 3 {
-                    // スラッシュ3つはドキュメンテーションコメントとみなす。
-                    output += ";;";
-                    n -= 2;
-                } else {
-                    output += ";";
-                    n -= 1;
-                };
-
-                if tab >= 1 {
-                    // タブによるスペースは調整しない。
-                    for _ in 0..tab {
-                        output += "\t";
-                    }
-                } else if space == 1 {
-                    // もともとスペースが1個ならスペースによる桁合わせは行われていないとみなして、1つだけスペースを入れる。
-                    output += " ";
-                } else if space >= 2 {
-                    // 桁を合わせる。
-                    for _ in 0..n {
-                        output += " ";
-                    }
-                }
-
-                output += rest;
-                continue;
-            }
-            _ => {}
-        }
-
-        output += &token.text;
-    }
-
-    output
 }

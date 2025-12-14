@@ -1,16 +1,23 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es2017",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "target": "esnext",
         "lib": [
-            "es2017"
+            "esnext"
         ],
         "baseUrl": ".",
         "rootDir": "src",
-        "outDir": "out",
+        "esModuleInterop": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "skipLibCheck": true,
         "sourceMap": true,
         "strict": true
     },
+    "include": [
+        "src/**/*.ts"
+    ],
     "exclude": [
         "node_modules"
     ]

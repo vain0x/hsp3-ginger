@@ -18,14 +18,17 @@ impl<T> RcItem<T> {
         assert!(index < underlying.len());
         RcItem { underlying, index }
     }
-}
 
-#[cfg(unused)]
-impl<T: Clone> RcItem<T> {
-    pub(crate) fn to_owned(&self) -> T {
-        self.as_ref().clone()
+    pub(crate) fn new_single(value: T) -> Self {
+        RcItem::new(Rc::new([value]), 0)
     }
 }
+
+// impl<T: Clone> RcItem<T> {
+//     pub(crate) fn to_owned(&self) -> T {
+//         self.as_ref().clone()
+//     }
+// }
 
 impl<T> AsRef<T> for RcItem<T> {
     fn as_ref(&self) -> &T {
@@ -64,18 +67,12 @@ impl<T: Debug> Debug for RcItem<T> {
     }
 }
 
-// WHY-NOT: `derive(Clone)` だと `T: Clone` のときしかCloneを実装しない。
+// `derive(Clone)` だと `T: Clone` のときしかCloneを実装しない。
 impl<T> Clone for RcItem<T> {
     fn clone(&self) -> Self {
         RcItem {
             underlying: self.underlying.clone(),
             index: self.index,
         }
-    }
-}
-
-impl<T> From<T> for RcItem<T> {
-    fn from(value: T) -> Self {
-        RcItem::new(Rc::new([value]), 0)
     }
 }

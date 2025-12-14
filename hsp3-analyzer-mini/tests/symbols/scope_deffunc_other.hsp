@@ -1,6 +1,6 @@
 ; module
 ; deffuncが定義したシンボルが他のファイルからも参照できること。
 
-#include "scope_deffunc_other.hsp"
+#include "./scope_deffunc.hsp"
 
     global_func ; @use global_func

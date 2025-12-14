@@ -1,5 +1,5 @@
 /// 字句の種類
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[must_use]
 pub(crate) enum TokenKind {
     // マーカー:
