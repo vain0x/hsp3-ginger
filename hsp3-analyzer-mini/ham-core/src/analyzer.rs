@@ -42,7 +42,7 @@ pub(super) struct Analyzer {
     active_docs: HashSet<DocId>,
     active_help_docs: HashSet<DocId>,
     help_docs: HashMap<DocId, DocId>,
-    /// (loc, doc): locにあるincludeがdocに解決されたことを表す (FIXME: 再実装)
+    /// (loc, doc): locにあるinclude/addition/useがdocに解決されたことを表す
     include_resolution: Vec<(Loc, DocId)>,
     public_env: PublicEnv,
     ns_env: HashMap<RcStr, SymbolEnv>,
